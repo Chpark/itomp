@@ -178,6 +178,7 @@ double EvaluationManager::evaluate(vector<Eigen::VectorXd>& parameters, vector<E
     parameters[d] = group_trajectory_->getFreeJointTrajectoryBlock(d);
   }
 
+  /*
   static int count = 0;
   if (++count % 1000 == 0)
   //if (group_trajectory_->getContactValue(1, 0) != 0 || group_trajectory_->getContactValue(1, 1) != 0 ||
@@ -192,6 +193,7 @@ double EvaluationManager::evaluate(vector<Eigen::VectorXd>& parameters, vector<E
       printf("\n");
     }
   }
+  */
   return costAccumulator_->getTrajectoryCost();
 
 }
@@ -768,8 +770,6 @@ public:
 private:
 };
 
-#include <itomp_cio_planner/util/multivariate_gaussian.h>
-
 void EvaluationManager::optimize_nlp()
 {
   int num_contact_vars_free = getGroupTrajectory()->getNumContactPhases() - 2;
@@ -802,10 +802,12 @@ void EvaluationManager::optimize_nlp()
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       test_function(this, num_joints_, num_vars_free_, num_contacts_, num_contact_vars_free), variables, -1);
 
+  /*
   STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);
   costAccumulator_->print(0);
   STABILITY_COST_VERBOSE = false;
+  */
 }
 
 }
