@@ -25,9 +25,11 @@
   <param name="/move_itomp/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
 
 
-
+<!--
   <node name="move_itomp" pkg="move_itomp" type="move_itomp" respawn="false" output="screen">
+    <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml"/>
+   <param name="/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
   </node>
-
+-->
 
 </launch>
