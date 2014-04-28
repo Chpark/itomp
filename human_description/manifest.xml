@@ -1,0 +1,16 @@
+<package>
+  <description brief="human_description">
+
+     human_description
+
+  </description>
+  <author>Cheonhyeon Park</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/human_description</url>
+  <depend package="urdf"/>
+  <depend package="xacro"/>
+
+</package>
+
+

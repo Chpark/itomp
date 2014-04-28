@@ -1,0 +1,35 @@
+<package>
+  <description brief="itomp_cio_planner">
+
+     itomp_cio_planner
+
+  </description>
+  <author>Chonhyon Park</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/itomp_cio_planner</url>
+  <depend package="roscpp"/>
+<!--  <depend package="planning_models"/>-->
+<!--  <depend package="planning_environment"/>-->
+<!--  <depend package="arm_navigation_msgs"/>-->
+  <depend package="orocos_kdl"/>
+  <depend package="kdl_parser"/>
+  <depend package="angles"/>
+<!--  <depend package="eigen"/>-->
+  <depend package="visualization_msgs"/>
+  <depend package="tf"/>
+<!--  <depend package="distance_field"/>-->
+  <depend package="sensor_msgs"/>
+  <depend package="trajectory_msgs"/>
+  <depend package="filters"/>
+  <depend package="pomp_dynamic_obs_msgs"/>
+  <depend package="moveit_core"/>
+  <depend package="moveit_ros_planning"/>
+
+  <export>
+    <moveit_core plugin="${prefix}/itomp_plugin_description.xml"/>
+  </export>
+
+</package>
+
+
