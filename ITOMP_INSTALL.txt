@@ -1,0 +1,64 @@
+ITOMP Install Instruction
+
+0. Install Ubuntu 12.04 (Recommended) or 12.10 or 13.04.
+
+1. Install ROS Hydro and Moveit Planning Framework (http://moveit.ros.org/install/)
+	Recommend Source installation, but Binay instaiiation might be ok.
+
+2. Create ROS workspace (rosbuild style) (http://wiki.ros.org/ROS/Tutorials/InstallingandConfiguringROSEnvironment)
+
+	sudo apt-get install python-rosinstall
+	mkdir ~/hydro_workspace
+	rosws init ~/hydro_workspace /opt/ros/hydro
+	mkdir ~/hydro_workspace/itomp
+	rosws set ~/hydro_workspace/itomp
+	source ~/hydro_workspace/setup.bash
+
+3. Check out ITOMP planner
+
+	git clone https://github.com/Chpark/itomp.git
+
+4. build move_itomp
+
+	roscd move_itomp
+	rosmake
+
+5. build external libraries for itomp
+
+	cd ~/hydro_workspace/itomp
+	cd external_libs
+	tar xzvf clapack.tgz
+	tar xzvf levmar-2.6.tgz
+
+	if ($ locate liblapack.a) returns a location of lobblas.a, skip next indented lines
+		cd CLAPACK-3.2.1
+		mv make.inc.example make.inc
+		make f2clib
+		make blaslib
+		cd SRC
+		make
+		cd ..
+		cp F2CLIBS/libf2c.a ~/hydro_workspace/itomp/lib
+		cp blas_LINUX.a ~/hydro_workspace/itomp/lib
+		cp lapack_LINUX.a ~/hydro_workspace/itomp/lib
+		cp ~/hydro_workspace/itomp/CMakeLists_use_ext_lib.txt ~/hydro_workspace/itomp/CMakeLists.txt
+
+	cd ../levmar-2.6
+	mkdir build
+	cd build
+	cmake ..
+	make
+	cp liblevmar.a ~/hydro_workspace/itomp/lib
+	
+
+5. build itomp_cio_planner
+
+	roscd itomp_cio_planner
+	rosmake
+
+6. test launch
+
+	roscd move_itomp
+	roslaunch ./launch/move_itomp.launch
+
+//////////////////////////////////////////////////////////////////////////////////////////
