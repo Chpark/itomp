@@ -22,7 +22,7 @@
   <depend package="sensor_msgs"/>
   <depend package="trajectory_msgs"/>
   <depend package="filters"/>
-  <depend package="pomp_dynamic_obs_msgs"/>
+<!--  <depend package="pomp_dynamic_obs_msgs"/>-->
   <depend package="moveit_core"/>
   <depend package="moveit_ros_planning"/>
 
