@@ -132,6 +132,90 @@
         <joint name="upper_right_leg_y_joint" value="0" />
         <joint name="upper_right_leg_z_joint" value="0" />
     </group_state>
+    <group_state name="pressup1" group="whole_body">
+        <joint name="base_prismatic_joint_x" value="0" />
+        <joint name="base_prismatic_joint_y" value="0" />
+        <joint name="base_prismatic_joint_z" value="-0.4299" />
+        <joint name="base_revolute_joint_x" value="-1.58" />
+        <joint name="base_revolute_joint_y" value="0" />
+        <joint name="base_revolute_joint_z" value="0" />
+        <joint name="head_x_joint" value="0" />
+        <joint name="head_y_joint" value="0" />
+        <joint name="head_z_joint" value="0" />
+        <joint name="left_foot_x_joint" value="0.95" />
+        <joint name="left_foot_y_joint" value="0" />
+        <joint name="left_foot_z_joint" value="0" />
+        <joint name="left_hand_x_joint" value="-0.22" />
+        <joint name="left_hand_y_joint" value="0" />
+        <joint name="left_hand_z_joint" value="0" />
+        <joint name="lower_left_arm_joint" value="0" />
+        <joint name="lower_left_leg_joint" value="-1.90" />
+        <joint name="lower_right_arm_joint" value="0" />
+        <joint name="lower_right_leg_joint" value="-0.4699" />
+        <joint name="right_foot_x_joint" value="1.1599" />
+        <joint name="right_foot_y_joint" value="0" />
+        <joint name="right_foot_z_joint" value="0" />
+        <joint name="right_hand_x_joint" value="-0.22" />
+        <joint name="right_hand_y_joint" value="0" />
+        <joint name="right_hand_z_joint" value="0" />
+        <joint name="torso_x_joint" value="0" />
+        <joint name="torso_y_joint" value="0" />
+        <joint name="torso_z_joint" value="0" />
+        <joint name="upper_left_arm_x_joint" value="1.8" />
+        <joint name="upper_left_arm_y_joint" value="0" />
+        <joint name="upper_left_arm_z_joint" value="0" />
+        <joint name="upper_left_leg_x_joint" value="2.53" />
+        <joint name="upper_left_leg_y_joint" value="0" />
+        <joint name="upper_left_leg_z_joint" value="0" />
+        <joint name="upper_right_arm_x_joint" value="1.8" />
+        <joint name="upper_right_arm_y_joint" value="0" />
+        <joint name="upper_right_arm_z_joint" value="0" />
+        <joint name="upper_right_leg_x_joint" value="0.88" />
+        <joint name="upper_right_leg_y_joint" value="0" />
+        <joint name="upper_right_leg_z_joint" value="0" />
+    </group_state>
+    <group_state name="pressup2" group="whole_body">
+        <joint name="base_prismatic_joint_x" value="0" />
+        <joint name="base_prismatic_joint_y" value="0" />
+        <joint name="base_prismatic_joint_z" value="-0.4299" />
+        <joint name="base_revolute_joint_x" value="-1.58" />
+        <joint name="base_revolute_joint_y" value="0" />
+        <joint name="base_revolute_joint_z" value="0" />
+        <joint name="head_x_joint" value="0" />
+        <joint name="head_y_joint" value="0" />
+        <joint name="head_z_joint" value="0" />
+        <joint name="left_foot_x_joint" value="0.95" />
+        <joint name="left_foot_y_joint" value="0" />
+        <joint name="left_foot_z_joint" value="0" />
+        <joint name="left_hand_x_joint" value="-0.22" />
+        <joint name="left_hand_y_joint" value="0" />
+        <joint name="left_hand_z_joint" value="0" />
+        <joint name="lower_left_arm_joint" value="0" />
+        <joint name="lower_left_leg_joint" value="-1.90" />
+        <joint name="lower_right_arm_joint" value="0" />
+        <joint name="lower_right_leg_joint" value="-1.90" />
+        <joint name="right_foot_x_joint" value="0.95" />
+        <joint name="right_foot_y_joint" value="0" />
+        <joint name="right_foot_z_joint" value="0" />
+        <joint name="right_hand_x_joint" value="-0.22" />
+        <joint name="right_hand_y_joint" value="0" />
+        <joint name="right_hand_z_joint" value="0" />
+        <joint name="torso_x_joint" value="0" />
+        <joint name="torso_y_joint" value="0" />
+        <joint name="torso_z_joint" value="0" />
+        <joint name="upper_left_arm_x_joint" value="1.8" />
+        <joint name="upper_left_arm_y_joint" value="0" />
+        <joint name="upper_left_arm_z_joint" value="0" />
+        <joint name="upper_left_leg_x_joint" value="2.53" />
+        <joint name="upper_left_leg_y_joint" value="0" />
+        <joint name="upper_left_leg_z_joint" value="0" />
+        <joint name="upper_right_arm_x_joint" value="1.8" />
+        <joint name="upper_right_arm_y_joint" value="0" />
+        <joint name="upper_right_arm_z_joint" value="0" />
+        <joint name="upper_right_leg_x_joint" value="2.53" />
+        <joint name="upper_right_leg_y_joint" value="0" />
+        <joint name="upper_right_leg_z_joint" value="0" />
+    </group_state>
     <group_state name="standup" group="whole_body">
         <joint name="base_prismatic_joint_x" value="0" />
         <joint name="base_prismatic_joint_y" value="0" />
