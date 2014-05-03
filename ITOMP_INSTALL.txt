@@ -33,6 +33,7 @@ ITOMP Install Instruction
 	if ($ locate liblapack.a) returns a location of lobblas.a, skip next indented lines
 		cd CLAPACK-3.2.1
 		mv make.inc.example make.inc
+		(open make.inc using a text editor and add -fPIC to CFLAGS)
 		make f2clib
 		make blaslib
 		cd SRC
