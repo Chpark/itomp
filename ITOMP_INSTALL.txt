@@ -33,23 +33,22 @@ ITOMP Install Instruction
 	if ($ locate liblapack.a) returns a location of lobblas.a, skip next indented lines
 		cd CLAPACK-3.2.1
 		mv make.inc.example make.inc
-		(open make.inc using a text editor and add -fPIC to CFLAGS)
+		(open make.inc using a text editor and add '-fPIC' to CFLAGS, LOADOPTS, and NOOPTS)
 		make f2clib
 		make blaslib
-		cd SRC
 		make
-		cd ..
-		cp F2CLIBS/libf2c.a ~/hydro_workspace/itomp/lib
-		cp blas_LINUX.a ~/hydro_workspace/itomp/lib
-		cp lapack_LINUX.a ~/hydro_workspace/itomp/lib
-		cp ~/hydro_workspace/itomp/CMakeLists_use_ext_lib.txt ~/hydro_workspace/itomp/CMakeLists.txt
+		cp F2CLIBS/libf2c.a ~/hydro_workspace/itomp/itomp_cio_planner/lib
+		cp blas_LINUX.a ~/hydro_workspace/itomp/itomp_cio_planner/lib/libblas.a
+		cp lapack_LINUX.a ~/hydro_workspace/itomp/itomp_cio_planner/lib/liblapack.a
+		cp ~/hydro_workspace/itomp/itomp_cio_planner/CMakeLists_use_ext_lib.txt ~/hydro_workspace/itomp/itomp_cio_planner/CMakeLists.txt
 
 	cd ../levmar-2.6
+	(open CMakelist.txt and add a line 'set (CMAKE_C_FLAGS "-fPIC")' )
 	mkdir build
 	cd build
 	cmake ..
 	make
-	cp liblevmar.a ~/hydro_workspace/itomp/lib
+	cp liblevmar.a ~/hydro_workspace/itomp/itomp_cio_planner/lib
 	
 
 5. build itomp_cio_planner
