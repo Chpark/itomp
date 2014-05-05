@@ -178,22 +178,20 @@ double EvaluationManager::evaluate(vector<Eigen::VectorXd>& parameters, vector<E
     parameters[d] = group_trajectory_->getFreeJointTrajectoryBlock(d);
   }
 
-  /*
   static int count = 0;
   if (++count % 1000 == 0)
-  //if (group_trajectory_->getContactValue(1, 0) != 0 || group_trajectory_->getContactValue(1, 1) != 0 ||
-  //  group_trajectory_->getContactValue(2, 0) != 0 || group_trajectory_->getContactValue(2, 1) != 0)
   {
     costAccumulator_->print(0);
     printf("Contact Values :\n");
     for (int i = 0; i < group_trajectory_->getNumFreeContactPhases(); ++i)
     {
+      printf("%d : ", i);
       for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
         printf("%f ", group_trajectory_->getContactValue(i + 1, j));
       printf("\n");
     }
   }
-  */
+
   return costAccumulator_->getTrajectoryCost();
 
 }
@@ -230,6 +228,9 @@ void EvaluationManager::computeMassAndGravityForce()
     ++numMassSegments_;
   }
   gravityForce_ = totalMass_ * KDL::Vector(0.0, 0.0, -9.8);
+
+  // normalize gravity force to 1.0
+  gravityForce_ = KDL::Vector(0.0, 0.0, -1.0);
 
   linkPositions_.resize(numMassSegments_);
   linkVelocities_.resize(numMassSegments_);
@@ -612,50 +613,36 @@ void EvaluationManager::computeStabilityCosts()
       planning_group_->contactPoints_[i].getPosition(point, contact_positions[i], segment_frames_);
     }
 
-    /*
-     if (point < free_vars_start_ || point > free_vars_end_)
-     {
-     contact_values[0] = 10.0;
-     contact_values[1] = 10.0;
-     }
-     else
-     {
-     contact_values[0] = (group_trajectory_->getContactPhase(point) + LeftLegStart) % 2 == 0 ? 10.0 : 0.0;
-     contact_values[1] = (group_trajectory_->getContactPhase(point) + LeftLegStart) % 2 == 0 ? 0.0 : 10.0;
-     }
-     contact_values[2] = contact_values[3] = 0.0;
-     */
-
     int phase = group_trajectory_->getContactPhase(point);
     for (int i = 0; i < num_contacts; ++i)
       contact_values[i] = group_trajectory_->getContactValue(phase, i);
 
     /*
-    switch (phase)
-    //(phase-1)/2+1)
-    {
-    case 1:
-      contact_values[0] = 0;
-      contact_values[2] = contact_values[1] = contact_values[3] = 10.0;
-      break;
-    case 2:
-      contact_values[1] = 0;
-      contact_values[3] = contact_values[1] = contact_values[2] = 10.0;
-      break;
-    case 3:
-      contact_values[2] = 0;
-      contact_values[0] = contact_values[1] = contact_values[3] = 10.0;
-      break;
-    case 4:
-      contact_values[3] = 0;
-      contact_values[0] = contact_values[1] = contact_values[2] = 10.0;
-      break;
-    default:
-      contact_values[2] = contact_values[3] = 0;
-      contact_values[0] = contact_values[1] = 10.0;
-      break;
-    }
-    */
+     switch (phase)
+     //(phase-1)/2+1)
+     {
+     case 1:
+     contact_values[0] = 0;
+     contact_values[2] = contact_values[1] = contact_values[3] = 10.0;
+     break;
+     case 2:
+     contact_values[1] = 0;
+     contact_values[3] = contact_values[1] = contact_values[2] = 10.0;
+     break;
+     case 3:
+     contact_values[2] = 0;
+     contact_values[0] = contact_values[1] = contact_values[3] = 10.0;
+     break;
+     case 4:
+     contact_values[3] = 0;
+     contact_values[0] = contact_values[1] = contact_values[2] = 10.0;
+     break;
+     default:
+     contact_values[2] = contact_values[3] = 0;
+     contact_values[0] = contact_values[1] = 10.0;
+     break;
+     }
+     */
 
     solveContactForces(PlanningParameters::getInstance()->getFrictionCoefficient(), contact_forces, contact_positions,
         wrenchSum_[point], contact_values, contact_parent_frames);
@@ -676,13 +663,22 @@ void EvaluationManager::computeStabilityCosts()
 
     if (STABILITY_COST_VERBOSE)
     {
+      printf("\n");
+
       KDL::Vector root_pos = segment_frames_[point][3].p;
-      ROS_INFO(
-          "%d Root : (%f %f %f) CoM : (%f %f %f)", point, root_pos.x(), root_pos.y(), root_pos.z(), CoMPositions_[point].x(), CoMPositions_[point].y(), CoMPositions_[point].z());
+      printf("%d Root : (%f %f %f) CoM : (%f %f %f)\n", point, root_pos.x(), root_pos.y(), root_pos.z(),
+          CoMPositions_[point].x(), CoMPositions_[point].y(), CoMPositions_[point].z());
       for (int i = 0; i < num_contacts; ++i)
       {
-        ROS_INFO(
-            "CP %d[%f,(%f %f %f)] : (%f %f %f) (%f %f %f)", i, contact_values[i], contact_forces[i].x(), contact_forces[0].y(), contact_forces[i].z(), contact_parent_frames[i].p.x(), contact_parent_frames[i].p.y(), contact_parent_frames[i].p.z(), contact_positions[i].x(), contact_positions[i].y(), contact_positions[i].z());
+        KDL::Vector rel_pos = (contact_positions[i] - CoMPositions_[point]);
+        KDL::Vector contact_torque = rel_pos * contact_forces[i];
+        printf("CP %d V:%f F:(%f %f %f) RT:(%f %f %f)xF=(%f %f %f) r:(%f %f %f) p:(%f %f %f)\n", i, contact_values[i], contact_forces[i].x(),
+            contact_forces[0].y(), contact_forces[i].z(),
+            rel_pos.x(), rel_pos.y(), rel_pos.z(),
+            contact_torque.x(), contact_torque.y(), contact_torque.z(),
+            contact_parent_frames[i].p.x(),
+            contact_parent_frames[i].p.y(), contact_parent_frames[i].p.z(), contact_positions[i].x(),
+            contact_positions[i].y(), contact_positions[i].z());
       }
     }
 
@@ -694,18 +690,24 @@ void EvaluationManager::computeStabilityCosts()
 
     if (STABILITY_COST_VERBOSE)
     {
-      ROS_INFO(
-          "Gravity Force : (%f %f %f), Inertia Force : (%f %f %f)", gravityForce_.x(), gravityForce_.y(), gravityForce_.z(), -totalMass_ * CoMAccelerations_[point].x(), -totalMass_ * CoMAccelerations_[point].y(), -totalMass_ * CoMAccelerations_[point].z());
-      ROS_INFO(
-          "Violation : (%f %f %f) (%f %f %f)", violation.force.x(), violation.force.y(), violation.force.z(), violation.torque.x(), violation.torque.y(), violation.torque.z());
+      printf("Gravity Force : (%f %f %f)\n", gravityForce_.x(), gravityForce_.y(), gravityForce_.z());
+      printf("Inertia Force : (%f %f %f)\n", -totalMass_ * CoMAccelerations_[point].x(),
+          -totalMass_ * CoMAccelerations_[point].y(), -totalMass_ * CoMAccelerations_[point].z());
 
-      ROS_INFO(
-          "[%d] contactWrench (%f %f %f)(%f %f %f)", point, contactWrench.force.x(), contactWrench.force.y(), contactWrench.force.z(), contactWrench.torque.x(), contactWrench.torque.y(), contactWrench.torque.z());
-      ROS_INFO(
-          "[%d] violation (%f %f %f)(%f %f %f)", point, violation.force.x(), violation.force.y(), violation.force.z(), violation.torque.x(), violation.torque.y(), violation.torque.z());
+      printf("Wrench Torque : (%f %f %f)\n", wrenchSum_[point].torque.x(), wrenchSum_[point].torque.y(),
+          wrenchSum_[point].torque.z());
 
-      ROS_INFO(
-          "[%d]CIcost:%f Pvcost:%f(%f,%f,%f,%f,%f,%f)", point, state_contact_invariant_cost, state_physics_violation_cost, violation.force.x(), violation.force.y(), violation.force.z(), violation.torque.x(), violation.torque.y(), violation.torque.z());
+      printf("Violation : (%f %f %f) (%f %f %f)\n", violation.force.x(), violation.force.y(), violation.force.z(),
+          violation.torque.x(), violation.torque.y(), violation.torque.z());
+
+      printf("[%d] contactWrench (%f %f %f)(%f %f %f)\n", point, contactWrench.force.x(), contactWrench.force.y(),
+          contactWrench.force.z(), contactWrench.torque.x(), contactWrench.torque.y(), contactWrench.torque.z());
+      printf("[%d] violation (%f %f %f)(%f %f %f)\n", point, violation.force.x(), violation.force.y(),
+          violation.force.z(), violation.torque.x(), violation.torque.y(), violation.torque.z());
+
+      printf("[%d]CIcost:%f Pvcost:%f(%f,%f,%f,%f,%f,%f)\n", point, state_contact_invariant_cost,
+          state_physics_violation_cost, violation.force.x(), violation.force.y(), violation.force.z(),
+          violation.torque.x(), violation.torque.y(), violation.torque.z());
     }
 
     stateContactInvariantCost_[point - free_vars_start_] = state_contact_invariant_cost;
@@ -802,12 +804,11 @@ void EvaluationManager::optimize_nlp()
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       test_function(this, num_joints_, num_vars_free_, num_contacts_, num_contact_vars_free), variables, -1);
 
-  /*
   STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);
   costAccumulator_->print(0);
   STABILITY_COST_VERBOSE = false;
-  */
+
 }
 
 }

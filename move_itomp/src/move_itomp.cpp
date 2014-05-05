@@ -124,8 +124,8 @@ int main(int argc, char **argv)
   // Set start_state
   const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
   std::map<std::string, double> values;
-  //joint_model_group->getVariableDefaultPositions("pressup", values);
-  joint_model_group->getVariableDefaultPositions("standup", values);
+  joint_model_group->getVariableDefaultPositions("pressup", values);
+  //joint_model_group->getVariableDefaultPositions("standup", values);
   start_state.setVariablePositions(values);
 
   // Copy from start_state to req.start_state
@@ -146,10 +146,10 @@ int main(int argc, char **argv)
 
   // Now, setup a goal state
   robot_state::RobotState goal_state(start_state);
-  joint_model_group->getVariableDefaultPositions("standup", values);
+  joint_model_group->getVariableDefaultPositions("pressup2", values);
   goal_state.setVariablePositions(values);
   double jointValue = 1.0;
-  goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   req.group_name = "whole_body";
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
