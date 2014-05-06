@@ -205,15 +205,15 @@ void ItompPlannerNode::initTrajectory(const sensor_msgs::JointState &joint_state
     trajectory_->getTrajectoryPoint(i) = trajectory_->getTrajectoryPoint(0);
   }
 
-  // set the contact trajectory to initial value (strong contact)
+  // set the contact trajectory initial values
   Eigen::MatrixXd::RowXpr initContacts = trajectory_->getContactTrajectoryPoint(0);
-  Eigen::MatrixXd::RowXpr goalContacts = trajectory_->getContactTrajectoryPoint(trajectory_->getNumContactPhases() - 1);
+  Eigen::MatrixXd::RowXpr goalContacts = trajectory_->getContactTrajectoryPoint(trajectory_->getNumContactPhases());
   for (int i = 0; i < trajectory_->getNumContacts(); ++i)
   {
     initContacts(i) = PlanningParameters::getInstance()->getContactVariableInitialValues()[i];
     goalContacts(i) = PlanningParameters::getInstance()->getContactVariableGoalValues()[i];
   }
-  for (int i = 1; i < trajectory_->getNumContactPhases() - 1; ++i)
+  for (int i = 1; i < trajectory_->getNumContactPhases(); ++i)
   {
     trajectory_->getContactTrajectoryPoint(i) = initContacts;
   }
@@ -456,27 +456,6 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const s
       trajectory0GoalPoint(kdl_number) = jointGoalState.position[kdl_number];
     }
   }
-  // TODO: hard-coded position joints
-  // currently only set the goal
-  /*
-  if (groupName == "lower_body" || groupName == "whole_body")
-  {
-    int kdl_number;
-    vector<string> base_joints;
-    base_joints.push_back("base_prismatic_joint_x");
-    base_joints.push_back("base_prismatic_joint_y");
-    base_joints.push_back("base_prismatic_joint_z");
-    base_joints.push_back("base_rotate_joint");
-    for (unsigned int j = 0; j < base_joints.size(); ++j)
-    {
-      kdl_number = robot_model_[0].urdfNameToKdlNumber(base_joints[j]);
-      if (kdl_number >= 0)
-      {
-        trajectory0GoalPoint(kdl_number) = jointGoalState.position[kdl_number];
-      }
-    }
-  }
-  */
 
   for (int j = 1; j < num_trajectories; ++j)
   {

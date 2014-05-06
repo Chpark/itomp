@@ -13,7 +13,7 @@ using namespace std;
 
 namespace itomp_cio_planner
 {
-static int LeftLegStart = 0;
+//static int LeftLegStart = 0;
 
 TrajectoryCost* TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 {
@@ -63,13 +63,13 @@ TrajectoryCost* TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 
 void TrajectoryCost::init(const EvaluationManager* evaluator)
 {
-	costs_ = Eigen::VectorXd::Zero(evaluator->num_vars_free_);
+	costs_ = Eigen::VectorXd::Zero(evaluator->num_points_);
 }
 
 void TrajectoryCost::computeCostSum(const EvaluationManager* evaluator)
 {
 	costSum_ = 0.0;
-	for (int i = 0; i < evaluator->num_vars_free_; i++)
+	for (int i = 1; i <= evaluator->num_points_ - 2; i++)
 	{
 		costSum_ += costs_(i);
 	}
@@ -89,7 +89,7 @@ void TrajectorySmoothnessCost::doCompute(const EvaluationManager* evaluator)
 	for (int i = 0; i < evaluator->num_joints_; i++)
 		smoothness_cost += evaluator->joint_costs_[i].getCost(evaluator->group_trajectory_->getJointTrajectory(i));
 
-	costs_(0) = smoothness_cost;
+	costs_(1) = smoothness_cost;
 }
 
 double TrajectorySmoothnessCost::getWeight() const
@@ -100,9 +100,9 @@ double TrajectorySmoothnessCost::getWeight() const
 
 void TrajectoryCollisionCost::doCompute(const EvaluationManager* evaluator)
 {
-	for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)
+	for (int i = 1; i <= evaluator->num_points_ - 2; i++)
 	{
-		costs_(i - evaluator->free_vars_start_) = 0.0;
+		costs_(i) = 0.0;
 	}
 }
 
@@ -114,13 +114,13 @@ double TrajectoryCollisionCost::getWeight() const
 
 void TrajectoryValidityCost::doCompute(const EvaluationManager* evaluator)
 {
-	for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)
+  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
 	{
 		double state_validity_cost = 0.0;
 		if (!evaluator->state_validity_[i])
 			state_validity_cost = 1.0;
 
-		costs_(i - evaluator->free_vars_start_) = state_validity_cost;
+		costs_(i) = state_validity_cost;
 	}
 }
 
@@ -132,7 +132,7 @@ double TrajectoryValidityCost::getWeight() const
 
 void TrajectoryContactInvariantCost::doCompute(const EvaluationManager* evaluator)
 {
-	for (int i = 0; i < evaluator->num_vars_free_; i++)
+  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
 	{
 		costs_(i) = evaluator->stateContactInvariantCost_[i];
 	}
@@ -146,7 +146,7 @@ double TrajectoryContactInvariantCost::getWeight() const
 
 void TrajectoryPhysicsViolationCost::doCompute(const EvaluationManager* evaluator)
 {
-	for (int i = 0; i < evaluator->num_vars_free_; i++)
+  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
 	{
 		costs_(i) = evaluator->statePhysicsViolationCost_[i];
 	}
@@ -160,6 +160,7 @@ double TrajectoryPhysicsViolationCost::getWeight() const
 
 void TrajectoryGoalPoseCost::doCompute(const EvaluationManager* evaluator)
 {
+  /*
 	double goal_pose_cost = 0.0;
 	if (evaluator->planning_group_->name_ == "lower_body" || evaluator->planning_group_->name_ == "whole_body")
 	{
@@ -175,10 +176,11 @@ void TrajectoryGoalPoseCost::doCompute(const EvaluationManager* evaluator)
 		goal_pose_cost += rightFoot.Norm();
 	}
 
-	for (int i = 0; i < evaluator->num_vars_free_; i++)
+	for (int i = 0; i < evaluator->num_points_ - 2; i++)
 	{
-		costs_(i) = goal_pose_cost / evaluator->num_vars_free_;
+		costs_(i) = goal_pose_cost / evaluator->num_points_ - 2;
 	}
+	*/
 }
 
 double TrajectoryGoalPoseCost::getWeight() const
@@ -189,6 +191,7 @@ double TrajectoryGoalPoseCost::getWeight() const
 
 void TrajectoryCoMCost::doCompute(const EvaluationManager* evaluator)
 {
+  /*
 	for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)
 	{
 		double state_CoM_cost = 0.0;
@@ -221,6 +224,7 @@ void TrajectoryCoMCost::doCompute(const EvaluationManager* evaluator)
 
 		costs_(i - evaluator->free_vars_start_) = state_CoM_cost;
 	}
+	*/
 }
 
 double TrajectoryCoMCost::getWeight() const

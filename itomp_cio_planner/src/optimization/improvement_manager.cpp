@@ -278,7 +278,7 @@ void ImprovementManager::runSingleIteration(int iteration)
 
 	for (unsigned int r = 0; r < rollouts_.size(); ++r)
 	{
-		evaluation_manager_->evaluate(rollouts_[r].parameters_, rollouts_[r].contact_parameters_, tmp_rollout_cost_);
+		//evaluation_manager_->evaluate(rollouts_[r].parameters_, rollouts_[r].contact_parameters_, tmp_rollout_cost_);
 		rollout_costs_.row(r) = tmp_rollout_cost_.transpose();
 	}
 
@@ -290,7 +290,7 @@ void ImprovementManager::runSingleIteration(int iteration)
 
 	// get a noise-less rollout to check the cost
 	getParameters();
-	evaluation_manager_->evaluate(parameters_, contact_parameters_, tmp_rollout_cost_);
+	//evaluation_manager_->evaluate(parameters_, contact_parameters_, tmp_rollout_cost_);
 
 	// add the noiseless rollout into policy_improvement:
 	addExtraRollout(parameters_, contact_parameters_, tmp_rollout_cost_);
@@ -399,6 +399,7 @@ bool ImprovementManager::generateRollouts(const std::vector<double>& noise_stdde
 
 void ImprovementManager::copyGroupTrajectory()
 {
+  /*
 	for (int d = 0; d < num_dimensions_; ++d)
 	{
 		parameters_all_[d].segment(free_vars_start_index_, num_vars_free_)
@@ -409,6 +410,7 @@ void ImprovementManager::copyGroupTrajectory()
 		contact_parameters_all_[d].segment(free_contact_vars_start_index_, num_contact_vars_free_)
 				= evaluation_manager_->getGroupTrajectory()->getFreeContactTrajectoryBlock(d);
 	}
+	*/
 }
 
 void ImprovementManager::computeRolloutControlCost(Rollout& rollout)

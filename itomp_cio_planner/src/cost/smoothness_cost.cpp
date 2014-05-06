@@ -11,7 +11,7 @@ namespace itomp_cio_planner
 SmoothnessCost::SmoothnessCost(const ItompCIOTrajectory& trajectory, int joint_number, const std::vector<double>& derivative_costs, double ridge_factor)
 {
 	int num_vars_all = trajectory.getNumPoints();
-	int num_vars_free = num_vars_all - 2 * (DIFF_RULE_LENGTH - 1);
+	int num_vars_free = num_vars_all - 2;
 	MatrixXd diff_matrix = MatrixXd::Zero(num_vars_all, num_vars_all);
 	quad_cost_full_ = MatrixXd::Zero(num_vars_all, num_vars_all);
 
@@ -26,7 +26,7 @@ SmoothnessCost::SmoothnessCost(const ItompCIOTrajectory& trajectory, int joint_n
 	quad_cost_full_ += MatrixXd::Identity(num_vars_all, num_vars_all) * ridge_factor;
 
 	// extract the quad cost just for the free variables:
-	quad_cost_ = quad_cost_full_.block(DIFF_RULE_LENGTH - 1, DIFF_RULE_LENGTH - 1, num_vars_free, num_vars_free);
+	quad_cost_ = quad_cost_full_.block(1, 1, num_vars_free, num_vars_free);
 
 	// invert the matrix:
 	quad_cost_inv_ = quad_cost_.inverse();

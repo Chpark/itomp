@@ -24,8 +24,8 @@ public:
 			const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
 			double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator);
 
-	double evaluate(std::vector<Eigen::VectorXd>& parameters, std::vector<Eigen::VectorXd>& contact_parameters,
-			Eigen::VectorXd& costs);
+	double evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
+	    Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
 
 	bool isLastTrajectoryFeasible() const;
 
@@ -66,21 +66,13 @@ private:
 	std::string robot_name_;
 
 	KDL::JntArray kdl_joint_array_;
-	KDL::JntArray kdl_vel_joint_array_;
-	KDL::JntArray kdl_acc_joint_array_;
-	KDL::JntArray kdl_group_joint_array_;
-	KDL::JntArray kdl_group_vel_joint_array_;
-	KDL::JntArray kdl_group_acc_joint_array_;
-	KDL::JntArray kdl_group_torque_joint_array_;
 
 	int* iteration_;
 
 	int num_joints_;
 	int num_contacts_;
-	int num_vars_free_;
-	int num_vars_all_;
-	int free_vars_start_;
-	int free_vars_end_;
+	int num_points_;
+	int num_contact_points_;
 
 	std::vector<itomp_cio_planner::SmoothnessCost> joint_costs_;
 	std::vector<int> group_joint_to_kdl_joint_index_;

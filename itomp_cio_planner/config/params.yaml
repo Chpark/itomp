@@ -4,7 +4,7 @@ max_iterations: 1000
 max_iterations_after_collision_free: 1000
 num_trajectories: 1
 
-smoothness_cost_weight: 0.1
+smoothness_cost_weight: 0.01
 obstacle_cost_weight: 1.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
@@ -31,8 +31,8 @@ animate_endeffector_segment:
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 5.0
-trajectory_discretization: 0.25
+trajectory_duration: 2.0
+trajectory_discretization: 0.05
 phase_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
@@ -68,7 +68,7 @@ noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
 
 num_contacts: 4
 contact_variable_initial_values: [0.2, 0.2, 0.2, 0.2]
-contact_variable_goal_values: [0.2, 0.2, 0.2, 0.2]
+contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
 
 
