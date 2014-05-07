@@ -23,6 +23,7 @@ public:
 	virtual ~ContactPoint();
 
 	void getPosition(int point, KDL::Vector& position, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
+	void getFrame(int point, KDL::Frame& frame, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
 	void updateContactViolationVector(int start, int end, double discretization,
 			std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> >& contactViolationVector,
 			std::vector<KDL::Vector>& contactPointVelVector,

@@ -1,4 +1,5 @@
 #include <ros/ros.h>
+#include <moveit/robot_state/robot_state.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
@@ -138,7 +139,7 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   group_trajectory_->getFreePoints().block(1, 0, num_free_points, num_joints_) = parameters;
 
   group_trajectory_->getFreeVelPoints().block(1, 0, num_free_points, num_joints_) = vel_parameters;
-  group_trajectory_->getContactTrajectory().block(1, 0, num_free_points, num_contacts_) = contact_parameters;
+  group_trajectory_->getContactTrajectory().block(0, 0, num_free_points + 1, num_contacts_) = contact_parameters;
 
   group_trajectory_->updateTrajectoryFromFreePoints();
 
@@ -663,7 +664,7 @@ void EvaluationManager::computeStabilityCosts()
     for (int i = 0; i < num_contacts; ++i)
     {
       double cost = (tmpContactViolationVector_[i][point].transpose() * tmpContactViolationVector_[i][point]).value()
-          + 16 * KDL::dot(tmpContactPointVelVector_[i][point], tmpContactPointVelVector_[i][point]);
+          + 16.0 * KDL::dot(tmpContactPointVelVector_[i][point], tmpContactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
 
@@ -754,7 +755,7 @@ public:
 
     parameters_ = Eigen::MatrixXd(num_free_points_, num_dimensions_);
     vel_parameters_ = Eigen::MatrixXd(num_free_points_, num_dimensions_);
-    contact_parameters_ = Eigen::MatrixXd(num_free_points_, num_contact_dimensions_);
+    contact_parameters_ = Eigen::MatrixXd(num_free_points_ + 1, num_contact_dimensions_);
     costs_ = Eigen::VectorXd::Zero(num_points_);
   }
 
@@ -762,6 +763,11 @@ public:
   {
     int readIndex = 0;
     // copy to group_trajectory_:
+    for (int d = 0; d < num_contact_dimensions_; ++d)
+    {
+      contact_parameters_(0, d) = abs(variables(readIndex + d, 0));
+    }
+    readIndex += num_contact_dimensions_;
     for (int i = 0; i < num_free_points_; ++i)
     {
       for (int d = 0; d < num_dimensions_; ++d)
@@ -776,7 +782,7 @@ public:
       readIndex += num_dimensions_;
       for (int d = 0; d < num_contact_dimensions_; ++d)
       {
-        contact_parameters_(i, d) = abs(variables(readIndex + d, 0));
+        contact_parameters_(i + 1, d) = abs(variables(readIndex + d, 0));
       }
       readIndex += num_contact_dimensions_;
     }
@@ -790,7 +796,7 @@ private:
 void EvaluationManager::optimize_nlp(bool add_noise)
 {
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
-  int num_contact_vars_free = num_contacts_ * (num_contact_phases - 1);
+  int num_contact_vars_free = num_contacts_ * num_contact_phases;
   int num_pos_variables = num_joints_ * (num_contact_phases - 1);
   int num_vel_variables = num_joints_ * (num_contact_phases - 1);
   int num_variables = num_contact_vars_free + num_pos_variables + num_vel_variables;
@@ -802,6 +808,13 @@ void EvaluationManager::optimize_nlp(bool add_noise)
   const Eigen::MatrixXd& freeTrajectoryBlock = group_trajectory_->getFreePoints();
   const Eigen::MatrixXd& freeVelTrajectoryBlock = group_trajectory_->getFreeVelPoints();
   const Eigen::MatrixXd& contactTrajectoryBlock = group_trajectory_->getContactTrajectory();
+  // contact variable for phase 0
+  for (int d = 0; d < num_contacts_; ++d)
+  {
+    variables(writeIndex + d, 0) = contactTrajectoryBlock(0, d);
+  }
+  writeIndex += num_contacts_;
+
   for (int i = 1; i < num_contact_phases; ++i)
   {
     for (int d = 0; d < num_joints_; ++d)
@@ -837,30 +850,190 @@ void EvaluationManager::optimize_nlp(bool add_noise)
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       test_function(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
 
-  STABILITY_COST_VERBOSE = true;
+  //STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);
   costAccumulator_->print(*iteration_);
-  STABILITY_COST_VERBOSE = false;
+  //STABILITY_COST_VERBOSE = false;
 
   /*
   printf("Post Process using IK\n");
   postprocess_ik();
 
-  STABILITY_COST_VERBOSE = true;
+  //STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);
   costAccumulator_->print(*iteration_);
-  STABILITY_COST_VERBOSE = false;
-  */
+  // STABILITY_COST_VERBOSE = false;
+   *
+   */
 
 }
 
 void EvaluationManager::postprocess_ik()
 {
+  /*
+   costAccumulator_->compute(this);
+   costAccumulator_->print(*iteration_);
+   group_trajectory_->printTrajectory();
+   printf("Contact Values :\n");
+   for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
+   {
+   printf("%d : ", i);
+   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+   printf("%f ", group_trajectory_->getContactValue(i, j));
+   printf("   ");
+   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+   {
+   KDL::Vector contact_position;
+   planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
+   segment_frames_);
+   printf("%f ", contact_position.y());
+   }
+   printf("\n");
+   }
+   */
+  ///////////////////////////////////
+  const double threshold = 0.1;
+  const Eigen::MatrixXd& contactTrajectoryBlock = group_trajectory_->getContactTrajectory();
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
-  for (int i = 1 ; i < num_contact_phases; ++i)
+  std::vector<int> ik_ref_point(num_contact_phases);
+  for (int j = 0; j < num_contacts_; ++j)
   {
+    for (int i = 0; i < num_contact_phases; ++i)
+    {
+      ik_ref_point[i] = -1;
+    }
 
+    for (int i = num_contact_phases - 1; i >= 0; --i)
+    {
+      double contact_value = contactTrajectoryBlock(i, j);
+      if (contact_value > threshold)
+      {
+        ik_ref_point[i] = num_contact_phases;
+      }
+      else
+        break;
+    }
+    int ref_point = 0;
+    for (int i = 1; i < num_contact_phases; ++i)
+    {
+      double contact_value = contactTrajectoryBlock(i - 1, j);
+      if (contact_value > threshold && ik_ref_point[i] != num_contact_phases)
+        ik_ref_point[i] = ref_point;
+      else
+        ref_point = i;
+    }
+
+    /*
+     printf("Contact %d : ", j);
+     for (int i = 0; i < num_contact_phases; ++i)
+     {
+     if (ik_ref_point[i] != -1)
+     printf("%d -> %d ", i, ik_ref_point[i]);
+     }
+     printf("\n");
+     */
+
+    ////////////
+    // ik
+    // TODO:
+    string ik_group_name;
+    switch (j)
+    {
+    case 0:
+      ik_group_name = "left_leg";
+      break;
+    case 1:
+      ik_group_name = "right_leg";
+      break;
+    case 2:
+      ik_group_name = "left_arm";
+      break;
+    case 3:
+      ik_group_name = "right_arm";
+      break;
+    }
+    for (int i = 1; i < num_contact_phases; ++i)
+    {
+      KDL::Frame contact_frame;
+      if (ik_ref_point[i] != -1)
+      {
+        planning_group_->contactPoints_[j].getFrame(ik_ref_point[i] * group_trajectory_->getContactPhaseStride(),
+            contact_frame, segment_frames_);
+
+        // set kinematic_state to current joint values
+        robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
+        int num_all_joints = kinematic_state->getVariableCount();
+        std::vector<double> positions(num_all_joints);
+        for (std::size_t k = 0; k < num_all_joints; k++)
+        {
+          positions[k] = (*full_trajectory_)(i * group_trajectory_->getContactPhaseStride(), k);
+        }
+        kinematic_state->setVariablePositions(&positions[0]);
+        kinematic_state->update();
+
+        // compute ik for ref_point end effector position
+        const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(
+            ik_group_name);
+
+        Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+        for (int r = 0; r < 3; ++r)
+          for (int c = 0; c < 3; ++c)
+            end_effector_state(r, c) = contact_frame.M(r, c);
+        for (int r = 0; r < 3; ++r)
+          end_effector_state(r, 3) = contact_frame.p(r);
+
+        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+        // Now, we can print out the IK solution (if found):
+        if (found_ik)
+        {
+          std::vector<double> group_values;
+          kinematic_state->copyJointGroupPositions(joint_model_group, group_values);
+          kinematic_state->setVariablePositions(&positions[0]);
+          kinematic_state->setJointGroupPositions(joint_model_group, group_values);
+
+          double* state_pos = kinematic_state->getVariablePositions();
+          for (std::size_t k = 0; k < num_all_joints; k++)
+          {
+            (*full_trajectory_)(i * group_trajectory_->getContactPhaseStride(), k) = state_pos[k];
+          }
+          //ROS_INFO("[%d:%d] IK solution found", i, j);
+        }
+        else
+        {
+          //ROS_INFO("[%d:%d] Did not find IK solution", i, j);
+        }
+      }
+    }
   }
+  full_trajectory_->updateFreePointsFromTrajectory();
+  group_trajectory_->copyFromFullTrajectory(*full_trajectory_);
+  group_trajectory_->updateTrajectoryFromFreePoints();
+
+  //////////////////////
+  /*
+  performForwardKinematics();
+  costAccumulator_->compute(this);
+  costAccumulator_->print(*iteration_);
+  group_trajectory_->printTrajectory();
+
+  printf("Contact Values :\n");
+  for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
+  {
+    printf("%d : ", i);
+    for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+      printf("%f ", group_trajectory_->getContactValue(i, j));
+    printf("   ");
+    for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+    {
+      KDL::Vector contact_position;
+      planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
+          segment_frames_);
+      printf("%f ", contact_position.y());
+    }
+    printf("\n");
+  }
+  */
+
 }
 
 }

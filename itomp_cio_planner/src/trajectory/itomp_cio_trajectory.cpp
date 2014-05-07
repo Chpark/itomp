@@ -45,15 +45,7 @@ ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectory& source_traj, co
   init();
 
   // now copy the trajectories over:
-  for (int i = 0; i < num_joints_; i++)
-  {
-    int source_joint = planning_group_->group_joints_[i].kdl_joint_index_;
-    trajectory_.block(0, i, num_points_, 1) = source_traj.trajectory_.block(0, source_joint, num_points_, 1);
-    free_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = source_traj.free_trajectory_.block(0, source_joint,
-        num_contact_phases_ + 1, 1);
-    free_vel_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = source_traj.free_vel_trajectory_.block(0,
-        source_joint, num_contact_phases_ + 1, 1);
-  }
+  copyFromFullTrajectory(source_traj);
 
   contact_trajectory_ = source_traj.contact_trajectory_;
 }
@@ -62,12 +54,25 @@ ItompCIOTrajectory::~ItompCIOTrajectory()
 {
 }
 
+void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory)
+{
+  for (int i = 0; i < num_joints_; i++)
+  {
+    int source_joint = planning_group_->group_joints_[i].kdl_joint_index_;
+    trajectory_.block(0, i, num_points_, 1) = full_trajectory.trajectory_.block(0, source_joint, num_points_, 1);
+    free_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = full_trajectory.free_trajectory_.block(0, source_joint,
+        num_contact_phases_ + 1, 1);
+    free_vel_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = full_trajectory.free_vel_trajectory_.block(0,
+        source_joint, num_contact_phases_ + 1, 1);
+  }
+}
+
 void ItompCIOTrajectory::init()
 {
   trajectory_ = Eigen::MatrixXd(num_points_, num_joints_);
   contact_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_contacts_);
   free_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_joints_);
-  free_vel_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_joints_);
+  free_vel_trajectory_ = Eigen::MatrixXd::Zero(num_contact_phases_ + 1, num_joints_);
 
   ROS_INFO("Contact Phases");
   for (int i = 0; i < num_contact_phases_; ++i)
@@ -84,9 +89,9 @@ void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& gro
   {
     int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
     trajectory_.block(0, target_joint, num_points_, 1) = group_trajectory.trajectory_.block(0, i, num_points_, 1);
-    free_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.trajectory_.block(0, i,
+    free_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.free_trajectory_.block(0, i,
         num_contact_phases_ + 1, 1);
-    free_vel_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.trajectory_.block(0, i,
+    free_vel_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.free_vel_trajectory_.block(0, i,
         num_contact_phases_ + 1, 1);
   }
 
@@ -319,6 +324,16 @@ void ItompCIOTrajectory::printTrajectory()
     for (int j = 0; j < num_joints_; ++j)
     {
       printf("%f ", free_trajectory_(i, j));
+    }
+    printf("\n");
+  }
+  printf("Free Velocity Trajectory\n");
+  for (int i = 0; i <= num_contact_phases_; ++i)
+  {
+    printf("%d : ", i);
+    for (int j = 0; j < num_joints_; ++j)
+    {
+      printf("%f ", free_vel_trajectory_(i, j));
     }
     printf("\n");
   }

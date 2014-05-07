@@ -72,9 +72,18 @@ bool ItompOptimizer::optimize()
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
     ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
     if (!updateBestTrajectory(costAccumulator_.getTrajectoryCost()))
-      break;
+    {
+      if (best_group_trajectory_cost_ < 0.1)
+        break;
+      else
+      {
+        group_trajectory_.getTrajectory() = best_group_trajectory_;
+        group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
+      }
+    }
     first = false;
   }
+  evaluation_manager_.postprocess_ik();
 
   //updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 

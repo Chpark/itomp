@@ -32,6 +32,12 @@ void ContactPoint::getPosition(int point, KDL::Vector& position,
   position = segmentFrames[point][linkSegmentNumber_].p;
 }
 
+void ContactPoint::getFrame(int point, KDL::Frame& frame,
+    const std::vector<std::vector<KDL::Frame> >& segmentFrames) const
+{
+  frame = segmentFrames[point][linkSegmentNumber_];
+}
+
 void ContactPoint::updateContactViolationVector(int start, int end, double discretization,
     vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> >& contactViolationVector, vector<KDL::Vector>& contactPointVelVector,
     const vector<vector<KDL::Frame> >& segmentFrames) const
