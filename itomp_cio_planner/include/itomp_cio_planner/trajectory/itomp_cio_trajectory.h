@@ -52,6 +52,7 @@ public:
   int getNumContactPhases() const;
   int getNumJoints() const;
   int getNumContacts() const;
+  int getContactPhaseStride() const;
 
   double getDiscretization() const;
   double getDuration() const;
@@ -161,6 +162,11 @@ inline double ItompCIOTrajectory::getDiscretization() const
 inline double ItompCIOTrajectory::getDuration() const
 {
   return duration_;
+}
+
+inline int ItompCIOTrajectory::getContactPhaseStride() const
+{
+  return phase_stride_;
 }
 
 inline Eigen::MatrixXd& ItompCIOTrajectory::getTrajectory()

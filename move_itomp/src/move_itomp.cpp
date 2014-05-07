@@ -146,8 +146,8 @@ int main(int argc, char **argv)
 
   // Now, setup a goal state
   robot_state::RobotState goal_state(start_state);
-  //joint_model_group->getVariableDefaultPositions("pressup2", values);
-  joint_model_group->getVariableDefaultPositions("standup", values);
+  joint_model_group->getVariableDefaultPositions("pressup2", values);
+  //joint_model_group->getVariableDefaultPositions("standup", values);
   goal_state.setVariablePositions(values);
   double jointValue = 1.0;
   //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);

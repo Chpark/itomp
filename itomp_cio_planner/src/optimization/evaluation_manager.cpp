@@ -8,6 +8,7 @@
 #include <itomp_cio_planner/util/min_jerk_trajectory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/vector_util.h>
+#include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <visualization_msgs/MarkerArray.h>
 #include "dlib/optimization.h"
 
@@ -169,16 +170,24 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   static int count = 0;
   if (++count % 1000 == 0)
   {
-    costAccumulator_->print(0);
+    costAccumulator_->print(*iteration_);
     printf("Contact Values :\n");
     for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
     {
       printf("%d : ", i);
       for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
         printf("%f ", group_trajectory_->getContactValue(i, j));
+      printf("   ");
+      for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+      {
+        KDL::Vector contact_position;
+        planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
+            segment_frames_);
+        printf("%f ", contact_position.y());
+      }
       printf("\n");
     }
-    group_trajectory_->printTrajectory();
+    //group_trajectory_->printTrajectory();
   }
 
   return costAccumulator_->getTrajectoryCost();
@@ -778,7 +787,7 @@ public:
 private:
 };
 
-void EvaluationManager::optimize_nlp()
+void EvaluationManager::optimize_nlp(bool add_noise)
 {
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
   int num_contact_vars_free = num_contacts_ * (num_contact_phases - 1);
@@ -812,15 +821,46 @@ void EvaluationManager::optimize_nlp()
     writeIndex += num_contacts_;
   }
 
+  if (add_noise)
+  {
+    MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
+        MatrixXd::Identity(num_variables, num_variables));
+    VectorXd noise = VectorXd::Zero(num_variables);
+    noise_generator.sample(noise);
+    for (int i = 0; i < num_variables; ++i)
+    {
+      variables(i) += 0.01 * noise(i);
+    }
+  }
+
   dlib::find_min_using_approximate_derivatives(dlib::bfgs_search_strategy(),
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       test_function(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
 
   STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);
-  costAccumulator_->print(0);
+  costAccumulator_->print(*iteration_);
   STABILITY_COST_VERBOSE = false;
 
+  /*
+  printf("Post Process using IK\n");
+  postprocess_ik();
+
+  STABILITY_COST_VERBOSE = true;
+  costAccumulator_->compute(this);
+  costAccumulator_->print(*iteration_);
+  STABILITY_COST_VERBOSE = false;
+  */
+
+}
+
+void EvaluationManager::postprocess_ik()
+{
+  int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
+  for (int i = 1 ; i < num_contact_phases; ++i)
+  {
+
+  }
 }
 
 }

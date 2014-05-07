@@ -38,7 +38,8 @@ public:
 	const ItompCIOTrajectory* getGroupTrajectory() const;
 	const ItompPlanningGroup* getPlanningGroup() const;
 
-	void optimize_nlp();
+	void optimize_nlp(bool add_noise);
+	void postprocess_ik();
 
 	friend class test_function;
 
