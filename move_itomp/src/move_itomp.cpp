@@ -44,6 +44,7 @@
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/kinematic_constraints/utils.h>
 #include <moveit_msgs/DisplayTrajectory.h>
+#include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
 
 int main(int argc, char **argv)
@@ -89,8 +90,7 @@ int main(int argc, char **argv)
     planner_plugin_loader.reset(
         new pluginlib::ClassLoader<planning_interface::PlannerManager>("moveit_core",
             "planning_interface::PlannerManager"));
-  }
-  catch (pluginlib::PluginlibException& ex)
+  } catch (pluginlib::PluginlibException& ex)
   {
     ROS_FATAL_STREAM("Exception while creating planning plugin loader " << ex.what());
   }
@@ -100,8 +100,7 @@ int main(int argc, char **argv)
     if (!planner_instance->initialize(robot_model, node_handle.getNamespace()))
       ROS_FATAL_STREAM("Could not initialize planner instance");
     ROS_INFO_STREAM("Using planning interface '" << planner_instance->getDescription() << "'");
-  }
-  catch (pluginlib::PluginlibException& ex)
+  } catch (pluginlib::PluginlibException& ex)
   {
     const std::vector<std::string> &classes = planner_plugin_loader->getDeclaredClasses();
     std::stringstream ss;
@@ -154,6 +153,54 @@ int main(int argc, char **argv)
   req.group_name = "whole_body";
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
+
+  int num_variables = start_state.getVariableNames().size();
+  ros::Publisher start_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
+      "/move_itomp/display_start_state", 1, true);
+  moveit_msgs::DisplayRobotState disp_start_state;
+  disp_start_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
+  disp_start_state.state.joint_state.name = start_state.getVariableNames();
+  disp_start_state.state.joint_state.position.resize(num_variables);
+  memcpy(&disp_start_state.state.joint_state.position[0], start_state.getVariablePositions(),
+      sizeof(double) * num_variables);
+  disp_start_state.highlight_links.clear();
+  const std::vector<std::string>& link_model_names = robot_model->getLinkModelNames();
+  for (int i = 0; i < link_model_names.size(); ++i)
+  {
+    std_msgs::ColorRGBA color;
+    color.a = 0.5;
+    color.r = 0.0;
+    color.g = 1.0;
+    color.b = 0.5;
+    moveit_msgs::ObjectColor obj_color;
+    obj_color.id = link_model_names[i];
+    obj_color.color = color;
+    disp_start_state.highlight_links.push_back(obj_color);
+  }
+  start_state_display_publisher.publish(disp_start_state);
+
+  ros::Publisher goal_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
+      "/move_itomp/display_goal_state", 1, true);
+  moveit_msgs::DisplayRobotState disp_goal_state;
+  disp_goal_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
+  disp_goal_state.state.joint_state.name = goal_state.getVariableNames();
+  disp_goal_state.state.joint_state.position.resize(num_variables);
+  memcpy(&disp_goal_state.state.joint_state.position[0], goal_state.getVariablePositions(),
+      sizeof(double) * num_variables);
+  disp_goal_state.highlight_links.clear();
+  for (int i = 0; i < link_model_names.size(); ++i)
+  {
+    std_msgs::ColorRGBA color;
+    color.a = 0.5;
+    color.r = 0.0;
+    color.g = 0.5;
+    color.b = 1.0;
+    moveit_msgs::ObjectColor obj_color;
+    obj_color.id = link_model_names[i];
+    obj_color.color = color;
+    disp_goal_state.highlight_links.push_back(obj_color);
+  }
+  goal_state_display_publisher.publish(disp_goal_state);
 
   // We now construct a planning context that encapsulate the scene,
   // the request and the response. We call the planner using this 
