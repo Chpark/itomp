@@ -170,6 +170,28 @@ void PlanningParameters::initFromNodeHandle()
       }
     }
   }
+
+  node_handle.param<std::string>("environment_model", environment_model_, "");
+  environment_model_position_.clear();
+  if (node_handle.hasParam("environment_model_position"))
+  {
+    XmlRpc::XmlRpcValue segment;
+
+    node_handle.getParam("environment_model_position", segment);
+
+    if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+    {
+      int size = segment.size();
+      for (int i = 0; i < size; ++i)
+      {
+        double value = segment[i];
+        environment_model_position_.push_back(value);
+      }
+    }
+  }
+  node_handle.param("environment_model_scale", environment_model_scale_, 1.0);
+
 }
-}
-;
+
+} // namespace
+

@@ -171,6 +171,9 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   static int count = 0;
   if (++count % 1000 == 0)
   {
+    PlanningParameters::getInstance()->initFromNodeHandle();
+    VisualizationManager::getInstance()->render();
+
     costAccumulator_->print(*iteration_);
     printf("Contact Values :\n");
     for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
@@ -185,6 +188,14 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
         planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
             segment_frames_);
         printf("%f ", contact_position.y());
+      }
+      printf("   ");
+      for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+      {
+        KDL::Vector contact_position;
+        planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
+            segment_frames_);
+        printf("%f ", contact_position.z());
       }
       printf("\n");
     }
@@ -856,13 +867,13 @@ void EvaluationManager::optimize_nlp(bool add_noise)
   //STABILITY_COST_VERBOSE = false;
 
   /*
-  printf("Post Process using IK\n");
-  postprocess_ik();
+   printf("Post Process using IK\n");
+   postprocess_ik();
 
-  //STABILITY_COST_VERBOSE = true;
-  costAccumulator_->compute(this);
-  costAccumulator_->print(*iteration_);
-  // STABILITY_COST_VERBOSE = false;
+   //STABILITY_COST_VERBOSE = true;
+   costAccumulator_->compute(this);
+   costAccumulator_->print(*iteration_);
+   // STABILITY_COST_VERBOSE = false;
    *
    */
 
@@ -1011,28 +1022,28 @@ void EvaluationManager::postprocess_ik()
 
   //////////////////////
   /*
-  performForwardKinematics();
-  costAccumulator_->compute(this);
-  costAccumulator_->print(*iteration_);
-  group_trajectory_->printTrajectory();
+   performForwardKinematics();
+   costAccumulator_->compute(this);
+   costAccumulator_->print(*iteration_);
+   group_trajectory_->printTrajectory();
 
-  printf("Contact Values :\n");
-  for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
-  {
-    printf("%d : ", i);
-    for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-      printf("%f ", group_trajectory_->getContactValue(i, j));
-    printf("   ");
-    for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-    {
-      KDL::Vector contact_position;
-      planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
-          segment_frames_);
-      printf("%f ", contact_position.y());
-    }
-    printf("\n");
-  }
-  */
+   printf("Contact Values :\n");
+   for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
+   {
+   printf("%d : ", i);
+   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+   printf("%f ", group_trajectory_->getContactValue(i, j));
+   printf("   ");
+   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+   {
+   KDL::Vector contact_position;
+   planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
+   segment_frames_);
+   printf("%f ", contact_position.y());
+   }
+   printf("\n");
+   }
+   */
 
 }
 

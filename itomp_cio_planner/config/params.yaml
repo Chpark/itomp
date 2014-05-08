@@ -68,7 +68,11 @@ noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
 
 num_contacts: 4
 contact_variable_initial_values: [0.2, 0.2, 0.2, 0.2]
-contact_variable_goal_values: [0.2, 0.2, 0.2, 0.2]
+contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
+
+environment_model: swimmingpool.dae
+environment_model_position: [-3.5, -5.0, -0.375]
+environment_model_scale: 1.0
 
 
 

@@ -43,6 +43,7 @@ public:
 	{
 		collision_point_mark_positions_.push_back(pos);
 	}
+	void renderEnvironment();
 	void renderGround();
 	void clearAnimations() {}
 

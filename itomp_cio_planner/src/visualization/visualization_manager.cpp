@@ -27,22 +27,34 @@ VisualizationManager::~VisualizationManager()
 void VisualizationManager::render()
 {
   //renderGround();
+  renderEnvironment();
 
-  // TODO:
+}
+
+void VisualizationManager::renderEnvironment()
+{
+  string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
+  if (environment_file.empty())
+    return;
+
+  vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();
+  double scale = PlanningParameters::getInstance()->getEnvironmentModelScale();
+  environment_position.resize(3, 0);
+
   visualization_msgs::MarkerArray ma;
   visualization_msgs::Marker msg;
   msg.header.frame_id = reference_frame_;
   msg.header.stamp = ros::Time::now();
-  msg.ns = "floor";
+  msg.ns = "environment";
   msg.type = visualization_msgs::Marker::MESH_RESOURCE;
   msg.action = visualization_msgs::Marker::ADD;
-  msg.scale.x = 1.0;
-  msg.scale.y = 1.0;
-  msg.scale.z = 1.0;
+  msg.scale.x = scale;
+  msg.scale.y = scale;
+  msg.scale.z = scale;
   msg.id = 0;
-  msg.pose.position.x = 0.0;
-  msg.pose.position.y = 0.0;
-  msg.pose.position.z = 0.0;
+  msg.pose.position.x = environment_position[0];
+  msg.pose.position.y = environment_position[1];
+  msg.pose.position.z = environment_position[2];
   msg.pose.orientation.x = sqrt(0.5);
   msg.pose.orientation.y = 0.0;
   msg.pose.orientation.z = 0.0;
@@ -51,7 +63,7 @@ void VisualizationManager::render()
   msg.color.r = 0.5;
   msg.color.g = 0.5;
   msg.color.b = 0.5;
-  msg.mesh_resource = "package://move_itomp/meshes/swimmingpool.dae";
+  msg.mesh_resource = "package://move_itomp/meshes/" + environment_file;
   ma.markers.push_back(msg);
   vis_marker_array_publisher_.publish(ma);
 }
