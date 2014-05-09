@@ -100,10 +100,10 @@ double TrajectorySmoothnessCost::getWeight() const
 
 void TrajectoryCollisionCost::doCompute(const EvaluationManager* evaluator)
 {
-	for (int i = 1; i <= evaluator->num_points_ - 2; i++)
-	{
-		costs_(i) = 0.0;
-	}
+  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+    {
+      costs_(i) = evaluator->stateCollisionCost_[i];
+    }
 }
 
 double TrajectoryCollisionCost::getWeight() const

@@ -76,7 +76,7 @@ public:
 	const std::string& getRobotName() const;
 
 	robot_model::RobotModelPtr getRobotModel();
-	const robot_model::RobotModelConstPtr getRobotModel() const;
+	robot_model::RobotModelConstPtr getRobotModel() const;
 
 private:
 	robot_model::RobotModelPtr robot_model_;
@@ -185,7 +185,7 @@ inline const std::string& ItompRobotModel::getRobotName() const
 	return robot_model_->getName();
 }
 
-inline const robot_model::RobotModelConstPtr ItompRobotModel::getRobotModel() const
+inline robot_model::RobotModelConstPtr ItompRobotModel::getRobotModel() const
 {
 	return robot_model_;
 }

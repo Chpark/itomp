@@ -14,7 +14,7 @@ class ItompPlanningGroup;
 class ItompOptimizer
 {
 public:
-	ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, const ItompRobotModel *robot_model,
+	ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, ItompRobotModel *robot_model,
 			const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time);
 	virtual ~ItompOptimizer();
 
@@ -24,7 +24,7 @@ public:
 	int getLastIteration() const;
 
 private:
-	void initialize(const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
+	void initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
 			double trajectory_start_time);
 	bool updateBestTrajectory(double cost);
 

@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <moveit/robot_state/robot_state.h>
+#include <moveit_msgs/PlanningScene.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
@@ -11,6 +12,10 @@
 #include <itomp_cio_planner/util/vector_util.h>
 #include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <geometric_shapes/mesh_operations.h>
+#include <geometric_shapes/shape_operations.h>
+#include <geometric_shapes/shapes.h>
+#include <boost/variant/get.hpp>
 #include "dlib/optimization.h"
 
 using namespace std;
@@ -33,7 +38,7 @@ EvaluationManager::~EvaluationManager()
 }
 
 void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-    const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
+    ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
     double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator)
 {
   full_trajectory_ = full_trajectory;
@@ -124,8 +129,12 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
 
   stateContactInvariantCost_.resize(num_points_);
   statePhysicsViolationCost_.resize(num_points_);
+  stateCollisionCost_.resize(num_points_);
 
   GroundManager::getInstance().init();
+
+  robot_model::RobotModelPtr ros_robot_model = robot_model->getRobotModel();
+  planning_scene_.reset(new planning_scene::PlanningScene(ros_robot_model));
 }
 
 double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
@@ -738,6 +747,90 @@ void EvaluationManager::computeStabilityCosts()
   }
 }
 
+void EvaluationManager::computeCollisionCosts()
+{
+  static bool add_static_environment = true;
+  collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
+  string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
+  if (add_static_environment && !environment_file.empty())
+  {
+    vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();
+    double scale = PlanningParameters::getInstance()->getEnvironmentModelScale();
+    environment_position.resize(3, 0);
+
+    // Collision object
+    moveit_msgs::CollisionObject collision_object;
+    collision_object.header.frame_id = robot_model_->getRobotModel()->getModelFrame();
+    collision_object.id = "environment";
+    geometry_msgs::Pose pose;
+    pose.position.x = environment_position[0];
+    pose.position.y = environment_position[1];
+    pose.position.z = environment_position[2];
+    pose.orientation.x = sqrt(0.5);
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+    pose.orientation.w = sqrt(0.5);
+
+    shapes::Mesh* shape = shapes::createMeshFromResource("package://move_itomp/meshes/" + environment_file);
+    shapes::ShapeMsg mesh_msg;
+    shapes::constructMsgFromShape(shape, mesh_msg);
+    shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
+
+    collision_object.meshes.push_back(mesh);
+    collision_object.mesh_poses.push_back(pose);
+
+    collision_object.operation = collision_object.ADD;
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    planning_scene_msg.is_diff = true;
+    planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
+
+    add_static_environment = false;
+
+    acm.setEntry(true);
+  }
+
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
+  collision_request.verbose = false;
+  collision_request.contacts = true;
+  collision_request.max_contacts = 1000;
+
+  robot_state::RobotState kinematic_state(robot_model_->getRobotModel());
+  int num_all_joints = kinematic_state.getVariableCount();
+  std::vector<double> positions(num_all_joints);
+
+  for (int i = 0; i < num_points_; ++i)
+  {
+    double depthSum = 0.0;
+
+    for (std::size_t k = 0; k < num_all_joints; k++)
+    {
+      positions[k] = (*full_trajectory_)(i, k);
+    }
+    kinematic_state.setVariablePositions(&positions[0]);
+    kinematic_state.update();
+
+    planning_scene_->checkCollisionUnpadded(collision_request, collision_result, kinematic_state, acm);
+    const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+    for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
+        it != contact_map.end(); ++it)
+    {
+      const collision_detection::Contact& contact = it->second[0];
+      depthSum += contact.depth;
+
+      /*
+       Eigen::Vector3d pos = contact.pos;
+       Eigen::Vector3d normal = contact.normal;
+       printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
+       normal(1), normal(2));
+       */
+    }
+    collision_result.clear();
+    stateCollisionCost_[i] = depthSum;
+  }
+}
+
 typedef dlib::matrix<double, 0, 1> column_vector;
 
 Eigen::MatrixXd parameters_;
@@ -857,7 +950,7 @@ void EvaluationManager::optimize_nlp(bool add_noise)
     }
   }
 
-  dlib::find_min_using_approximate_derivatives(dlib::bfgs_search_strategy(),
+  dlib::find_min_using_approximate_derivatives(dlib::lbfgs_search_strategy(10),
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       test_function(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
 

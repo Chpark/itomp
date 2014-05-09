@@ -9,6 +9,7 @@
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
 #include <Eigen/StdVector>
+#include <moveit/planning_scene/planning_scene.h>
 
 namespace itomp_cio_planner
 {
@@ -21,7 +22,7 @@ public:
 	virtual ~EvaluationManager();
 
 	void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-			const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
+			ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
 			double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator);
 
 	double evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
@@ -48,6 +49,7 @@ private:
 	void computeWrenchSum();
 	void computeStabilityCosts();
 	void updateCoM(int point);
+	void computeCollisionCosts();
 
 	int getIteration() const;
 
@@ -58,6 +60,8 @@ private:
 	ItompCIOTrajectory *group_trajectory_;
 
 	TrajectoryCostAccumulator *costAccumulator_;
+
+	planning_scene::PlanningScenePtr planning_scene_;
 
 	double planning_start_time_;
 	double trajectory_start_time_;
@@ -113,6 +117,7 @@ private:
 
 	std::vector<double> stateContactInvariantCost_;
 	std::vector<double> statePhysicsViolationCost_;
+	std::vector<double> stateCollisionCost_;
 
 	ros::Publisher vis_marker_array_pub_;
 	ros::Publisher vis_marker_pub_;

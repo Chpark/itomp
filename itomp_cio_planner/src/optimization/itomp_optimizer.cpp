@@ -9,7 +9,7 @@ using namespace std;
 namespace itomp_cio_planner
 {
 
-ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, const ItompRobotModel *robot_model,
+ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, ItompRobotModel *robot_model,
     const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time) :
     is_succeed_(false), terminated_(false), trajectory_index_(trajectory_index), planning_start_time_(
         planning_start_time), iteration_(-1), feasible_iteration_(0), last_improvement_iteration_(-1), full_trajectory_(
@@ -20,7 +20,7 @@ ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory *traject
   initialize(robot_model, planning_group, trajectory_start_time);
 }
 
-void ItompOptimizer::initialize(const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
+void ItompOptimizer::initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
     double trajectory_start_time)
 {
   evaluation_manager_.initialize(full_trajectory_, &group_trajectory_, robot_model, planning_group,
@@ -65,7 +65,8 @@ bool ItompOptimizer::optimize()
   updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 
   bool first = true;
-  while (iteration_ < 10)
+  const int max_interations = 1;
+  while (iteration_ < max_interations)
   {
     evaluation_manager_.optimize_nlp(!first);
     costAccumulator_.print(iteration_++);
