@@ -132,6 +132,9 @@ private:
 	friend class TrajectoryPhysicsViolationCost;
 	friend class TrajectoryGoalPoseCost;
 	friend class TrajectoryCoMCost;
+
+	// for debug
+	std::vector<double> timings_;
 };
 
 inline bool EvaluationManager::isLastTrajectoryFeasible() const

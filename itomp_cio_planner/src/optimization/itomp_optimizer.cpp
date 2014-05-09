@@ -65,7 +65,7 @@ bool ItompOptimizer::optimize()
   updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 
   bool first = true;
-  const int max_interations = 1;
+  const int max_interations = 10;
   while (iteration_ < max_interations)
   {
     evaluation_manager_.optimize_nlp(!first);
