@@ -17,6 +17,7 @@
 #include <geometric_shapes/shapes.h>
 #include <boost/variant/get.hpp>
 #include "dlib/optimization.h"
+#include <omp.h>
 
 using namespace std;
 using namespace Eigen;
@@ -95,9 +96,9 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
     joint_costs_[i].scale(max_cost_scale);
   }
 
-  joint_axis_.resize(num_points_, std::vector < KDL::Vector > (robot_model_->getKDLTree()->getNrOfJoints()));
-  joint_pos_.resize(num_points_, std::vector < KDL::Vector > (robot_model_->getKDLTree()->getNrOfJoints()));
-  segment_frames_.resize(num_points_, std::vector < KDL::Frame > (robot_model_->getKDLTree()->getNrOfSegments()));
+  joint_axis_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
+  joint_pos_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
+  segment_frames_.resize(num_points_, std::vector<KDL::Frame>(robot_model_->getKDLTree()->getNrOfSegments()));
   // create the eigen maps:
   itomp_cio_planner::kdlVecVecToEigenVecVec(joint_axis_, joint_axis_eigen_, 3, 1);
   itomp_cio_planner::kdlVecVecToEigenVecVec(joint_pos_, joint_pos_eigen_, 3, 1);
@@ -135,8 +136,10 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
 
   robot_model::RobotModelPtr ros_robot_model = robot_model->getRobotModel();
   planning_scene_.reset(new planning_scene::PlanningScene(ros_robot_model));
+  initStaticEnvironment();
 
-  timings_.resize(11, 0);
+  timings_.resize(20, 0);
+
 }
 
 double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
@@ -237,9 +240,10 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
     }
 
     printf("Elapsed Time : %f (Avg:%f)\n", timings_[0], timings_[0] / count);
-    for (int i = 1; i <= 10; ++i)
+    for (int i = 1; i <= 11; ++i)
     {
-      printf("Elapsed Time %d : %f (%f)\n", i, timings_[i], timings_[i] / timings_[0]);
+      printf("Elapsed Time %d : %f (Avg:%f) (%f\%)\n", i, timings_[i], timings_[i] / count,
+          timings_[i] / timings_[0] * 100);
     }
   }
 
@@ -691,33 +695,6 @@ void EvaluationManager::computeStabilityCosts()
     for (int i = 0; i < num_contacts; ++i)
       contact_values[i] = group_trajectory_->getContactValue(phase, i);
 
-    /*
-     switch (phase)
-     //(phase-1)/2+1)
-     {
-     case 1:
-     contact_values[0] = 0;
-     contact_values[2] = contact_values[1] = contact_values[3] = 10.0;
-     break;
-     case 2:
-     contact_values[1] = 0;
-     contact_values[3] = contact_values[1] = contact_values[2] = 10.0;
-     break;
-     case 3:
-     contact_values[2] = 0;
-     contact_values[0] = contact_values[1] = contact_values[3] = 10.0;
-     break;
-     case 4:
-     contact_values[3] = 0;
-     contact_values[0] = contact_values[1] = contact_values[2] = 10.0;
-     break;
-     default:
-     contact_values[2] = contact_values[3] = 0;
-     contact_values[0] = contact_values[1] = 10.0;
-     break;
-     }
-     */
-
     solveContactForces(PlanningParameters::getInstance()->getFrictionCoefficient(), contact_forces, contact_positions,
         wrenchSum_[point], contact_values, contact_parent_frames);
 
@@ -790,15 +767,11 @@ void EvaluationManager::computeStabilityCosts()
   timings_[9] += (time[1] - time[0]).toSec();
 }
 
-void EvaluationManager::computeCollisionCosts()
+void EvaluationManager::initStaticEnvironment()
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
-  static bool add_static_environment = true;
   collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
-  if (add_static_environment && !environment_file.empty())
+  if (!environment_file.empty())
   {
     vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();
     double scale = PlanningParameters::getInstance()->getEnvironmentModelScale();
@@ -831,10 +804,16 @@ void EvaluationManager::computeCollisionCosts()
     planning_scene_msg.is_diff = true;
     planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
 
-    add_static_environment = false;
-
     acm.setEntry(true);
   }
+}
+
+void EvaluationManager::computeCollisionCosts()
+{
+  ros::Time time[10];
+  time[0] = ros::Time::now();
+
+  const collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
 
   collision_detection::CollisionRequest collision_request;
   collision_detection::CollisionResult collision_result;
@@ -842,46 +821,61 @@ void EvaluationManager::computeCollisionCosts()
   collision_request.contacts = true;
   collision_request.max_contacts = 1000;
 
-  robot_state::RobotState kinematic_state(robot_model_->getRobotModel());
-  int num_all_joints = kinematic_state.getVariableCount();
-  std::vector<double> positions(num_all_joints);
+  robot_state::RobotStatePtr kinematic_state;
+  std::vector<double> positions;
 
-  for (int i = 0; i < num_points_; ++i)
+  /*
+   int max = omp_get_max_threads();
+   int nthreads = omp_get_num_threads();
+   printf("There are %d/%d threads\n",nthreads,max);
+   */
+  //omp_set_num_threads(omp_get_max_threads());
+  //#pragma omp parallel private(collision_result, kinematic_state, positions)
   {
-    double depthSum = 0.0;
+    kinematic_state.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
+    int num_all_joints = kinematic_state->getVariableCount();
+    positions.resize(num_all_joints);
 
-    for (std::size_t k = 0; k < num_all_joints; k++)
+    time[1] = ros::Time::now();
+
+    //#pragma omp parallel for
+    for (int i = 0; i < num_points_; ++i)
     {
-      positions[k] = (*full_trajectory_)(i, k);
-    }
-    kinematic_state.setVariablePositions(&positions[0]);
-    kinematic_state.update();
+      double depthSum = 0.0;
 
-    planning_scene_->checkCollisionUnpadded(collision_request, collision_result, kinematic_state, acm);
-    const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
-    for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
-        it != contact_map.end(); ++it)
-    {
-      const collision_detection::Contact& contact = it->second[0];
-      depthSum += contact.depth;
+      for (std::size_t k = 0; k < num_all_joints; k++)
+      {
+        positions[k] = (*full_trajectory_)(i, k);
+      }
+      kinematic_state->setVariablePositions(&positions[0]);
+      //kinematic_state->update();
 
-      /*
-       Eigen::Vector3d pos = contact.pos;
-       Eigen::Vector3d normal = contact.normal;
-       printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
-       normal(1), normal(2));
-       */
+      planning_scene_->checkCollisionUnpadded(collision_request, collision_result, *kinematic_state, acm);
+      const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+      for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
+          it != contact_map.end(); ++it)
+      {
+        const collision_detection::Contact& contact = it->second[0];
+        depthSum += contact.depth;
+
+        /*
+         Eigen::Vector3d pos = contact.pos;
+         Eigen::Vector3d normal = contact.normal;
+         printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
+         normal(1), normal(2));
+         */
+      }
+      collision_result.clear();
+      stateCollisionCost_[i] = depthSum;
     }
-    collision_result.clear();
-    stateCollisionCost_[i] = depthSum;
   }
 
-  time[1] = ros::Time::now();
+  time[2] = ros::Time::now();
   timings_[10] += (time[1] - time[0]).toSec();
+  timings_[11] += (time[2] - time[1]).toSec();
 }
 
 typedef dlib::matrix<double, 0, 1> column_vector;
-
 Eigen::MatrixXd parameters_;
 Eigen::MatrixXd vel_parameters_;
 Eigen::MatrixXd contact_parameters_;
@@ -893,11 +887,11 @@ int num_contact_dimensions_;
 int num_free_points_;
 int num_points_;
 
-class test_function
+class evaluation_functor
 {
-public:
 
-  test_function(EvaluationManager* evaluation_manager, int num_dimensions, int num_contact_dimensions,
+public:
+  evaluation_functor(EvaluationManager* evaluation_manager, int num_dimensions, int num_contact_dimensions,
       int num_free_points, int num_points)
   {
     evaluation_manager_ = evaluation_manager;
@@ -942,8 +936,63 @@ public:
 
     return evaluation_manager_->evaluate(parameters_, vel_parameters_, contact_parameters_, costs_);
   }
+};
 
-private:
+column_vector derivative_;
+
+class derivative_functor
+{
+
+public:
+
+  derivative_functor(EvaluationManager* evaluation_manager, int num_dimensions, int num_contact_dimensions,
+      int num_free_points, int num_points)
+  {
+    evaluation_manager_ = evaluation_manager;
+    num_dimensions_ = num_dimensions;
+    num_contact_dimensions_ = num_contact_dimensions;
+    num_free_points_ = num_free_points;
+    num_points_ = num_points;
+
+    parameters_ = Eigen::MatrixXd(num_free_points_, num_dimensions_);
+    vel_parameters_ = Eigen::MatrixXd(num_free_points_, num_dimensions_);
+    contact_parameters_ = Eigen::MatrixXd(num_free_points_ + 1, num_contact_dimensions_);
+    costs_ = Eigen::VectorXd::Zero(num_points_);
+  }
+
+  column_vector operator()(const column_vector& variables) const
+  {
+    int readIndex = 0;
+    // copy to group_trajectory_:
+    for (int d = 0; d < num_contact_dimensions_; ++d)
+    {
+      contact_parameters_(0, d) = abs(variables(readIndex + d, 0));
+    }
+    readIndex += num_contact_dimensions_;
+    for (int i = 0; i < num_free_points_; ++i)
+    {
+      for (int d = 0; d < num_dimensions_; ++d)
+      {
+        parameters_(i, d) = variables(readIndex + d, 0);
+      }
+      readIndex += num_dimensions_;
+      for (int d = 0; d < num_dimensions_; ++d)
+      {
+        vel_parameters_(i, d) = variables(readIndex + d, 0);
+      }
+      readIndex += num_dimensions_;
+      for (int d = 0; d < num_contact_dimensions_; ++d)
+      {
+        contact_parameters_(i + 1, d) = abs(variables(readIndex + d, 0));
+      }
+      readIndex += num_contact_dimensions_;
+    }
+
+    evaluation_manager_->evaluate(parameters_, vel_parameters_, contact_parameters_, costs_);
+
+    derivative_.set_size(variables.size());
+    return derivative_;
+  }
 };
 
 void EvaluationManager::optimize_nlp(bool add_noise)
@@ -998,10 +1047,14 @@ void EvaluationManager::optimize_nlp(bool add_noise)
       variables(i) += 0.01 * noise(i);
     }
   }
-
+  /*
+   dlib::find_min(dlib::bfgs_search_strategy(), dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
+   evaluation_functor(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_),
+   derivative_functor(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
+   */
   dlib::find_min_using_approximate_derivatives(dlib::bfgs_search_strategy(),
       dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
-      test_function(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
+      evaluation_functor(this, num_joints_, num_contacts_, num_contact_phases - 1, num_points_), variables, -1);
 
   //STABILITY_COST_VERBOSE = true;
   costAccumulator_->compute(this);

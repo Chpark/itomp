@@ -41,7 +41,7 @@ private:
 	ItompCIOTrajectory group_trajectory_;
 
 	EvaluationManager evaluation_manager_;
-	ImprovementManager improvement_manager_;
+	ImprovementManagerPtr improvement_manager_;
 	TrajectoryCostAccumulator costAccumulator_;
 
 	Eigen::MatrixXd best_group_trajectory_;

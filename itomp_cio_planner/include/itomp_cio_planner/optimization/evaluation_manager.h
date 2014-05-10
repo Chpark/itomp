@@ -45,6 +45,8 @@ public:
 	friend class test_function;
 
 private:
+	void initStaticEnvironment();
+
 	void computeMassAndGravityForce();
 	void computeWrenchSum();
 	void computeStabilityCosts();

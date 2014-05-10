@@ -3,6 +3,7 @@
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/visualization_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
 
 using namespace std;
 
@@ -26,7 +27,8 @@ void ItompOptimizer::initialize(ItompRobotModel *robot_model, const ItompPlannin
   evaluation_manager_.initialize(full_trajectory_, &group_trajectory_, robot_model, planning_group,
       planning_start_time_, trajectory_start_time, &costAccumulator_);
 
-  improvement_manager_.initialize(&evaluation_manager_);
+  improvement_manager_.reset(new ImprovementManagerNLP());
+  improvement_manager_->initialize(&evaluation_manager_);
 
   VisualizationManager::getInstance()->clearAnimations();
 
@@ -51,7 +53,7 @@ bool ItompOptimizer::optimize()
   iteration_ = -1;
   best_group_trajectory_cost_ = numeric_limits<double>::max();
 
-  improvement_manager_.updatePlanningParameters();
+  improvement_manager_->updatePlanningParameters();
 
   VisualizationManager::getInstance()->render();
 
@@ -65,10 +67,9 @@ bool ItompOptimizer::optimize()
   updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 
   bool first = true;
-  const int max_interations = 10;
-  while (iteration_ < max_interations)
+  while (iteration_ < PlanningParameters::getInstance()->getMaxIterations())
   {
-    evaluation_manager_.optimize_nlp(!first);
+    improvement_manager_->runSingleIteration(iteration_);
     costAccumulator_.print(iteration_++);
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
     ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
