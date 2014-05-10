@@ -22,14 +22,14 @@ public:
   virtual void runSingleIteration(int iteration);
 
 protected:
-  void setVariableVector();
-  void getVariableVector();
-  void addNoiseToVariables();
+  void setVariableVector(column_vector& variables);
+  void getVariableVector(const column_vector& variables);
+  void addNoiseToVariables(column_vector& variables);
 
   double evaluate(const column_vector& variables);
   column_vector derivative(const column_vector& variables);
 
-  void optimize(int iteration);
+  void optimize(int iteration, column_vector& variables);
 
   int num_dimensions_;
   int num_contact_dimensions_;
@@ -45,9 +45,6 @@ protected:
   Eigen::MatrixXd vel_parameters_;
   Eigen::MatrixXd contact_parameters_;
   Eigen::VectorXd costs_;
-
-  column_vector variables_;
-
 };
 
 }

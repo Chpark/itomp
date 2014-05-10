@@ -16,8 +16,6 @@
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
 #include <boost/variant/get.hpp>
-#include "dlib/optimization.h"
-#include <omp.h>
 
 using namespace std;
 using namespace Eigen;
@@ -150,12 +148,11 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
 
   // copy the parameters into group_trajectory_:
   int num_free_points = parameters.rows();
-  ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points + 2);
+  ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
 
-  group_trajectory_->getFreePoints().block(1, 0, num_free_points, num_joints_) = parameters;
-
-  group_trajectory_->getFreeVelPoints().block(1, 0, num_free_points, num_joints_) = vel_parameters;
-  group_trajectory_->getContactTrajectory().block(0, 0, num_free_points + 1, num_contacts_) = contact_parameters;
+  group_trajectory_->getFreePoints() = parameters;
+  group_trajectory_->getFreeVelPoints() = vel_parameters;
+  group_trajectory_->getContactTrajectory() = contact_parameters;
 
   time[1] = ros::Time::now();
   timings_[1] += (time[1] - time[0]).toSec();
@@ -824,50 +821,40 @@ void EvaluationManager::computeCollisionCosts()
   robot_state::RobotStatePtr kinematic_state;
   std::vector<double> positions;
 
-  /*
-   int max = omp_get_max_threads();
-   int nthreads = omp_get_num_threads();
-   printf("There are %d/%d threads\n",nthreads,max);
-   */
-  //omp_set_num_threads(omp_get_max_threads());
-  //#pragma omp parallel private(collision_result, kinematic_state, positions)
+  kinematic_state.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
+  int num_all_joints = kinematic_state->getVariableCount();
+  positions.resize(num_all_joints);
+
+  time[1] = ros::Time::now();
+
+  for (int i = 0; i < num_points_; ++i)
   {
-    kinematic_state.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
-    int num_all_joints = kinematic_state->getVariableCount();
-    positions.resize(num_all_joints);
+    double depthSum = 0.0;
 
-    time[1] = ros::Time::now();
-
-    //#pragma omp parallel for
-    for (int i = 0; i < num_points_; ++i)
+    for (std::size_t k = 0; k < num_all_joints; k++)
     {
-      double depthSum = 0.0;
-
-      for (std::size_t k = 0; k < num_all_joints; k++)
-      {
-        positions[k] = (*full_trajectory_)(i, k);
-      }
-      kinematic_state->setVariablePositions(&positions[0]);
-      //kinematic_state->update();
-
-      planning_scene_->checkCollisionUnpadded(collision_request, collision_result, *kinematic_state, acm);
-      const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
-      for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
-          it != contact_map.end(); ++it)
-      {
-        const collision_detection::Contact& contact = it->second[0];
-        depthSum += contact.depth;
-
-        /*
-         Eigen::Vector3d pos = contact.pos;
-         Eigen::Vector3d normal = contact.normal;
-         printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
-         normal(1), normal(2));
-         */
-      }
-      collision_result.clear();
-      stateCollisionCost_[i] = depthSum;
+      positions[k] = (*full_trajectory_)(i, k);
     }
+    kinematic_state->setVariablePositions(&positions[0]);
+    //kinematic_state->update();
+
+    planning_scene_->checkCollisionUnpadded(collision_request, collision_result, *kinematic_state, acm);
+    const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+    for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
+        it != contact_map.end(); ++it)
+    {
+      const collision_detection::Contact& contact = it->second[0];
+      depthSum += contact.depth;
+
+      /*
+       Eigen::Vector3d pos = contact.pos;
+       Eigen::Vector3d normal = contact.normal;
+       printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
+       normal(1), normal(2));
+       */
+    }
+    collision_result.clear();
+    stateCollisionCost_[i] = depthSum;
   }
 
   time[2] = ros::Time::now();
