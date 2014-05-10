@@ -82,6 +82,7 @@ public:
   Eigen::MatrixXd& getFreeVelPoints();
   const Eigen::MatrixXd& getFreeVelPoints() const;
   void updateTrajectoryFromFreePoints();
+  void updateTrajectoryFromFreePoint(int point);
   void updateFreePointsFromTrajectory();
 
   void printTrajectory();

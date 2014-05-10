@@ -48,6 +48,7 @@ bool ImprovementManagerNLP::updatePlanningParameters()
   vel_parameters_ = group_trajectory->getFreeVelPoints();
   contact_parameters_ = group_trajectory->getContactTrajectory();
   costs_ = Eigen::VectorXd::Zero(num_points_);
+  derivatives_ = Eigen::VectorXd::Zero(num_variables_);
 
   return true;
 }
@@ -153,9 +154,17 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
+  // assume evaluate is called before
+  // getVariableVector(variables);
+
   const double eps = 1E-7;
 
   column_vector der(variables.size());
+  evaluation_manager_->evaluateDerivatives(parameters_, vel_parameters_, contact_parameters_, derivatives_);
+  for (int i = 0; i < variables.size(); ++i)
+    der(i) = derivatives_(i);
+
+  /*
   column_vector e(variables);
 
   //#pragma omp parallel for
@@ -172,6 +181,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
     e(i) = old_val;
   }
+  */
 
   return der;
 }

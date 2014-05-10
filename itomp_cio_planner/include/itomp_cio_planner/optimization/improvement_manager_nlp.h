@@ -45,6 +45,7 @@ protected:
   Eigen::MatrixXd vel_parameters_;
   Eigen::MatrixXd contact_parameters_;
   Eigen::VectorXd costs_;
+  Eigen::VectorXd derivatives_;
 };
 
 }

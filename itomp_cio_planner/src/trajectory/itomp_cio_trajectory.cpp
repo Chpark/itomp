@@ -147,6 +147,44 @@ void ItompCIOTrajectory::updateTrajectoryFromFreePoints()
   }
 }
 
+void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point)
+{
+  double coeff[4];
+  double t[4];
+
+  for (int i = 0; i < num_joints_; ++i)
+  {
+    for (int j = point - 1; j < point + 1; ++j)
+    {
+      ROS_ASSERT(j >= 0 && j < num_contact_phases_);
+      double start_pos = free_trajectory_(j, i);
+      double end_pos = free_trajectory_(j + 1, i);
+      double start_vel = free_vel_trajectory_(j, i);
+      double end_vel = free_vel_trajectory_(j + 1, i);
+
+      coeff[0] = start_pos;
+      coeff[1] = start_vel;
+      coeff[2] = -end_vel + 3 * end_pos - 2 * start_vel - 3 * start_pos;
+      coeff[3] = end_vel - 2 * end_pos + start_vel + 2 * start_pos;
+
+      int pos = j * phase_stride_;
+      for (int k = 0; k < phase_stride_; ++k)
+      {
+        t[0] = 1.0;
+        t[1] = ((double) k) / phase_stride_;
+        t[2] = t[1] * t[1];
+        t[3] = t[2] * t[1];
+        (*this)(pos, i) = 0.0;
+        for (int l = 0; l <= 3; l++)
+        {
+          (*this)(pos, i) += t[l] * coeff[l];
+        }
+        ++pos;
+      }
+    }
+  }
+}
+
 void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
     const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array)
 {

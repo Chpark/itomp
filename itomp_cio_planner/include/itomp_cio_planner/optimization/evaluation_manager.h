@@ -25,8 +25,11 @@ public:
 			ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
 			double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator);
 
-	double evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
-	    Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
+	double evaluate();
+	double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+	    const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
+	void evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+	      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives);
 
 	bool isLastTrajectoryFeasible() const;
 
@@ -39,10 +42,7 @@ public:
 	const ItompCIOTrajectory* getGroupTrajectory() const;
 	const ItompPlanningGroup* getPlanningGroup() const;
 
-	void optimize_nlp(bool add_noise);
 	void postprocess_ik();
-
-	friend class test_function;
 
 private:
 	void initStaticEnvironment();
@@ -114,8 +114,8 @@ private:
 	std::vector<KDL::Vector> CoMAccelerations_;
 	std::vector<KDL::Vector> AngularMomentums_;
 	std::vector<KDL::Vector> Torques_;
-	std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > tmpContactViolationVector_;
-	std::vector<std::vector<KDL::Vector> > tmpContactPointVelVector_;
+	std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > contactViolationVector_;
+	std::vector<std::vector<KDL::Vector> > contactPointVelVector_;
 
 	std::vector<double> stateContactInvariantCost_;
 	std::vector<double> statePhysicsViolationCost_;

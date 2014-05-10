@@ -59,10 +59,8 @@ bool ItompOptimizer::optimize()
 
   evaluation_manager_.handleJointLimits();
   evaluation_manager_.updateFullTrajectory();
-  evaluation_manager_.performForwardKinematics();
-  evaluation_manager_.computeTrajectoryValidity();
+  evaluation_manager_.evaluate();
 
-  costAccumulator_.compute(&evaluation_manager_);
   costAccumulator_.print(iteration_++);
   updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 
@@ -92,15 +90,13 @@ bool ItompOptimizer::optimize()
   group_trajectory_.getTrajectory() = best_group_trajectory_;
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
   evaluation_manager_.updateFullTrajectory();
-  evaluation_manager_.performForwardKinematics();
-  evaluation_manager_.computeTrajectoryValidity();
+  evaluation_manager_.evaluate();
 
   evaluation_manager_.render(trajectory_index_);
 
   ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, last_improvement_iteration_);
   ROS_INFO("Optimization core finished in %f sec", (ros::WallTime::now() - start_time).toSec());
 
-  costAccumulator_.compute(&evaluation_manager_);
   costAccumulator_.print(iteration_);
 
   return is_succeed_;

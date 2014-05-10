@@ -46,9 +46,11 @@ void TrajectoryCostAccumulator::compute(const EvaluationManager* evaluator)
 {
   // TODO:
   //const_cast<EvaluationManager*>(evaluator)->computeTrajectoryValidity();
-  const_cast<EvaluationManager*>(evaluator)->computeWrenchSum();
-  const_cast<EvaluationManager*>(evaluator)->computeStabilityCosts();
-  const_cast<EvaluationManager*>(evaluator)->computeCollisionCosts();
+  /*
+  evaluator->computeWrenchSum();
+  evaluator->computeStabilityCosts();
+  evaluator->computeCollisionCosts();
+  */
 
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCost*>::iterator it = costMap_.begin(); it != costMap_.end(); ++it)
   {

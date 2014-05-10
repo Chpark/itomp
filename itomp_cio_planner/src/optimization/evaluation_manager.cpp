@@ -140,12 +140,9 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
 
 }
 
-double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd& vel_parameters,
-    Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs)
+void EvaluationManager::evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+    const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives)
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
   // copy the parameters into group_trajectory_:
   int num_free_points = parameters.rows();
   ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
@@ -154,13 +151,7 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   group_trajectory_->getFreeVelPoints() = vel_parameters;
   group_trajectory_->getContactTrajectory() = contact_parameters;
 
-  time[1] = ros::Time::now();
-  timings_[1] += (time[1] - time[0]).toSec();
-
   group_trajectory_->updateTrajectoryFromFreePoints();
-
-  time[2] = ros::Time::now();
-  timings_[2] += (time[2] - time[1]).toSec();
 
   // respect joint limits:
   handleJointLimits();
@@ -168,17 +159,45 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   // copy to full traj:
   updateFullTrajectory();
 
-  time[3] = ros::Time::now();
-  timings_[3] += (time[3] - time[2]).toSec();
+  // do forward kinematics:
+  performForwardKinematics();
+
+  computeTrajectoryValidity();
+  computeWrenchSum();
+  computeStabilityCosts();
+  computeCollisionCosts();
+
+  costAccumulator_->compute(this);
+}
+
+double EvaluationManager::evaluate()
+{
+  ros::Time time[10];
+  time[0] = ros::Time::now();
 
   // do forward kinematics:
   last_trajectory_collision_free_ = performForwardKinematics();
 
-  time[4] = ros::Time::now();
-  timings_[4] += (time[4] - time[3]).toSec();
+  time[1] = ros::Time::now();
+  timings_[1] += (time[1] - time[0]).toSec();
 
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
+
+  time[2] = ros::Time::now();
+  timings_[2] += (time[2] - time[1]).toSec();
+
+  computeWrenchSum();
+
+  time[3] = ros::Time::now();
+  timings_[3] += (time[3] - time[2]).toSec();
+
+  computeStabilityCosts();
+
+  time[4] = ros::Time::now();
+  timings_[4] += (time[4] - time[3]).toSec();
+
+  computeCollisionCosts();
 
   time[5] = ros::Time::now();
   timings_[5] += (time[5] - time[4]).toSec();
@@ -189,12 +208,6 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   timings_[6] += (time[6] - time[5]).toSec();
 
   last_trajectory_collision_free_ &= costAccumulator_->isFeasible();
-
-  ROS_ASSERT(costs.rows() == num_points_);
-  for (int i = 0; i < num_points_; i++)
-  {
-    costs(i) = costAccumulator_->getWaypointCost(i);
-  }
 
   // TODO: if trajectory is changed in handle joint limits,
   // update parameters
@@ -237,7 +250,7 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
     }
 
     printf("Elapsed Time : %f (Avg:%f)\n", timings_[0], timings_[0] / count);
-    for (int i = 1; i <= 11; ++i)
+    for (int i = 1; i <= 7; ++i)
     {
       printf("Elapsed Time %d : %f (Avg:%f) (%f\%)\n", i, timings_[i], timings_[i] / count,
           timings_[i] / timings_[0] * 100);
@@ -245,7 +258,36 @@ double EvaluationManager::evaluate(Eigen::MatrixXd& parameters, Eigen::MatrixXd&
   }
 
   return costAccumulator_->getTrajectoryCost();
+}
 
+double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+    const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs)
+{
+  // copy the parameters into group_trajectory_:
+  int num_free_points = parameters.rows();
+  ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
+
+  group_trajectory_->getFreePoints() = parameters;
+  group_trajectory_->getFreeVelPoints() = vel_parameters;
+  group_trajectory_->getContactTrajectory() = contact_parameters;
+
+  group_trajectory_->updateTrajectoryFromFreePoints();
+
+  // respect joint limits:
+  handleJointLimits();
+
+  // copy to full traj:
+  updateFullTrajectory();
+
+  double cost = evaluate();
+
+  ROS_ASSERT(costs.rows() == num_points_);
+  for (int i = 0; i < num_points_; i++)
+  {
+    costs(i) = costAccumulator_->getWaypointCost(i);
+  }
+
+  return cost;
 }
 
 void EvaluationManager::render(int trajectory_index)
@@ -302,12 +344,12 @@ void EvaluationManager::computeMassAndGravityForce()
   wrenchSum_.resize(num_points_);
 
   int num_contacts = group_trajectory_->getNumContacts();
-  tmpContactViolationVector_.resize(num_contacts);
-  tmpContactPointVelVector_.resize(num_contacts);
+  contactViolationVector_.resize(num_contacts);
+  contactPointVelVector_.resize(num_contacts);
   for (int i = 0; i < num_contacts; ++i)
   {
-    tmpContactViolationVector_[i].resize(num_points_);
-    tmpContactPointVelVector_[i].resize(num_points_);
+    contactViolationVector_[i].resize(num_points_);
+    contactPointVelVector_[i].resize(num_points_);
   }
 }
 
@@ -529,9 +571,6 @@ static bool STABILITY_COST_VERBOSE = false;
 
 void EvaluationManager::computeWrenchSum()
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
   if (planning_group_->name_ != "lower_body" && planning_group_->name_ != "whole_body")
     return;
 
@@ -647,19 +686,13 @@ void EvaluationManager::computeWrenchSum()
   for (int i = 0; i < planning_group_->getNumContacts(); ++i)
   {
     planning_group_->contactPoints_[i].updateContactViolationVector(1, num_points_ - 2,
-        group_trajectory_->getDiscretization(), tmpContactViolationVector_[i], tmpContactPointVelVector_[i],
+        group_trajectory_->getDiscretization(), contactViolationVector_[i], contactPointVelVector_[i],
         segment_frames_);
   }
-
-  time[1] = ros::Time::now();
-  timings_[8] += (time[1] - time[0]).toSec();
 }
 
 void EvaluationManager::computeStabilityCosts()
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
   for (int point = 1; point <= num_points_ - 2; point++)
   {
     double state_contact_invariant_cost = 0.0;
@@ -697,8 +730,8 @@ void EvaluationManager::computeStabilityCosts()
 
     for (int i = 0; i < num_contacts; ++i)
     {
-      double cost = (tmpContactViolationVector_[i][point].transpose() * tmpContactViolationVector_[i][point]).value()
-          + 16.0 * KDL::dot(tmpContactPointVelVector_[i][point], tmpContactPointVelVector_[i][point]);
+      double cost = (contactViolationVector_[i][point].transpose() * contactViolationVector_[i][point]).value()
+          + 16.0 * KDL::dot(contactPointVelVector_[i][point], contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
 
@@ -759,9 +792,6 @@ void EvaluationManager::computeStabilityCosts()
     stateContactInvariantCost_[point] = state_contact_invariant_cost;
     statePhysicsViolationCost_[point] = state_physics_violation_cost;
   }
-
-  time[1] = ros::Time::now();
-  timings_[9] += (time[1] - time[0]).toSec();
 }
 
 void EvaluationManager::initStaticEnvironment()
@@ -807,9 +837,6 @@ void EvaluationManager::initStaticEnvironment()
 
 void EvaluationManager::computeCollisionCosts()
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
   const collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
 
   collision_detection::CollisionRequest collision_request;
@@ -824,8 +851,6 @@ void EvaluationManager::computeCollisionCosts()
   kinematic_state.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
   int num_all_joints = kinematic_state->getVariableCount();
   positions.resize(num_all_joints);
-
-  time[1] = ros::Time::now();
 
   for (int i = 0; i < num_points_; ++i)
   {
@@ -856,36 +881,10 @@ void EvaluationManager::computeCollisionCosts()
     collision_result.clear();
     stateCollisionCost_[i] = depthSum;
   }
-
-  time[2] = ros::Time::now();
-  timings_[10] += (time[1] - time[0]).toSec();
-  timings_[11] += (time[2] - time[1]).toSec();
 }
 
 void EvaluationManager::postprocess_ik()
 {
-  /*
-   costAccumulator_->compute(this);
-   costAccumulator_->print(*iteration_);
-   group_trajectory_->printTrajectory();
-   printf("Contact Values :\n");
-   for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
-   {
-   printf("%d : ", i);
-   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-   printf("%f ", group_trajectory_->getContactValue(i, j));
-   printf("   ");
-   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-   {
-   KDL::Vector contact_position;
-   planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
-   segment_frames_);
-   printf("%f ", contact_position.y());
-   }
-   printf("\n");
-   }
-   */
-  ///////////////////////////////////
   const double threshold = 0.1;
   const Eigen::MatrixXd& contactTrajectoryBlock = group_trajectory_->getContactTrajectory();
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
@@ -1002,32 +1001,6 @@ void EvaluationManager::postprocess_ik()
   full_trajectory_->updateFreePointsFromTrajectory();
   group_trajectory_->copyFromFullTrajectory(*full_trajectory_);
   group_trajectory_->updateTrajectoryFromFreePoints();
-
-  //////////////////////
-  /*
-   performForwardKinematics();
-   costAccumulator_->compute(this);
-   costAccumulator_->print(*iteration_);
-   group_trajectory_->printTrajectory();
-
-   printf("Contact Values :\n");
-   for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
-   {
-   printf("%d : ", i);
-   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-   printf("%f ", group_trajectory_->getContactValue(i, j));
-   printf("   ");
-   for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-   {
-   KDL::Vector contact_position;
-   planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
-   segment_frames_);
-   printf("%f ", contact_position.y());
-   }
-   printf("\n");
-   }
-   */
-
 }
 
 }
