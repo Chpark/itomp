@@ -67,7 +67,9 @@ public:
       int index);
 
   Eigen::MatrixXd& getTrajectory();
+  const Eigen::MatrixXd& getTrajectory() const;
   Eigen::MatrixXd& getContactTrajectory();
+  const Eigen::MatrixXd& getContactTrajectory() const;
 
   void setTrajectory(Eigen::MatrixXd& trajectory);
   void setContactTrajectory(Eigen::MatrixXd& contact_trajectory);
@@ -76,7 +78,9 @@ public:
   void copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory);
 
   Eigen::MatrixXd& getFreePoints();
+  const Eigen::MatrixXd& getFreePoints() const;
   Eigen::MatrixXd& getFreeVelPoints();
+  const Eigen::MatrixXd& getFreeVelPoints() const;
   void updateTrajectoryFromFreePoints();
   void updateFreePointsFromTrajectory();
 
@@ -175,6 +179,11 @@ inline Eigen::MatrixXd& ItompCIOTrajectory::getTrajectory()
   return trajectory_;
 }
 
+inline const Eigen::MatrixXd& ItompCIOTrajectory::getTrajectory() const
+{
+  return trajectory_;
+}
+
 inline void ItompCIOTrajectory::setTrajectory(Eigen::MatrixXd& trajectory)
 {
   trajectory_ = trajectory;
@@ -190,6 +199,12 @@ inline Eigen::MatrixXd& ItompCIOTrajectory::getContactTrajectory()
 {
   return contact_trajectory_;
 }
+
+inline const Eigen::MatrixXd& ItompCIOTrajectory::getContactTrajectory() const
+{
+  return contact_trajectory_;
+}
+
 inline void ItompCIOTrajectory::setContactTrajectory(Eigen::MatrixXd& contact_trajectory)
 {
   contact_trajectory_ = contact_trajectory;
@@ -225,7 +240,17 @@ inline Eigen::MatrixXd& ItompCIOTrajectory::getFreePoints()
   return free_trajectory_;
 }
 
+inline const Eigen::MatrixXd& ItompCIOTrajectory::getFreePoints() const
+{
+  return free_trajectory_;
+}
+
 inline Eigen::MatrixXd& ItompCIOTrajectory::getFreeVelPoints()
+{
+  return free_vel_trajectory_;
+}
+
+inline const Eigen::MatrixXd& ItompCIOTrajectory::getFreeVelPoints() const
 {
   return free_vel_trajectory_;
 }
