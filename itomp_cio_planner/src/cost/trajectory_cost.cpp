@@ -5,7 +5,7 @@
  *      Author: cheonhyeonpark
  */
 
-#include <itomp_cio_planner/optimization/evaluation_manager.h>
+#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include <itomp_cio_planner/cost/trajectory_cost.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 
@@ -61,33 +61,33 @@ TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryCost::init(const EvaluationManager* evaluator)
+void TrajectoryCost::init(const EvaluationData* data)
 {
-	costs_ = Eigen::VectorXd::Zero(evaluator->num_points_);
+	costs_ = Eigen::VectorXd::Zero(data->getNumPoints());
 }
 
-void TrajectoryCost::computeCostSum(const EvaluationManager* evaluator)
+void TrajectoryCost::computeCostSum(const EvaluationData* data)
 {
 	costSum_ = 0.0;
-	for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+	for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
 		costSum_ += costs_(i);
 	}
 }
 
-void TrajectoryCost::compute(const EvaluationManager* evaluator)
+void TrajectoryCost::compute(const EvaluationData* data)
 {
-	doCompute(evaluator);
-	computeCostSum(evaluator);
+	doCompute(data);
+	computeCostSum(data);
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectorySmoothnessCost::doCompute(const EvaluationManager* evaluator)
+void TrajectorySmoothnessCost::doCompute(const EvaluationData* data)
 {
 	double smoothness_cost = 0.0;
 	// joint costs:
-	for (int i = 0; i < evaluator->num_joints_; i++)
-		smoothness_cost += evaluator->joint_costs_[i].getCost(evaluator->group_trajectory_->getJointTrajectory(i));
+	for (int i = 0; i < data->getNumJoints(); i++)
+		smoothness_cost += data->joint_costs_[i].getCost(data->getGroupTrajectory()->getJointTrajectory(i));
 
 	costs_(1) = smoothness_cost;
 }
@@ -98,11 +98,11 @@ double TrajectorySmoothnessCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryCollisionCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryCollisionCost::doCompute(const EvaluationData* data)
 {
-  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+  for (int i = 1; i <= data->getNumPoints() - 2; i++)
     {
-      costs_(i) = evaluator->stateCollisionCost_[i];
+      costs_(i) = data->stateCollisionCost_[i];
     }
 }
 
@@ -112,12 +112,12 @@ double TrajectoryCollisionCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryValidityCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryValidityCost::doCompute(const EvaluationData* data)
 {
-  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+  for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
 		double state_validity_cost = 0.0;
-		if (!evaluator->state_validity_[i])
+		if (!data->state_validity_[i])
 			state_validity_cost = 1.0;
 
 		costs_(i) = state_validity_cost;
@@ -130,11 +130,11 @@ double TrajectoryValidityCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryContactInvariantCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryContactInvariantCost::doCompute(const EvaluationData* data)
 {
-  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+  for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
-		costs_(i) = evaluator->stateContactInvariantCost_[i];
+		costs_(i) = data->stateContactInvariantCost_[i];
 	}
 }
 
@@ -144,11 +144,11 @@ double TrajectoryContactInvariantCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryPhysicsViolationCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryPhysicsViolationCost::doCompute(const EvaluationData* data)
 {
-  for (int i = 1; i <= evaluator->num_points_ - 2; i++)
+  for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
-		costs_(i) = evaluator->statePhysicsViolationCost_[i];
+		costs_(i) = data->statePhysicsViolationCost_[i];
 	}
 }
 
@@ -158,7 +158,7 @@ double TrajectoryPhysicsViolationCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryGoalPoseCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryGoalPoseCost::doCompute(const EvaluationData* data)
 {
   /*
 	double goal_pose_cost = 0.0;
@@ -189,7 +189,7 @@ double TrajectoryGoalPoseCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryCoMCost::doCompute(const EvaluationManager* evaluator)
+void TrajectoryCoMCost::doCompute(const EvaluationData* data)
 {
   /*
 	for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)

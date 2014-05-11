@@ -19,13 +19,11 @@
 using namespace std;
 using namespace Eigen;
 
-const static double SENSOR_NOISE = 0.18;
-
 namespace itomp_cio_planner
 {
 
 EvaluationManager::EvaluationManager(int* iteration) :
-    iteration_(iteration)
+    iteration_(iteration), data_(&default_data_)
 {
 
 }
@@ -39,9 +37,6 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
     ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
     double trajectory_start_time)
 {
-  full_trajectory_ = full_trajectory;
-  group_trajectory_ = group_trajectory;
-
   planning_start_time_ = planning_start_time;
   trajectory_start_time_ = trajectory_start_time;
 
@@ -49,11 +44,9 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   planning_group_ = planning_group;
   robot_name_ = robot_model_->getRobotName();
 
-  kdl_joint_array_.resize(robot_model_->getKDLTree()->getNrOfJoints());
-
   // init some variables:
-  num_joints_ = group_trajectory_->getNumJoints();
-  num_contacts_ = group_trajectory_->getNumContacts();
+  num_joints_ = group_trajectory->getNumJoints();
+  num_contacts_ = group_trajectory->getNumContacts();
   num_points_ = group_trajectory->getNumPoints();
   num_contact_points_ = group_trajectory->getNumContactPhases() + 1;
 
@@ -62,59 +55,15 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   for (int i = 0; i < num_joints_; ++i)
     group_joint_to_kdl_joint_index_[i] = planning_group_->group_joints_[i].kdl_joint_index_;
 
-  // set up the joint costs:
-  joint_costs_.reserve(num_joints_);
-
-  double max_cost_scale = 0.0;
-  ros::NodeHandle nh("~");
-  for (int i = 0; i < num_joints_; i++)
-  {
-    double joint_cost = 1.0;
-    std::string joint_name = planning_group_->group_joints_[i].joint_name_;
-    nh.param("joint_costs/" + joint_name, joint_cost, 1.0);
-    std::vector<double> derivative_costs(NUM_DIFF_RULES);
-    derivative_costs[DIFF_RULE_VELOCITY] = joint_cost * PlanningParameters::getInstance()->getSmoothnessCostVelocity();
-    derivative_costs[DIFF_RULE_ACCELERATION] = joint_cost
-        * PlanningParameters::getInstance()->getSmoothnessCostAcceleration();
-    derivative_costs[DIFF_RULE_JERK] = joint_cost * PlanningParameters::getInstance()->getSmoothnessCostJerk();
-
-    joint_costs_.push_back(
-        SmoothnessCost(*group_trajectory_, i, derivative_costs, PlanningParameters::getInstance()->getRidgeFactor()));
-    double cost_scale = joint_costs_[i].getMaxQuadCostInvValue();
-    if (max_cost_scale < cost_scale)
-      max_cost_scale = cost_scale;
-  }
-
-  // scale the smoothness costs
-  for (int i = 0; i < num_joints_; i++)
-  {
-    joint_costs_[i].scale(max_cost_scale);
-  }
-
-  joint_axis_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
-  joint_pos_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
-  segment_frames_.resize(num_points_, std::vector<KDL::Frame>(robot_model_->getKDLTree()->getNrOfSegments()));
-
   is_collision_free_ = false;
-  state_is_in_collision_.resize(num_points_);
-
-  state_validity_.resize(num_points_);
-  for (int i = 0; i < num_points_; ++i)
-    state_validity_[i] = true;
+  last_trajectory_collision_free_ = false;
 
   // Initialize visualizer
   VisualizationManager::getInstance()->setPlanningGroup(*robot_model_, planning_group_->name_);
   vis_marker_pub_ = VisualizationManager::getInstance()->getVisualizationMarkerPublisher();
   vis_marker_array_pub_ = VisualizationManager::getInstance()->getVisualizationMarkerArrayPublisher();
 
-  last_trajectory_collision_free_ = false;
-  dynamic_obstacle_cost_ = Eigen::VectorXd::Zero(num_points_);
-
   computeMassAndGravityForce();
-
-  stateContactInvariantCost_.resize(num_points_);
-  statePhysicsViolationCost_.resize(num_points_);
-  stateCollisionCost_.resize(num_points_);
 
   GroundManager::getInstance().init();
 
@@ -122,22 +71,15 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   planning_scene_.reset(new planning_scene::PlanningScene(ros_robot_model));
   initStaticEnvironment();
 
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COLLISION));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_VALIDITY));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
-  costAccumulator_.init(this);
+  default_data_.initialize(full_trajectory, group_trajectory, robot_model, planning_group, this, numMassSegments_);
 
   timings_.resize(20, 0);
-
 }
 
 void EvaluationManager::evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
     const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives)
 {
+  /*
   // copy the parameters into group_trajectory_:
   int num_free_points = parameters.rows();
   ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
@@ -163,6 +105,7 @@ void EvaluationManager::evaluateDerivatives(const Eigen::MatrixXd& parameters, c
   computeCollisionCosts();
 
   costAccumulator_.compute(this);
+  */
 }
 
 double EvaluationManager::evaluate()
@@ -197,12 +140,12 @@ double EvaluationManager::evaluate()
   time[5] = ros::Time::now();
   timings_[5] += (time[5] - time[4]).toSec();
 
-  costAccumulator_.compute(this);
+  data_->costAccumulator_.compute(data_);
 
   time[6] = ros::Time::now();
   timings_[6] += (time[6] - time[5]).toSec();
 
-  last_trajectory_collision_free_ &= costAccumulator_.isFeasible();
+  last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
 
   // TODO: if trajectory is changed in handle joint limits,
   // update parameters
@@ -218,27 +161,27 @@ double EvaluationManager::evaluate()
     PlanningParameters::getInstance()->initFromNodeHandle();
     VisualizationManager::getInstance()->render();
 
-    costAccumulator_.print(*iteration_);
+    data_->costAccumulator_.print(*iteration_);
     printf("Contact Values :\n");
-    for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
+    for (int i = 0; i <= getGroupTrajectory()->getNumContactPhases(); ++i)
     {
       printf("%d : ", i);
-      for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
-        printf("%f ", group_trajectory_->getContactValue(i, j));
+      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
+        printf("%f ", getGroupTrajectory()->getContactValue(i, j));
       printf("   ");
-      for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
       {
         KDL::Vector contact_position;
-        planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
-            segment_frames_);
+        planning_group_->contactPoints_[j].getPosition(i * getGroupTrajectory()->getContactPhaseStride(), contact_position,
+            data_->segment_frames_);
         printf("%f ", contact_position.y());
       }
       printf("   ");
-      for (int j = 0; j < group_trajectory_->getNumContacts(); ++j)
+      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
       {
         KDL::Vector contact_position;
-        planning_group_->contactPoints_[j].getPosition(i * group_trajectory_->getContactPhaseStride(), contact_position,
-            segment_frames_);
+        planning_group_->contactPoints_[j].getPosition(i * getGroupTrajectory()->getContactPhaseStride(), contact_position,
+            data_->segment_frames_);
         printf("%f ", contact_position.z());
       }
       printf("\n");
@@ -252,21 +195,21 @@ double EvaluationManager::evaluate()
     }
   }
 
-  return costAccumulator_.getTrajectoryCost();
+  return data_->costAccumulator_.getTrajectoryCost();
 }
 
 double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
     const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs)
 {
-  // copy the parameters into group_trajectory_:
+  // copy the parameters into group_trajectory:
   int num_free_points = parameters.rows();
-  ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
+  ROS_ASSERT(getGroupTrajectory()->getFreePoints().rows() == num_free_points);
 
-  group_trajectory_->getFreePoints() = parameters;
-  group_trajectory_->getFreeVelPoints() = vel_parameters;
-  group_trajectory_->getContactTrajectory() = contact_parameters;
+  getGroupTrajectory()->getFreePoints() = parameters;
+  getGroupTrajectory()->getFreeVelPoints() = vel_parameters;
+  getGroupTrajectory()->getContactTrajectory() = contact_parameters;
 
-  group_trajectory_->updateTrajectoryFromFreePoints();
+  getGroupTrajectory()->updateTrajectoryFromFreePoints();
 
   // respect joint limits:
   handleJointLimits();
@@ -279,7 +222,7 @@ double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eige
   ROS_ASSERT(costs.rows() == num_points_);
   for (int i = 0; i < num_points_; i++)
   {
-    costs(i) = costAccumulator_.getWaypointCost(i);
+    costs(i) = data_->costAccumulator_.getWaypointCost(i);
   }
 
   return cost;
@@ -289,9 +232,9 @@ void EvaluationManager::render(int trajectory_index)
 {
   if (PlanningParameters::getInstance()->getAnimateEndeffector())
   {
-    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_points_, 0, segment_frames_,
-        state_validity_, false);
-    VisualizationManager::getInstance()->animateCoM(num_points_, 0, CoMPositions_, false);
+    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_points_, 0, data_->segment_frames_,
+        data_->state_validity_, false);
+    VisualizationManager::getInstance()->animateCoM(num_points_, 0, data_->CoMPositions_, false);
   }
   if (PlanningParameters::getInstance()->getAnimatePath())
   {
@@ -320,32 +263,6 @@ void EvaluationManager::computeMassAndGravityForce()
 
   // normalize gravity force to 1.0
   gravityForce_ = KDL::Vector(0.0, 0.0, -1.0);
-
-  linkPositions_.resize(numMassSegments_);
-  linkVelocities_.resize(numMassSegments_);
-  linkAngularVelocities_.resize(numMassSegments_);
-  for (int i = 0; i < numMassSegments_; ++i)
-  {
-    linkPositions_[i].resize(num_points_);
-    linkVelocities_[i].resize(num_points_);
-    linkAngularVelocities_[i].resize(num_points_);
-  }
-  CoMPositions_.resize(num_points_);
-  CoMVelocities_.resize(num_points_);
-  CoMAccelerations_.resize(num_points_);
-  CoMAccelerations_.resize(num_points_);
-  AngularMomentums_.resize(num_points_);
-  Torques_.resize(num_points_);
-  wrenchSum_.resize(num_points_);
-
-  int num_contacts = group_trajectory_->getNumContacts();
-  contactViolationVector_.resize(num_contacts);
-  contactPointVelVector_.resize(num_contacts);
-  for (int i = 0; i < num_contacts; ++i)
-  {
-    contactViolationVector_[i].resize(num_points_);
-    contactPointVelVector_[i].resize(num_points_);
-  }
 }
 
 void EvaluationManager::handleJointLimits()
@@ -416,13 +333,13 @@ void EvaluationManager::handleJointLimits()
 
     for (int i = 1; i < num_points_ - 2; i++)
     {
-      if ((*group_trajectory_)(i, joint) > joint_max)
+      if ((*getGroupTrajectory())(i, joint) > joint_max)
       {
-        (*group_trajectory_)(i, joint) = joint_max;
+        (*getGroupTrajectory())(i, joint) = joint_max;
       }
-      else if ((*group_trajectory_)(i, joint) < joint_min)
+      else if ((*getGroupTrajectory())(i, joint) < joint_min)
       {
-        (*group_trajectory_)(i, joint) = joint_min;
+        (*getGroupTrajectory())(i, joint) = joint_min;
       }
     }
   }
@@ -430,12 +347,12 @@ void EvaluationManager::handleJointLimits()
 
 void EvaluationManager::updateFullTrajectory()
 {
-  full_trajectory_->updateFromGroupTrajectory(*group_trajectory_);
+  getFullTrajectory()->updateFromGroupTrajectory(*getGroupTrajectory());
 }
 
 bool EvaluationManager::performForwardKinematics()
 {
-  double invTime = 1.0 / group_trajectory_->getDiscretization();
+  double invTime = 1.0 / getGroupTrajectory()->getDiscretization();
   double invTimeSq = invTime * invTime;
 
   is_collision_free_ = true;
@@ -449,34 +366,34 @@ bool EvaluationManager::performForwardKinematics()
     end = num_points_ - 1;
 
     // update segment_frames of the goal
-    full_trajectory_->getTrajectoryPointKDL(end, kdl_joint_array_);
-    planning_group_->fk_solver_->JntToCartFull(kdl_joint_array_, joint_pos_[end], joint_axis_[end],
-        segment_frames_[end]);
+    getFullTrajectory()->getTrajectoryPointKDL(end, data_->kdl_joint_array_);
+    planning_group_->fk_solver_->JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[end], data_->joint_axis_[end],
+        data_->segment_frames_[end]);
   }
 
   // for each point in the trajectory
   for (int i = start; i <= end; ++i)
   {
-    full_trajectory_->getTrajectoryPointKDL(i, kdl_joint_array_);
+    getFullTrajectory()->getTrajectoryPointKDL(i, data_->kdl_joint_array_);
     // update kdl_joint_array with vel, acc
     if (i < 1)
     {
       for (int j = 0; j < planning_group_->num_joints_; j++)
       {
         int target_joint = planning_group_->group_joints_[j].kdl_joint_index_;
-        kdl_joint_array_(target_joint) = (*group_trajectory_)(i, j);
+        data_->kdl_joint_array_(target_joint) = (*getGroupTrajectory())(i, j);
       }
     }
 
     if (i == 0)
-      planning_group_->fk_solver_->JntToCartFull(kdl_joint_array_, joint_pos_[i], joint_axis_[i], segment_frames_[i]);
+      planning_group_->fk_solver_->JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i], data_->segment_frames_[i]);
     else
-      planning_group_->fk_solver_->JntToCartPartial(kdl_joint_array_, joint_pos_[i], joint_axis_[i],
-          segment_frames_[i]);
+      planning_group_->fk_solver_->JntToCartPartial(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i],
+          data_->segment_frames_[i]);
 
-    state_is_in_collision_[i] = false;
+    data_->state_is_in_collision_[i] = false;
 
-    if (state_is_in_collision_[i])
+    if (data_->state_is_in_collision_[i])
     {
       is_collision_free_ = false;
     }
@@ -532,7 +449,7 @@ void EvaluationManager::computeTrajectoryValidity()
      }
      */
 
-    state_validity_[i] = valid;
+    data_->state_validity_[i] = valid;
     if (!valid)
       trajectory_validity_ = false;
 
@@ -545,21 +462,21 @@ void EvaluationManager::updateCoM(int point)
   const KDL::SegmentMap& segmentMap = robot_model_->getKDLTree()->getSegments();
   // compute CoM, p_j
   int massSegmentIndex = 0;
-  CoMPositions_[point] = KDL::Vector::Zero();
+  data_->CoMPositions_[point] = KDL::Vector::Zero();
   for (KDL::SegmentMap::const_iterator it = segmentMap.begin(); it != segmentMap.end(); ++it)
   {
     const KDL::Segment& segment = it->second.segment;
     double mass = segment.getInertia().getMass();
     int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
-    const KDL::Vector& pos = segment_frames_[point][sn] * segment.getInertia().getCOG();
+    const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
     if (mass == 0.0)
       continue;
 
-    CoMPositions_[point] += pos * mass;
-    linkPositions_[massSegmentIndex][point] = pos;
+    data_->CoMPositions_[point] += pos * mass;
+    data_->linkPositions_[massSegmentIndex][point] = pos;
     ++massSegmentIndex;
   }
-  CoMPositions_[point] = CoMPositions_[point] / totalMass_;
+  data_->CoMPositions_[point] = data_->CoMPositions_[point] / totalMass_;
 }
 
 static bool STABILITY_COST_VERBOSE = false;
@@ -579,13 +496,13 @@ void EvaluationManager::computeWrenchSum()
   }
 
   // compute \dot{CoM} \ddot{CoM}
-  itomp_cio_planner::getVectorVelocitiesAndAccelerations(1, num_points_ - 2, group_trajectory_->getDiscretization(),
-      CoMPositions_, CoMVelocities_, CoMAccelerations_, KDL::Vector::Zero());
+  itomp_cio_planner::getVectorVelocitiesAndAccelerations(1, num_points_ - 2, getGroupTrajectory()->getDiscretization(),
+      data_->CoMPositions_, data_->CoMVelocities_, data_->CoMAccelerations_, KDL::Vector::Zero());
   // compute \dot{p_j}
   for (int i = 0; i < numMassSegments_; ++i)
   {
-    itomp_cio_planner::getVectorVelocities(1, num_points_ - 2, group_trajectory_->getDiscretization(),
-        linkPositions_[i], linkVelocities_[i], KDL::Vector::Zero());
+    itomp_cio_planner::getVectorVelocities(1, num_points_ - 2, getGroupTrajectory()->getDiscretization(),
+        data_->linkPositions_[i], data_->linkVelocities_[i], KDL::Vector::Zero());
   }
 
   // debug
@@ -594,15 +511,15 @@ void EvaluationManager::computeWrenchSum()
     printf("CoMPos CoMVel CoMAcc \n");
     for (int i = 1; i < num_points_ - 2; ++i)
     {
-      printf("%f %f %f %f %f %f %f %f %f\n", CoMPositions_[i].x(), CoMPositions_[i].y(), CoMPositions_[i].z(),
-          CoMVelocities_[i].x(), CoMVelocities_[i].y(), CoMVelocities_[i].z(), CoMAccelerations_[i].x(),
-          CoMAccelerations_[i].y(), CoMAccelerations_[i].z());
+      printf("%f %f %f %f %f %f %f %f %f\n", data_->CoMPositions_[i].x(), data_->CoMPositions_[i].y(), data_->CoMPositions_[i].z(),
+          data_->CoMVelocities_[i].x(), data_->CoMVelocities_[i].y(), data_->CoMVelocities_[i].z(), data_->CoMAccelerations_[i].x(),
+          data_->CoMAccelerations_[i].y(), data_->CoMAccelerations_[i].z());
     }
   }
 
   // TODO: compute angular velocities = (cur-prev)/time
   const KDL::SegmentMap& segmentMap = robot_model_->getKDLTree()->getSegments();
-  const double invTime = 1.0 / group_trajectory_->getDiscretization();
+  const double invTime = 1.0 / getGroupTrajectory()->getDiscretization();
   for (int point = 1; point <= num_points_ - 2; ++point)
   {
     int massSegmentIndex = 0;
@@ -611,14 +528,14 @@ void EvaluationManager::computeWrenchSum()
       const KDL::Segment& segment = it->second.segment;
       double mass = segment.getInertia().getMass();
       int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
-      const KDL::Vector& pos = segment_frames_[point][sn] * segment.getInertia().getCOG();
+      const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
       if (mass == 0.0)
         continue;
 
-      const KDL::Rotation& prevRotation = segment_frames_[point - 1][sn].M;
-      const KDL::Rotation& curRotation = segment_frames_[point][sn].M;
+      const KDL::Rotation& prevRotation = data_->segment_frames_[point - 1][sn].M;
+      const KDL::Rotation& curRotation = data_->segment_frames_[point][sn].M;
       const KDL::Rotation& rotDiff = curRotation * prevRotation.Inverse();
-      linkAngularVelocities_[massSegmentIndex][point] = rotDiff.GetRot() * invTime;
+      data_->linkAngularVelocities_[massSegmentIndex][point] = rotDiff.GetRot() * invTime;
       ++massSegmentIndex;
     }
   }
@@ -626,7 +543,7 @@ void EvaluationManager::computeWrenchSum()
   // compute angular momentum
   for (int point = 1; point <= num_points_ - 2; ++point)
   {
-    AngularMomentums_[point] = KDL::Vector(0.0, 0.0, 0.0);
+    data_->AngularMomentums_[point] = KDL::Vector(0.0, 0.0, 0.0);
 
     int massSegmentIndex = 0;
     for (KDL::SegmentMap::const_iterator it = segmentMap.begin(); it != segmentMap.end(); ++it)
@@ -637,24 +554,24 @@ void EvaluationManager::computeWrenchSum()
         continue;
 
       int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
-      KDL::Vector angularVelTerm = (segment_frames_[point][sn] * segment.getInertia()).getRotationalInertia()
-          * linkAngularVelocities_[massSegmentIndex][point];
+      KDL::Vector angularVelTerm = (data_->segment_frames_[point][sn] * segment.getInertia()).getRotationalInertia()
+          * data_->linkAngularVelocities_[massSegmentIndex][point];
 
-      AngularMomentums_[point] += masses_[massSegmentIndex]
-          * (linkPositions_[massSegmentIndex][point] - CoMPositions_[point]) * linkVelocities_[massSegmentIndex][point]
+      data_->AngularMomentums_[point] += masses_[massSegmentIndex]
+          * (data_->linkPositions_[massSegmentIndex][point] - data_->CoMPositions_[point]) * data_->linkVelocities_[massSegmentIndex][point]
           + angularVelTerm;
       ++massSegmentIndex;
     }
   }
   // compute torques
-  itomp_cio_planner::getVectorVelocities(1, num_points_ - 2, group_trajectory_->getDiscretization(), AngularMomentums_,
-      Torques_, KDL::Vector::Zero());
+  itomp_cio_planner::getVectorVelocities(1, num_points_ - 2, getGroupTrajectory()->getDiscretization(), data_->AngularMomentums_,
+      data_->Torques_, KDL::Vector::Zero());
 
   // compute wrench sum (gravity wrench + inertia wrench)
   for (int point = 1; point <= num_points_ - 2; ++point)
   {
-    wrenchSum_[point].force = gravityForce_;
-    wrenchSum_[point].torque = CoMPositions_[point] * gravityForce_;
+    data_->wrenchSum_[point].force = gravityForce_;
+    data_->wrenchSum_[point].torque = data_->CoMPositions_[point] * gravityForce_;
 
     //wrenchSum_[point].force += -totalMass_ * CoMAccelerations_[point];
     //wrenchSum_[point].torque += -totalMass_ * CoMPositions_[point] * CoMAccelerations_[point] - Torques_[point];
@@ -681,7 +598,7 @@ void EvaluationManager::computeWrenchSum()
   for (int i = 0; i < planning_group_->getNumContacts(); ++i)
   {
     planning_group_->contactPoints_[i].updateContactViolationVector(1, num_points_ - 2,
-        group_trajectory_->getDiscretization(), contactViolationVector_[i], contactPointVelVector_[i], segment_frames_);
+        getGroupTrajectory()->getDiscretization(), data_->contactViolationVector_[i], data_->contactPointVelVector_[i], data_->segment_frames_);
   }
 }
 
@@ -693,8 +610,8 @@ void EvaluationManager::computeStabilityCosts()
     double state_physics_violation_cost = 0.0;
     if (planning_group_->name_ != "lower_body" && planning_group_->name_ != "whole_body")
     {
-      stateContactInvariantCost_[point] = state_contact_invariant_cost;
-      statePhysicsViolationCost_[point] = state_physics_violation_cost;
+      data_->stateContactInvariantCost_[point] = state_contact_invariant_cost;
+      data_->statePhysicsViolationCost_[point] = state_physics_violation_cost;
       continue;
     }
 
@@ -710,22 +627,22 @@ void EvaluationManager::computeStabilityCosts()
       it_segment_link = it_segment_link->second.parent;
       string parent_segment_name = it_segment_link->first;
       int segment_number = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(parent_segment_name);
-      contact_parent_frames[i] = segment_frames_[point][segment_number];
+      contact_parent_frames[i] = data_->segment_frames_[point][segment_number];
 
-      planning_group_->contactPoints_[i].getPosition(point, contact_positions[i], segment_frames_);
+      planning_group_->contactPoints_[i].getPosition(point, contact_positions[i], data_->segment_frames_);
     }
 
-    int phase = group_trajectory_->getContactPhase(point);
+    int phase = getGroupTrajectory()->getContactPhase(point);
     for (int i = 0; i < num_contacts; ++i)
-      contact_values[i] = group_trajectory_->getContactValue(phase, i);
+      contact_values[i] = getGroupTrajectory()->getContactValue(phase, i);
 
     solveContactForces(PlanningParameters::getInstance()->getFrictionCoefficient(), contact_forces, contact_positions,
-        wrenchSum_[point], contact_values, contact_parent_frames);
+        data_->wrenchSum_[point], contact_values, contact_parent_frames);
 
     for (int i = 0; i < num_contacts; ++i)
     {
-      double cost = (contactViolationVector_[i][point].transpose() * contactViolationVector_[i][point]).value()
-          + 16.0 * KDL::dot(contactPointVelVector_[i][point], contactPointVelVector_[i][point]);
+      double cost = (data_->contactViolationVector_[i][point].transpose() * data_->contactViolationVector_[i][point]).value()
+          + 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
 
@@ -740,12 +657,12 @@ void EvaluationManager::computeStabilityCosts()
     {
       printf("\n");
 
-      KDL::Vector root_pos = segment_frames_[point][3].p;
+      KDL::Vector root_pos = data_->segment_frames_[point][3].p;
       printf("%d Root : (%f %f %f) CoM : (%f %f %f)\n", point, root_pos.x(), root_pos.y(), root_pos.z(),
-          CoMPositions_[point].x(), CoMPositions_[point].y(), CoMPositions_[point].z());
+          data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z());
       for (int i = 0; i < num_contacts; ++i)
       {
-        KDL::Vector rel_pos = (contact_positions[i] - CoMPositions_[point]);
+        KDL::Vector rel_pos = (contact_positions[i] - data_->CoMPositions_[point]);
         KDL::Vector contact_torque = rel_pos * contact_forces[i];
         printf("CP %d V:%f F:(%f %f %f) RT:(%f %f %f)xF=(%f %f %f) r:(%f %f %f) p:(%f %f %f)\n", i, contact_values[i],
             contact_forces[i].x(), contact_forces[0].y(), contact_forces[i].z(), rel_pos.x(), rel_pos.y(), rel_pos.z(),
@@ -755,7 +672,7 @@ void EvaluationManager::computeStabilityCosts()
       }
     }
 
-    KDL::Wrench violation = contactWrench + wrenchSum_[point];
+    KDL::Wrench violation = contactWrench + data_->wrenchSum_[point];
     state_physics_violation_cost = sqrt(
         violation.force.x() * violation.force.x() + violation.force.y() * violation.force.y()
             + violation.force.z() * violation.force.z() + violation.torque.x() * violation.torque.x()
@@ -764,11 +681,11 @@ void EvaluationManager::computeStabilityCosts()
     if (STABILITY_COST_VERBOSE)
     {
       printf("Gravity Force : (%f %f %f)\n", gravityForce_.x(), gravityForce_.y(), gravityForce_.z());
-      printf("Inertia Force : (%f %f %f)\n", -totalMass_ * CoMAccelerations_[point].x(),
-          -totalMass_ * CoMAccelerations_[point].y(), -totalMass_ * CoMAccelerations_[point].z());
+      printf("Inertia Force : (%f %f %f)\n", -totalMass_ * data_->CoMAccelerations_[point].x(),
+          -totalMass_ * data_->CoMAccelerations_[point].y(), -totalMass_ * data_->CoMAccelerations_[point].z());
 
-      printf("Wrench Torque : (%f %f %f)\n", wrenchSum_[point].torque.x(), wrenchSum_[point].torque.y(),
-          wrenchSum_[point].torque.z());
+      printf("Wrench Torque : (%f %f %f)\n", data_->wrenchSum_[point].torque.x(), data_->wrenchSum_[point].torque.y(),
+          data_->wrenchSum_[point].torque.z());
 
       printf("Violation : (%f %f %f) (%f %f %f)\n", violation.force.x(), violation.force.y(), violation.force.z(),
           violation.torque.x(), violation.torque.y(), violation.torque.z());
@@ -783,8 +700,8 @@ void EvaluationManager::computeStabilityCosts()
           violation.torque.x(), violation.torque.y(), violation.torque.z());
     }
 
-    stateContactInvariantCost_[point] = state_contact_invariant_cost;
-    statePhysicsViolationCost_[point] = state_physics_violation_cost;
+    data_->stateContactInvariantCost_[point] = state_contact_invariant_cost;
+    data_->statePhysicsViolationCost_[point] = state_physics_violation_cost;
   }
 }
 
@@ -852,7 +769,7 @@ void EvaluationManager::computeCollisionCosts()
 
     for (std::size_t k = 0; k < num_all_joints; k++)
     {
-      positions[k] = (*full_trajectory_)(i, k);
+      positions[k] = (*getFullTrajectory())(i, k);
     }
     kinematic_state->setVariablePositions(&positions[0]);
     //kinematic_state->update();
@@ -873,14 +790,14 @@ void EvaluationManager::computeCollisionCosts()
        */
     }
     collision_result.clear();
-    stateCollisionCost_[i] = depthSum;
+    data_->stateCollisionCost_[i] = depthSum;
   }
 }
 
 void EvaluationManager::postprocess_ik()
 {
   const double threshold = 0.1;
-  const Eigen::MatrixXd& contactTrajectoryBlock = group_trajectory_->getContactTrajectory();
+  const Eigen::MatrixXd& contactTrajectoryBlock = getGroupTrajectory()->getContactTrajectory();
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
   std::vector<int> ik_ref_point(num_contact_phases);
   for (int j = 0; j < num_contacts_; ++j)
@@ -944,8 +861,8 @@ void EvaluationManager::postprocess_ik()
       KDL::Frame contact_frame;
       if (ik_ref_point[i] != -1)
       {
-        planning_group_->contactPoints_[j].getFrame(ik_ref_point[i] * group_trajectory_->getContactPhaseStride(),
-            contact_frame, segment_frames_);
+        planning_group_->contactPoints_[j].getFrame(ik_ref_point[i] * getGroupTrajectory()->getContactPhaseStride(),
+            contact_frame, data_->segment_frames_);
 
         // set kinematic_state to current joint values
         robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
@@ -953,7 +870,7 @@ void EvaluationManager::postprocess_ik()
         std::vector<double> positions(num_all_joints);
         for (std::size_t k = 0; k < num_all_joints; k++)
         {
-          positions[k] = (*full_trajectory_)(i * group_trajectory_->getContactPhaseStride(), k);
+          positions[k] = (*getFullTrajectory())(i * getGroupTrajectory()->getContactPhaseStride(), k);
         }
         kinematic_state->setVariablePositions(&positions[0]);
         kinematic_state->update();
@@ -981,7 +898,7 @@ void EvaluationManager::postprocess_ik()
           double* state_pos = kinematic_state->getVariablePositions();
           for (std::size_t k = 0; k < num_all_joints; k++)
           {
-            (*full_trajectory_)(i * group_trajectory_->getContactPhaseStride(), k) = state_pos[k];
+            (*getFullTrajectory())(i * getGroupTrajectory()->getContactPhaseStride(), k) = state_pos[k];
           }
           //ROS_INFO("[%d:%d] IK solution found", i, j);
         }
@@ -992,16 +909,16 @@ void EvaluationManager::postprocess_ik()
       }
     }
   }
-  full_trajectory_->updateFreePointsFromTrajectory();
-  group_trajectory_->copyFromFullTrajectory(*full_trajectory_);
-  group_trajectory_->updateTrajectoryFromFreePoints();
+  getFullTrajectory()->updateFreePointsFromTrajectory();
+  getGroupTrajectory()->copyFromFullTrajectory(*getFullTrajectory());
+  getGroupTrajectory()->updateTrajectoryFromFreePoints();
 }
 
 double EvaluationManager::getTrajectoryCost(bool verbose)
 {
   if (verbose)
-    costAccumulator_.print(*iteration_);
-  return costAccumulator_.getTrajectoryCost();
+    data_->costAccumulator_.print(*iteration_);
+  return data_->costAccumulator_.getTrajectoryCost();
 }
 
 }

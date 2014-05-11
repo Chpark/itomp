@@ -2,6 +2,7 @@
 #define EVALUATION_MANAGER_H_
 
 #include <itomp_cio_planner/common.h>
+#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/cost/smoothness_cost.h>
@@ -18,156 +19,143 @@ class ItompPlanningGroup;
 class EvaluationManager
 {
 public:
-	EvaluationManager(int* iteration);
-	virtual ~EvaluationManager();
+  EvaluationManager(int* iteration);
+  virtual ~EvaluationManager();
 
-	void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-			ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-			double trajectory_start_time);
+  void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
+      ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
+      double trajectory_start_time);
 
-	double evaluate();
-	double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
-	    const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
-	void evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
-	      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives);
+  double evaluate();
 
-	bool isLastTrajectoryFeasible() const;
+  double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
+  void evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives);
 
-	void handleJointLimits();
-	void updateFullTrajectory();
-	bool performForwardKinematics(); /**< Return true if collision free */
-	void computeTrajectoryValidity();
-	void render(int trajectory_index);
+  bool isLastTrajectoryFeasible() const;
 
-	const ItompCIOTrajectory* getGroupTrajectory() const;
-	const ItompPlanningGroup* getPlanningGroup() const;
+  void handleJointLimits();
+  void updateFullTrajectory();
+  bool performForwardKinematics(); /**< Return true if collision free */
+  void computeTrajectoryValidity();
+  void render(int trajectory_index);
 
-	void postprocess_ik();
+  const ItompCIOTrajectory* getGroupTrajectoryConst() const;
+  const ItompPlanningGroup* getPlanningGroup() const;
 
-	double getTrajectoryCost(bool verbose = false);
+  void postprocess_ik();
+
+  double getTrajectoryCost(bool verbose = false);
 
 private:
-	void initStaticEnvironment();
+  void initStaticEnvironment();
 
-	void computeMassAndGravityForce();
-	void computeWrenchSum();
-	void computeStabilityCosts();
-	void updateCoM(int point);
-	void computeCollisionCosts();
+  void computeMassAndGravityForce();
+  void computeWrenchSum();
+  void computeStabilityCosts();
+  void updateCoM(int point);
+  void computeCollisionCosts();
 
-	int getIteration() const;
+  int getIteration() const;
 
-	const KDL::Vector& getSegmentPosition(int point, const std::string& segmentName) const;
-	const KDL::Vector& getSegmentPosition(int point, int segmentIndex) const;
+  const KDL::Vector& getSegmentPosition(int point, const std::string& segmentName) const;
+  const KDL::Vector& getSegmentPosition(int point, int segmentIndex) const;
 
-	ItompCIOTrajectory *full_trajectory_;
-	ItompCIOTrajectory *group_trajectory_;
+  ItompCIOTrajectory* getGroupTrajectory();
+  ItompCIOTrajectory* getFullTrajectory();
 
-	planning_scene::PlanningScenePtr planning_scene_;
+  EvaluationData* data_;
+  EvaluationData default_data_;
 
-	double planning_start_time_;
-	double trajectory_start_time_;
+  planning_scene::PlanningScenePtr planning_scene_;
 
-	const ItompRobotModel *robot_model_;
-	const ItompPlanningGroup *planning_group_;
-	std::string robot_name_;
+  double planning_start_time_;
+  double trajectory_start_time_;
 
-	KDL::JntArray kdl_joint_array_;
+  const ItompRobotModel *robot_model_;
+  const ItompPlanningGroup *planning_group_;
+  std::string robot_name_;
 
-	int* iteration_;
+  int* iteration_;
 
-	int num_joints_;
-	int num_contacts_;
-	int num_points_;
-	int num_contact_points_;
+  int num_joints_;
+  int num_contacts_;
+  int num_points_;
+  int num_contact_points_;
 
-	std::vector<itomp_cio_planner::SmoothnessCost> joint_costs_;
-	std::vector<int> group_joint_to_kdl_joint_index_;
+  std::vector<int> group_joint_to_kdl_joint_index_;
 
-	std::vector<std::vector<KDL::Vector> > joint_axis_;
-	std::vector<std::vector<KDL::Vector> > joint_pos_;
-	std::vector<std::vector<KDL::Frame> > segment_frames_;
+  bool is_collision_free_;
+  bool last_trajectory_collision_free_;
 
-	std::vector<int> state_is_in_collision_; /**< Array containing a boolean about collision info for each point in the trajectory */
-	bool is_collision_free_;
-	bool last_trajectory_collision_free_;
+  bool trajectory_validity_;
 
-	//arm_navigation_msgs::RobotState robot_state_;
-	std::vector<int> state_validity_;
-	bool trajectory_validity_;
+  // physics
+  double totalMass_;
+  std::vector<double> masses_;
+  int numMassSegments_;
+  KDL::Vector gravityForce_;
 
-	Eigen::VectorXd dynamic_obstacle_cost_;
+  ros::Publisher vis_marker_array_pub_;
+  ros::Publisher vis_marker_pub_;
 
-	// physics
-	double totalMass_;
-	std::vector<double> masses_;
-	int numMassSegments_;
-	KDL::Vector gravityForce_;
-	std::vector<KDL::Wrench> wrenchSum_;
-	std::vector<std::vector<KDL::Vector> > linkPositions_;
-	std::vector<std::vector<KDL::Vector> > linkVelocities_;
-	std::vector<std::vector<KDL::Vector> > linkAngularVelocities_;
-	std::vector<KDL::Vector> CoMPositions_;
-	std::vector<KDL::Vector> CoMVelocities_;
-	std::vector<KDL::Vector> CoMAccelerations_;
-	std::vector<KDL::Vector> AngularMomentums_;
-	std::vector<KDL::Vector> Torques_;
-	std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > contactViolationVector_;
-	std::vector<std::vector<KDL::Vector> > contactPointVelVector_;
+  // TODO: refactoring
+  /*
+  friend class TrajectoryCostAccumulator;
+  friend class TrajectoryCost;
+  friend class TrajectorySmoothnessCost;
+  friend class TrajectoryCollisionCost;
+  friend class TrajectoryValidityCost;
+  friend class TrajectoryContactInvariantCost;
+  friend class TrajectoryPhysicsViolationCost;
+  friend class TrajectoryGoalPoseCost;
+  friend class TrajectoryCoMCost;
+  */
 
-	std::vector<double> stateContactInvariantCost_;
-	std::vector<double> statePhysicsViolationCost_;
-	std::vector<double> stateCollisionCost_;
-
-	ros::Publisher vis_marker_array_pub_;
-	ros::Publisher vis_marker_pub_;
-
-	TrajectoryCostAccumulator costAccumulator_;
-
-	// TODO: refactoring
-	friend class TrajectoryCostAccumulator;
-	friend class TrajectoryCost;
-	friend class TrajectorySmoothnessCost;
-	friend class TrajectoryCollisionCost;
-	friend class TrajectoryValidityCost;
-	friend class TrajectoryContactInvariantCost;
-	friend class TrajectoryPhysicsViolationCost;
-	friend class TrajectoryGoalPoseCost;
-	friend class TrajectoryCoMCost;
-
-	// for debug
-	std::vector<double> timings_;
+  // for debug
+  std::vector<double> timings_;
 };
 
 inline bool EvaluationManager::isLastTrajectoryFeasible() const
 {
-	return last_trajectory_collision_free_;
+  return last_trajectory_collision_free_;
 }
 
 inline const KDL::Vector& EvaluationManager::getSegmentPosition(int point, const std::string& segmentName) const
 {
-	int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segmentName);
-	return getSegmentPosition(point, sn);
+  int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segmentName);
+  return getSegmentPosition(point, sn);
 }
 
 inline const KDL::Vector& EvaluationManager::getSegmentPosition(int point, int segmentIndex) const
 {
-	return segment_frames_[point][segmentIndex].p;
+  return data_->segment_frames_[point][segmentIndex].p;
 }
 
 inline int EvaluationManager::getIteration() const
 {
-	return *iteration_;
+  return *iteration_;
 }
 
-inline const ItompCIOTrajectory* EvaluationManager::getGroupTrajectory() const
+inline const ItompCIOTrajectory* EvaluationManager::getGroupTrajectoryConst() const
 {
-	return group_trajectory_;
+  return data_->getGroupTrajectory();
 }
 
 inline const ItompPlanningGroup* EvaluationManager::getPlanningGroup() const
 {
-	return planning_group_;
+  return planning_group_;
+}
+
+inline ItompCIOTrajectory* EvaluationManager::getGroupTrajectory()
+{
+  return data_->getGroupTrajectory();
+}
+
+inline ItompCIOTrajectory* EvaluationManager::getFullTrajectory()
+{
+  return data_->getFullTrajectory();
 }
 
 }

@@ -32,7 +32,7 @@ bool ImprovementManagerNLP::updatePlanningParameters()
   if (!ImprovementManager::updatePlanningParameters())
     return false;
 
-  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectory();
+  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
 
   num_dimensions_ = group_trajectory->getNumJoints();
   num_contact_dimensions_ = group_trajectory->getNumContacts();

@@ -29,20 +29,20 @@ void TrajectoryCostAccumulator::addCost(TrajectoryCostPtr cost)
   }
 }
 
-void TrajectoryCostAccumulator::init(const EvaluationManager* evaluator)
+void TrajectoryCostAccumulator::init(const EvaluationData* data)
 {
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::iterator it = costMap_.begin(); it != costMap_.end(); ++it)
   {
-    it->second->init(evaluator);
+    it->second->init(data);
   }
 }
 
-void TrajectoryCostAccumulator::compute(const EvaluationManager* evaluator)
+void TrajectoryCostAccumulator::compute(const EvaluationData* data)
 {
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::iterator it = costMap_.begin(); it != costMap_.end(); ++it)
   {
     if (it->second->getWeight() != 0.0)
-      it->second->compute(evaluator);
+      it->second->compute(data);
   }
 }
 

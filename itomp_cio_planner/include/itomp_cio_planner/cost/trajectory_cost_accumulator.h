@@ -13,15 +13,15 @@
 
 namespace itomp_cio_planner
 {
-class EvaluationManager;
+class EvaluationData;
 class TrajectoryCostAccumulator
 {
 public:
 	TrajectoryCostAccumulator();
 	virtual ~TrajectoryCostAccumulator();
 
-	void init(const EvaluationManager* evaluator);
-	void compute(const EvaluationManager* evaluator);
+	void init(const EvaluationData* data);
+	void compute(const EvaluationData* data);
 
 	void addCost(TrajectoryCostPtr cost);
 

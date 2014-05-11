@@ -12,7 +12,7 @@
 
 namespace itomp_cio_planner
 {
-class EvaluationManager;
+class EvaluationData;
 class TrajectoryCost
 {
 public:
@@ -35,9 +35,9 @@ public:
 	TrajectoryCost(COST_TYPE type) : isHardConstraint_(false), type_(type) {}
 	virtual ~TrajectoryCost() {}
 
-	virtual void init(const EvaluationManager* evaluator);
+	virtual void init(const EvaluationData* data);
 
-	void compute(const EvaluationManager* evaluator);
+	void compute(const EvaluationData* data);
 	virtual double getWaypointCost(int waypoint) const { return costs_(waypoint); }
 	double getTrajectoryCost() const { return costSum_; }
 	bool getIsHardConstraint() const { return isHardConstraint_; }
@@ -48,8 +48,8 @@ public:
 	static boost::shared_ptr<TrajectoryCost> CreateTrajectoryCost(COST_TYPE type);
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator) = 0;
-	void computeCostSum(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data) = 0;
+	void computeCostSum(const EvaluationData* data);
 
 	bool isHardConstraint_;
 	COST_TYPE type_;
@@ -69,7 +69,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryCollisionCost : public TrajectoryCost
@@ -81,7 +81,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryValidityCost : public TrajectoryCost
@@ -93,7 +93,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryContactInvariantCost : public TrajectoryCost
@@ -105,7 +105,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryPhysicsViolationCost : public TrajectoryCost
@@ -117,7 +117,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryGoalPoseCost : public TrajectoryCost
@@ -129,7 +129,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 class TrajectoryCoMCost : public TrajectoryCost
@@ -141,7 +141,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationManager* evaluator);
+	virtual void doCompute(const EvaluationData* data);
 };
 
 };
