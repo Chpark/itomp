@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/cost/smoothness_cost.h>
+#include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
@@ -13,7 +14,6 @@
 
 namespace itomp_cio_planner
 {
-class TrajectoryCostAccumulator;
 class ItompPlanningGroup;
 class EvaluationManager
 {
@@ -23,7 +23,7 @@ public:
 
 	void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
 			ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-			double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator);
+			double trajectory_start_time);
 
 	double evaluate();
 	double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
@@ -44,6 +44,8 @@ public:
 
 	void postprocess_ik();
 
+	double getTrajectoryCost(bool verbose = false);
+
 private:
 	void initStaticEnvironment();
 
@@ -60,8 +62,6 @@ private:
 
 	ItompCIOTrajectory *full_trajectory_;
 	ItompCIOTrajectory *group_trajectory_;
-
-	TrajectoryCostAccumulator *costAccumulator_;
 
 	planning_scene::PlanningScenePtr planning_scene_;
 
@@ -87,8 +87,6 @@ private:
 	std::vector<std::vector<KDL::Vector> > joint_axis_;
 	std::vector<std::vector<KDL::Vector> > joint_pos_;
 	std::vector<std::vector<KDL::Frame> > segment_frames_;
-	std::vector<std::vector<Eigen::Map<Eigen::Vector3d> > > joint_axis_eigen_;
-	std::vector<std::vector<Eigen::Map<Eigen::Vector3d> > > joint_pos_eigen_;
 
 	std::vector<int> state_is_in_collision_; /**< Array containing a boolean about collision info for each point in the trajectory */
 	bool is_collision_free_;
@@ -123,6 +121,8 @@ private:
 
 	ros::Publisher vis_marker_array_pub_;
 	ros::Publisher vis_marker_pub_;
+
+	TrajectoryCostAccumulator costAccumulator_;
 
 	// TODO: refactoring
 	friend class TrajectoryCostAccumulator;

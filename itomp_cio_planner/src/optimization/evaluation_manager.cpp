@@ -3,7 +3,6 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
-#include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/visualization_manager.h>
 #include <itomp_cio_planner/contact/contact_force_solver.h>
@@ -38,7 +37,7 @@ EvaluationManager::~EvaluationManager()
 
 void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
     ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-    double trajectory_start_time, TrajectoryCostAccumulator *costAccumulator)
+    double trajectory_start_time)
 {
   full_trajectory_ = full_trajectory;
   group_trajectory_ = group_trajectory;
@@ -49,8 +48,6 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   robot_model_ = robot_model;
   planning_group_ = planning_group;
   robot_name_ = robot_model_->getRobotName();
-
-  costAccumulator_ = costAccumulator;
 
   kdl_joint_array_.resize(robot_model_->getKDLTree()->getNrOfJoints());
 
@@ -97,20 +94,9 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   joint_axis_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
   joint_pos_.resize(num_points_, std::vector<KDL::Vector>(robot_model_->getKDLTree()->getNrOfJoints()));
   segment_frames_.resize(num_points_, std::vector<KDL::Frame>(robot_model_->getKDLTree()->getNrOfSegments()));
-  // create the eigen maps:
-  itomp_cio_planner::kdlVecVecToEigenVecVec(joint_axis_, joint_axis_eigen_, 3, 1);
-  itomp_cio_planner::kdlVecVecToEigenVecVec(joint_pos_, joint_pos_eigen_, 3, 1);
 
   is_collision_free_ = false;
   state_is_in_collision_.resize(num_points_);
-
-  // initialize exact collision checking stuff
-  /*
-   robot_state_.joint_state.name = robot_model_->getJointNames();
-   robot_state_.joint_state.position.resize(robot_state_.joint_state.name.size());
-   robot_state_.joint_state.velocity.resize(robot_state_.joint_state.name.size());
-   robot_state_.joint_state.header.frame_id = robot_model_->getReferenceFrame();
-   */
 
   state_validity_.resize(num_points_);
   for (int i = 0; i < num_points_; ++i)
@@ -135,6 +121,15 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   robot_model::RobotModelPtr ros_robot_model = robot_model->getRobotModel();
   planning_scene_.reset(new planning_scene::PlanningScene(ros_robot_model));
   initStaticEnvironment();
+
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COLLISION));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_VALIDITY));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
+  costAccumulator_.init(this);
 
   timings_.resize(20, 0);
 
@@ -167,7 +162,7 @@ void EvaluationManager::evaluateDerivatives(const Eigen::MatrixXd& parameters, c
   computeStabilityCosts();
   computeCollisionCosts();
 
-  costAccumulator_->compute(this);
+  costAccumulator_.compute(this);
 }
 
 double EvaluationManager::evaluate()
@@ -202,12 +197,12 @@ double EvaluationManager::evaluate()
   time[5] = ros::Time::now();
   timings_[5] += (time[5] - time[4]).toSec();
 
-  costAccumulator_->compute(this);
+  costAccumulator_.compute(this);
 
   time[6] = ros::Time::now();
   timings_[6] += (time[6] - time[5]).toSec();
 
-  last_trajectory_collision_free_ &= costAccumulator_->isFeasible();
+  last_trajectory_collision_free_ &= costAccumulator_.isFeasible();
 
   // TODO: if trajectory is changed in handle joint limits,
   // update parameters
@@ -223,7 +218,7 @@ double EvaluationManager::evaluate()
     PlanningParameters::getInstance()->initFromNodeHandle();
     VisualizationManager::getInstance()->render();
 
-    costAccumulator_->print(*iteration_);
+    costAccumulator_.print(*iteration_);
     printf("Contact Values :\n");
     for (int i = 0; i <= group_trajectory_->getNumContactPhases(); ++i)
     {
@@ -257,7 +252,7 @@ double EvaluationManager::evaluate()
     }
   }
 
-  return costAccumulator_->getTrajectoryCost();
+  return costAccumulator_.getTrajectoryCost();
 }
 
 double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
@@ -284,7 +279,7 @@ double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eige
   ROS_ASSERT(costs.rows() == num_points_);
   for (int i = 0; i < num_points_; i++)
   {
-    costs(i) = costAccumulator_->getWaypointCost(i);
+    costs(i) = costAccumulator_.getWaypointCost(i);
   }
 
   return cost;
@@ -686,8 +681,7 @@ void EvaluationManager::computeWrenchSum()
   for (int i = 0; i < planning_group_->getNumContacts(); ++i)
   {
     planning_group_->contactPoints_[i].updateContactViolationVector(1, num_points_ - 2,
-        group_trajectory_->getDiscretization(), contactViolationVector_[i], contactPointVelVector_[i],
-        segment_frames_);
+        group_trajectory_->getDiscretization(), contactViolationVector_[i], contactPointVelVector_[i], segment_frames_);
   }
 }
 
@@ -1001,6 +995,13 @@ void EvaluationManager::postprocess_ik()
   full_trajectory_->updateFreePointsFromTrajectory();
   group_trajectory_->copyFromFullTrajectory(*full_trajectory_);
   group_trajectory_->updateTrajectoryFromFreePoints();
+}
+
+double EvaluationManager::getTrajectoryCost(bool verbose)
+{
+  if (verbose)
+    costAccumulator_.print(*iteration_);
+  return costAccumulator_.getTrajectoryCost();
 }
 
 }

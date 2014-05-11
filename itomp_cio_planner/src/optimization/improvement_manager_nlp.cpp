@@ -160,11 +160,14 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   const double eps = 1E-7;
 
   column_vector der(variables.size());
+  /*
   evaluation_manager_->evaluateDerivatives(parameters_, vel_parameters_, contact_parameters_, derivatives_);
   for (int i = 0; i < variables.size(); ++i)
     der(i) = derivatives_(i);
+    */
 
-  /*
+  // Temporary code
+
   column_vector e(variables);
 
   //#pragma omp parallel for
@@ -181,7 +184,6 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
     e(i) = old_val;
   }
-  */
 
   return der;
 }

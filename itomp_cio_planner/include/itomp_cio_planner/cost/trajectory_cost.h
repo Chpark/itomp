@@ -45,7 +45,7 @@ public:
 
 	virtual double getWeight() const { return 0.0; }
 
-	static TrajectoryCost* CreateTrajectoryCost(COST_TYPE type);
+	static boost::shared_ptr<TrajectoryCost> CreateTrajectoryCost(COST_TYPE type);
 
 protected:
 	virtual void doCompute(const EvaluationManager* evaluator) = 0;
@@ -56,6 +56,8 @@ protected:
 	Eigen::VectorXd costs_;
 	double costSum_;
 };
+
+typedef boost::shared_ptr<TrajectoryCost> TrajectoryCostPtr;
 
 class TrajectorySmoothnessCost : public TrajectoryCost
 {

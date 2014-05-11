@@ -15,37 +15,37 @@ namespace itomp_cio_planner
 {
 //static int LeftLegStart = 0;
 
-TrajectoryCost* TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
+TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 {
-	TrajectoryCost* newCost = NULL;
+	TrajectoryCostPtr newCost;
 	switch (type)
 	{
 	case COST_SMOOTHNESS:
-		newCost = new TrajectorySmoothnessCost();
+		newCost.reset(new TrajectorySmoothnessCost());
 		break;
 
 	case COST_COLLISION:
-		newCost = new TrajectoryCollisionCost();
+		newCost.reset(new TrajectoryCollisionCost());
 		break;
 
 	case COST_VALIDITY:
-		newCost = new TrajectoryValidityCost();
+		newCost.reset(new TrajectoryValidityCost());
 		break;
 
 	case COST_CONTACT_INVARIANT:
-		newCost = new TrajectoryContactInvariantCost();
+		newCost.reset(new TrajectoryContactInvariantCost());
 		break;
 
 	case COST_PHYSICS_VIOLATION:
-		newCost = new TrajectoryPhysicsViolationCost();
+		newCost.reset(new TrajectoryPhysicsViolationCost());
 		break;
 
 	case COST_GOAL_POSE:
-		newCost = new TrajectoryGoalPoseCost();
+		newCost.reset(new TrajectoryGoalPoseCost());
 		break;
 
 	case COST_COM:
-		newCost = new TrajectoryCoMCost();
+		newCost.reset(new TrajectoryCoMCost());
 		break;
 
 	case COST_ENDEFFECTOR_VELOCITY:

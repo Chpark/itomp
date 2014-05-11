@@ -3,7 +3,6 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
-#include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/optimization/improvement_manager.h>
 
@@ -42,7 +41,6 @@ private:
 
 	EvaluationManager evaluation_manager_;
 	ImprovementManagerPtr improvement_manager_;
-	TrajectoryCostAccumulator costAccumulator_;
 
 	Eigen::MatrixXd best_group_trajectory_;
 	Eigen::MatrixXd best_group_contact_trajectory_;

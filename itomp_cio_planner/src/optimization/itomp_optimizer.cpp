@@ -25,21 +25,12 @@ void ItompOptimizer::initialize(ItompRobotModel *robot_model, const ItompPlannin
     double trajectory_start_time)
 {
   evaluation_manager_.initialize(full_trajectory_, &group_trajectory_, robot_model, planning_group,
-      planning_start_time_, trajectory_start_time, &costAccumulator_);
+      planning_start_time_, trajectory_start_time);
 
   improvement_manager_.reset(new ImprovementManagerNLP());
   improvement_manager_->initialize(&evaluation_manager_);
 
   VisualizationManager::getInstance()->clearAnimations();
-
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COLLISION));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_VALIDITY));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
-  costAccumulator_.init(&evaluation_manager_);
 }
 
 ItompOptimizer::~ItompOptimizer()
@@ -61,17 +52,15 @@ bool ItompOptimizer::optimize()
   evaluation_manager_.updateFullTrajectory();
   evaluation_manager_.evaluate();
 
-  costAccumulator_.print(iteration_++);
-  updateBestTrajectory(costAccumulator_.getTrajectoryCost());
+  updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
+  ++iteration_;
 
-  bool first = true;
   while (iteration_ < PlanningParameters::getInstance()->getMaxIterations())
   {
     improvement_manager_->runSingleIteration(iteration_);
-    costAccumulator_.print(iteration_++);
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
     ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
-    if (!updateBestTrajectory(costAccumulator_.getTrajectoryCost()))
+    if (!updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true)))
     {
       if (best_group_trajectory_cost_ < 0.1)
         break;
@@ -81,11 +70,9 @@ bool ItompOptimizer::optimize()
         group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
       }
     }
-    first = false;
+    ++iteration_;
   }
   evaluation_manager_.postprocess_ik();
-
-  //updateBestTrajectory(costAccumulator_.getTrajectoryCost());
 
   group_trajectory_.getTrajectory() = best_group_trajectory_;
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
@@ -97,7 +84,7 @@ bool ItompOptimizer::optimize()
   ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, last_improvement_iteration_);
   ROS_INFO("Optimization core finished in %f sec", (ros::WallTime::now() - start_time).toSec());
 
-  costAccumulator_.print(iteration_);
+  evaluation_manager_.getTrajectoryCost(true);
 
   return is_succeed_;
 }

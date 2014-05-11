@@ -23,7 +23,7 @@ public:
 	void init(const EvaluationManager* evaluator);
 	void compute(const EvaluationManager* evaluator);
 
-	void addCost(TrajectoryCost* cost);
+	void addCost(TrajectoryCostPtr cost);
 
 	double getWaypointCost(int waypoint) const;
 	double getWaypointCost(int waypoint, TrajectoryCost::COST_TYPE type) const;
@@ -35,7 +35,7 @@ public:
 	void print(int number) const;
 
 protected:
-	std::map<TrajectoryCost::COST_TYPE, TrajectoryCost*> costMap_;
+	std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr> costMap_;
 };
 
 }

@@ -113,6 +113,8 @@ private:
   Eigen::VectorXd acc_start_;
 };
 
+typedef boost::shared_ptr<ItompCIOTrajectory> ItompCIOTrajectoryPtr;
+
 ///////////////////////// inline functions follow //////////////////////
 
 inline double& ItompCIOTrajectory::operator()(int traj_point, int joint)
