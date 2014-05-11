@@ -8,13 +8,6 @@
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
-//#include <ros/ros.h>
-
-/*
- #include <arm_navigation_msgs/convert_messages.h>
- #include <arm_navigation_msgs/DisplayTrajectory.h>
- #include <arm_navigation_msgs/JointLimits.h>
- */
 
 namespace itomp_cio_planner
 {
@@ -44,7 +37,7 @@ private:
 	void
 	fillInResult(const std::vector<std::string>& planningGroups, planning_interface::MotionPlanResponse &res);
 
-	std::vector<ItompRobotModel> robot_model_;
+	ItompRobotModel robot_model_;
 
 	ItompCIOTrajectory* trajectory_;
 	std::vector<ItompCIOTrajectory*> threadTrajectories_;
