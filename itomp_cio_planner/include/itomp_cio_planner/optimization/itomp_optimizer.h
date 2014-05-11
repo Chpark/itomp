@@ -13,7 +13,7 @@ class ItompPlanningGroup;
 class ItompOptimizer
 {
 public:
-	ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, ItompRobotModel *robot_model,
+	ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
 			const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time);
 	virtual ~ItompOptimizer();
 
@@ -36,7 +36,7 @@ private:
 	int feasible_iteration_;
 	int last_improvement_iteration_;
 
-	ItompCIOTrajectory *full_trajectory_;
+	ItompCIOTrajectory* full_trajectory_;
 	ItompCIOTrajectory group_trajectory_;
 
 	EvaluationManager evaluation_manager_;
@@ -46,6 +46,8 @@ private:
 	Eigen::MatrixXd best_group_contact_trajectory_;
 	double best_group_trajectory_cost_;
 };
+
+typedef boost::shared_ptr<ItompOptimizer> ItompOptimizerPtr;
 
 ////////////////////////////////////////////////////////////////////////////////
 

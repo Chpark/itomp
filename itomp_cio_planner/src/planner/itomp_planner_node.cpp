@@ -20,7 +20,7 @@ namespace itomp_cio_planner
 {
 
 ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model) :
-    trajectory_(NULL), last_planning_time_(0), last_min_cost_trajectory_(0)
+    last_planning_time_(0), last_min_cost_trajectory_(0)
 {
   complete_initial_robot_state_.reset(new robot_state::RobotState(model));
 }
@@ -28,8 +28,6 @@ ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model)
 bool ItompPlannerNode::init()
 {
   PlanningParameters::getInstance()->initFromNodeHandle();
-
-  int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
 
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
@@ -44,27 +42,17 @@ bool ItompPlannerNode::init()
   double trajectory_duration = PlanningParameters::getInstance()->getTrajectoryDuration();
   double trajectory_discretization = PlanningParameters::getInstance()->getTrajectoryDiscretization();
   int num_contacts = PlanningParameters::getInstance()->getNumContacts();
-  trajectory_ = new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization, num_contacts,
-      PlanningParameters::getInstance()->getPhaseDuration());
-  threadTrajectories_.resize(num_trajectories);
-  for (int i = 0; i < num_trajectories; ++i)
-    threadTrajectories_[i] = new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization,
-        num_contacts, PlanningParameters::getInstance()->getPhaseDuration());
+  trajectory_.reset(
+      new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization, num_contacts,
+          PlanningParameters::getInstance()->getPhaseDuration()));
 
-  ROS_INFO("Initalized ITOMP planning service...");
+  ROS_INFO("Initialized ITOMP planning service...");
 
   return true;
 }
 
 ItompPlannerNode::~ItompPlannerNode()
 {
-  int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
-  delete trajectory_;
-  for (int i = 0; i < num_trajectories; ++i)
-  {
-    delete threadTrajectories_[i];
-    delete optimizers_[i];
-  }
 }
 
 int ItompPlannerNode::run()
@@ -110,12 +98,8 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
     {
       const string& groupName = planningGroups[i];
 
-      // generate multiple thread trajectories (multi-threading)
-      // optimize (multi-threading)
-      multiTrajectoryOptimization(groupName, jointGoalState);
-
-      // update trajectory with the best thread trajectory
-      updateTrajectoryToBestResult(groupName);
+      // optimize
+      trajectoryOptimization(groupName, jointGoalState);
 
       writePlanningInfo(c, i);
     }
@@ -125,26 +109,12 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
   // return trajectory
   fillInResult(planningGroups, res);
 
-  /*
-   int goal_index = trajectory_->getNumPoints() - 1;
-   ROS_INFO("Serviced planning request in %f wall-seconds, trajectory duration is %f",
-   (ros::WallTime::now() - start_time).toSec(),
-   res.trajectory.joint_trajectory.points[goal_index].time_from_start.toSec());
-   */
   return true;
 }
 
 bool ItompPlannerNode::preprocessRequest(const planning_interface::MotionPlanRequest &req)
 {
   ROS_INFO("Received planning request...");
-
-  /*
-   if (req.motion_plan_request.expected_path_duration.toSec() > 0)
-   {
-   PlanningParameters::getInstance()->setTrajectoryDuration(
-   req.motion_plan_request.expected_path_duration.toSec());
-   }
-   */
 
   ROS_INFO("Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
 
@@ -176,16 +146,10 @@ void ItompPlannerNode::initTrajectory(const sensor_msgs::JointState &joint_state
   {
     double trajectory_discretization = PlanningParameters::getInstance()->getTrajectoryDiscretization();
 
-    delete trajectory_;
-    trajectory_ = new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization,
-        PlanningParameters::getInstance()->getNumContacts(), PlanningParameters::getInstance()->getPhaseDuration());
-
-    for (int i = 0; i < num_trajectories; ++i)
-    {
-      delete threadTrajectories_[i];
-      threadTrajectories_[i] = new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization,
-          PlanningParameters::getInstance()->getNumContacts(), PlanningParameters::getInstance()->getPhaseDuration());
-    }
+    trajectory_.reset(
+        new ItompCIOTrajectory(&robot_model_, trajectory_duration, trajectory_discretization,
+            PlanningParameters::getInstance()->getNumContacts(),
+            PlanningParameters::getInstance()->getPhaseDuration()));
   }
 
   // set the trajectory to initial state value
@@ -250,7 +214,7 @@ void ItompPlannerNode::getPlanningGroups(std::vector<std::string>& plannningGrou
   }
 }
 
-void ItompPlannerNode::multiTrajectoryOptimization(const string& groupName,
+void ItompPlannerNode::trajectoryOptimization(const string& groupName,
     const sensor_msgs::JointState& jointGoalState)
 {
   ros::WallTime create_time = ros::WallTime::now();
@@ -258,50 +222,12 @@ void ItompPlannerNode::multiTrajectoryOptimization(const string& groupName,
   fillGroupJointTrajectory(groupName, jointGoalState);
 
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
-  optimizers_.resize(num_trajectories);
-
-  for (int i = 0; i < num_trajectories; ++i)
-  {
-    const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
-    optimizers_[i] = new ItompOptimizer(i, threadTrajectories_[i], &robot_model_, group, planning_start_time_,
-        trajectory_start_time_);
-    optimizers_[i]->optimize();
-  }
+  const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
+  optimizer_.reset(
+      new ItompOptimizer(0, trajectory_.get(), &robot_model_, group, planning_start_time_, trajectory_start_time_));
+  optimizer_->optimize();
   last_planning_time_ = (ros::WallTime::now() - create_time).toSec();
   ROS_INFO("Optimization of group %s took %f sec", groupName.c_str(), last_planning_time_);
-}
-
-void ItompPlannerNode::updateTrajectoryToBestResult(const string& groupName)
-{
-  int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
-
-  last_min_cost_trajectory_ = 0;
-  double best_cost = numeric_limits<double>::max();
-
-  // find best cost result
-  for (int i = 0; i < num_trajectories; ++i)
-  {
-    double threadCost = optimizers_[i]->getBestCost();
-    if (threadCost < best_cost && optimizers_[i]->isSucceed())
-    {
-      last_min_cost_trajectory_ = i;
-      best_cost = threadCost;
-    }
-  }
-
-  // copy the result
-  // TODO: can it be pointer swap?
-  trajectory_->setTrajectory(threadTrajectories_[last_min_cost_trajectory_]->getTrajectory());
-  trajectory_->setContactTrajectory(threadTrajectories_[last_min_cost_trajectory_]->getContactTrajectory());
-
-  for (int i = 0; i < num_trajectories; ++i)
-  {
-    if (i != last_min_cost_trajectory_)
-    {
-      threadTrajectories_[i]->setTrajectory(trajectory_->getTrajectory());
-      threadTrajectories_[i]->setContactTrajectory(trajectory_->getContactTrajectory());
-    }
-  }
 }
 
 void ItompPlannerNode::fillInResult(const std::vector<std::string>& planningGroups,
@@ -357,28 +283,16 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const s
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
 
-  // copy trajectory to thread trajectories
-  for (int i = 0; i < num_trajectories; ++i)
-  {
-    threadTrajectories_[i]->setTrajectory(trajectory_->getTrajectory());
-    threadTrajectories_[i]->setContactTrajectory(trajectory_->getContactTrajectory());
-  }
-
   int goal_index = trajectory_->getNumPoints() - 1;
-  Eigen::MatrixXd::RowXpr trajectory0GoalPoint = threadTrajectories_[0]->getTrajectoryPoint(goal_index);
+  Eigen::MatrixXd::RowXpr goalPoint = trajectory_->getTrajectoryPoint(goal_index);
   for (int i = 0; i < group->num_joints_; ++i)
   {
     string name = group->group_joints_[i].joint_name_;
     int kdl_number = robot_model_.urdfNameToKdlNumber(name);
     if (kdl_number >= 0)
     {
-      trajectory0GoalPoint(kdl_number) = jointGoalState.position[kdl_number];
+      goalPoint(kdl_number) = jointGoalState.position[kdl_number];
     }
-  }
-
-  for (int j = 1; j < num_trajectories; ++j)
-  {
-    threadTrajectories_[j]->getTrajectoryPoint(goal_index) = trajectory0GoalPoint;
   }
 
   vector<vector<double> > midPoints(num_trajectories);
@@ -413,14 +327,8 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const s
   {
     groupJointsKDLIndices.insert(group->group_joints_[i].kdl_joint_index_);
   }
-  threadTrajectories_[0]->fillInMinJerk(groupJointsKDLIndices, start_point_velocities_.row(0),
+  trajectory_->fillInMinJerk(groupJointsKDLIndices, start_point_velocities_.row(0),
       start_point_accelerations_.row(0));
-
-  for (int i = 1; i < num_trajectories; ++i)
-  {
-    // TODO: vel, acc
-    threadTrajectories_[i]->fillInMinJerkWithMidPoint(midPoints[i], groupJointsKDLIndices, i);
-  }
 }
 
 void ItompPlannerNode::printTrajectory(ItompCIOTrajectory* trajectory)
@@ -445,9 +353,9 @@ void ItompPlannerNode::writePlanningInfo(int trials, int component)
 {
   PlanningInfo& info = planning_info_[trials][component];
   info.time = last_planning_time_;
-  info.iterations = optimizers_[last_min_cost_trajectory_]->getLastIteration() + 1;
-  info.cost = optimizers_[last_min_cost_trajectory_]->getBestCost();
-  info.success = (optimizers_[last_min_cost_trajectory_]->isSucceed() ? 1 : 0);
+  info.iterations = optimizer_->getLastIteration() + 1;
+  info.cost = optimizer_->getBestCost();
+  info.success = (optimizer_->isSucceed() ? 1 : 0);
 }
 
 void ItompPlannerNode::printPlanningInfoSummary()

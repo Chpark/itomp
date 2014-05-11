@@ -10,7 +10,7 @@ using namespace std;
 namespace itomp_cio_planner
 {
 
-ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory *trajectory, ItompRobotModel *robot_model,
+ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
     const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time) :
     is_succeed_(false), terminated_(false), trajectory_index_(trajectory_index), planning_start_time_(
         planning_start_time), iteration_(-1), feasible_iteration_(0), last_improvement_iteration_(-1), full_trajectory_(

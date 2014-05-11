@@ -31,17 +31,15 @@ private:
 	void initTrajectory(const sensor_msgs::JointState &joint_state);
 	void getPlanningGroups(std::vector<std::string>& plannningGroups, const std::string& groupName);
 	void fillGroupJointTrajectory(const std::string& groupName, const sensor_msgs::JointState& jointGoalState);
-	void multiTrajectoryOptimization(const std::string& groupName, const sensor_msgs::JointState& jointGoalState);
-	void updateTrajectoryToBestResult(const std::string& groupName);
+	void trajectoryOptimization(const std::string& groupName, const sensor_msgs::JointState& jointGoalState);
 
 	void
 	fillInResult(const std::vector<std::string>& planningGroups, planning_interface::MotionPlanResponse &res);
 
 	ItompRobotModel robot_model_;
 
-	ItompCIOTrajectory* trajectory_;
-	std::vector<ItompCIOTrajectory*> threadTrajectories_;
-	std::vector<ItompOptimizer*> optimizers_;
+	ItompCIOTrajectoryPtr trajectory_;
+	ItompOptimizerPtr optimizer_;
 	double trajectory_start_time_;
 
 	void printTrajectory(ItompCIOTrajectory* trajectory);
