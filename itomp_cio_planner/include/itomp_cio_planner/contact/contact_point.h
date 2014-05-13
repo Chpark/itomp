@@ -9,6 +9,7 @@
 #define CONTACTPOINT_H_
 
 #include <itomp_cio_planner/common.h>
+#include <itomp_cio_planner/util/vector_util.h>
 #include <kdl/frames.hpp>
 #include <Eigen/StdVector>
 
@@ -25,7 +26,7 @@ public:
 	void getPosition(int point, KDL::Vector& position, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
 	void getFrame(int point, KDL::Frame& frame, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
 	void updateContactViolationVector(int start, int end, double discretization,
-			std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> >& contactViolationVector,
+			std::vector<Vector4d>& contactViolationVector,
 			std::vector<KDL::Vector>& contactPointVelVector,
 			const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
 

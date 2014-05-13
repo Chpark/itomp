@@ -65,5 +65,19 @@ void getVectorVelocitiesAndAccelerations(int start, int end, double discretizati
 	}
 }
 
+class Vector4d
+{
+public:
+  Vector4d() {}
+  Vector4d(double x, double y, double z, double w)
+  {
+    data_[0] = x;
+    data_[1] = y;
+    data_[2] = z;
+    data_[3] = w;
+  }
+  double data_[4];
+};
+
 }
 #endif

@@ -39,7 +39,7 @@ void ContactPoint::getFrame(int point, KDL::Frame& frame,
 }
 
 void ContactPoint::updateContactViolationVector(int start, int end, double discretization,
-    vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> >& contactViolationVector, vector<KDL::Vector>& contactPointVelVector,
+    vector<Vector4d>& contactViolationVector, vector<KDL::Vector>& contactPointVelVector,
     const vector<vector<KDL::Frame> >& segmentFrames) const
 {
   vector<KDL::Vector> contactPointPosVector(contactViolationVector.size());
@@ -56,7 +56,7 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
     KDL::Vector diff = position - groundPosition;
     double angle = acos(KDL::dot(normal, groundNormal));
 
-    contactViolationVector[i] = Eigen::Vector4d(diff.x(), diff.y(), diff.z(), 10 * angle);
+    contactViolationVector[i] = Vector4d(diff.x(), diff.y(), diff.z(), 10 * angle);
     contactPointPosVector[i] = position;
   }
   for (int i = 0; i < start; ++i)

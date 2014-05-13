@@ -216,12 +216,12 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   backup_data_.CoMAccelerations_.resize(2 * stride);
   backup_data_.AngularMomentums_.resize(2 * stride);
   backup_data_.Torques_.resize(2 * stride);
-  backup_data_.contactPointVelVector_.resize(num_contacts_);
   backup_data_.contactViolationVector_.resize(num_contacts_);
+  backup_data_.contactPointVelVector_.resize(num_contacts_);
   for (int i = 0; i < num_contacts_; ++i)
   {
-    backup_data_.contactPointVelVector_[i].resize(2 * stride);
     backup_data_.contactViolationVector_[i].resize(2 * stride);
+    backup_data_.contactPointVelVector_[i].resize(2 * stride);
   }
 
   backup_data_.state_contact_invariant_cost_.resize(2 * stride);
@@ -248,9 +248,9 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   memcpy(&backup_data_.Torques_[0], &data_->Torques_[begin], sizeof(KDL::Vector) * 2 * stride);
   for (int i = 0; i < num_contacts_; ++i)
   {
-    for (int j = 0; j < 2 * stride; ++j)
-      backup_data_.contactViolationVector_[i][j] = data_->contactViolationVector_[i][begin + j];
-    memcpy(&backup_data_.contactPointVelVector_[0], &data_->contactPointVelVector_[begin],
+    memcpy(&backup_data_.contactViolationVector_[i][0], &data_->contactViolationVector_[i][begin],
+        sizeof(Vector4d) * 2 * stride);
+    memcpy(&backup_data_.contactPointVelVector_[i][0], &data_->contactPointVelVector_[i][begin],
         sizeof(KDL::Vector) * 2 * stride);
   }
 
@@ -310,9 +310,9 @@ void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, 
   memcpy(&data_->Torques_[begin], &backup_data_.Torques_[0], sizeof(KDL::Vector) * 2 * stride);
   for (int i = 0; i < num_contacts_; ++i)
   {
-    for (int j = 0; j < 2 * stride; ++j)
-      data_->contactViolationVector_[i][begin + j] = backup_data_.contactViolationVector_[i][j];
-    memcpy(&data_->contactPointVelVector_[begin], &backup_data_.contactPointVelVector_[0],
+    memcpy(&data_->contactViolationVector_[i][begin], &backup_data_.contactViolationVector_[i][0],
+        sizeof(Vector4d) * 2 * stride);
+    memcpy(&data_->contactPointVelVector_[i][begin], &backup_data_.contactPointVelVector_[i][0],
         sizeof(KDL::Vector) * 2 * stride);
   }
 
@@ -347,16 +347,16 @@ double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_
     timings_[i + 1] += (times[i + 1] - times[i]).toSec();
   timings_[0] += (times[times.size() - 1] - times[0]).toSec();
   /*
-  if (++count_ % 10000 == 0)
-  {
-    int i = 0;
-    printf("Timing Sum: %f %f\n", i, timings_[i], timings_[i] / count_);
-    for (i = 1; i <= 3 + 6; ++i)
-    {
-      printf("Timing %d : %f %f\n", i, timings_[i], timings_[i] / count_);
-    }
-  }
-  */
+   if (++count_ % 10000 == 0)
+   {
+   int i = 0;
+   printf("Timing Sum: %f %f\n", i, timings_[i], timings_[i] / count_);
+   for (i = 1; i <= 3 + 6; ++i)
+   {
+   printf("Timing %d : %f %f\n", i, timings_[i], timings_[i] / count_);
+   }
+   }
+   */
 
   return cost;
 }
@@ -777,9 +777,10 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
 
     for (int i = 0; i < num_contacts; ++i)
     {
-      double cost =
-          (data_->contactViolationVector_[i][point].transpose() * data_->contactViolationVector_[i][point]).value()
-              + 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
+      double cost = 0.0;
+      for (int j = 0; j < 4; ++j)
+        cost += data_->contactViolationVector_[i][point].data_[j] * data_->contactViolationVector_[i][point].data_[j];
+      cost += 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
 

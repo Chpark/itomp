@@ -6,6 +6,7 @@
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/cost/smoothness_cost.h>
 #include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
+#include <itomp_cio_planner/util/vector_util.h>
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <Eigen/StdVector>
@@ -59,7 +60,7 @@ public:
   std::vector<KDL::Vector> CoMAccelerations_;
   std::vector<KDL::Vector> AngularMomentums_;
   std::vector<KDL::Vector> Torques_;
-  std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > contactViolationVector_;
+  std::vector<std::vector<Vector4d> > contactViolationVector_;
   std::vector<std::vector<KDL::Vector> > contactPointVelVector_;
 
   std::vector<double> stateContactInvariantCost_;
@@ -76,8 +77,6 @@ public:
 
   EvaluationData* clone() const;
   void deepCopy(const EvaluationData& data);
-
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 
 protected:
   void initStaticEnvironment();

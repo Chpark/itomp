@@ -33,14 +33,12 @@ class EvaluationManager
     std::vector<KDL::Vector> CoMAccelerations_;
     std::vector<KDL::Vector> AngularMomentums_;
     std::vector<KDL::Vector> Torques_;
+    std::vector<std::vector<Vector4d> > contactViolationVector_;
     std::vector<std::vector<KDL::Vector> > contactPointVelVector_;
-    std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > contactViolationVector_;
 
     std::vector<double> state_collision_cost_;
     std::vector<double> state_contact_invariant_cost_;
     std::vector<double> state_physics_violation_cost_;
-
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
 public:
@@ -81,7 +79,6 @@ public:
   void setData(EvaluationData* data);
   void setDataToDefault();
 
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
   double evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
 
