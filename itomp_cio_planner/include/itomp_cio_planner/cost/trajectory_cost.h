@@ -37,9 +37,8 @@ public:
 
 	virtual void init(const EvaluationData* data);
 
-	void compute(const EvaluationData* data);
-	virtual double getWaypointCost(int waypoint) const { return costs_(waypoint); }
-	double getTrajectoryCost() const { return costSum_; }
+	void compute(const EvaluationData* data, Eigen::VectorXd& costData, double& sum);
+	virtual double getWaypointCost(int waypoint, const Eigen::VectorXd& costData) const { return costData(waypoint); }
 	bool getIsHardConstraint() const { return isHardConstraint_; }
 	COST_TYPE getType() const { return type_; }
 
@@ -48,13 +47,12 @@ public:
 	static boost::shared_ptr<TrajectoryCost> CreateTrajectoryCost(COST_TYPE type);
 
 protected:
-	virtual void doCompute(const EvaluationData* data) = 0;
-	void computeCostSum(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData) = 0;
+	void computeCostSum(const EvaluationData* data, Eigen::VectorXd& costData, double& sum);
 
 	bool isHardConstraint_;
 	COST_TYPE type_;
-	Eigen::VectorXd costs_;
-	double costSum_;
+
 };
 
 typedef boost::shared_ptr<TrajectoryCost> TrajectoryCostPtr;
@@ -65,11 +63,11 @@ public:
 	TrajectorySmoothnessCost() : TrajectoryCost(COST_SMOOTHNESS) {}
 	virtual ~TrajectorySmoothnessCost() {}
 
-	virtual double getWaypointCost(int waypoint) const { return 0.0; }
+	virtual double getWaypointCost(int waypoint, const Eigen::VectorXd& costData) const { return 0.0; }
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryCollisionCost : public TrajectoryCost
@@ -81,7 +79,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryValidityCost : public TrajectoryCost
@@ -93,7 +91,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryContactInvariantCost : public TrajectoryCost
@@ -105,7 +103,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryPhysicsViolationCost : public TrajectoryCost
@@ -117,7 +115,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryGoalPoseCost : public TrajectoryCost
@@ -129,7 +127,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryCoMCost : public TrajectoryCost
@@ -141,7 +139,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data);
+	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 };

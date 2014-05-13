@@ -6,6 +6,7 @@
  */
 
 #include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
+#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include <ros/console.h>
 
 namespace itomp_cio_planner
@@ -18,7 +19,7 @@ TrajectoryCostAccumulator::TrajectoryCostAccumulator()
 
 TrajectoryCostAccumulator::~TrajectoryCostAccumulator()
 {
-  costMap_.clear();
+
 }
 
 void TrajectoryCostAccumulator::addCost(TrajectoryCostPtr cost)
@@ -34,6 +35,8 @@ void TrajectoryCostAccumulator::init(const EvaluationData* data)
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::iterator it = costMap_.begin(); it != costMap_.end(); ++it)
   {
     it->second->init(data);
+    costDataMap_[it->first] = Eigen::VectorXd::Zero(data->getNumPoints());
+    costSumMap_[it->first] = 0.0;
   }
 }
 
@@ -42,7 +45,7 @@ void TrajectoryCostAccumulator::compute(const EvaluationData* data)
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::iterator it = costMap_.begin(); it != costMap_.end(); ++it)
   {
     if (it->second->getWeight() != 0.0)
-      it->second->compute(data);
+      it->second->compute(data, costDataMap_[it->first], costSumMap_[it->first]);
   }
 }
 
@@ -52,7 +55,8 @@ double TrajectoryCostAccumulator::getWaypointCost(int waypoint) const
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::const_iterator it = costMap_.begin(); it != costMap_.end();
       ++it)
   {
-    accumulatedCost += it->second->getWaypointCost(waypoint) * it->second->getWeight();
+    const Eigen::VectorXd& costData = costDataMap_.find(it->first)->second;
+    accumulatedCost += it->second->getWaypointCost(waypoint, costData) * it->second->getWeight();
   }
   return accumulatedCost;
 }
@@ -60,14 +64,18 @@ double TrajectoryCostAccumulator::getWaypointCost(int waypoint) const
 double TrajectoryCostAccumulator::getWaypointCost(int waypoint, TrajectoryCost::COST_TYPE type) const
 {
   std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::const_iterator it = costMap_.find(type);
-  return it->second->getWaypointCost(waypoint) * it->second->getWeight();
+  const Eigen::VectorXd& costData = costDataMap_.find(type)->second;
+  return it->second->getWaypointCost(waypoint, costData) * it->second->getWeight();
 }
 
 double TrajectoryCostAccumulator::getTrajectoryCost(TrajectoryCost::COST_TYPE type) const
 {
   std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::const_iterator it = costMap_.find(type);
   if (it != costMap_.end())
-    return it->second->getTrajectoryCost() * it->second->getWeight();
+  {
+    double costSum = costSumMap_.find(it->first)->second;
+    return costSum * it->second->getWeight();
+  }
   return 0.0;
 }
 
@@ -77,7 +85,8 @@ double TrajectoryCostAccumulator::getTrajectoryCost() const
   for (std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr>::const_iterator it = costMap_.begin(); it != costMap_.end();
       ++it)
   {
-    accumulatedCost += it->second->getTrajectoryCost() * it->second->getWeight();
+    double costSum = costSumMap_.find(it->first)->second;
+    accumulatedCost += costSum * it->second->getWeight();
   }
   return accumulatedCost;
 }

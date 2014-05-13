@@ -85,7 +85,7 @@ public:
   void updateTrajectoryFromFreePoint(int point);
   void updateFreePointsFromTrajectory();
 
-  void printTrajectory();
+  void printTrajectory() const;
 
 private:
   void init(); /**< \brief Allocates memory for the trajectory */

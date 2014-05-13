@@ -10,6 +10,7 @@
 #include <kdl/jntarray.hpp>
 #include <Eigen/StdVector>
 #include <moveit/planning_scene/planning_scene.h>
+#include <itomp_cio_planner/contact/contact_force_solver.h>
 
 namespace itomp_cio_planner
 {
@@ -27,6 +28,8 @@ public:
 
   double getNumPoints() const;
   double getNumJoints() const;
+
+  void setTrajectories(ItompCIOTrajectory* group_trajectory, ItompCIOTrajectory* full_trajectory);
 
   ItompCIOTrajectory* getGroupTrajectory();
   const ItompCIOTrajectory* getGroupTrajectory() const;
@@ -65,10 +68,24 @@ public:
 
   TrajectoryCostAccumulator costAccumulator_;
 
+  KDL::TreeFkSolverJointPosAxisPartial fk_solver_;
+  ContactForceSolver contact_force_solver_;
+
+  planning_scene::PlanningScenePtr planning_scene_;
+  robot_state::RobotStatePtr kinematic_state_;
+
+  EvaluationData* clone() const;
+  void deepCopy(const EvaluationData& data);
+
 protected:
+  void initStaticEnvironment();
+
+  ItompRobotModel *robot_model_;
+
   ItompCIOTrajectory* group_trajectory_;
   ItompCIOTrajectory* full_trajectory_;
 };
+typedef boost::shared_ptr<EvaluationData> EvaluationDataPtr;
 
 inline ItompCIOTrajectory* EvaluationData::getGroupTrajectory()
 {
@@ -97,6 +114,12 @@ inline double EvaluationData::getNumPoints() const
 inline double EvaluationData::getNumJoints() const
 {
   return group_trajectory_->getNumJoints();
+}
+
+inline void EvaluationData::setTrajectories(ItompCIOTrajectory* group_trajectory, ItompCIOTrajectory* full_trajectory)
+{
+  group_trajectory_ = group_trajectory;
+  full_trajectory_ = full_trajectory;
 }
 
 }

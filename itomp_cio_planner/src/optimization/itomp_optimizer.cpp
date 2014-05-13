@@ -63,13 +63,17 @@ bool ItompOptimizer::optimize()
     if (!updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true)))
     {
       if (best_group_trajectory_cost_ < 0.1)
+      {
         break;
+      }
       else
       {
-        group_trajectory_.getTrajectory() = best_group_trajectory_;
-        group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
+
       }
     }
+    group_trajectory_.getTrajectory() = best_group_trajectory_;
+    group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
+
     ++iteration_;
   }
   evaluation_manager_.postprocess_ik();

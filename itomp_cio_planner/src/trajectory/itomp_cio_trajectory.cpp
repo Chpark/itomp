@@ -343,7 +343,7 @@ void ItompCIOTrajectory::fillInMinJerkWithMidPoint(const vector<double>& midPoin
    */
 }
 
-void ItompCIOTrajectory::printTrajectory()
+void ItompCIOTrajectory::printTrajectory() const
 {
   printf("Full Trajectory\n");
   for (int i = 0; i < num_points_; ++i)

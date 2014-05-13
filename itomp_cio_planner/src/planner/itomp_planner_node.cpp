@@ -1,15 +1,12 @@
 #include <itomp_cio_planner/planner/itomp_planner_node.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
-
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/visualization/visualization_manager.h>
 #include <kdl/jntarray.hpp>
 #include <angles/angles.h>
 #include <visualization_msgs/MarkerArray.h>
-#
 #include <boost/random/uniform_real.hpp>
 #include <boost/random/variate_generator.hpp>
-
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
@@ -27,6 +24,8 @@ ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model)
 
 bool ItompPlannerNode::init()
 {
+  Eigen::initParallel();
+
   PlanningParameters::getInstance()->initFromNodeHandle();
 
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");

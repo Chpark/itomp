@@ -63,33 +63,33 @@ TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 
 void TrajectoryCost::init(const EvaluationData* data)
 {
-	costs_ = Eigen::VectorXd::Zero(data->getNumPoints());
+
 }
 
-void TrajectoryCost::computeCostSum(const EvaluationData* data)
+void TrajectoryCost::computeCostSum(const EvaluationData* data, Eigen::VectorXd& costData, double& sum)
 {
-	costSum_ = 0.0;
+  sum = 0.0;
 	for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
-		costSum_ += costs_(i);
+	  sum += costData(i);
 	}
 }
 
-void TrajectoryCost::compute(const EvaluationData* data)
+void TrajectoryCost::compute(const EvaluationData* data, Eigen::VectorXd& costData, double& sum)
 {
-	doCompute(data);
-	computeCostSum(data);
+	doCompute(data, costData);
+	computeCostSum(data, costData, sum);
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectorySmoothnessCost::doCompute(const EvaluationData* data)
+void TrajectorySmoothnessCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
 	double smoothness_cost = 0.0;
 	// joint costs:
 	for (int i = 0; i < data->getNumJoints(); i++)
 		smoothness_cost += data->joint_costs_[i].getCost(data->getGroupTrajectory()->getJointTrajectory(i));
 
-	costs_(1) = smoothness_cost;
+	costData(1) = smoothness_cost;
 }
 
 double TrajectorySmoothnessCost::getWeight() const
@@ -98,11 +98,11 @@ double TrajectorySmoothnessCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryCollisionCost::doCompute(const EvaluationData* data)
+void TrajectoryCollisionCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   for (int i = 1; i <= data->getNumPoints() - 2; i++)
     {
-      costs_(i) = data->stateCollisionCost_[i];
+    costData(i) = data->stateCollisionCost_[i];
     }
 }
 
@@ -112,7 +112,7 @@ double TrajectoryCollisionCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryValidityCost::doCompute(const EvaluationData* data)
+void TrajectoryValidityCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
@@ -120,7 +120,7 @@ void TrajectoryValidityCost::doCompute(const EvaluationData* data)
 		if (!data->state_validity_[i])
 			state_validity_cost = 1.0;
 
-		costs_(i) = state_validity_cost;
+		costData(i) = state_validity_cost;
 	}
 }
 
@@ -130,11 +130,11 @@ double TrajectoryValidityCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryContactInvariantCost::doCompute(const EvaluationData* data)
+void TrajectoryContactInvariantCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
-		costs_(i) = data->stateContactInvariantCost_[i];
+    costData(i) = data->stateContactInvariantCost_[i];
 	}
 }
 
@@ -144,11 +144,11 @@ double TrajectoryContactInvariantCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryPhysicsViolationCost::doCompute(const EvaluationData* data)
+void TrajectoryPhysicsViolationCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   for (int i = 1; i <= data->getNumPoints() - 2; i++)
 	{
-		costs_(i) = data->statePhysicsViolationCost_[i];
+    costData(i) = data->statePhysicsViolationCost_[i];
 	}
 }
 
@@ -158,7 +158,7 @@ double TrajectoryPhysicsViolationCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryGoalPoseCost::doCompute(const EvaluationData* data)
+void TrajectoryGoalPoseCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   /*
 	double goal_pose_cost = 0.0;
@@ -189,7 +189,7 @@ double TrajectoryGoalPoseCost::getWeight() const
 }
 ////////////////////////////////////////////////////////////////////////////////
 
-void TrajectoryCoMCost::doCompute(const EvaluationData* data)
+void TrajectoryCoMCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
 {
   /*
 	for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)

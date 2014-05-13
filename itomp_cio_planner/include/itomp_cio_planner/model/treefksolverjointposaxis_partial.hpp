@@ -52,6 +52,7 @@ class TreeFkSolverJointPosAxisPartial
 
 {
 public:
+  TreeFkSolverJointPosAxisPartial() {}
 	TreeFkSolverJointPosAxisPartial(const Tree& tree,
 			const std::string& reference_frame,
 			const std::vector<bool>& active_joints);
@@ -72,6 +73,8 @@ public:
 
 	int segmentNameToIndex(std::string name) const;
 	int getNumSegments() const { return num_segments_; }
+
+	void reset();
 
 private:
 	int treeRecursiveFK(const JntArray& q_in, std::vector<Vector>& joint_pos,

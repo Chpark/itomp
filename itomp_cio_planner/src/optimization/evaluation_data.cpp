@@ -3,6 +3,10 @@
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <boost/variant/get.hpp>
+#include <geometric_shapes/mesh_operations.h>
+#include <geometric_shapes/shape_operations.h>
+#include <geometric_shapes/shapes.h>
 
 using namespace std;
 using namespace Eigen;
@@ -21,10 +25,16 @@ EvaluationData::~EvaluationData()
 }
 
 void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-    ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, const EvaluationManager* evaluation_manager, int num_mass_segments)
+    ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, const EvaluationManager* evaluation_manager,
+    int num_mass_segments)
 {
   full_trajectory_ = full_trajectory;
   group_trajectory_ = group_trajectory;
+
+  robot_model_ = robot_model;
+  planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getRobotModel()));
+  kinematic_state_.reset(new robot_state::RobotState(robot_model->getRobotModel()));
+  initStaticEnvironment();
 
   kdl_joint_array_.resize(robot_model->getKDLTree()->getNrOfJoints());
 
@@ -110,6 +120,93 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
   costAccumulator_.init(this);
+
+  fk_solver_ = *planning_group->fk_solver_.get();
+}
+
+void EvaluationData::initStaticEnvironment()
+{
+  collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
+  string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
+  if (!environment_file.empty())
+  {
+    vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();
+    double scale = PlanningParameters::getInstance()->getEnvironmentModelScale();
+    environment_position.resize(3, 0);
+
+    // Collision object
+    moveit_msgs::CollisionObject collision_object;
+    collision_object.header.frame_id = robot_model_->getRobotModel()->getModelFrame();
+    collision_object.id = "environment";
+    geometry_msgs::Pose pose;
+    pose.position.x = environment_position[0];
+    pose.position.y = environment_position[1];
+    pose.position.z = environment_position[2];
+    pose.orientation.x = sqrt(0.5);
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+    pose.orientation.w = sqrt(0.5);
+
+    shapes::Mesh* shape = shapes::createMeshFromResource("package://move_itomp/meshes/" + environment_file);
+    shapes::ShapeMsg mesh_msg;
+    shapes::constructMsgFromShape(shape, mesh_msg);
+    shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
+
+    collision_object.meshes.push_back(mesh);
+    collision_object.mesh_poses.push_back(pose);
+
+    collision_object.operation = collision_object.ADD;
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    planning_scene_msg.is_diff = true;
+    planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
+
+    acm.setEntry(true);
+  }
+}
+
+EvaluationData* EvaluationData::clone() const
+{
+  EvaluationData* new_data = new EvaluationData();
+
+  *new_data = *this;
+
+  new_data->group_trajectory_ = new ItompCIOTrajectory(*group_trajectory_);
+  new_data->full_trajectory_ = new ItompCIOTrajectory(*full_trajectory_);
+
+  new_data->fk_solver_.reset();
+
+  new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getRobotModel()));
+  new_data->initStaticEnvironment();
+  new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
+
+  return new_data;
+}
+
+void EvaluationData::deepCopy(const EvaluationData& data)
+{
+  // store pointers
+  ItompCIOTrajectory* group_trajectory = group_trajectory_;
+  ItompCIOTrajectory* full_trajectory = full_trajectory_;
+  planning_scene::PlanningScenePtr planning_scene = planning_scene_;
+  robot_state::RobotStatePtr kinematic_state = kinematic_state_;
+
+  // copy
+  *this = data;
+
+  // deep copy trajectories
+  *group_trajectory = *data.group_trajectory_;
+  *full_trajectory = *data.full_trajectory_;
+
+  // copy pointers again
+  group_trajectory_ = group_trajectory;
+  full_trajectory_ = full_trajectory;
+
+  fk_solver_.reset();
+
+  // do not copy planning scene
+  planning_scene_ = planning_scene;
+  kinematic_state_ = kinematic_state;
 }
 
 }

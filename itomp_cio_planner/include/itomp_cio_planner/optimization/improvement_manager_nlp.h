@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/optimization/improvement_manager.h>
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
+#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include "dlib/optimization.h"
 
 namespace itomp_cio_planner
@@ -23,7 +24,7 @@ public:
 
 protected:
   void setVariableVector(column_vector& variables);
-  void getVariableVector(const column_vector& variables);
+  void getVariableVector(const column_vector& variables, int index = 0);
   void addNoiseToVariables(column_vector& variables);
 
   double evaluate(const column_vector& variables);
@@ -41,11 +42,17 @@ protected:
   int num_vel_variables_;
   int num_variables_;
 
-  Eigen::MatrixXd parameters_;
-  Eigen::MatrixXd vel_parameters_;
-  Eigen::MatrixXd contact_parameters_;
-  Eigen::VectorXd costs_;
+  std::vector<Eigen::MatrixXd> parameters_;
+  std::vector<Eigen::MatrixXd> vel_parameters_;
+  std::vector<Eigen::MatrixXd> contact_parameters_;
+  std::vector<Eigen::VectorXd> costs_;
   Eigen::VectorXd derivatives_;
+
+  int num_threads_;
+  std::vector<EvaluationManagerPtr> derivatives_evaluation_manager_;
+  std::vector<EvaluationDataPtr> derivatives_evaluation_data_;
+
+  double elapsed_;
 };
 
 }

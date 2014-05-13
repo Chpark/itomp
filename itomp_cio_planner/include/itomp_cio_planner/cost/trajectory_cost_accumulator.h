@@ -36,6 +36,8 @@ public:
 
 protected:
 	std::map<TrajectoryCost::COST_TYPE, TrajectoryCostPtr> costMap_;
+	std::map<TrajectoryCost::COST_TYPE, Eigen::VectorXd> costDataMap_;
+	std::map<TrajectoryCost::COST_TYPE, double> costSumMap_;
 };
 
 }

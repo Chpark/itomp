@@ -42,15 +42,18 @@ public:
   void render(int trajectory_index);
 
   const ItompCIOTrajectory* getGroupTrajectoryConst() const;
+  const ItompCIOTrajectory* getFullTrajectoryConst() const;
   const ItompPlanningGroup* getPlanningGroup() const;
 
   void postprocess_ik();
 
   double getTrajectoryCost(bool verbose = false);
 
-private:
-  void initStaticEnvironment();
+  const EvaluationData& getDefaultData() const;
+  void setData(EvaluationData* data);
+  void setDataToDefault();
 
+private:
   void computeMassAndGravityForce();
   void computeWrenchSum();
   void computeStabilityCosts();
@@ -67,8 +70,6 @@ private:
 
   EvaluationData* data_;
   EvaluationData default_data_;
-
-  planning_scene::PlanningScenePtr planning_scene_;
 
   double planning_start_time_;
   double trajectory_start_time_;
@@ -100,22 +101,11 @@ private:
   ros::Publisher vis_marker_array_pub_;
   ros::Publisher vis_marker_pub_;
 
-  // TODO: refactoring
-  /*
-  friend class TrajectoryCostAccumulator;
-  friend class TrajectoryCost;
-  friend class TrajectorySmoothnessCost;
-  friend class TrajectoryCollisionCost;
-  friend class TrajectoryValidityCost;
-  friend class TrajectoryContactInvariantCost;
-  friend class TrajectoryPhysicsViolationCost;
-  friend class TrajectoryGoalPoseCost;
-  friend class TrajectoryCoMCost;
-  */
-
   // for debug
   std::vector<double> timings_;
+  int count_;
 };
+typedef boost::shared_ptr<EvaluationManager> EvaluationManagerPtr;
 
 inline bool EvaluationManager::isLastTrajectoryFeasible() const
 {
@@ -143,6 +133,11 @@ inline const ItompCIOTrajectory* EvaluationManager::getGroupTrajectoryConst() co
   return data_->getGroupTrajectory();
 }
 
+inline const ItompCIOTrajectory* EvaluationManager::getFullTrajectoryConst() const
+{
+  return data_->getFullTrajectory();
+}
+
 inline const ItompPlanningGroup* EvaluationManager::getPlanningGroup() const
 {
   return planning_group_;
@@ -156,6 +151,20 @@ inline ItompCIOTrajectory* EvaluationManager::getGroupTrajectory()
 inline ItompCIOTrajectory* EvaluationManager::getFullTrajectory()
 {
   return data_->getFullTrajectory();
+}
+
+inline const EvaluationData& EvaluationManager::getDefaultData() const
+{
+  return default_data_;
+}
+
+inline void EvaluationManager::setData(EvaluationData* data)
+{
+  data_ = data;
+}
+inline void EvaluationManager::setDataToDefault()
+{
+  data_ = &default_data_;
 }
 
 }
