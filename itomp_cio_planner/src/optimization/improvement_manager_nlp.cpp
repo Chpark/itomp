@@ -60,13 +60,11 @@ bool ImprovementManagerNLP::updatePlanningParameters()
   parameters_.resize(num_threads_);
   vel_parameters_.resize(num_threads_);
   contact_parameters_.resize(num_threads_);
-  costs_.resize(num_threads_);
   for (int i = 0; i < num_threads_; ++i)
   {
     parameters_[i] = group_trajectory->getFreePoints();
     vel_parameters_[i] = group_trajectory->getFreeVelPoints();
     contact_parameters_[i] = group_trajectory->getContactTrajectory();
-    costs_[i] = Eigen::VectorXd::Zero(num_points_);
   }
   derivatives_ = Eigen::VectorXd::Zero(num_variables_);
 
@@ -87,7 +85,6 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     parameters_[i] = group_trajectory->getFreePoints();
     vel_parameters_[i] = group_trajectory->getFreeVelPoints();
     contact_parameters_[i] = group_trajectory->getContactTrajectory();
-    costs_[i] = Eigen::VectorXd::Zero(num_points_);
   }
   setVariableVector(variables);
 
@@ -186,7 +183,8 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
   getVariableVector(variables);
-  return evaluation_manager_->evaluate(parameters_[0], vel_parameters_[0], contact_parameters_[0], costs_[0]);
+  evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
+  return evaluation_manager_->evaluate();
 }
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
@@ -211,10 +209,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   time[0] = ros::Time::now();
 
   // positions
-//#pragma omp parallel for
+#pragma omp parallel for
   for (int index = 0; index < num_positions; ++index)
   {
-    int thread_num = 0;//omp_get_thread_num();
+    int thread_num = omp_get_thread_num();
 
     const int point_index = (index / num_dimensions_) + 1;
     const int joint_index = index % num_dimensions_;
@@ -232,10 +230,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   read_index += num_positions;
 
   // velocities
-//#pragma omp parallel for
+#pragma omp parallel for
   for (int index = 0; index < num_velocities; ++index)
   {
-    int thread_num = 0;// omp_get_thread_num();
+    int thread_num = omp_get_thread_num();
 
     const int point_index = (index / num_dimensions_) + 1;
     const int joint_index = index % num_dimensions_;
@@ -253,10 +251,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   read_index += num_velocities;
 
   // contact variables
-//#pragma omp parallel for
+#pragma omp parallel for
   for (int index = 0; index < num_contact_variables; ++index)
   {
-    int thread_num = 0;//omp_get_thread_num();
+    int thread_num = omp_get_thread_num();
 
     const int point_index = (index / num_contact_dimensions_);
     const int joint_index = index % num_contact_dimensions_;
@@ -310,14 +308,16 @@ column_vector ImprovementManagerNLP::derivative_old(const column_vector& variabl
     e[thread_num](i) += eps;
     getVariableVector(e[thread_num], thread_num);
 
-    const double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluate(parameters_[thread_num],
-        vel_parameters_[thread_num], contact_parameters_[thread_num], costs_[thread_num]);
+    derivatives_evaluation_manager_[thread_num]->setTrajectory(parameters_[thread_num], vel_parameters_[thread_num],
+        contact_parameters_[thread_num]);
+    const double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluate();
 
     e[thread_num](i) = old_val - eps;
     getVariableVector(e[thread_num], thread_num);
 
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluate(parameters_[thread_num],
-        vel_parameters_[thread_num], contact_parameters_[thread_num], costs_[thread_num]);
+    derivatives_evaluation_manager_[thread_num]->setTrajectory(parameters_[thread_num], vel_parameters_[thread_num],
+        contact_parameters_[thread_num]);
+    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluate();
 
     der(i) = (delta_plus - delta_minus) / (2 * eps);
 

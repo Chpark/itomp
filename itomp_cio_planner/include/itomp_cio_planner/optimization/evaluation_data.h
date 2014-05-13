@@ -77,6 +77,8 @@ public:
   EvaluationData* clone() const;
   void deepCopy(const EvaluationData& data);
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
 protected:
   void initStaticEnvironment();
 

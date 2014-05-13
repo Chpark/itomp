@@ -46,7 +46,6 @@ protected:
   std::vector<Eigen::MatrixXd> parameters_;
   std::vector<Eigen::MatrixXd> vel_parameters_;
   std::vector<Eigen::MatrixXd> contact_parameters_;
-  std::vector<Eigen::VectorXd> costs_;
   Eigen::VectorXd derivatives_;
 
   int num_threads_;

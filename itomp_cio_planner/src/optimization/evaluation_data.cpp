@@ -174,8 +174,6 @@ EvaluationData* EvaluationData::clone() const
   new_data->group_trajectory_ = new ItompCIOTrajectory(*group_trajectory_);
   new_data->full_trajectory_ = new ItompCIOTrajectory(*full_trajectory_);
 
-  new_data->fk_solver_.reset();
-
   new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getRobotModel()));
   new_data->initStaticEnvironment();
   new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
@@ -201,8 +199,6 @@ void EvaluationData::deepCopy(const EvaluationData& data)
   // copy pointers again
   group_trajectory_ = group_trajectory;
   full_trajectory_ = full_trajectory;
-
-  fk_solver_.reset();
 
   // do not copy planning scene
   planning_scene_ = planning_scene;

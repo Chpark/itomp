@@ -78,14 +78,6 @@ TreeFkSolverJointPosAxisPartial::~TreeFkSolverJointPosAxisPartial()
 {
 }
 
-void TreeFkSolverJointPosAxisPartial::reset()
-{
-  segment_parent_.clear();
-  joint_parent_.clear();
-  segment_parent_.resize(num_segments_, NULL);
-  joint_parent_.resize(num_joints_, NULL);
-}
-
 int TreeFkSolverJointPosAxisPartial::JntToCartFull(const JntArray& q_in,
 		std::vector<Vector>& joint_pos, std::vector<Vector>& joint_axis,
 		std::vector<Frame>& segment_frames)

@@ -74,8 +74,6 @@ public:
 	int segmentNameToIndex(std::string name) const;
 	int getNumSegments() const { return num_segments_; }
 
-	void reset();
-
 private:
 	int treeRecursiveFK(const JntArray& q_in, std::vector<Vector>& joint_pos,
 			std::vector<Vector>& joint_axis,

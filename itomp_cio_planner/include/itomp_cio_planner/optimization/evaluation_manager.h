@@ -10,7 +10,6 @@
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
-#include <Eigen/StdVector>
 #include <moveit/planning_scene/planning_scene.h>
 
 namespace itomp_cio_planner
@@ -22,7 +21,26 @@ class EvaluationManager
   {
   public:
     double trajectory_value_;
+
+    std::vector<std::vector<KDL::Frame> > segment_frames_;
+
+    std::vector<KDL::Wrench> wrenchSum_;
+    std::vector<std::vector<KDL::Vector> > linkPositions_;
+    std::vector<std::vector<KDL::Vector> > linkVelocities_;
+    std::vector<std::vector<KDL::Vector> > linkAngularVelocities_;
+    std::vector<KDL::Vector> CoMPositions_;
+    std::vector<KDL::Vector> CoMVelocities_;
+    std::vector<KDL::Vector> CoMAccelerations_;
+    std::vector<KDL::Vector> AngularMomentums_;
+    std::vector<KDL::Vector> Torques_;
+    std::vector<std::vector<KDL::Vector> > contactPointVelVector_;
+    std::vector<std::vector<Eigen::Vector4d, Eigen::aligned_allocator<Eigen::Vector4d> > > contactViolationVector_;
+
     std::vector<double> state_collision_cost_;
+    std::vector<double> state_contact_invariant_cost_;
+    std::vector<double> state_physics_violation_cost_;
+
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   };
 
 public:
@@ -38,20 +56,17 @@ public:
       ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
       double trajectory_start_time);
 
-  double evaluate();
-  double evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
+  void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
+      const Eigen::MatrixXd& contact_parameters);
 
-  double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
-      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
-  double evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
+  double evaluate();
+  double evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index,
+      int joint_index);
 
   bool isLastTrajectoryFeasible() const;
 
   void handleJointLimits();
   void updateFullTrajectory();
-  void updateFullTrajectory(int point_index, int joint_index);
-  bool performForwardKinematics(); /**< Return true if collision free */
-  void computeTrajectoryValidity();
   void render(int trajectory_index);
 
   const ItompCIOTrajectory* getGroupTrajectoryConst() const;
@@ -66,16 +81,27 @@ public:
   void setData(EvaluationData* data);
   void setDataToDefault();
 
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
 private:
+  double evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
+
+  bool performForwardKinematics();
+  void computeTrajectoryValidity();
   void computeMassAndGravityForce();
   void computeWrenchSum();
   void computeStabilityCosts();
   void updateCoM(int point);
   void computeCollisionCosts();
-  void computeCollisionCosts(int point_index);
 
-  void backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
-  void restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
+  void updateFullTrajectory(int point_index, int joint_index);
+  bool performForwardKinematics(int begin, int end);
+  void computeWrenchSum(int begin, int end);
+  void computeStabilityCosts(int begin, int end);
+  void computeCollisionCosts(int begin, int end);
+
+  void backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index,
+      int joint_index);
+  void restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index, int joint_index);
 
   int getIteration() const;
 
@@ -110,10 +136,10 @@ private:
   bool trajectory_validity_;
 
   // physics
-  double totalMass_;
+  double total_mass_;
   std::vector<double> masses_;
-  int numMassSegments_;
-  KDL::Vector gravityForce_;
+  int num_mass_segments_;
+  KDL::Vector gravity_force_;
 
   ros::Publisher vis_marker_array_pub_;
   ros::Publisher vis_marker_pub_;
@@ -184,6 +210,26 @@ inline void EvaluationManager::setData(EvaluationData* data)
 inline void EvaluationManager::setDataToDefault()
 {
   data_ = &default_data_;
+}
+
+inline void EvaluationManager::computeCollisionCosts()
+{
+  computeCollisionCosts(0, num_points_);
+}
+
+inline void EvaluationManager::computeStabilityCosts()
+{
+  computeStabilityCosts(1, num_points_ - 1);
+}
+
+inline bool EvaluationManager::performForwardKinematics()
+{
+  return performForwardKinematics(0, num_points_);
+}
+
+inline void EvaluationManager::computeWrenchSum()
+{
+  computeWrenchSum(0, num_points_);
 }
 
 }
