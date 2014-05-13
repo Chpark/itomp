@@ -28,6 +28,7 @@ protected:
   void addNoiseToVariables(column_vector& variables);
 
   double evaluate(const column_vector& variables);
+  column_vector derivative_old(const column_vector& variables);
   column_vector derivative(const column_vector& variables);
 
   void optimize(int iteration, column_vector& variables);

@@ -75,6 +75,7 @@ public:
   void setContactTrajectory(Eigen::MatrixXd& contact_trajectory);
 
   void updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory);
+  void updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index, int joint_index);
   void copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory);
 
   Eigen::MatrixXd& getFreePoints();
@@ -82,7 +83,7 @@ public:
   Eigen::MatrixXd& getFreeVelPoints();
   const Eigen::MatrixXd& getFreeVelPoints() const;
   void updateTrajectoryFromFreePoints();
-  void updateTrajectoryFromFreePoint(int point);
+  void updateTrajectoryFromFreePoint(int point_index, int joint_index);
   void updateFreePointsFromTrajectory();
 
   void printTrajectory() const;

@@ -68,38 +68,6 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   timings_.resize(20, 0);
 }
 
-void EvaluationManager::evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
-    const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives)
-{
-  /*
-   // copy the parameters into group_trajectory_:
-   int num_free_points = parameters.rows();
-   ROS_ASSERT(group_trajectory_->getFreePoints().rows() == num_free_points);
-
-   group_trajectory_->getFreePoints() = parameters;
-   group_trajectory_->getFreeVelPoints() = vel_parameters;
-   group_trajectory_->getContactTrajectory() = contact_parameters;
-
-   group_trajectory_->updateTrajectoryFromFreePoints();
-
-   // respect joint limits:
-   handleJointLimits();
-
-   // copy to full traj:
-   updateFullTrajectory();
-
-   // do forward kinematics:
-   performForwardKinematics();
-
-   computeTrajectoryValidity();
-   computeWrenchSum();
-   computeStabilityCosts();
-   computeCollisionCosts();
-
-   costAccumulator_.compute(this);
-   */
-}
-
 double EvaluationManager::evaluate()
 {
   ros::Time time[10];
@@ -216,6 +184,56 @@ double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eige
   for (int i = 0; i < num_points_; i++)
   {
     costs(i) = data_->costAccumulator_.getWaypointCost(i);
+  }
+
+  return cost;
+}
+
+double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index,
+    int joint_index)
+{
+  // backup old trajectory value
+  double old_value;
+  Eigen::MatrixXd* target_trajectory;
+  switch (variable_type)
+  {
+  case DERIVATIVE_POSITION_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getFreePoints();
+    break;
+
+  case DERIVATIVE_VELOCITY_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getFreeVelPoints();
+    break;
+
+  case DERIVATIVE_CONTACT_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getContactTrajectory();
+    break;
+  }
+  old_value = (*target_trajectory)(point_index, joint_index);
+
+  // change trajectory variable
+  (*target_trajectory)(point_index, joint_index) = value;
+
+  // update trajectory
+  if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
+  {
+    getGroupTrajectory()->updateTrajectoryFromFreePoint(point_index, joint_index);
+    //handleJointLimits();
+
+    // TODO: below function does not update free var trajectory
+    updateFullTrajectory(point_index, joint_index);
+  }
+
+  // evaluate
+  double cost = evaluate();
+
+  // restore trajectory value
+  (*target_trajectory)(point_index, joint_index) = old_value;
+
+  if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
+  {
+    getGroupTrajectory()->updateTrajectoryFromFreePoint(point_index, joint_index);
+    updateFullTrajectory(point_index, joint_index);
   }
 
   return cost;
@@ -341,6 +359,11 @@ void EvaluationManager::handleJointLimits()
 void EvaluationManager::updateFullTrajectory()
 {
   getFullTrajectory()->updateFromGroupTrajectory(*getGroupTrajectory());
+}
+
+void EvaluationManager::updateFullTrajectory(int point_index, int joint_index)
+{
+  getFullTrajectory()->updateFromGroupTrajectory(*getGroupTrajectory(), point_index, joint_index);
 }
 
 bool EvaluationManager::performForwardKinematics()

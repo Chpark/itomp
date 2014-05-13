@@ -91,11 +91,22 @@ void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& gro
     trajectory_.block(0, target_joint, num_points_, 1) = group_trajectory.trajectory_.block(0, i, num_points_, 1);
     free_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.free_trajectory_.block(0, i,
         num_contact_phases_ + 1, 1);
-    free_vel_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.free_vel_trajectory_.block(0, i,
-        num_contact_phases_ + 1, 1);
+    free_vel_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) =
+        group_trajectory.free_vel_trajectory_.block(0, i, num_contact_phases_ + 1, 1);
   }
 
   contact_trajectory_ = group_trajectory.contact_trajectory_;
+}
+
+void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index,
+    int joint_index)
+{
+  int i = joint_index;
+  {
+    int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
+    trajectory_.block((point_index - 1) * phase_stride_, target_joint, 2 * phase_stride_, 1) =
+        group_trajectory.trajectory_.block((point_index - 1) * phase_stride_, i, 2 * phase_stride_, 1);
+  }
 }
 
 void ItompCIOTrajectory::updateFreePointsFromTrajectory()
@@ -147,14 +158,14 @@ void ItompCIOTrajectory::updateTrajectoryFromFreePoints()
   }
 }
 
-void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point)
+void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point_index, int joint_index)
 {
   double coeff[4];
   double t[4];
 
-  for (int i = 0; i < num_joints_; ++i)
+  int i = joint_index;
   {
-    for (int j = point - 1; j < point + 1; ++j)
+    for (int j = point_index - 1; j < point_index + 1; ++j)
     {
       ROS_ASSERT(j >= 0 && j < num_contact_phases_);
       double start_pos = free_trajectory_(j, i);

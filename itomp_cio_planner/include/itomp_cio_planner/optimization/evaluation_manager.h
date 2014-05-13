@@ -19,6 +19,11 @@ class ItompPlanningGroup;
 class EvaluationManager
 {
 public:
+  enum DERIVATIVE_VARIABLE_TYPE
+  {
+    DERIVATIVE_POSITION_VARIABLE = 0, DERIVATIVE_VELOCITY_VARIABLE = 1, DERIVATIVE_CONTACT_VARIABLE = 2,
+  };
+
   EvaluationManager(int* iteration);
   virtual ~EvaluationManager();
 
@@ -30,13 +35,13 @@ public:
 
   double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
-  void evaluateDerivatives(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
-      const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& derivatives);
+  double evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
 
   bool isLastTrajectoryFeasible() const;
 
   void handleJointLimits();
   void updateFullTrajectory();
+  void updateFullTrajectory(int point_index, int joint_index);
   bool performForwardKinematics(); /**< Return true if collision free */
   void computeTrajectoryValidity();
   void render(int trajectory_index);
