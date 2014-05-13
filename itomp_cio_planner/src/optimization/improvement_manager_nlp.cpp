@@ -211,10 +211,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   time[0] = ros::Time::now();
 
   // positions
-#pragma omp parallel for
+//#pragma omp parallel for
   for (int index = 0; index < num_positions; ++index)
   {
-    int thread_num = omp_get_thread_num();
+    int thread_num = 0;//omp_get_thread_num();
 
     const int point_index = (index / num_dimensions_) + 1;
     const int joint_index = index % num_dimensions_;
@@ -232,10 +232,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   read_index += num_positions;
 
   // velocities
-#pragma omp parallel for
+//#pragma omp parallel for
   for (int index = 0; index < num_velocities; ++index)
   {
-    int thread_num = omp_get_thread_num();
+    int thread_num = 0;// omp_get_thread_num();
 
     const int point_index = (index / num_dimensions_) + 1;
     const int joint_index = index % num_dimensions_;
@@ -253,10 +253,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   read_index += num_velocities;
 
   // contact variables
-#pragma omp parallel for
+//#pragma omp parallel for
   for (int index = 0; index < num_contact_variables; ++index)
   {
-    int thread_num = omp_get_thread_num();
+    int thread_num = 0;//omp_get_thread_num();
 
     const int point_index = (index / num_contact_dimensions_);
     const int joint_index = index % num_contact_dimensions_;

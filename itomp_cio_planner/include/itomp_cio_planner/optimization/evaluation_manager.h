@@ -18,6 +18,13 @@ namespace itomp_cio_planner
 class ItompPlanningGroup;
 class EvaluationManager
 {
+  class BackupData
+  {
+  public:
+    double trajectory_value_;
+    std::vector<double> state_collision_cost_;
+  };
+
 public:
   enum DERIVATIVE_VARIABLE_TYPE
   {
@@ -32,6 +39,7 @@ public:
       double trajectory_start_time);
 
   double evaluate();
+  double evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
 
   double evaluate(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters, Eigen::VectorXd& costs);
@@ -64,6 +72,10 @@ private:
   void computeStabilityCosts();
   void updateCoM(int point);
   void computeCollisionCosts();
+  void computeCollisionCosts(int point_index);
+
+  void backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
+  void restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
 
   int getIteration() const;
 
@@ -105,6 +117,8 @@ private:
 
   ros::Publisher vis_marker_array_pub_;
   ros::Publisher vis_marker_pub_;
+
+  BackupData backup_data_;
 
   // for debug
   std::vector<double> timings_;

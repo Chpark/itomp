@@ -65,93 +65,82 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
 
   default_data_.initialize(full_trajectory, group_trajectory, robot_model, planning_group, this, numMassSegments_);
 
-  timings_.resize(20, 0);
+  timings_.resize(100, 0);
+  for (int i = 0; i < 100; ++i)
+    timings_[i] = 0;
 }
 
 double EvaluationManager::evaluate()
 {
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
   // do forward kinematics:
   last_trajectory_collision_free_ = performForwardKinematics();
-
-  time[1] = ros::Time::now();
-  timings_[1] += (time[1] - time[0]).toSec();
 
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
 
-  time[2] = ros::Time::now();
-  timings_[2] += (time[2] - time[1]).toSec();
-
   computeWrenchSum();
-
-  time[3] = ros::Time::now();
-  timings_[3] += (time[3] - time[2]).toSec();
 
   computeStabilityCosts();
 
-  time[4] = ros::Time::now();
-  timings_[4] += (time[4] - time[3]).toSec();
-
   computeCollisionCosts();
 
-  time[5] = ros::Time::now();
-  timings_[5] += (time[5] - time[4]).toSec();
-
   data_->costAccumulator_.compute(data_);
-
-  time[6] = ros::Time::now();
-  timings_[6] += (time[6] - time[5]).toSec();
 
   last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
 
   // TODO: if trajectory is changed in handle joint limits,
   // update parameters
 
-  time[7] = ros::Time::now();
-  timings_[7] += (time[7] - time[6]).toSec();
+  return data_->costAccumulator_.getTrajectoryCost();
+}
 
-  timings_[0] += (time[7] - time[0]).toSec();
+double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index)
+{
+  std::vector<ros::Time> times;
+  times.push_back(ros::Time::now());
 
-  if (false)  //++count_ % 1000 == 0)
+  // do forward kinematics:
+  last_trajectory_collision_free_ = performForwardKinematics();
+
+  times.push_back(ros::Time::now());
+
+  computeTrajectoryValidity();
+  last_trajectory_collision_free_ &= trajectory_validity_;
+
+  times.push_back(ros::Time::now());
+
+  computeWrenchSum();
+
+  times.push_back(ros::Time::now());
+
+  computeStabilityCosts();
+
+  times.push_back(ros::Time::now());
+
+  if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
+    computeCollisionCosts(point_index);
+
+  times.push_back(ros::Time::now());
+
+  data_->costAccumulator_.compute(data_);
+
+  last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
+
+  // TODO: if trajectory is changed in handle joint limits,
+  // update parameters
+
+  times.push_back(ros::Time::now());
+  for (int i = 0; i < times.size() - 1; ++i)
+    timings_[i] += (times[i + 1] - times[i]).toSec();
+  timings_[times.size() - 1] += (times[times.size() - 1] - times[0]).toSec();
+  if (++count_ % 1000 == 0)
   {
-    PlanningParameters::getInstance()->initFromNodeHandle();
-    VisualizationManager::getInstance()->render();
-
-    data_->costAccumulator_.print(*iteration_);
-    printf("Contact Values :\n");
-    for (int i = 0; i <= getGroupTrajectory()->getNumContactPhases(); ++i)
+    for (int i = 0; i < times.size() - 1; ++i)
     {
-      printf("%d : ", i);
-      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
-        printf("%f ", getGroupTrajectory()->getContactValue(i, j));
-      printf("   ");
-      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
-      {
-        KDL::Vector contact_position;
-        planning_group_->contactPoints_[j].getPosition(i * getGroupTrajectory()->getContactPhaseStride(),
-            contact_position, data_->segment_frames_);
-        printf("%f ", contact_position.y());
-      }
-      printf("   ");
-      for (int j = 0; j < getGroupTrajectory()->getNumContacts(); ++j)
-      {
-        KDL::Vector contact_position;
-        planning_group_->contactPoints_[j].getPosition(i * getGroupTrajectory()->getContactPhaseStride(),
-            contact_position, data_->segment_frames_);
-        printf("%f ", contact_position.z());
-      }
-      printf("\n");
+      printf("Timing %d : %f %f\n", i, timings_[i], timings_[i] / count_);
     }
-
-    printf("Elapsed Time : %f (Avg:%f)\n", timings_[0], timings_[0] / count_);
-    for (int i = 1; i <= 7; ++i)
-    {
-      printf("Elapsed Time %d : %f (Avg:%f) (%f\%)\n", i, timings_[i], timings_[i] / count_,
-          timings_[i] / timings_[0] * 100);
-    }
+    int i = times.size() - 1;
+    printf("Timing Sum: %f %f\n", i, timings_[i], timings_[i] / count_);
   }
 
   return data_->costAccumulator_.getTrajectoryCost();
@@ -189,11 +178,10 @@ double EvaluationManager::evaluate(const Eigen::MatrixXd& parameters, const Eige
   return cost;
 }
 
-double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index,
+void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index,
     int joint_index)
 {
-  // backup old trajectory value
-  double old_value;
+  // backup trajectory value
   Eigen::MatrixXd* target_trajectory;
   switch (variable_type)
   {
@@ -209,10 +197,10 @@ double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_
     target_trajectory = &getGroupTrajectory()->getContactTrajectory();
     break;
   }
-  old_value = (*target_trajectory)(point_index, joint_index);
+  backup_data_.trajectory_value_ = (*target_trajectory)(point_index, joint_index);
 
   // change trajectory variable
-  (*target_trajectory)(point_index, joint_index) = value;
+  (*target_trajectory)(point_index, joint_index) = new_value;
 
   // update trajectory
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
@@ -224,17 +212,53 @@ double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_
     updateFullTrajectory(point_index, joint_index);
   }
 
-  // evaluate
-  double cost = evaluate();
+  int stride = getGroupTrajectory()->getContactPhaseStride();
+  backup_data_.state_collision_cost_.resize(2 * stride);
+  memcpy(&backup_data_.state_collision_cost_[0], &data_->stateCollisionCost_[(point_index - 1) * stride],
+      sizeof(double) * 2 * stride);
+}
+
+void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index)
+{
+  Eigen::MatrixXd* target_trajectory;
+  switch (variable_type)
+  {
+  case DERIVATIVE_POSITION_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getFreePoints();
+    break;
+
+  case DERIVATIVE_VELOCITY_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getFreeVelPoints();
+    break;
+
+  case DERIVATIVE_CONTACT_VARIABLE:
+    target_trajectory = &getGroupTrajectory()->getContactTrajectory();
+    break;
+  }
 
   // restore trajectory value
-  (*target_trajectory)(point_index, joint_index) = old_value;
-
+  (*target_trajectory)(point_index, joint_index) = backup_data_.trajectory_value_;
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
   {
     getGroupTrajectory()->updateTrajectoryFromFreePoint(point_index, joint_index);
     updateFullTrajectory(point_index, joint_index);
   }
+  // restore variables
+  int stride = getGroupTrajectory()->getContactPhaseStride();
+  memcpy(&data_->stateCollisionCost_[(point_index - 1) * stride], &backup_data_.state_collision_cost_[0],
+      sizeof(double) * 2 * stride);
+}
+
+double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int point_index,
+    int joint_index)
+{
+  // backup old values and update trajectory
+  backupAndSetVariables(value, variable_type, point_index, joint_index);
+
+  // evaluate
+  double cost = evaluate(variable_type, point_index, joint_index);
+
+  restoreVariable(variable_type, point_index, joint_index);
 
   return cost;
 }
@@ -772,6 +796,50 @@ void EvaluationManager::computeCollisionCosts()
        printf("[%d] Depth : %f Pos : (%f %f %f) Normal : (%f %f %f)\n", i, contact.depth, pos(0), pos(1), pos(2), normal(0),
        normal(1), normal(2));
        */
+    }
+    collision_result.clear();
+    data_->stateCollisionCost_[i] = depthSum;
+  }
+}
+
+void EvaluationManager::computeCollisionCosts(int point_index)
+{
+  const collision_detection::AllowedCollisionMatrix acm = data_->planning_scene_->getAllowedCollisionMatrix();
+
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
+  collision_request.verbose = false;
+  collision_request.contacts = true;
+  collision_request.max_contacts = 1000;
+
+  std::vector<double> positions;
+
+  int num_all_joints = data_->kinematic_state_->getVariableCount();
+  positions.resize(num_all_joints);
+
+  int begin = (point_index - 1) * getGroupTrajectory()->getContactPhaseStride();
+  int end = (point_index + 1) * getGroupTrajectory()->getContactPhaseStride();
+  for (int i = begin; i < end; ++i)
+  {
+    double depthSum = 0.0;
+
+    for (std::size_t k = 0; k < num_all_joints; k++)
+    {
+      positions[k] = (*getFullTrajectory())(i, k);
+    }
+    data_->kinematic_state_->setVariablePositions(&positions[0]);
+
+    data_->kinematic_state_->updateCollisionBodyTransforms();
+
+    data_->planning_scene_->getCollisionWorld()->checkRobotCollision(collision_request, collision_result,
+        *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
+
+    const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+    for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
+        it != contact_map.end(); ++it)
+    {
+      const collision_detection::Contact& contact = it->second[0];
+      depthSum += contact.depth;
     }
     collision_result.clear();
     data_->stateCollisionCost_[i] = depthSum;
