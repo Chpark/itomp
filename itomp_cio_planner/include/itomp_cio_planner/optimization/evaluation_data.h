@@ -78,6 +78,8 @@ public:
   EvaluationData* clone() const;
   void deepCopy(const EvaluationData& data);
 
+  void compare(const EvaluationData& ref) const;
+
 protected:
   void initStaticEnvironment();
 

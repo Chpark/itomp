@@ -59,10 +59,16 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
     contactViolationVector[i] = Vector4d(diff.x(), diff.y(), diff.z(), 10 * angle);
     contactPointPosVector[i] = position;
   }
-  for (int i = 0; i < start; ++i)
-    contactPointPosVector[i] = segmentFrames[i][linkSegmentNumber_].p;
-  for (int i = end + 1; i < contactPointPosVector.size(); ++i)
-    contactPointPosVector[i] = segmentFrames[i][linkSegmentNumber_].p;
+  //for (int i = 0; i < start; ++i)
+//  if (start == 1)
+  //  contactPointPosVector[0] = segmentFrames[1][linkSegmentNumber_].p;
+  //else
+    contactPointPosVector[start - 1] = segmentFrames[start - 1][linkSegmentNumber_].p;
+  //for (int i = end + 1; i < contactPointPosVector.size(); ++i)
+//  if (end == contactPointPosVector.size() - 2)
+  //  contactPointPosVector[end + 1] = segmentFrames[end][linkSegmentNumber_].p;
+  //else
+    contactPointPosVector[end + 1] = segmentFrames[end + 1][linkSegmentNumber_].p;
 
   itomp_cio_planner::getVectorVelocities(start, end, discretization, contactPointPosVector, contactPointVelVector,
       KDL::Vector::Zero());

@@ -82,7 +82,7 @@ namespace dlib
         ) const { return 0.9; }
 
         unsigned long get_max_line_search_iterations (
-        ) const { return 100; }
+        ) const { return 10; }
 
         template <typename T>
         const matrix<double,0,1>& get_next_direction (
@@ -181,7 +181,7 @@ namespace dlib
         ) const { return 0.9; }
 
         unsigned long get_max_line_search_iterations (
-        ) const { return 100; }
+        ) const { return 10; }
 
         template <typename T>
         const matrix<double,0,1>& get_next_direction (

@@ -100,42 +100,38 @@ double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int f
   int begin = (free_point_index - 1) * stride;
   int end = (free_point_index + 1) * stride;
 
-  std::vector<ros::Time> times;
-  times.push_back(ros::Time::now());
+  //std::vector<ros::Time> times;
+  //times.push_back(ros::Time::now());
 
   // do forward kinematics:
-  last_trajectory_collision_free_ = performForwardKinematics(begin, end);
+  if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
+    performForwardKinematics(begin, end);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
   computeTrajectoryValidity();
-  last_trajectory_collision_free_ &= trajectory_validity_;
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
-  computeWrenchSum(begin, end);
+  if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
+    computeWrenchSum(begin, end + 1);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
-  computeStabilityCosts(begin, end);
+  computeStabilityCosts(begin, end + 1);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
     computeCollisionCosts(begin, end);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
   data_->costAccumulator_.compute(data_);
 
-  last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
-
-  // TODO: if trajectory is changed in handle joint limits,
-  // update parameters
-
-  times.push_back(ros::Time::now());
-  for (int i = 0; i < times.size() - 1; ++i)
-    timings_[i + 4] += (times[i + 1] - times[i]).toSec();
+  //times.push_back(ros::Time::now());
+  //for (int i = 0; i < times.size() - 1; ++i)
+    //timings_[i + 4] += (times[i + 1] - times[i]).toSec();
 
   return data_->costAccumulator_.getTrajectoryCost();
 }
@@ -181,6 +177,8 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   }
   backup_data_.trajectory_value_ = (*target_trajectory)(free_point_index, joint_index);
 
+  ROS_ASSERT(variable_type != DERIVATIVE_CONTACT_VARIABLE || new_value >= 0.0);
+
   // change trajectory variable
   (*target_trajectory)(free_point_index, joint_index) = new_value;
 
@@ -188,7 +186,7 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
   {
     getGroupTrajectory()->updateTrajectoryFromFreePoint(free_point_index, joint_index);
-    //handleJointLimits();
+    handleJointLimits();
 
     // TODO: below function does not update free var trajectory
     updateFullTrajectory(free_point_index, joint_index);
@@ -201,31 +199,31 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
 
   backup_data_.segment_frames_.resize(2 * stride);
 
-  backup_data_.wrenchSum_.resize(2 * stride);
+  backup_data_.wrenchSum_.resize(2 * stride + 1);
   backup_data_.linkPositions_.resize(num_mass_segments_);
   backup_data_.linkVelocities_.resize(num_mass_segments_);
   backup_data_.linkAngularVelocities_.resize(num_mass_segments_);
   for (int i = 0; i < num_mass_segments_; ++i)
   {
-    backup_data_.linkPositions_[i].resize(2 * stride);
-    backup_data_.linkVelocities_[i].resize(2 * stride);
-    backup_data_.linkAngularVelocities_[i].resize(2 * stride);
+    backup_data_.linkPositions_[i].resize(2 * stride + 1);
+    backup_data_.linkVelocities_[i].resize(2 * stride + 1);
+    backup_data_.linkAngularVelocities_[i].resize(2 * stride + 1);
   }
-  backup_data_.CoMPositions_.resize(2 * stride);
-  backup_data_.CoMVelocities_.resize(2 * stride);
-  backup_data_.CoMAccelerations_.resize(2 * stride);
-  backup_data_.AngularMomentums_.resize(2 * stride);
-  backup_data_.Torques_.resize(2 * stride);
+  backup_data_.CoMPositions_.resize(2 * stride + 1);
+  backup_data_.CoMVelocities_.resize(2 * stride + 1);
+  backup_data_.CoMAccelerations_.resize(2 * stride + 1);
+  backup_data_.AngularMomentums_.resize(2 * stride + 1);
+  backup_data_.Torques_.resize(2 * stride + 1);
   backup_data_.contactViolationVector_.resize(num_contacts_);
   backup_data_.contactPointVelVector_.resize(num_contacts_);
   for (int i = 0; i < num_contacts_; ++i)
   {
-    backup_data_.contactViolationVector_[i].resize(2 * stride);
-    backup_data_.contactPointVelVector_[i].resize(2 * stride);
+    backup_data_.contactViolationVector_[i].resize(2 * stride + 1);
+    backup_data_.contactPointVelVector_[i].resize(2 * stride + 1);
   }
 
-  backup_data_.state_contact_invariant_cost_.resize(2 * stride);
-  backup_data_.state_physics_violation_cost_.resize(2 * stride);
+  backup_data_.state_contact_invariant_cost_.resize(2 * stride + 1);
+  backup_data_.state_physics_violation_cost_.resize(2 * stride + 1);
   backup_data_.state_collision_cost_.resize(2 * stride);
 
   for (int i = 0; i < 2 * stride; ++i)
@@ -233,32 +231,32 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
     backup_data_.segment_frames_[i] = data_->segment_frames_[begin + i];
   }
 
-  memcpy(&backup_data_.wrenchSum_[0], &data_->wrenchSum_[begin], sizeof(KDL::Wrench) * 2 * stride);
+  memcpy(&backup_data_.wrenchSum_[0], &data_->wrenchSum_[begin], sizeof(KDL::Wrench) * 2 * stride + 1);
   for (int i = 0; i < num_mass_segments_; ++i)
   {
-    memcpy(&backup_data_.linkPositions_[i][0], &data_->linkPositions_[i][begin], sizeof(KDL::Vector) * 2 * stride);
-    memcpy(&backup_data_.linkVelocities_[i][0], &data_->linkVelocities_[i][begin], sizeof(KDL::Vector) * 2 * stride);
+    memcpy(&backup_data_.linkPositions_[i][0], &data_->linkPositions_[i][begin], sizeof(KDL::Vector) * 2 * stride + 1);
+    memcpy(&backup_data_.linkVelocities_[i][0], &data_->linkVelocities_[i][begin], sizeof(KDL::Vector) * 2 * stride + 1);
     memcpy(&backup_data_.linkAngularVelocities_[i][0], &data_->linkAngularVelocities_[i][begin],
-        sizeof(KDL::Vector) * 2 * stride);
+        sizeof(KDL::Vector) * 2 * stride + 1);
   }
-  memcpy(&backup_data_.CoMPositions_[0], &data_->CoMPositions_[begin], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&backup_data_.CoMVelocities_[0], &data_->CoMVelocities_[begin], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&backup_data_.CoMAccelerations_[0], &data_->CoMAccelerations_[begin], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&backup_data_.AngularMomentums_[0], &data_->AngularMomentums_[begin], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&backup_data_.Torques_[0], &data_->Torques_[begin], sizeof(KDL::Vector) * 2 * stride);
+  memcpy(&backup_data_.CoMPositions_[0], &data_->CoMPositions_[begin], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&backup_data_.CoMVelocities_[0], &data_->CoMVelocities_[begin], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&backup_data_.CoMAccelerations_[0], &data_->CoMAccelerations_[begin], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&backup_data_.AngularMomentums_[0], &data_->AngularMomentums_[begin], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&backup_data_.Torques_[0], &data_->Torques_[begin], sizeof(KDL::Vector) * 2 * stride + 1);
   for (int i = 0; i < num_contacts_; ++i)
   {
     memcpy(&backup_data_.contactViolationVector_[i][0], &data_->contactViolationVector_[i][begin],
-        sizeof(Vector4d) * 2 * stride);
+        sizeof(Vector4d) * 2 * stride + 1);
     memcpy(&backup_data_.contactPointVelVector_[i][0], &data_->contactPointVelVector_[i][begin],
-        sizeof(KDL::Vector) * 2 * stride);
+        sizeof(KDL::Vector) * 2 * stride + 1);
   }
 
-  memcpy(&backup_data_.state_collision_cost_[0], &data_->stateCollisionCost_[begin], sizeof(double) * 2 * stride);
   memcpy(&backup_data_.state_contact_invariant_cost_[0], &data_->stateContactInvariantCost_[begin],
-      sizeof(double) * 2 * stride);
+      sizeof(double) * 2 * stride + 1);
   memcpy(&backup_data_.state_physics_violation_cost_[0], &data_->statePhysicsViolationCost_[begin],
-      sizeof(double) * 2 * stride);
+      sizeof(double) * 2 * stride + 1);
+  memcpy(&backup_data_.state_collision_cost_[0], &data_->stateCollisionCost_[begin], sizeof(double) * 2 * stride);
 }
 
 void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index, int joint_index)
@@ -295,57 +293,58 @@ void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, 
   for (int i = 0; i < 2 * stride; ++i)
     data_->segment_frames_[begin + i] = backup_data_.segment_frames_[i];
 
-  memcpy(&data_->wrenchSum_[begin], &backup_data_.wrenchSum_[0], sizeof(KDL::Wrench) * 2 * stride);
+  memcpy(&data_->wrenchSum_[begin], &backup_data_.wrenchSum_[0], sizeof(KDL::Wrench) * 2 * stride + 1);
   for (int i = 0; i < num_mass_segments_; ++i)
   {
-    memcpy(&data_->linkPositions_[i][begin], &backup_data_.linkPositions_[i][0], sizeof(KDL::Vector) * 2 * stride);
-    memcpy(&data_->linkVelocities_[i][begin], &backup_data_.linkVelocities_[i][0], sizeof(KDL::Vector) * 2 * stride);
+    memcpy(&data_->linkPositions_[i][begin], &backup_data_.linkPositions_[i][0], sizeof(KDL::Vector) * 2 * stride + 1);
+    memcpy(&data_->linkVelocities_[i][begin], &backup_data_.linkVelocities_[i][0], sizeof(KDL::Vector) * 2 * stride + 1);
     memcpy(&data_->linkAngularVelocities_[i][begin], &backup_data_.linkAngularVelocities_[i][0],
-        sizeof(KDL::Vector) * 2 * stride);
+        sizeof(KDL::Vector) * 2 * stride + 1);
   }
-  memcpy(&data_->CoMPositions_[begin], &backup_data_.CoMPositions_[0], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&data_->CoMVelocities_[begin], &backup_data_.CoMVelocities_[0], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&data_->CoMAccelerations_[begin], &backup_data_.CoMAccelerations_[0], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&data_->AngularMomentums_[begin], &backup_data_.AngularMomentums_[0], sizeof(KDL::Vector) * 2 * stride);
-  memcpy(&data_->Torques_[begin], &backup_data_.Torques_[0], sizeof(KDL::Vector) * 2 * stride);
+  memcpy(&data_->CoMPositions_[begin], &backup_data_.CoMPositions_[0], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&data_->CoMVelocities_[begin], &backup_data_.CoMVelocities_[0], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&data_->CoMAccelerations_[begin], &backup_data_.CoMAccelerations_[0], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&data_->AngularMomentums_[begin], &backup_data_.AngularMomentums_[0], sizeof(KDL::Vector) * 2 * stride + 1);
+  memcpy(&data_->Torques_[begin], &backup_data_.Torques_[0], sizeof(KDL::Vector) * 2 * stride + 1);
   for (int i = 0; i < num_contacts_; ++i)
   {
     memcpy(&data_->contactViolationVector_[i][begin], &backup_data_.contactViolationVector_[i][0],
-        sizeof(Vector4d) * 2 * stride);
+        sizeof(Vector4d) * 2 * stride + 1);
     memcpy(&data_->contactPointVelVector_[i][begin], &backup_data_.contactPointVelVector_[i][0],
-        sizeof(KDL::Vector) * 2 * stride);
+        sizeof(KDL::Vector) * 2 * stride + 1);
   }
 
-  memcpy(&data_->stateCollisionCost_[begin], &backup_data_.state_collision_cost_[0], sizeof(double) * 2 * stride);
   memcpy(&data_->stateContactInvariantCost_[begin], &backup_data_.state_contact_invariant_cost_[0],
-      sizeof(double) * 2 * stride);
+      sizeof(double) * 2 * stride + 1);
   memcpy(&data_->statePhysicsViolationCost_[begin], &backup_data_.state_physics_violation_cost_[0],
-      sizeof(double) * 2 * stride);
+      sizeof(double) * 2 * stride + 1);
+  memcpy(&data_->stateCollisionCost_[begin], &backup_data_.state_collision_cost_[0], sizeof(double) * 2 * stride);
 }
 
 double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type,
     int free_point_index, int joint_index)
 {
-  std::vector<ros::Time> times;
-  times.push_back(ros::Time::now());
+  //std::vector<ros::Time> times;
+  //times.push_back(ros::Time::now());
 
   // backup old values and update trajectory
   backupAndSetVariables(value, variable_type, free_point_index, joint_index);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
   // evaluate
   double cost = evaluate(variable_type, free_point_index, joint_index);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
   restoreVariable(variable_type, free_point_index, joint_index);
 
-  times.push_back(ros::Time::now());
+  //times.push_back(ros::Time::now());
 
-  for (int i = 0; i < times.size() - 1; ++i)
-    timings_[i + 1] += (times[i + 1] - times[i]).toSec();
-  timings_[0] += (times[times.size() - 1] - times[0]).toSec();
+  //for (int i = 0; i < times.size() - 1; ++i)
+    //timings_[i + 1] += (times[i + 1] - times[i]).toSec();
+  //timings_[0] += (times[times.size() - 1] - times[0]).toSec();
+
   /*
    if (++count_ % 10000 == 0)
    {
@@ -400,6 +399,8 @@ void EvaluationManager::computeMassAndGravityForce()
 
 void EvaluationManager::handleJointLimits()
 {
+  return;
+
   /*
    for (int joint = 0; joint < num_joints_; joint++)
    {

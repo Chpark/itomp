@@ -205,4 +205,223 @@ void EvaluationData::deepCopy(const EvaluationData& data)
   kinematic_state_ = kinematic_state;
 }
 
+void EvaluationData::compare(const EvaluationData& ref) const
+{
+  printf("Compare\n");
+  // group trajectory
+  {
+    const MatrixXd& g = group_trajectory_->getTrajectory();
+    const MatrixXd& rg = ref.group_trajectory_->getTrajectory();
+    for (int r = 0; r < g.rows(); ++r)
+    {
+      for (int c = 0; c < g.cols(); ++c)
+      {
+        if (g(r, c) != rg(r, c))
+        {
+          double n1 = g(r, c);
+          double n2 = rg(r, c);
+          printf("GroupTraj(%d,%d): %.14f (%.14f - %.14f)\n", r, c, fabs(g(r, c) - rg(r, c)), g(r, c), rg(r, c));
+        }
+      }
+    }
+  }
+  {
+    const MatrixXd& g = group_trajectory_->getFreePoints();
+    const MatrixXd& rg = ref.group_trajectory_->getFreePoints();
+    for (int r = 0; r < g.rows(); ++r)
+    {
+      for (int c = 0; c < g.cols(); ++c)
+      {
+        if (g(r, c) != rg(r, c))
+        {
+          double n1 = g(r, c);
+          double n2 = rg(r, c);
+          printf("GroupFreeTraj(%d,%d): %.14f (%.14f - %.14f)\n", r, c, fabs(g(r, c) - rg(r, c)), g(r, c), rg(r, c));
+        }
+      }
+    }
+  }
+  {
+    const MatrixXd& g = group_trajectory_->getFreeVelPoints();
+    const MatrixXd& rg = ref.group_trajectory_->getFreeVelPoints();
+    for (int r = 0; r < g.rows(); ++r)
+    {
+      for (int c = 0; c < g.cols(); ++c)
+      {
+        if (g(r, c) != rg(r, c))
+          printf("GroupFreeVelTraj(%d,%d): %.14f (%.14f - %.14f)\n", r, c, fabs(g(r, c) - rg(r, c)), g(r, c), rg(r, c));
+      }
+    }
+  }
+  // group trajectory
+  {
+    const MatrixXd& gc = group_trajectory_->getContactTrajectory();
+    const MatrixXd& rgc = ref.group_trajectory_->getContactTrajectory();
+    for (int r = 0; r < gc.rows(); ++r)
+    {
+      for (int c = 0; c < gc.cols(); ++c)
+      {
+        if (gc(r, c) != rgc(r, c))
+          printf("ContactTraj(%d,%d): %.14f (%.14f - %.14f)\n", r, c, fabs(gc(r, c) - rgc(r, c)), gc(r, c), rgc(r, c));
+      }
+    }
+  }
+  // full trajectory
+  {
+    const MatrixXd& g = full_trajectory_->getTrajectory();
+    const MatrixXd& rg = ref.full_trajectory_->getTrajectory();
+    for (int r = 0; r < g.rows(); ++r)
+    {
+      for (int c = 0; c < g.cols(); ++c)
+      {
+        if (g(r, c) != rg(r, c))
+          printf("FullTraj(%d,%d): %.14f (%.14f - %.14f)\n", r, c, fabs(g(r, c) - rg(r, c)), g(r, c), rg(r, c));
+      }
+    }
+  }
+  // segment frame
+  {
+    for (int i = 0; i < segment_frames_.size(); ++i)
+    {
+      for (int j = 0; j < segment_frames_[0].size(); ++j)
+      {
+        if (segment_frames_[i][j] != ref.segment_frames_[i][j])
+        {
+          printf("SegFrame [%d][%d] not equal\n", i, j);
+        }
+      }
+    }
+  }
+
+  // wrench sum
+  {
+    for (int i = 0; i < wrenchSum_.size(); ++i)
+    {
+      if (wrenchSum_[i] != ref.wrenchSum_[i])
+      {
+        KDL::Wrench w1 = wrenchSum_[i];
+        KDL::Wrench w2 = ref.wrenchSum_[i];
+        printf("wrench sum %d not equal\n", i);
+      }
+    }
+  }
+
+  // com
+  {
+    for (int i = 0; i < CoMPositions_.size(); ++i)
+    {
+      if (CoMPositions_[i] != ref.CoMPositions_[i])
+      {
+        KDL::Vector w1 = CoMPositions_[i];
+        KDL::Vector w2 = ref.CoMPositions_[i];
+        printf("com pos %d not equal\n", i);
+      }
+    }
+  }
+
+  // contact violation vec
+  {
+    for (int i = 0; i < contactViolationVector_.size(); ++i)
+    {
+      for (int j = 0; j < contactViolationVector_[0].size(); ++j)
+      {
+        for (int k = 0; k < 4; ++k)
+        {
+          if (contactViolationVector_[i][j].data_[k] != ref.contactViolationVector_[i][j].data_[k])
+          {
+            Vector4d v1 = contactViolationVector_[i][j];
+            Vector4d v2 = ref.contactViolationVector_[i][j];
+            printf("contactViolationVector_ [%d][%d] not equal\n", i, j);
+            printf("%.14f %.14f %.14f %.14f - %.14f %.14f %.14f %.14f\n", v1.data_[0], v1.data_[1], v1.data_[2],
+                v1.data_[3], v2.data_[0], v2.data_[1], v2.data_[2], v2.data_[3]);
+          }
+        }
+      }
+    }
+  }
+
+  // contact violation vec
+  {
+    for (int i = 0; i < contactPointVelVector_.size(); ++i)
+    {
+      for (int j = 0; j < contactPointVelVector_[0].size(); ++j)
+      {
+        if (contactPointVelVector_[i][j] != ref.contactPointVelVector_[i][j])
+        {
+          KDL::Vector v1 = contactPointVelVector_[i][j];
+          KDL::Vector v2 = ref.contactPointVelVector_[i][j];
+          printf("contactPointVelVector_ [%d][%d] not equal\n", i, j);
+          printf("%.14f %.14f %.14f  -  %.14f %.14f %.14f\n", v1.x(),v1.y(),v1.z(),
+              v2.x(),v2.y(),v2.z());
+        }
+
+      }
+    }
+  }
+
+  // contact invariant cost
+  {
+    for (int point = 0; point < stateContactInvariantCost_.size(); ++point)
+    {
+      printf("CICost %d : %.14f\n", point, stateContactInvariantCost_[point]);
+      if (stateContactInvariantCost_[point] != ref.stateContactInvariantCost_[point])
+      {
+        double w1 = stateContactInvariantCost_[point];
+        double w2 = ref.stateContactInvariantCost_[point];
+
+        double calc = 0, calc2 = 0;
+
+        {
+          std::vector<double> contact_values(4);
+          int phase = getGroupTrajectory()->getContactPhase(point);
+          for (int i = 0; i < 4; ++i)
+            contact_values[i] = getGroupTrajectory()->getContactValue(phase, i);
+
+          for (int i = 0; i < 4; ++i)
+          {
+            double cost = 0.0;
+            for (int j = 0; j < 4; ++j)
+              cost += contactViolationVector_[i][point].data_[j] * contactViolationVector_[i][point].data_[j];
+            cost += 16.0 * KDL::dot(contactPointVelVector_[i][point], contactPointVelVector_[i][point]);
+            calc += contact_values[i] * cost;
+            printf("CV %d : %.14f\n", i, contact_values[i]);
+            printf("CVV %d : %.14f %.14f %.14f %.14f\n", i, contactViolationVector_[i][point].data_[0],
+                contactViolationVector_[i][point].data_[1], contactViolationVector_[i][point].data_[2],
+                contactViolationVector_[i][point].data_[3]);
+            printf("CPV %d : %.14f : %.14f %.14f %.14f\n", i,
+                16.0 * KDL::dot(contactPointVelVector_[i][point], contactPointVelVector_[i][point]),
+                contactPointVelVector_[i][point].x(), contactPointVelVector_[i][point].y(),
+                contactPointVelVector_[i][point].z());
+          }
+        }
+        {
+          std::vector<double> contact_values(4);
+          int phase = ref.getGroupTrajectory()->getContactPhase(point);
+          for (int i = 0; i < 4; ++i)
+            contact_values[i] = ref.getGroupTrajectory()->getContactValue(phase, i);
+
+          for (int i = 0; i < 4; ++i)
+          {
+            double cost = 0.0;
+            for (int j = 0; j < 4; ++j)
+              cost += ref.contactViolationVector_[i][point].data_[j] * ref.contactViolationVector_[i][point].data_[j];
+            cost += 16.0 * KDL::dot(ref.contactPointVelVector_[i][point], ref.contactPointVelVector_[i][point]);
+            calc2 += contact_values[i] * cost;
+            printf("CV %d : %.14f\n", i, contact_values[i]);
+            printf("CVV %d : %.14f %.14f %.14f %.14f\n", i, ref.contactViolationVector_[i][point].data_[0],
+                ref.contactViolationVector_[i][point].data_[1], ref.contactViolationVector_[i][point].data_[2],
+                ref.contactViolationVector_[i][point].data_[3]);
+            printf("CPV %d : %.14f : %.14f %.14f %.14f\n", i,
+                16.0 * KDL::dot(ref.contactPointVelVector_[i][point], ref.contactPointVelVector_[i][point]),
+                ref.contactPointVelVector_[i][point].x(), ref.contactPointVelVector_[i][point].y(),
+                ref.contactPointVelVector_[i][point].z());
+          }
+        }
+        printf("ci cost %d not equal %.14f : %.14f\n", point, w1, w2);
+      }
+    }
+  }
+
+}
+
 }

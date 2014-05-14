@@ -26,7 +26,7 @@ void ImprovementManagerNLP::initialize(EvaluationManager *evaluation_manager)
 {
   ImprovementManager::initialize(evaluation_manager);
 
-  num_threads_ = omp_get_max_threads() - 2;
+  num_threads_ = omp_get_max_threads();
   omp_set_num_threads(num_threads_);
 
   derivatives_evaluation_manager_.resize(num_threads_);
@@ -74,10 +74,6 @@ bool ImprovementManagerNLP::updatePlanningParameters()
 void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
   column_vector variables(num_variables_);
-  setVariableVector(variables);
-
-  if (iteration != 0)
-    addNoiseToVariables(variables);
 
   const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
   for (int i = 0; i < num_threads_; ++i)
@@ -87,6 +83,9 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     contact_parameters_[i] = group_trajectory->getContactTrajectory();
   }
   setVariableVector(variables);
+
+  if (iteration != 0)
+    addNoiseToVariables(variables);
 
   optimize(iteration, variables);
 
@@ -142,7 +141,8 @@ void ImprovementManagerNLP::getVariableVector(const column_vector& variables, in
   {
     for (int d = 0; d < num_dimensions_; ++d)
     {
-      parameters_[index](i, d) = variables(readIndex + d, 0);
+      double v = variables(readIndex + d, 0);
+      parameters_[index](i, d) = v;
     }
     readIndex += num_dimensions_;
   }
@@ -187,8 +187,43 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
   return evaluation_manager_->evaluate();
 }
 
+column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variables)
+{
+  const EvaluationData& default_data = evaluation_manager_->getDefaultData();
+
+  const double eps = 1E-7;
+  column_vector der(variables.size());
+
+  column_vector e(variables);
+
+  for (long i = 0; i < variables.size(); ++i)
+  {
+    const double old_val = e(i);
+
+    e(i) += eps;
+    getVariableVector(e);
+
+    evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
+    const double delta_plus = evaluation_manager_->evaluate();
+
+    e(i) = old_val - eps;
+    getVariableVector(e);
+
+    evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
+    double delta_minus = evaluation_manager_->evaluate();
+
+    der(i) = (delta_plus - delta_minus) / (2 * eps);
+
+    e(i) = old_val;
+  }
+
+  return der;
+}
+
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
+  column_vector e(variables);
+
   // assume evaluate was called before and default_data has the values for 'variables' vector
   const EvaluationData& default_data = evaluation_manager_->getDefaultData();
 
@@ -196,6 +231,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
   for (int i = 0; i < num_threads_; ++i)
     derivatives_evaluation_data_[i]->deepCopy(default_data);
+
+  //column_vector der_ref = derivative_ref(variables);
 
   column_vector der(variables.size());
 
@@ -208,65 +245,50 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   ros::Time time[10];
   time[0] = ros::Time::now();
 
-  // positions
 #pragma omp parallel for
-  for (int index = 0; index < num_positions; ++index)
+  for (int index = 0; index < num_positions + num_velocities + num_contact_variables; ++index)
   {
     int thread_num = omp_get_thread_num();
+    double value = variables(index);
 
-    const int point_index = (index / num_dimensions_) + 1;
-    const int joint_index = index % num_dimensions_;
+    int point_index, joint_index;
+    EvaluationManager::DERIVATIVE_VARIABLE_TYPE type;
+    double value_plus, value_minus;
+    int index2;
+    if (index < num_positions)
+    {
+      point_index = (index / num_dimensions_) + 1;
+      joint_index = index % num_dimensions_;
+      type = EvaluationManager::DERIVATIVE_POSITION_VARIABLE;
+      value_plus = value + eps;
+      value_minus = value - eps;
+    }
+    else if (index < num_positions + num_velocities)
+    {
+      index2 = index - num_positions;
+      point_index = (index2 / num_dimensions_) + 1;
+      joint_index = index2 % num_dimensions_;
+      type = EvaluationManager::DERIVATIVE_VELOCITY_VARIABLE;
+      value_plus = value + eps;
+      value_minus = value - eps;
+    }
+    else
+    {
+      index2 = index - num_positions - num_velocities;
+      point_index = (index2 / num_contact_dimensions_);
+      joint_index = index2 % num_contact_dimensions_;
+      type = EvaluationManager::DERIVATIVE_CONTACT_VARIABLE;
+      value_plus = fabs(value + eps);
+      value_minus = fabs(value - eps);
+    }
 
-    double value = variables(read_index + index);
+    double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_plus, type, point_index,
+        joint_index);
 
-    double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value + eps,
-        EvaluationManager::DERIVATIVE_POSITION_VARIABLE, point_index, joint_index);
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value - eps,
-        EvaluationManager::DERIVATIVE_POSITION_VARIABLE, point_index, joint_index);
+    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_minus, type,
+        point_index, joint_index);
 
-    der(read_index + index) = (delta_plus - delta_minus) / (2 * eps);
-  }
-
-  read_index += num_positions;
-
-  // velocities
-#pragma omp parallel for
-  for (int index = 0; index < num_velocities; ++index)
-  {
-    int thread_num = omp_get_thread_num();
-
-    const int point_index = (index / num_dimensions_) + 1;
-    const int joint_index = index % num_dimensions_;
-
-    double value = variables(read_index + index);
-
-    double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value + eps,
-        EvaluationManager::DERIVATIVE_VELOCITY_VARIABLE, point_index, joint_index);
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value - eps,
-        EvaluationManager::DERIVATIVE_VELOCITY_VARIABLE, point_index, joint_index);
-
-    der(read_index + index) = (delta_plus - delta_minus) / (2 * eps);
-  }
-
-  read_index += num_velocities;
-
-  // contact variables
-#pragma omp parallel for
-  for (int index = 0; index < num_contact_variables; ++index)
-  {
-    int thread_num = omp_get_thread_num();
-
-    const int point_index = (index / num_contact_dimensions_);
-    const int joint_index = index % num_contact_dimensions_;
-
-    double value = variables(read_index + index);
-
-    double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value + eps,
-        EvaluationManager::DERIVATIVE_CONTACT_VARIABLE, point_index, joint_index);
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value - eps,
-        EvaluationManager::DERIVATIVE_CONTACT_VARIABLE, point_index, joint_index);
-
-    der(read_index + index) = (delta_plus - delta_minus) / (2 * eps);
+    der(index) = (delta_plus - delta_minus) / (2 * eps);
   }
 
   time[1] = ros::Time::now();
@@ -274,88 +296,12 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
   printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
 
-  return der;
-}
-
-column_vector ImprovementManagerNLP::derivative_old(const column_vector& variables)
-{
-  // assume evaluate was called before
-  // getVariableVector(variables);
-  const EvaluationData& default_data = evaluation_manager_->getDefaultData();
-
-  const double eps = 1E-7;
-
-  column_vector der(variables.size());
-
-  for (int i = 0; i < num_threads_; ++i)
-    derivatives_evaluation_data_[i]->deepCopy(default_data);
-
-  std::vector<column_vector> e(num_threads_);
-  for (int i = 0; i < num_threads_; ++i)
-    e[i] = variables;
-
-  ros::Time time[10];
-  time[0] = ros::Time::now();
-
-#pragma omp parallel for
-  for (long i = 0; i < variables.size(); ++i)
-  {
-    int thread_num = omp_get_thread_num();
-    //column_vector e(variables);
-
-    const double old_val = e[thread_num](i);
-
-    e[thread_num](i) += eps;
-    getVariableVector(e[thread_num], thread_num);
-
-    derivatives_evaluation_manager_[thread_num]->setTrajectory(parameters_[thread_num], vel_parameters_[thread_num],
-        contact_parameters_[thread_num]);
-    const double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluate();
-
-    e[thread_num](i) = old_val - eps;
-    getVariableVector(e[thread_num], thread_num);
-
-    derivatives_evaluation_manager_[thread_num]->setTrajectory(parameters_[thread_num], vel_parameters_[thread_num],
-        contact_parameters_[thread_num]);
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluate();
-
-    der(i) = (delta_plus - delta_minus) / (2 * eps);
-
-    e[thread_num](i) = old_val;
-  }
-
-  time[1] = ros::Time::now();
-  elapsed_ += (time[1] - time[0]).toSec();
-
-  printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
-
+  // validation
   /*
    for (int i = 0; i < variables.size(); ++i)
    {
-   if (verbose)
-   {
-   int thread_num = 0;
-
-   const double old_val = e[thread_num](i);
-
-   e[thread_num](i) += eps;
-   getVariableVector(e[thread_num], thread_num);
-
-   const double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluate(parameters_[thread_num],
-   vel_parameters_[thread_num], contact_parameters_[thread_num], costs_[thread_num]);
-   e[thread_num](i) = old_val - eps;
-   getVariableVector(e[thread_num], thread_num);
-
-   const double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluate(parameters_[thread_num],
-   vel_parameters_[thread_num], contact_parameters_[thread_num], costs_[thread_num]);
-
-   double new_der = (delta_plus - delta_minus) / (2 * eps);
-
-   e[thread_num](i) = old_val;
-
-   if (der(i) != new_der)
-   printf("[%d] : %f %f = %f - %f / (2 * eps)\n", i, der(i), new_der, delta_plus, delta_minus);
-   }
+   if (fabs(der(i) - der_ref(i)) > 10.0)
+   printf("[%d] %f (%f %f)\n", i, der(i) - der_ref(i), der(i), der_ref(i));
    }
    */
 
@@ -364,7 +310,7 @@ column_vector ImprovementManagerNLP::derivative_old(const column_vector& variabl
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-  dlib::find_min(dlib::bfgs_search_strategy(), dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
+  dlib::find_min(dlib::lbfgs_search_strategy(10), dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
       boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, -1);
 }
