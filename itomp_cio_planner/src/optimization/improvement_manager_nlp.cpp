@@ -14,7 +14,8 @@ static bool verbose = false;
 
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
-  elapsed_ = 0;
+  evaluation_count_ = 0;
+  eps_ = 1e-7;
 }
 
 ImprovementManagerNLP::~ImprovementManagerNLP()
@@ -24,9 +25,11 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 
 void ImprovementManagerNLP::initialize(EvaluationManager *evaluation_manager)
 {
+  start_time_ = ros::Time::now();
+
   ImprovementManager::initialize(evaluation_manager);
 
-  num_threads_ = omp_get_max_threads();
+  num_threads_ = omp_get_max_threads() / 2;
   omp_set_num_threads(num_threads_);
 
   derivatives_evaluation_manager_.resize(num_threads_);
@@ -184,14 +187,32 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
   getVariableVector(variables);
   evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
-  return evaluation_manager_->evaluate();
+
+  double cost = evaluation_manager_->evaluate();
+
+  if (++evaluation_count_ % 100 == 0)
+  {
+    printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+    printf("Contact Vars\n");
+    for (int i = 0; i < num_contact_phases_; ++i)
+    {
+      printf("%d : ", i);
+      for (int d = 0; d < num_contact_dimensions_; ++d)
+      {
+        printf("%f ", contact_parameters_[0](i, d));
+      }
+      printf("\n");
+    }
+    evaluation_manager_->getTrajectoryCost(true);
+  }
+
+  return cost;
 }
 
 column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variables)
 {
   const EvaluationData& default_data = evaluation_manager_->getDefaultData();
 
-  const double eps = 1E-7;
   column_vector der(variables.size());
 
   column_vector e(variables);
@@ -200,19 +221,19 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
   {
     const double old_val = e(i);
 
-    e(i) += eps;
+    e(i) += eps_;
     getVariableVector(e);
 
     evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
     const double delta_plus = evaluation_manager_->evaluate();
 
-    e(i) = old_val - eps;
+    e(i) = old_val - eps_;
     getVariableVector(e);
 
     evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
     double delta_minus = evaluation_manager_->evaluate();
 
-    der(i) = (delta_plus - delta_minus) / (2 * eps);
+    der(i) = (delta_plus - delta_minus) / (2 * eps_);
 
     e(i) = old_val;
   }
@@ -227,8 +248,6 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   // assume evaluate was called before and default_data has the values for 'variables' vector
   const EvaluationData& default_data = evaluation_manager_->getDefaultData();
 
-  const double eps = 1E-7;
-
   for (int i = 0; i < num_threads_; ++i)
     derivatives_evaluation_data_[i]->deepCopy(default_data);
 
@@ -240,28 +259,28 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   const int num_velocities = (num_contact_phases_ - 1) * num_dimensions_;
   const int num_contact_variables = num_contact_phases_ * num_contact_dimensions_;
 
-  int read_index = 0;
-
-  ros::Time time[10];
-  time[0] = ros::Time::now();
+  //ros::Time time[10];
+  //time[0] = ros::Time::now();
 
 #pragma omp parallel for
   for (int index = 0; index < num_positions + num_velocities + num_contact_variables; ++index)
   {
     int thread_num = omp_get_thread_num();
     double value = variables(index);
+    double value_plus, value_minus;
+    value_plus = value + eps_;
+    value_minus = value - eps_;
 
     int point_index, joint_index;
     EvaluationManager::DERIVATIVE_VARIABLE_TYPE type;
-    double value_plus, value_minus;
+
     int index2;
     if (index < num_positions)
     {
       point_index = (index / num_dimensions_) + 1;
       joint_index = index % num_dimensions_;
       type = EvaluationManager::DERIVATIVE_POSITION_VARIABLE;
-      value_plus = value + eps;
-      value_minus = value - eps;
+
     }
     else if (index < num_positions + num_velocities)
     {
@@ -269,8 +288,6 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
       point_index = (index2 / num_dimensions_) + 1;
       joint_index = index2 % num_dimensions_;
       type = EvaluationManager::DERIVATIVE_VELOCITY_VARIABLE;
-      value_plus = value + eps;
-      value_minus = value - eps;
     }
     else
     {
@@ -278,8 +295,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
       point_index = (index2 / num_contact_dimensions_);
       joint_index = index2 % num_contact_dimensions_;
       type = EvaluationManager::DERIVATIVE_CONTACT_VARIABLE;
-      value_plus = fabs(value + eps);
-      value_minus = fabs(value - eps);
+      value_plus = fabs(value_plus);
+      value_minus = fabs(value_minus);
     }
 
     double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_plus, type, point_index,
@@ -288,13 +305,15 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_minus, type,
         point_index, joint_index);
 
-    der(index) = (delta_plus - delta_minus) / (2 * eps);
+    der(index) = (delta_plus - delta_minus) / (2 * eps_);
   }
 
-  time[1] = ros::Time::now();
-  elapsed_ += (time[1] - time[0]).toSec();
+  /*
+   time[1] = ros::Time::now();
+   elapsed_ += (time[1] - time[0]).toSec();
 
-  printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
+   printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
+   */
 
   // validation
   /*
@@ -310,9 +329,9 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-  dlib::find_min(dlib::lbfgs_search_strategy(10), dlib::objective_delta_stop_strategy(1e-7).be_verbose(),
+  dlib::find_min(dlib::bfgs_search_strategy(), dlib::objective_delta_stop_strategy(eps_).be_verbose(),
       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-      boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, -1);
+      boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, 0.01);
 }
 
 }

@@ -126,7 +126,6 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
 
 void EvaluationData::initStaticEnvironment()
 {
-  collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
   if (!environment_file.empty())
   {
@@ -154,15 +153,34 @@ void EvaluationData::initStaticEnvironment()
 
     collision_object.meshes.push_back(mesh);
     collision_object.mesh_poses.push_back(pose);
+/*
+    // replace mesh with box
+    shape_msgs::SolidPrimitive primitive;
+    primitive.type = primitive.BOX;
+    primitive.dimensions.resize(3);
+    primitive.dimensions[0] = 2.0;
+    primitive.dimensions[1] = 5.0;
+    primitive.dimensions[2] = 5.0;
+    collision_object.primitives.push_back(primitive);
+    pose.position.x = 0.0;
+    pose.position.y = 0.0;
+    pose.position.z = -2.6;
+    pose.orientation.x = 0.0;
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+    pose.orientation.w = 1.0;
+    collision_object.primitive_poses.push_back(pose);
+*/
 
     collision_object.operation = collision_object.ADD;
     moveit_msgs::PlanningScene planning_scene_msg;
     planning_scene_msg.world.collision_objects.push_back(collision_object);
     planning_scene_msg.is_diff = true;
     planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
-
-    acm.setEntry(true);
   }
+
+  collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
+  acm.setEntry(true);
 }
 
 EvaluationData* EvaluationData::clone() const
@@ -351,8 +369,7 @@ void EvaluationData::compare(const EvaluationData& ref) const
           KDL::Vector v1 = contactPointVelVector_[i][j];
           KDL::Vector v2 = ref.contactPointVelVector_[i][j];
           printf("contactPointVelVector_ [%d][%d] not equal\n", i, j);
-          printf("%.14f %.14f %.14f  -  %.14f %.14f %.14f\n", v1.x(),v1.y(),v1.z(),
-              v2.x(),v2.y(),v2.z());
+          printf("%.14f %.14f %.14f  -  %.14f %.14f %.14f\n", v1.x(), v1.y(), v1.z(), v2.x(), v2.y(), v2.z());
         }
 
       }

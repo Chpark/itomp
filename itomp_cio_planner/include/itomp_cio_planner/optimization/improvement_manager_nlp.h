@@ -52,7 +52,10 @@ protected:
   std::vector<EvaluationManagerPtr> derivatives_evaluation_manager_;
   std::vector<EvaluationDataPtr> derivatives_evaluation_data_;
 
-  double elapsed_;
+  double eps_;
+
+  ros::Time start_time_;
+  int evaluation_count_;
 };
 
 }
