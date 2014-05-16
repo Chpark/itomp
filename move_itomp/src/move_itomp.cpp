@@ -149,7 +149,7 @@ int main(int argc, char **argv)
   //joint_model_group->getVariableDefaultPositions("standup", values);
   goal_state.setVariablePositions(values);
   double jointValue = 1.0;
-  //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   req.group_name = "whole_body";
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);

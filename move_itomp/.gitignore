@@ -1,2 +1,7 @@
 /bin
 /build
+/catkin
+/catkin_generated
+/devel
+/gtest
+/cmake_install.cmake

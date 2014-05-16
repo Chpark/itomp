@@ -1,6 +1,7 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <map>
 #include <string>
