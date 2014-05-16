@@ -143,7 +143,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/pelvis.dae"/>
+        <mesh filename="package://human_description/meshes/collision/pelvis.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -188,7 +188,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/torso.dae"/>
+        <mesh filename="package://human_description/meshes/collision/torso.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -233,7 +233,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/head.dae"/>
+        <mesh filename="package://human_description/meshes/collision/head.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -306,7 +306,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/upperLeftLeg.dae"/>
+        <mesh filename="package://human_description/meshes/collision/upperLeftLeg.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -335,7 +335,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/lowerLeftLeg.dae"/>
+        <mesh filename="package://human_description/meshes/collision/lowerLeftLeg.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -383,7 +383,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/leftFoot.dae"/>
+        <mesh filename="package://human_description/meshes/collision/leftFoot.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -450,7 +450,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/upperRightLeg.dae"/>
+        <mesh filename="package://human_description/meshes/collision/upperRightLeg.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -479,7 +479,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/lowerRightLeg.dae"/>
+        <mesh filename="package://human_description/meshes/collision/lowerRightLeg.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -527,7 +527,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rightFoot.dae"/>
+        <mesh filename="package://human_description/meshes/collision/rightFoot.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -591,7 +591,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/upperLeftArm.dae"/>
+        <mesh filename="package://human_description/meshes/collision/upperLeftArm.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -620,7 +620,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/lowerLeftArm.dae"/>
+        <mesh filename="package://human_description/meshes/collision/lowerLeftArm.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -665,7 +665,7 @@
     <collision>
       <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/leftHand.dae"/>
+        <mesh filename="package://human_description/meshes/collision/leftHand.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -734,7 +734,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/upperRightArm.dae"/>
+        <mesh filename="package://human_description/meshes/collision/upperRightArm.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -763,7 +763,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/lowerRightArm.dae"/>
+        <mesh filename="package://human_description/meshes/collision/lowerRightArm.dae"/>
       </geometry>
     </collision>
     <inertial>
@@ -808,7 +808,7 @@
     <collision>
       <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rightHand.dae"/>
+        <mesh filename="package://human_description/meshes/collision/rightHand.dae"/>
       </geometry>
     </collision>
     <inertial>
