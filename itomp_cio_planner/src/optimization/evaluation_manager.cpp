@@ -18,6 +18,8 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
+static bool STABILITY_COST_VERBOSE = false;
+
 EvaluationManager::EvaluationManager(int* iteration) :
     iteration_(iteration), data_(&default_data_), count_(0)
 {
@@ -100,38 +102,36 @@ double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int f
   int begin = (free_point_index - 1) * stride;
   int end = (free_point_index + 1) * stride;
 
-  //std::vector<ros::Time> times;
-  //times.push_back(ros::Time::now());
+  INIT_TIME_MEASUREMENT(10)
 
   // do forward kinematics:
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
     performForwardKinematics(begin, end);
 
-  //times.push_back(ros::Time::now());
+  ADD_TIMER_POINT
 
   computeTrajectoryValidity();
 
-  //times.push_back(ros::Time::now());
+  ADD_TIMER_POINT
 
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
     computeWrenchSum(begin, end + 1);
 
-  //times.push_back(ros::Time::now());
+  ADD_TIMER_POINT
 
   computeStabilityCosts(begin, end + 1);
 
-  //times.push_back(ros::Time::now());
+  ADD_TIMER_POINT
 
   if (variable_type != DERIVATIVE_CONTACT_VARIABLE)
     computeCollisionCosts(begin, end);
 
-  //times.push_back(ros::Time::now());
+  ADD_TIMER_POINT
 
   data_->costAccumulator_.compute(data_);
 
-  //times.push_back(ros::Time::now());
-  //for (int i = 0; i < times.size() - 1; ++i)
-    //timings_[i + 4] += (times[i + 1] - times[i]).toSec();
+  UPDATE_TIME
+  PRINT_TIME(evaluate, 10000)
 
   return data_->costAccumulator_.getTrajectoryCost();
 }
@@ -235,7 +235,8 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   for (int i = 0; i < num_mass_segments_; ++i)
   {
     memcpy(&backup_data_.linkPositions_[i][0], &data_->linkPositions_[i][begin], sizeof(KDL::Vector) * 2 * stride + 1);
-    memcpy(&backup_data_.linkVelocities_[i][0], &data_->linkVelocities_[i][begin], sizeof(KDL::Vector) * 2 * stride + 1);
+    memcpy(&backup_data_.linkVelocities_[i][0], &data_->linkVelocities_[i][begin],
+        sizeof(KDL::Vector) * 2 * stride + 1);
     memcpy(&backup_data_.linkAngularVelocities_[i][0], &data_->linkAngularVelocities_[i][begin],
         sizeof(KDL::Vector) * 2 * stride + 1);
   }
@@ -297,7 +298,8 @@ void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, 
   for (int i = 0; i < num_mass_segments_; ++i)
   {
     memcpy(&data_->linkPositions_[i][begin], &backup_data_.linkPositions_[i][0], sizeof(KDL::Vector) * 2 * stride + 1);
-    memcpy(&data_->linkVelocities_[i][begin], &backup_data_.linkVelocities_[i][0], sizeof(KDL::Vector) * 2 * stride + 1);
+    memcpy(&data_->linkVelocities_[i][begin], &backup_data_.linkVelocities_[i][0],
+        sizeof(KDL::Vector) * 2 * stride + 1);
     memcpy(&data_->linkAngularVelocities_[i][begin], &backup_data_.linkAngularVelocities_[i][0],
         sizeof(KDL::Vector) * 2 * stride + 1);
   }
@@ -324,38 +326,13 @@ void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, 
 double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type,
     int free_point_index, int joint_index)
 {
-  //std::vector<ros::Time> times;
-  //times.push_back(ros::Time::now());
-
   // backup old values and update trajectory
   backupAndSetVariables(value, variable_type, free_point_index, joint_index);
-
-  //times.push_back(ros::Time::now());
 
   // evaluate
   double cost = evaluate(variable_type, free_point_index, joint_index);
 
-  //times.push_back(ros::Time::now());
-
   restoreVariable(variable_type, free_point_index, joint_index);
-
-  //times.push_back(ros::Time::now());
-
-  //for (int i = 0; i < times.size() - 1; ++i)
-    //timings_[i + 1] += (times[i + 1] - times[i]).toSec();
-  //timings_[0] += (times[times.size() - 1] - times[0]).toSec();
-
-  /*
-   if (++count_ % 10000 == 0)
-   {
-   int i = 0;
-   printf("Timing Sum: %f %f\n", i, timings_[i], timings_[i] / count_);
-   for (i = 1; i <= 3 + 6; ++i)
-   {
-   printf("Timing %d : %f %f\n", i, timings_[i], timings_[i] / count_);
-   }
-   }
-   */
 
   return cost;
 }
@@ -399,62 +376,6 @@ void EvaluationManager::computeMassAndGravityForce()
 
 void EvaluationManager::handleJointLimits()
 {
-  return;
-
-  /*
-   for (int joint = 0; joint < num_joints_; joint++)
-   {
-   if (!planning_group_->group_joints_[joint].has_joint_limits_)
-   continue;
-
-   double joint_max = planning_group_->group_joints_[joint].joint_limit_max_;
-   double joint_min = planning_group_->group_joints_[joint].joint_limit_min_;
-
-   int count = 0;
-
-   bool violation = false;
-   do
-   {
-   double max_abs_violation = 1e-6;
-   double max_violation = 0.0;
-   int max_violation_index = 0;
-   violation = false;
-   for (int i = 1; i < num_points_ - 2; i++)
-   {
-   double amount = 0.0;
-   double absolute_amount = 0.0;
-   if ((*group_trajectory_)(i, joint) > joint_max)
-   {
-   amount = joint_max - (*group_trajectory_)(i, joint);
-   absolute_amount = fabs(amount);
-   }
-   else if ((*group_trajectory_)(i, joint) < joint_min)
-   {
-   amount = joint_min - (*group_trajectory_)(i, joint);
-   absolute_amount = fabs(amount);
-   }
-   if (absolute_amount > max_abs_violation)
-   {
-   max_abs_violation = absolute_amount;
-   max_violation = amount;
-   max_violation_index = i;
-   violation = true;
-   }
-   }
-
-   if (violation)
-   {
-   int free_var_index = max_violation_index - 1;
-   double multiplier = max_violation
-   / joint_costs_[joint].getQuadraticCostInverse()(free_var_index, free_var_index);
-   group_trajectory_->getFreeJointTrajectoryBlock(joint) += multiplier
-   * joint_costs_[joint].getQuadraticCostInverse().col(free_var_index);
-   }
-   if (++count > 10)
-   break;
-   } while (violation);
-   }
-   */
   for (int joint = 0; joint < num_joints_; joint++)
   {
     if (!planning_group_->group_joints_[joint].has_joint_limits_)
@@ -608,8 +529,6 @@ void EvaluationManager::updateCoM(int point)
   data_->CoMPositions_[point] = data_->CoMPositions_[point] / total_mass_;
 }
 
-static bool STABILITY_COST_VERBOSE = false;
-
 void EvaluationManager::computeWrenchSum(int begin, int end)
 {
   if (planning_group_->name_ != "lower_body" && planning_group_->name_ != "whole_body")
@@ -743,6 +662,9 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
   int safe_end = min(num_points_ - 1, end);
   for (int point = safe_begin; point < safe_end; point++)
   {
+    INIT_TIME_MEASUREMENT(10)
+    ADD_TIMER_POINT
+
     double state_contact_invariant_cost = 0.0;
     double state_physics_violation_cost = 0.0;
     if (planning_group_->name_ != "lower_body" && planning_group_->name_ != "whole_body")
@@ -773,8 +695,12 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     for (int i = 0; i < num_contacts; ++i)
       contact_values[i] = getGroupTrajectory()->getContactValue(phase, i);
 
+    ADD_TIMER_POINT
+
     data_->contact_force_solver_(PlanningParameters::getInstance()->getFrictionCoefficient(), contact_forces,
         contact_positions, data_->wrenchSum_[point], contact_values, contact_parent_frames);
+
+    ADD_TIMER_POINT
 
     for (int i = 0; i < num_contacts; ++i)
     {
@@ -841,7 +767,13 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
 
     data_->stateContactInvariantCost_[point] = state_contact_invariant_cost;
     data_->statePhysicsViolationCost_[point] = state_physics_violation_cost;
+
+    ADD_TIMER_POINT
+    UPDATE_TIME
+    PRINT_TIME(stability, 10000)
   }
+
+
 }
 
 void EvaluationManager::computeCollisionCosts(int begin, int end)
@@ -980,7 +912,7 @@ void EvaluationManager::postprocess_ik()
         for (int r = 0; r < 3; ++r)
           end_effector_state(r, 3) = contact_frame.p(r);
 
-        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 1.0);
         // Now, we can print out the IK solution (if found):
         if (found_ik)
         {
@@ -994,11 +926,11 @@ void EvaluationManager::postprocess_ik()
           {
             (*getFullTrajectory())(i * getGroupTrajectory()->getContactPhaseStride(), k) = state_pos[k];
           }
-          //ROS_INFO("[%d:%d] IK solution found", i, j);
+          ROS_INFO("[%d:%d] IK solution found", i, j);
         }
         else
         {
-          //ROS_INFO("[%d:%d] Did not find IK solution", i, j);
+          ROS_INFO("[%d:%d] Did not find IK solution", i, j);
         }
       }
     }

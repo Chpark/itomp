@@ -10,8 +10,6 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
-static bool verbose = false;
-
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
   evaluation_count_ = 0;
@@ -29,7 +27,7 @@ void ImprovementManagerNLP::initialize(EvaluationManager *evaluation_manager)
 
   ImprovementManager::initialize(evaluation_manager);
 
-  num_threads_ = omp_get_max_threads() / 2;
+  num_threads_ = omp_get_max_threads();
   omp_set_num_threads(num_threads_);
 
   derivatives_evaluation_manager_.resize(num_threads_);
@@ -92,7 +90,18 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 
   optimize(iteration, variables);
 
-  verbose = true;
+  printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+  evaluation_manager_->getTrajectoryCost(true);
+  printf("Contact Vars\n");
+  for (int i = 0; i < num_contact_phases_; ++i)
+  {
+    printf("%d : ", i);
+    for (int d = 0; d < num_contact_dimensions_; ++d)
+    {
+      printf("%f ", contact_parameters_[0](i, d));
+    }
+    printf("\n");
+  }
 }
 
 void ImprovementManagerNLP::setVariableVector(column_vector& variables)
@@ -193,6 +202,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
   if (++evaluation_count_ % 100 == 0)
   {
     printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+    evaluation_manager_->getTrajectoryCost(true);
     printf("Contact Vars\n");
     for (int i = 0; i < num_contact_phases_; ++i)
     {
@@ -203,7 +213,6 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
       }
       printf("\n");
     }
-    evaluation_manager_->getTrajectoryCost(true);
   }
 
   return cost;
@@ -243,6 +252,8 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
+  //static double elapsed_ = 0.0;
+
   column_vector e(variables);
 
   // assume evaluate was called before and default_data has the values for 'variables' vector
@@ -251,16 +262,16 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   for (int i = 0; i < num_threads_; ++i)
     derivatives_evaluation_data_[i]->deepCopy(default_data);
 
-  //column_vector der_ref = derivative_ref(variables);
-
   column_vector der(variables.size());
 
   const int num_positions = (num_contact_phases_ - 1) * num_dimensions_;
   const int num_velocities = (num_contact_phases_ - 1) * num_dimensions_;
   const int num_contact_variables = num_contact_phases_ * num_contact_dimensions_;
 
-  //ros::Time time[10];
-  //time[0] = ros::Time::now();
+  /*
+   ros::Time time[10];
+   time[0] = ros::Time::now();
+   */
 
 #pragma omp parallel for
   for (int index = 0; index < num_positions + num_velocities + num_contact_variables; ++index)
@@ -311,19 +322,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
   /*
    time[1] = ros::Time::now();
    elapsed_ += (time[1] - time[0]).toSec();
-
-   printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
    */
-
-  // validation
-  /*
-   for (int i = 0; i < variables.size(); ++i)
-   {
-   if (fabs(der(i) - der_ref(i)) > 10.0)
-   printf("[%d] %f (%f %f)\n", i, der(i) - der_ref(i), der(i), der_ref(i));
-   }
-   */
-
+  //printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
   return der;
 }
 

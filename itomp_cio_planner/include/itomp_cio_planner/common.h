@@ -16,4 +16,6 @@
 
 #include <Eigen/Core>
 
+#include <itomp_cio_planner/util/itomp_debug.h>
+
 #endif
