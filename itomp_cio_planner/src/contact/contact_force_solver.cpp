@@ -8,14 +8,13 @@
 #include <ros/ros.h>
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/contact/contact_force_solver.h>
-#include <itomp_cio_planner/contact/levmar.h>
 #include <itomp_cio_planner/optimization/f2c.h>
 #include <itomp_cio_planner/optimization/clapack.h>
 
 namespace itomp_cio_planner
 {
 ////////////////////////////////////////////////////////////////////////////////
-const double w = 1e-7;
+const double w = 0.00001;
 const double dz = -0.1;
 
 ContactForceSolver::ContactForceSolver()
@@ -82,7 +81,7 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
     column = 0;
     for (int i = 0; i < num_contacts; ++i)
     {
-      const doublereal contact_value = 10.0 * contact_values[i];
+      const doublereal contact_value = contact_values[i];
       const doublereal e = k_0 / (contact_value * contact_value + k_1);
       A[(row + 0) + (column + 0) * lda] = e;
       A[(row + 1) + (column + 1) * lda] = e;
@@ -147,17 +146,12 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
     int row = 0, column = 0;
     for (int i = 0; i < num_contacts; ++i)
     {
-      const KDL::Rotation& rot = contact_parent_frames[i].M;
-      const KDL::Vector& f = contact_forces[i];
-
       // lapack uses column-major matrices
       // A[r + c * lda]
-      A[0 + (column + 0) * lda] = rot(1, 0) * f.z() - rot(2, 0) * f.y();
-      A[0 + (column + 1) * lda] = rot(1, 1) * f.z() - rot(2, 1) * f.y();
-      A[1 + (column + 0) * lda] = rot(2, 0) * f.x() - rot(0, 0) * f.z();
-      A[1 + (column + 1) * lda] = rot(2, 1) * f.x() - rot(0, 1) * f.z();
-      A[2 + (column + 0) * lda] = rot(0, 0) * f.y() - rot(1, 0) * f.x();
-      A[2 + (column + 1) * lda] = rot(0, 1) * f.y() - rot(1, 1) * f.x();
+      A[0 + (column + 1) * lda] = contact_forces[i].z();
+      A[1 + (column + 0) * lda] = -contact_forces[i].z();
+      A[2 + (column + 0) * lda] = contact_forces[i].y();
+      A[2 + (column + 1) * lda] = -contact_forces[i].x();
       column += 2;
     }
     row = 3;
@@ -176,7 +170,6 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
     b[2] = -wrench.torque.z();
     for (int i = 0; i < num_contacts; ++i)
     {
-      const KDL::Rotation& rot = contact_parent_frames[i].M;
       const KDL::Vector& p = contact_parent_frames[i].p;
       const KDL::Vector& f = contact_forces[i];
       const KDL::Vector torque = p * f;
@@ -184,9 +177,8 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
       b[1] -= torque.y();
       b[2] -= torque.z();
 
-      b[0] -= dz * (rot(1, 2) * f.z() - rot(2, 2) * f.y());
-      b[1] -= dz * (rot(2, 2) * f.x() - rot(0, 2) * f.z());
-      b[2] -= dz * (rot(0, 2) * f.y() - rot(1, 2) * f.x());
+      b[0] += dz * f.y();
+      b[1] += dz * f.x();
     }
     row = 3;
     for (int i = 0; i < num_contacts; ++i)
