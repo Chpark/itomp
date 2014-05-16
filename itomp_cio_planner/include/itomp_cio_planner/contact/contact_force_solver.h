@@ -22,12 +22,6 @@ public:
       std::vector<KDL::Vector>& contact_positions, const KDL::Wrench& wrench, const std::vector<double>& contact_values,
       const std::vector<KDL::Frame> contact_parent_frames);
 
-  void torqueEval(double *p, double *x, int m, int n);
-  void jacTorqueEval(double *p, double *jac, int m, int n);
-
-  static void torqueEvalWrapper(double *p, double *x, int m, int n, void *adata);
-  static void jacTorqueEvalWrapper(double *p, double *jac, int m, int n, void *adata);
-
 protected:
   std::vector<KDL::Vector> diffs_;
   std::vector<KDL::Rotation> rotations_;
