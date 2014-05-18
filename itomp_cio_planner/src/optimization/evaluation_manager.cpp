@@ -370,8 +370,12 @@ void EvaluationManager::computeMassAndGravityForce()
   }
   gravity_force_ = total_mass_ * KDL::Vector(0.0, 0.0, -9.8);
 
-  // normalize gravity force to 1.0
+  // normalize gravity force to 1.0 and rescale masses
   gravity_force_ = KDL::Vector(0.0, 0.0, -1.0);
+  for (int i = 0; i < masses_.size(); ++i)
+    masses_[i] /= total_mass_ * 9.8;
+  total_mass_ = 1.0 / 9.8;
+
 }
 
 void EvaluationManager::handleJointLimits()
@@ -511,22 +515,31 @@ void EvaluationManager::updateCoM(int point)
 {
   const KDL::SegmentMap& segmentMap = robot_model_->getKDLTree()->getSegments();
   // compute CoM, p_j
-  int massSegmentIndex = 0;
+  int mass_segment_index = 0;
   data_->CoMPositions_[point] = KDL::Vector::Zero();
   for (KDL::SegmentMap::const_iterator it = segmentMap.begin(); it != segmentMap.end(); ++it)
   {
     const KDL::Segment& segment = it->second.segment;
     double mass = segment.getInertia().getMass();
-    int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
-    const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
     if (mass == 0.0)
       continue;
+    mass = masses_[mass_segment_index];
+
+    int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
+    const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
 
     data_->CoMPositions_[point] += pos * mass;
-    data_->linkPositions_[massSegmentIndex][point] = pos;
-    ++massSegmentIndex;
+    data_->linkPositions_[mass_segment_index][point] = pos;
+
+    ++mass_segment_index;
   }
   data_->CoMPositions_[point] = data_->CoMPositions_[point] / total_mass_;
+
+  if (STABILITY_COST_VERBOSE)
+  {
+    printf("[%d] CoM Pos : (%f %f %f)\n", point, data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(),
+        data_->CoMPositions_[point].z());
+  }
 }
 
 void EvaluationManager::computeWrenchSum(int begin, int end)
@@ -563,7 +576,7 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
     printf("CoMPos CoMVel CoMAcc \n");
     for (int i = safe_begin; i < safe_end; ++i)
     {
-      printf("%f %f %f %f %f %f %f %f %f\n", data_->CoMPositions_[i].x(), data_->CoMPositions_[i].y(),
+      printf("[%d] %f %f %f %f %f %f %f %f %f\n", i, data_->CoMPositions_[i].x(), data_->CoMPositions_[i].y(),
           data_->CoMPositions_[i].z(), data_->CoMVelocities_[i].x(), data_->CoMVelocities_[i].y(),
           data_->CoMVelocities_[i].z(), data_->CoMAccelerations_[i].x(), data_->CoMAccelerations_[i].y(),
           data_->CoMAccelerations_[i].z());
@@ -571,25 +584,26 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
   }
 
   // TODO: compute angular velocities = (cur-prev)/time
-  const KDL::SegmentMap& segmentMap = robot_model_->getKDLTree()->getSegments();
-  const double invTime = 1.0 / getGroupTrajectory()->getDiscretization();
+  const KDL::SegmentMap& segment_map = robot_model_->getKDLTree()->getSegments();
+  const double inv_time = 1.0 / getGroupTrajectory()->getDiscretization();
   for (int point = safe_begin; point < safe_end; ++point)
   {
-    int massSegmentIndex = 0;
-    for (KDL::SegmentMap::const_iterator it = segmentMap.begin(); it != segmentMap.end(); ++it)
+    int mass_segment_index = 0;
+    for (KDL::SegmentMap::const_iterator it = segment_map.begin(); it != segment_map.end(); ++it)
     {
       const KDL::Segment& segment = it->second.segment;
       double mass = segment.getInertia().getMass();
-      int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
-      const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
       if (mass == 0.0)
         continue;
+      mass = masses_[mass_segment_index];
 
-      const KDL::Rotation& prevRotation = data_->segment_frames_[point - 1][sn].M;
-      const KDL::Rotation& curRotation = data_->segment_frames_[point][sn].M;
-      const KDL::Rotation& rotDiff = curRotation * prevRotation.Inverse();
-      data_->linkAngularVelocities_[massSegmentIndex][point] = rotDiff.GetRot() * invTime;
-      ++massSegmentIndex;
+      int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
+      const KDL::Vector& pos = data_->segment_frames_[point][sn] * segment.getInertia().getCOG();
+      const KDL::Rotation& prev_rotation = data_->segment_frames_[point - 1][sn].M;
+      const KDL::Rotation& cur_rotation = data_->segment_frames_[point][sn].M;
+      const KDL::Rotation& rot_diff = cur_rotation * prev_rotation.Inverse();
+      data_->linkAngularVelocities_[mass_segment_index][point] = rot_diff.GetRot() * inv_time;
+      ++mass_segment_index;
     }
   }
 
@@ -598,22 +612,23 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
   {
     data_->AngularMomentums_[point] = KDL::Vector(0.0, 0.0, 0.0);
 
-    int massSegmentIndex = 0;
-    for (KDL::SegmentMap::const_iterator it = segmentMap.begin(); it != segmentMap.end(); ++it)
+    int mass_segment_index = 0;
+    for (KDL::SegmentMap::const_iterator it = segment_map.begin(); it != segment_map.end(); ++it)
     {
       const KDL::Segment& segment = it->second.segment;
       double mass = segment.getInertia().getMass();
       if (mass == 0.0)
         continue;
+      mass = masses_[mass_segment_index];
 
       int sn = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segment.getName());
       KDL::Vector angularVelTerm = (data_->segment_frames_[point][sn] * segment.getInertia()).getRotationalInertia()
-          * data_->linkAngularVelocities_[massSegmentIndex][point];
+          * data_->linkAngularVelocities_[mass_segment_index][point];
 
-      data_->AngularMomentums_[point] += masses_[massSegmentIndex]
-          * (data_->linkPositions_[massSegmentIndex][point] - data_->CoMPositions_[point])
-          * data_->linkVelocities_[massSegmentIndex][point] + angularVelTerm;
-      ++massSegmentIndex;
+      data_->AngularMomentums_[point] += mass
+          * (data_->linkPositions_[mass_segment_index][point] - data_->CoMPositions_[point])
+          * data_->linkVelocities_[mass_segment_index][point] + angularVelTerm;
+      ++mass_segment_index;
     }
   }
   // compute torques
@@ -626,25 +641,30 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
     data_->wrenchSum_[point].force = gravity_force_;
     data_->wrenchSum_[point].torque = data_->CoMPositions_[point] * gravity_force_;
 
-    //wrenchSum_[point].force += -totalMass_ * CoMAccelerations_[point];
-    //wrenchSum_[point].torque += -totalMass_ * CoMPositions_[point] * CoMAccelerations_[point] - Torques_[point];
+    data_->wrenchSum_[point].force += -total_mass_ * data_->CoMAccelerations_[point];
+    data_->wrenchSum_[point].torque += data_->CoMPositions_[point] * (-total_mass_ * data_->CoMAccelerations_[point]);
+    //data_->wrenchSum_[point].torque += -data_->Torques_[point];
 
-    /*
-     ROS_INFO("[%d] CoM pos:(%f %f %f)", point, CoMPositions_[point].x(), CoMPositions_[point].y(),
-     CoMPositions_[point].z());
-     ROS_INFO("[%d] CoM acc:(%f %f %f)", point, CoMAccelerations_[point].x(), CoMAccelerations_[point].y(),
-     CoMAccelerations_[point].z());
-     ROS_INFO("[%d] Ang mon:(%f %f %f)", point, AngularMomentums_[point].x(), AngularMomentums_[point].y(),
-     AngularMomentums_[point].z());
-     ROS_INFO("[%d] Com Tor:(%f %f %f)", point, Torques_[point].x(), Torques_[point].y(), Torques_[point].z());
-     ROS_INFO("[%d] Wre For:(%f %f %f)", point, gravityForce_.x(), gravityForce_.y(), gravityForce_.z());
-     ROS_INFO("[%d] Wre Tor:(%f %f %f)=(%f %f %f)x(%f %f %f)+%f(%f %f %f)x(%f %f %f)-(%f %f %f)", point,
-     wrenchSum_[point].torque.x(), wrenchSum_[point].torque.y(), wrenchSum_[point].torque.z(),
-     CoMPositions_[point].x(), CoMPositions_[point].y(), CoMPositions_[point].z(), gravityForce_.x(),
-     gravityForce_.y(), gravityForce_.z(), totalMass_, CoMPositions_[point].x(), CoMPositions_[point].y(),
-     CoMPositions_[point].z(), CoMAccelerations_[point].x(), CoMAccelerations_[point].y(),
-     CoMAccelerations_[point].z(), Torques_[point].x(), Torques_[point].y(), Torques_[point].z());
-     */
+    if (STABILITY_COST_VERBOSE)
+    {
+      ROS_INFO(
+          "[%d] CoM pos:(%f %f %f)", point, data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z());
+      ROS_INFO(
+          "[%d] CoM acc:(%f %f %f)", point, data_->CoMAccelerations_[point].x(), data_->CoMAccelerations_[point].y(), data_->CoMAccelerations_[point].z());
+      ROS_INFO(
+          "[%d] Ang mon:(%f %f %f)", point, data_->AngularMomentums_[point].x(), data_->AngularMomentums_[point].y(), data_->AngularMomentums_[point].z());
+      ROS_INFO(
+          "[%d] Com Tor:(%f %f %f)", point, data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
+      ROS_INFO("[%d] Wre For:(%f %f %f)", point, gravity_force_.x(), gravity_force_.y(), gravity_force_.z());
+      ROS_INFO(
+          "[%d] Wre Tor:(%f %f %f)=(%f %f %f)x(%f %f %f)+(%f %f %f)x%f(%f %f %f)-(%f %f %f)", point,
+          data_->wrenchSum_[point].torque.x(), data_->wrenchSum_[point].torque.y(), data_->wrenchSum_[point].torque.z(),
+          data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(),
+          gravity_force_.x(), gravity_force_.y(), gravity_force_.z(),
+          data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(),
+          total_mass_, data_->CoMAccelerations_[point].x(), data_->CoMAccelerations_[point].y(), data_->CoMAccelerations_[point].z(),
+          data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
+    }
 
   }
 
@@ -768,11 +788,9 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     data_->stateContactInvariantCost_[point] = state_contact_invariant_cost;
     data_->statePhysicsViolationCost_[point] = state_physics_violation_cost;
 
-    ADD_TIMER_POINT
-    UPDATE_TIME
-    PRINT_TIME(stability, 10000)
-  }
-
+ADD_TIMER_POINT  UPDATE_TIME
+  PRINT_TIME(stability, 10000)
+}
 
 }
 
@@ -803,10 +821,10 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
     }
     data_->kinematic_state_->setVariablePositions(&positions[0]);
 
-    data_->kinematic_state_->updateCollisionBodyTransforms();
-
-    data_->planning_scene_->getCollisionWorld()->checkRobotCollision(collision_request, collision_result,
-        *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
+    //data_->kinematic_state_->updateCollisionBodyTransforms();
+    //data_->planning_scene_->getCollisionWorld()->checkRobotCollision(collision_request, collision_result,
+      //  *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
+    data_->planning_scene_->checkCollisionUnpadded(collision_request, collision_result, *data_->kinematic_state_);
 
     const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
     for (collision_detection::CollisionResult::ContactMap::const_iterator it = contact_map.begin();
@@ -912,7 +930,7 @@ void EvaluationManager::postprocess_ik()
         for (int r = 0; r < 3; ++r)
           end_effector_state(r, 3) = contact_frame.p(r);
 
-        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 1.0);
+        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
         // Now, we can print out the IK solution (if found):
         if (found_ik)
         {

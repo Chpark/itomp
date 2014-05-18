@@ -180,7 +180,7 @@ void EvaluationData::initStaticEnvironment()
   }
 
   collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
-  acm.setEntry(true);
+  //acm.setEntry(true);
 }
 
 EvaluationData* EvaluationData::clone() const
