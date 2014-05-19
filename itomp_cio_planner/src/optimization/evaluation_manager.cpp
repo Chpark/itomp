@@ -371,7 +371,8 @@ void EvaluationManager::computeMassAndGravityForce()
   gravity_force_ = total_mass_ * KDL::Vector(0.0, 0.0, -9.8);
 
   // normalize gravity force to 1.0 and rescale masses
-  gravity_force_ = KDL::Vector(0.0, 0.0, -1.0);
+  //gravity_force_ = KDL::Vector(0.0, 0.0, -1.0);
+  gravity_force_ = KDL::Vector(0.0, -1.0, 0.0);
   for (int i = 0; i < masses_.size(); ++i)
     masses_[i] /= total_mass_ * 9.8;
   total_mass_ = 1.0 / 9.8;
@@ -608,6 +609,8 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
   }
 
   // compute angular momentum
+  data_->AngularMomentums_[0] = KDL::Vector(0.0, 0.0, 0.0);
+  data_->AngularMomentums_[num_points_ - 1] = KDL::Vector(0.0, 0.0, 0.0);
   for (int point = safe_begin; point < safe_end; ++point)
   {
     data_->AngularMomentums_[point] = KDL::Vector(0.0, 0.0, 0.0);

@@ -14,7 +14,7 @@
 namespace itomp_cio_planner
 {
 ////////////////////////////////////////////////////////////////////////////////
-const double w1 = 1e-5;
+const double w1 = 1e-1;
 const double w2 = 1e-7;
 const double dz = -0.1;
 
@@ -32,10 +32,8 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
     std::vector<KDL::Vector>& contact_positions, const KDL::Wrench& wrench, const std::vector<double>& contact_values,
     const std::vector<KDL::Frame> contact_parent_frames)
 {
-  //const double k_0 = 0.1;
-  //const double k_1 = 0.001;
-  const double k_0 = 1e-3;
-  const double k_1 = 1e-7;
+  const double k_0 = 1e-4;
+  const double k_1 = 1e-5;
 
   int num_contacts = contact_forces.size();
 
@@ -84,8 +82,8 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
     column = 0;
     for (int i = 0; i < num_contacts; ++i)
     {
-      const doublereal contact_value = contact_values[i];
-      const doublereal e = (i < 2 ? 1.0 : 4.0) * k_0 / (contact_value * contact_value * contact_value * contact_value + k_1);
+      const doublereal contact_value = 5.0 * contact_values[i];
+      const doublereal e = (i < 2 ? 1.0 : 1.0) * k_0 / (contact_value * contact_value * contact_value * contact_value + k_1);
       A[(row + 0) + (column + 0) * lda] = e;
       A[(row + 1) + (column + 1) * lda] = e;
       A[(row + 2) + (column + 2) * lda] = e;
@@ -128,8 +126,8 @@ void ContactForceSolver::operator()(double friction_coeff, std::vector<KDL::Vect
   {
     const double CONTACT_MIN_DIR = -0.1;
     const double CONTACT_MAX_DIR = 0.19;
-    const double CONTACT_MIN_RIGHT = -0.05;
-    const double CONTACT_MAX_RIGHT = 0.05;
+    const double CONTACT_MIN_RIGHT = -0.1;
+    const double CONTACT_MAX_RIGHT = 0.1;
 
     char trans = 'N';
     integer m = 3 + num_contacts * 2;
