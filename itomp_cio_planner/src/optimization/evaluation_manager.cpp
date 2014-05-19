@@ -657,13 +657,7 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
           "[%d] Com Tor:(%f %f %f)", point, data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
       ROS_INFO("[%d] Wre For:(%f %f %f)", point, gravity_force_.x(), gravity_force_.y(), gravity_force_.z());
       ROS_INFO(
-          "[%d] Wre Tor:(%f %f %f)=(%f %f %f)x(%f %f %f)+(%f %f %f)x%f(%f %f %f)-(%f %f %f)", point,
-          data_->wrenchSum_[point].torque.x(), data_->wrenchSum_[point].torque.y(), data_->wrenchSum_[point].torque.z(),
-          data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(),
-          gravity_force_.x(), gravity_force_.y(), gravity_force_.z(),
-          data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(),
-          total_mass_, data_->CoMAccelerations_[point].x(), data_->CoMAccelerations_[point].y(), data_->CoMAccelerations_[point].z(),
-          data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
+          "[%d] Wre Tor:(%f %f %f)=(%f %f %f)x(%f %f %f)+(%f %f %f)x%f(%f %f %f)-(%f %f %f)", point, data_->wrenchSum_[point].torque.x(), data_->wrenchSum_[point].torque.y(), data_->wrenchSum_[point].torque.z(), data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(), gravity_force_.x(), gravity_force_.y(), gravity_force_.z(), data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(), total_mass_, data_->CoMAccelerations_[point].x(), data_->CoMAccelerations_[point].y(), data_->CoMAccelerations_[point].z(), data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
     }
 
   }
@@ -823,7 +817,7 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
 
     //data_->kinematic_state_->updateCollisionBodyTransforms();
     //data_->planning_scene_->getCollisionWorld()->checkRobotCollision(collision_request, collision_result,
-      //  *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
+    //  *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
     data_->planning_scene_->checkCollisionUnpadded(collision_request, collision_result, *data_->kinematic_state_);
 
     const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
@@ -840,7 +834,8 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
 
 void EvaluationManager::postprocess_ik()
 {
-  const double threshold = 0.1;
+  const double threshold = 0.01;
+
   const Eigen::MatrixXd& contactTrajectoryBlock = getGroupTrajectory()->getContactTrajectory();
   int num_contact_phases = getGroupTrajectory()->getNumContactPhases();
   std::vector<int> ik_ref_point(num_contact_phases);
@@ -930,7 +925,18 @@ void EvaluationManager::postprocess_ik()
         for (int r = 0; r < 3; ++r)
           end_effector_state(r, 3) = contact_frame.p(r);
 
-        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1);
+        {
+          KDL::Frame current_frame;
+          planning_group_->contactPoints_[j].getFrame(i * getGroupTrajectory()->getContactPhaseStride(), current_frame,
+              data_->segment_frames_);
+          ROS_INFO(
+              "[%d] IK from (%f %f %f) to [%d](%f %f %f", i, current_frame.p.x(), current_frame.p.y(), current_frame.p.z(), ik_ref_point[i], contact_frame.p.x(), contact_frame.p.y(), contact_frame.p.z());
+        }
+
+        kinematics::KinematicsQueryOptions options;
+        options.return_approximate_solution = true;
+        bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+            moveit::core::GroupStateValidityCallbackFn(), options);
         // Now, we can print out the IK solution (if found):
         if (found_ik)
         {
