@@ -11,7 +11,7 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/util/vector_util.h>
 #include <kdl/frames.hpp>
-#include <Eigen/StdVector>
+#include <moveit/planning_scene/planning_scene.h>
 
 namespace itomp_cio_planner
 {
@@ -28,9 +28,10 @@ public:
 	void updateContactViolationVector(int start, int end, double discretization,
 			std::vector<Vector4d>& contactViolationVector,
 			std::vector<KDL::Vector>& contactPointVelVector,
-			const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
+            const std::vector<std::vector<KDL::Frame> >& segmentFrames,
+            const planning_scene::PlanningScenePtr& planning_scene) const;
 
-	double getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const;
+    double getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames, const planning_scene::PlanningScenePtr& planning_scene) const;
 
 	int getLinkSegmentNumber() const { return linkSegmentNumber_; }
 	const std::string& getLinkName() const { return linkName_; }

@@ -40,7 +40,7 @@ void ContactPoint::getFrame(int point, KDL::Frame& frame,
 
 void ContactPoint::updateContactViolationVector(int start, int end, double discretization,
     vector<Vector4d>& contactViolationVector, vector<KDL::Vector>& contactPointVelVector,
-    const vector<vector<KDL::Frame> >& segmentFrames) const
+    const vector<vector<KDL::Frame> >& segmentFrames, const planning_scene::PlanningScenePtr& planning_scene) const
 {
   vector<KDL::Vector> contactPointPosVector(contactViolationVector.size());
   for (int i = start; i <= end; ++i)
@@ -51,7 +51,7 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
 
     KDL::Vector groundPosition;
     KDL::Vector groundNormal;
-    GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, true);
+    GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
 
     KDL::Vector diff = position - groundPosition;
     double angle = acos(KDL::dot(normal, groundNormal));
@@ -74,14 +74,14 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
       KDL::Vector::Zero());
 }
 
-double ContactPoint::getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames) const
+double ContactPoint::getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames, const planning_scene::PlanningScenePtr& planning_scene) const
 {
   KDL::Vector position;
   getPosition(point, position, segmentFrames);
 
   KDL::Vector groundPosition;
   KDL::Vector groundNormal;
-  GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal);
+  GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
 
   KDL::Vector diff = position - groundPosition;
   if (diff.z() < 0.0)

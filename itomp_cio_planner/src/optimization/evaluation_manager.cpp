@@ -676,7 +676,7 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
   {
     planning_group_->contactPoints_[i].updateContactViolationVector(safe_begin, safe_end - 1,
         getGroupTrajectory()->getDiscretization(), data_->contactViolationVector_[i], data_->contactPointVelVector_[i],
-        data_->segment_frames_);
+        data_->segment_frames_, data_->planning_scene_);
   }
 }
 
@@ -872,11 +872,12 @@ void EvaluationManager::computeFTRs(int begin, int end)
         // computing direction, first version as COM velocity between poses
         const KDL::Vector& dir_kdl = data_->CoMVelocities_[i];
         Eigen::Vector3d direction(dir_kdl.x(), dir_kdl.y(), dir_kdl.z());
-
+        if(direction.norm() != 0)
+            direction.normalize();
         double ftr = 1 / std::sqrt(direction.transpose() * (jacobian * jacobian_transpose) * direction);
         KDL::Vector position, unused, normal;
         planning_group_->contactPoints_[2].getPosition(i, position, data_->segment_frames_);
-        GroundManager::getInstance().getNearestGroundPosition(position, unused, normal); // TODO get more accurate normal
+        GroundManager::getInstance().getNearestGroundPosition(position, unused, normal, data_->planning_scene_); // TODO get more accurate normal
         Eigen::Vector3d normalEigen(normal.x(), normal.y(), normal.z());
         double contact_variable = data_->getGroupTrajectory()->getContactTrajectory()(i / data_->getGroupTrajectory()->getContactPhaseStride(), 2);
 

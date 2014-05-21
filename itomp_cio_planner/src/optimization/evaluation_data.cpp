@@ -179,6 +179,21 @@ void EvaluationData::initStaticEnvironment()
     planning_scene_msg.world.collision_objects.push_back(collision_object);
     planning_scene_msg.is_diff = true;
     planning_scene_->setPlanningSceneDiffMsg(planning_scene_msg);
+
+    const collision_detection::WorldPtr& world = planning_scene_->getWorldNonConst();
+    std::vector<std::string> object_ids = world->getObjectIds();
+    for (int i = 0; i < object_ids.size(); ++i)
+    {
+        collision_detection::World::ObjectPtr obj = world->getObject(object_ids[i]);
+        for (int j = 0; j < obj->shapes_.size(); ++j)
+        {
+            shapes::Shape* shape = const_cast<shapes::Shape*>(obj->shapes_[j].get());
+            shapes::Mesh* mesh = dynamic_cast<shapes::Mesh*>(shape);
+            if (mesh == NULL)
+                continue;
+            mesh->computeTriangleNormals();
+        }
+    }
   }
 
   collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
