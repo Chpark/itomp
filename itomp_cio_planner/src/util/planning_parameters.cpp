@@ -42,6 +42,7 @@ void PlanningParameters::initFromNodeHandle()
   node_handle.param("physics_violation_cost_weight", physics_violation_cost_weight_, 1.0);
   node_handle.param("goal_pose_cost_weight", goal_pose_cost_weight_, 1.0);
   node_handle.param("CoM_cost_weight", com_cost_weight_, 1.0);
+  node_handle.param("FTR_cost_weight", ftr_cost_weight_, 1.0);
   node_handle.param("smoothness_cost_velocity", smoothness_cost_velocity_, 0.0);
   node_handle.param("smoothness_cost_acceleration", smoothness_cost_acceleration_, 1.0);
   node_handle.param("smoothness_cost_jerk", smoothness_cost_jerk_, 0.0);

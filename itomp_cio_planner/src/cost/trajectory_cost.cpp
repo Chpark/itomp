@@ -48,6 +48,10 @@ TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 		newCost.reset(new TrajectoryCoMCost());
 		break;
 
+    case COST_FTR:
+        newCost.reset(new TrajectoryFTRCost());
+        break;
+
 	case COST_ENDEFFECTOR_VELOCITY:
 	case COST_TORQUE:
 	case COST_RVO:
@@ -230,6 +234,19 @@ void TrajectoryCoMCost::doCompute(const EvaluationData* data, Eigen::VectorXd& c
 double TrajectoryCoMCost::getWeight() const
 {
 	return PlanningParameters::getInstance()->getCoMCostWeight();
+}
+
+void TrajectoryFTRCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
+{
+    for (int i = 1; i <= data->getNumPoints() - 2; i++)
+    {
+      costData(i) = data->stateFTRCost_[i];
+    }
+}
+
+double TrajectoryFTRCost::getWeight() const
+{
+    return PlanningParameters::getInstance()->getFTRCostWeight();
 }
 
 }

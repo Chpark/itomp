@@ -28,6 +28,7 @@ public:
 		COST_ENDEFFECTOR_VELOCITY,
 		COST_TORQUE,
 		COST_RVO,
+        COST_FTR,
 		COST_TYPES_NUM,
 		COST_TYPE_INVALID = COST_TYPES_NUM,
 	};
@@ -67,7 +68,7 @@ public:
 	virtual double getWeight() const;
 
 protected:
-	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
+    virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 class TrajectoryCollisionCost : public TrajectoryCost
@@ -140,6 +141,18 @@ public:
 
 protected:
 	virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
+};
+
+class TrajectoryFTRCost : public TrajectoryCost
+{
+public:
+    TrajectoryFTRCost() : TrajectoryCost(COST_FTR) {}
+    virtual ~TrajectoryFTRCost() {}
+
+    virtual double getWeight() const;
+
+protected:
+    virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
 };
 
 };

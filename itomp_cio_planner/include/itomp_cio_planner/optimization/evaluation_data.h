@@ -36,6 +36,7 @@ public:
   const ItompCIOTrajectory* getGroupTrajectory() const;
   ItompCIOTrajectory* getFullTrajectory();
   const ItompCIOTrajectory* getFullTrajectory() const;
+  const ItompRobotModel* getItompRobotModel() const;
 
   KDL::JntArray kdl_joint_array_;
 
@@ -66,6 +67,7 @@ public:
   std::vector<double> stateContactInvariantCost_;
   std::vector<double> statePhysicsViolationCost_;
   std::vector<double> stateCollisionCost_;
+  std::vector<double> stateFTRCost_;
 
   TrajectoryCostAccumulator costAccumulator_;
 
@@ -109,7 +111,10 @@ inline const ItompCIOTrajectory* EvaluationData::getFullTrajectory() const
 {
   return full_trajectory_;
 }
-
+inline const ItompRobotModel* EvaluationData::getItompRobotModel() const
+{
+    return robot_model_;
+}
 inline double EvaluationData::getNumPoints() const
 {
   return group_trajectory_->getNumPoints();

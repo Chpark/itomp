@@ -39,6 +39,7 @@ class EvaluationManager
     std::vector<double> state_collision_cost_;
     std::vector<double> state_contact_invariant_cost_;
     std::vector<double> state_physics_violation_cost_;
+    std::vector<double> state_ftr_cost_;
   };
 
 public:
@@ -89,12 +90,14 @@ private:
   void computeStabilityCosts();
   void updateCoM(int point);
   void computeCollisionCosts();
+  void computeFTRs();
 
   void updateFullTrajectory(int point_index, int joint_index);
   bool performForwardKinematics(int begin, int end);
   void computeWrenchSum(int begin, int end);
   void computeStabilityCosts(int begin, int end);
   void computeCollisionCosts(int begin, int end);
+  void computeFTRs(int begin, int end);
 
   void backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index,
       int joint_index);
@@ -212,6 +215,11 @@ inline void EvaluationManager::setDataToDefault()
 inline void EvaluationManager::computeCollisionCosts()
 {
   computeCollisionCosts(0, num_points_);
+}
+
+inline void EvaluationManager::computeFTRs()
+{
+  computeFTRs(0, num_points_);
 }
 
 inline void EvaluationManager::computeStabilityCosts()

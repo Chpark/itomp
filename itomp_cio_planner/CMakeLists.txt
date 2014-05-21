@@ -46,6 +46,7 @@ src/util/min_jerk_trajectory.cpp
 src/util/planning_parameters.cpp
 src/optimization/itomp_optimizer.cpp
 src/optimization/evaluation_manager.cpp
+src/optimization/evaluation_data.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
 )
@@ -60,5 +61,5 @@ set(LIBRARY_NAME itomp_planner_plugin)
 rosbuild_add_library(${LIBRARY_NAME} src/itomp_plugin.cpp src/itomp_planning_interface.cpp)
 rosbuild_link_boost(${LIBRARY_NAME} thread)
 
-target_link_libraries(${LIBRARY_NAME} itomp levmar f2c lapack blas)
+target_link_libraries(${LIBRARY_NAME} itomp f2c lapack blas)
 

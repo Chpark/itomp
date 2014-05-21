@@ -39,6 +39,7 @@ public:
   double getPhysicsViolationCostWeight() const;
   double getGoalPoseCostWeight() const;
   double getCoMCostWeight() const;
+  double getFTRCostWeight() const;
   bool getAnimatePath() const;
   double getSmoothnessCostVelocity() const;
   double getSmoothnessCostAcceleration() const;
@@ -111,6 +112,7 @@ private:
   double physics_violation_cost_weight_;
   double goal_pose_cost_weight_;
   double com_cost_weight_;
+  double ftr_cost_weight_;
   bool animate_path_;
   double smoothness_cost_velocity_;
   double smoothness_cost_acceleration_;
@@ -280,6 +282,11 @@ inline std::vector<double> PlanningParameters::getSmoothnessCosts() const
 inline double PlanningParameters::getCoMCostWeight() const
 {
   return com_cost_weight_;
+}
+
+inline double PlanningParameters::getFTRCostWeight() const
+{
+  return ftr_cost_weight_;
 }
 
 inline int PlanningParameters::getNumTrajectories() const

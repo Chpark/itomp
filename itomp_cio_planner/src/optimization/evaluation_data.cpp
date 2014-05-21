@@ -86,6 +86,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   stateContactInvariantCost_.resize(num_points);
   statePhysicsViolationCost_.resize(num_points);
   stateCollisionCost_.resize(num_points);
+  stateFTRCost_.resize(num_points);
 
   linkPositions_.resize(num_mass_segments);
   linkVelocities_.resize(num_mass_segments);
@@ -119,6 +120,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION));
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_FTR));
   costAccumulator_.init(this);
 
   fk_solver_ = *planning_group->fk_solver_.get();

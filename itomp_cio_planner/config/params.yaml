@@ -13,6 +13,7 @@ contact_invariant_cost_weight: 1.0
 physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
+FTR_cost_weight: 1.0
 smoothness_cost_velocity: 0.0
 smoothness_cost_acceleration: 1.0
 smoothness_cost_jerk: 0.0

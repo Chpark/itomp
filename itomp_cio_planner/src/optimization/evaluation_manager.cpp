@@ -86,6 +86,8 @@ double EvaluationManager::evaluate()
 
   computeCollisionCosts();
 
+  computeFTRs();
+
   data_->costAccumulator_.compute(data_);
 
   last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
@@ -127,6 +129,8 @@ double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int f
     computeCollisionCosts(begin, end);
 
   ADD_TIMER_POINT
+
+  computeFTRs(begin, end);
 
   data_->costAccumulator_.compute(data_);
 
@@ -225,6 +229,7 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   backup_data_.state_contact_invariant_cost_.resize(2 * stride + 1);
   backup_data_.state_physics_violation_cost_.resize(2 * stride + 1);
   backup_data_.state_collision_cost_.resize(2 * stride);
+  backup_data_.state_ftr_cost_.resize(2 * stride);
 
   for (int i = 0; i < 2 * stride; ++i)
   {
@@ -258,6 +263,7 @@ void EvaluationManager::backupAndSetVariables(double new_value, DERIVATIVE_VARIA
   memcpy(&backup_data_.state_physics_violation_cost_[0], &data_->statePhysicsViolationCost_[begin],
       sizeof(double) * 2 * stride + 1);
   memcpy(&backup_data_.state_collision_cost_[0], &data_->stateCollisionCost_[begin], sizeof(double) * 2 * stride);
+  memcpy(&backup_data_.state_ftr_cost_[0], &data_->stateFTRCost_[begin], sizeof(double) * 2 * stride + 1);
 }
 
 void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index, int joint_index)
@@ -321,6 +327,7 @@ void EvaluationManager::restoreVariable(DERIVATIVE_VARIABLE_TYPE variable_type, 
   memcpy(&data_->statePhysicsViolationCost_[begin], &backup_data_.state_physics_violation_cost_[0],
       sizeof(double) * 2 * stride + 1);
   memcpy(&data_->stateCollisionCost_[begin], &backup_data_.state_collision_cost_[0], sizeof(double) * 2 * stride);
+  memcpy(&data_->stateFTRCost_[begin], &backup_data_.state_ftr_cost_[0], sizeof(double) * 2 * stride + 1);
 }
 
 double EvaluationManager::evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type,
@@ -833,6 +840,54 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
     collision_result.clear();
     data_->stateCollisionCost_[i] = depthSum;
   }
+}
+
+#include <iostream>
+
+namespace
+{
+static int first = 0;
+
+}
+
+void EvaluationManager::computeFTRs(int begin, int end)
+{
+    std::vector<double> positions;
+    int num_joints = data_->getFullTrajectory()->getNumJoints();
+    positions.resize(num_joints);
+    int safe_begin = max(0, begin);
+    int safe_end = min(num_points_, end);
+    for(int i=safe_begin; i<safe_end; ++i)
+    {
+        for (std::size_t k = 0; k < num_joints; k++)
+        {
+            positions[k] = (*data_->getFullTrajectory())(i, k);
+        }
+        data_->kinematic_state_->setVariablePositions(&positions[0]);
+        robot_model::RobotModelConstPtr robot_model_ptr = data_->getItompRobotModel()->getRobotModel();
+        Eigen::MatrixXd jacobianFull = (data_->kinematic_state_->getJacobian(robot_model_ptr->getJointModelGroup("left_arm")));
+        Eigen::MatrixXd jacobian = jacobianFull.block(0,0,3,jacobianFull.cols());
+        Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
+
+        // computing direction, first version as COM velocity between poses
+        const KDL::Vector& dir_kdl = data_->CoMVelocities_[i];
+        Eigen::Vector3d direction(dir_kdl.x(), dir_kdl.y(), dir_kdl.z());
+
+        double ftr = 1 / std::sqrt(direction.transpose() * (jacobian * jacobian_transpose) * direction);
+        KDL::Vector position, unused, normal;
+        planning_group_->contactPoints_[2].getPosition(i, position, data_->segment_frames_);
+        GroundManager::getInstance().getNearestGroundPosition(position, unused, normal); // TODO get more accurate normal
+        Eigen::Vector3d normalEigen(normal.x(), normal.y(), normal.z());
+        double contact_variable = data_->getGroupTrajectory()->getContactTrajectory()(i / data_->getGroupTrajectory()->getContactPhaseStride(), 2);
+
+        ftr *= direction.dot(normalEigen);
+        // bound value btw -10 and 10, then 0 and 1
+        ftr = (ftr < -10) ? -10 : ftr;
+        ftr = (ftr >  10) ?  10 : ftr;
+        ftr = (ftr + 10) / 20;
+        data_->stateFTRCost_[i] = ftr * contact_variable;
+        ++first;
+    }
 }
 
 void EvaluationManager::postprocess_ik()

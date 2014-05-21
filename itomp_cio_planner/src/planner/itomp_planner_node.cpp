@@ -24,7 +24,7 @@ ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model)
 
 bool ItompPlannerNode::init()
 {
-  Eigen::initParallel();
+  //Eigen::initParallel();
 
   PlanningParameters::getInstance()->initFromNodeHandle();
 
