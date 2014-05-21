@@ -723,7 +723,7 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     {
       double cost = 0.0;
       for (int j = 0; j < 4; ++j)
-        cost += data_->contactViolationVector_[i][point].data_[j] * data_->contactViolationVector_[i][point].data_[j];
+        cost += 16.0 * data_->contactViolationVector_[i][point].data_[j] * data_->contactViolationVector_[i][point].data_[j];
       cost += 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }

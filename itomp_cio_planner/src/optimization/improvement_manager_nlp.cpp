@@ -188,7 +188,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
   noise_generator.sample(noise);
   for (int i = 0; i < num_variables_; ++i)
   {
-    variables(i) += 0.01 * noise(i);
+    variables(i) += 0.001 * noise(i);
   }
 }
 
@@ -331,7 +331,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
   dlib::find_min(dlib::bfgs_search_strategy(), dlib::objective_delta_stop_strategy(eps_).be_verbose(),
       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-      boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, 0.01);
+      boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, 0.1);
 }
 
 }
