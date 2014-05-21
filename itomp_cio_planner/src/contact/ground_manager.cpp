@@ -72,7 +72,6 @@ void GroundManager::getNearestGroundPosition(const KDL::Vector& in, KDL::Vector&
                     normal.x(normal_eigen.x());
                     normal.y(normal_eigen.y());
                     normal.z(normal_eigen.z());
-                    projection = transform * projection;
                     out.x(projection.x());
                     out.y(projection.y());
                     out.z(projection.z());
