@@ -8,8 +8,8 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 #set(ROS_BUILD_TYPE RelWithDebInfo)
-#set(ROS_BUILD_TYPE Release)
-set(ROS_BUILD_TYPE Debug)
+set(ROS_BUILD_TYPE Release)
+#set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
 
@@ -44,6 +44,7 @@ src/contact/contact_force_solver.cpp
 src/visualization/visualization_manager.cpp
 src/util/min_jerk_trajectory.cpp
 src/util/planning_parameters.cpp
+src/util/point_to_triangle_projection.cpp
 src/optimization/itomp_optimizer.cpp
 src/optimization/evaluation_manager.cpp
 src/optimization/evaluation_data.cpp
@@ -52,6 +53,9 @@ src/optimization/improvement_manager_nlp.cpp
 )
 target_link_libraries(itomp dlib)
 set(LIBRARY_INPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libf2c.a)
+target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblapack.a)
+target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libblas.a)
 
 #rosbuild_add_executable(itomp_planner_node src/main.cpp)
 #rosbuild_link_boost(itomp_planner_node thread)
@@ -61,5 +65,5 @@ set(LIBRARY_NAME itomp_planner_plugin)
 rosbuild_add_library(${LIBRARY_NAME} src/itomp_plugin.cpp src/itomp_planning_interface.cpp)
 rosbuild_link_boost(${LIBRARY_NAME} thread)
 
-target_link_libraries(${LIBRARY_NAME} itomp f2c lapack blas)
+target_link_libraries(${LIBRARY_NAME} itomp)
 

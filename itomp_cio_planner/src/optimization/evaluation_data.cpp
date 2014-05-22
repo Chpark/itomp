@@ -104,6 +104,9 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   AngularMomentums_.resize(num_points);
   Torques_.resize(num_points);
   wrenchSum_.resize(num_points);
+  contact_forces_.resize(num_points);
+  for (int i = 0; i < num_points; ++i)
+      contact_forces_[i].resize(num_contacts);
 
   contactViolationVector_.resize(num_contacts);
   contactPointVelVector_.resize(num_contacts);

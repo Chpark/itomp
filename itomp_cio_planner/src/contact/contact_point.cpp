@@ -56,7 +56,7 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
     KDL::Vector diff = position - groundPosition;
     double angle = acos(KDL::dot(normal, groundNormal));
 
-    contactViolationVector[i] = Vector4d(diff.x(), diff.y(), diff.z(), 10 * angle);
+    contactViolationVector[i] = Vector4d(diff.x(), diff.y(), diff.z(), angle);
     contactPointPosVector[i] = position;
   }
   //for (int i = 0; i < start; ++i)

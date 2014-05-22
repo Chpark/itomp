@@ -99,8 +99,8 @@
   </joint>
   <joint name="base_prismatic_joint_z" type="prismatic">
     <axis xyz="0 0 1"/>
-    <limit effort="10000" lower="-1.12" upper="0.6" velocity="0.6"/>
-    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-1.1" soft_upper_limit="0.6"/>
+    <limit effort="10000" lower="-10.0" upper="10.0" velocity="0.6"/>
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-10.0" soft_upper_limit="10.0"/>
     <calibration falling="0.00536"/>
     <dynamics damping="20000.0"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>

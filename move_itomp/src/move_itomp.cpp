@@ -54,10 +54,10 @@ int main(int argc, char **argv)
   spinner.start();
   ros::NodeHandle node_handle("~");
 
-  // Setting up to start using a planner is pretty easy. Planners are 
+  // Setting up to start using a planner is pretty easy. Planners are
   // setup as plugins in MoveIt! and you can use the ROS pluginlib
-  // interface to load any planner that you want to use. Before we 
-  // can load the planner, we need two objects, a RobotModel 
+  // interface to load any planner that you want to use. Before we
+  // can load the planner, we need two objects, a RobotModel
   // and a PlanningScene.
   // We will start by instantiating a
   // `RobotModelLoader`_
@@ -70,11 +70,11 @@ int main(int argc, char **argv)
   robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
 
   // Using the :moveit_core:`RobotModel`, we can construct a
-  // :planning_scene:`PlanningScene` that maintains the state of 
-  // the world (including the robot). 
+  // :planning_scene:`PlanningScene` that maintains the state of
+  // the world (including the robot).
   planning_scene::PlanningScenePtr planning_scene(new planning_scene::PlanningScene(robot_model));
 
-  // We will now construct a loader to load a planner, by name. 
+  // We will now construct a loader to load a planner, by name.
   // Note that we are using the ROS pluginlib library here.
   boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
   planning_interface::PlannerManagerPtr planner_instance;
@@ -126,6 +126,12 @@ int main(int argc, char **argv)
   joint_model_group->getVariableDefaultPositions("pressup", values);
   //joint_model_group->getVariableDefaultPositions("standup", values);
   start_state.setVariablePositions(values);
+  double jointValue = 2.5;
+  start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  jointValue = -3.0;
+  start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = -3.0;
+  start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
 
   // Copy from start_state to req.start_state
   unsigned int num_joints = start_state.getVariableCount();
@@ -148,8 +154,12 @@ int main(int argc, char **argv)
   joint_model_group->getVariableDefaultPositions("pressup", values);
   //joint_model_group->getVariableDefaultPositions("standup", values);
   goal_state.setVariablePositions(values);
-  double jointValue = 2.0;
+  jointValue = 5.0;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  jointValue = -3.0;
+  goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = 0.0;
+  //goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
   req.group_name = "whole_body";
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
@@ -203,7 +213,7 @@ int main(int argc, char **argv)
   goal_state_display_publisher.publish(disp_goal_state);
 
   // We now construct a planning context that encapsulate the scene,
-  // the request and the response. We call the planner using this 
+  // the request and the response. We call the planner using this
   // planning context
   planning_interface::PlanningContextPtr context = planner_instance->getPlanningContext(planning_scene, req,
       res.error_code_);
