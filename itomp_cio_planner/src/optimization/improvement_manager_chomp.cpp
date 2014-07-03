@@ -254,6 +254,8 @@ bool ImprovementManagerChomp::preAllocateTempVariables()
 
 void ImprovementManagerChomp::runSingleIteration(int iteration)
 {
+  evaluation_manager_->getFullTrajectoryConst()->printTrajectory();
+
 	// compute appropriate noise values
 	std::vector<double> noise;
 	noise.resize(num_dimensions_);
@@ -295,6 +297,8 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
 
 	// add the noiseless rollout into policy_improvement:
 	addExtraRollout(parameters_, contact_parameters_, tmp_rollout_cost_);
+
+	evaluation_manager_->getFullTrajectoryConst()->printTrajectory();
 }
 
 bool ImprovementManagerChomp::generateRollouts(const std::vector<double>& noise_stddev,
