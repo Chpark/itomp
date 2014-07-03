@@ -21,13 +21,15 @@ ImprovementManagerChomp::~ImprovementManagerChomp()
 
 bool ImprovementManagerChomp::updatePlanningParameters()
 {
-  if (!ImprovementManager::updateParameters())
+  if (!ImprovementManager::updatePlanningParameters())
     return false;
 
+  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
+
 	num_time_steps_ = PlanningParameters::getInstance()->getNumTimeSteps();
-	num_contact_time_steps_ = evaluation_manager_->getGroupTrajectory()->getNumContactPhases() - 2;
-	num_dimensions_ = evaluation_manager_->getGroupTrajectory()->getNumJoints();
-	num_contact_dimensions_ = evaluation_manager_->getGroupTrajectory()->getNumContacts();
+	num_contact_time_steps_ = group_trajectory->getNumContactPhases() - 1;
+	num_dimensions_ = group_trajectory->getNumJoints();
+	num_contact_dimensions_ = group_trajectory->getNumContacts();
 	noise_decay_ = PlanningParameters::getInstance()->getNoiseDecay();
 	double noise_stddev_param = PlanningParameters::getInstance()->getNoiseStddev();
 	noise_stddev_.resize(num_dimensions_);
@@ -273,7 +275,9 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
 
 	for (unsigned int r = 0; r < rollouts_.size(); ++r)
 	{
+	  evaluation_manager_->setTrajectory(rollouts_[r].parameters_, rollouts_[r].contact_parameters_);
 		//evaluation_manager_->evaluate(rollouts_[r].parameters_, rollouts_[r].contact_parameters_, tmp_rollout_cost_);
+	  evaluation_manager_->evaluate(tmp_rollout_cost_);
 		rollout_costs_.row(r) = tmp_rollout_cost_.transpose();
 	}
 
@@ -286,6 +290,8 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
 	// get a noise-less rollout to check the cost
 	getParameters();
 	//evaluation_manager_->evaluate(parameters_, contact_parameters_, tmp_rollout_cost_);
+	evaluation_manager_->setTrajectory(parameters_, contact_parameters_);
+	evaluation_manager_->evaluate(tmp_rollout_cost_);
 
 	// add the noiseless rollout into policy_improvement:
 	addExtraRollout(parameters_, contact_parameters_, tmp_rollout_cost_);
@@ -394,18 +400,19 @@ bool ImprovementManagerChomp::generateRollouts(const std::vector<double>& noise_
 
 void ImprovementManagerChomp::copyGroupTrajectory()
 {
-  /*
+  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
+  int r = group_trajectory->getTrajectory().rows();
+  int c = group_trajectory->getTrajectory().cols();
 	for (int d = 0; d < num_dimensions_; ++d)
 	{
 		parameters_all_[d].segment(free_vars_start_index_, num_vars_free_)
-				= evaluation_manager_->getGroupTrajectory()->getFreeJointTrajectoryBlock(d);
+				= group_trajectory->getFreeJointTrajectoryBlock(d);
 	}
 	for (int d = 0; d < num_contact_dimensions_; ++d)
 	{
 		contact_parameters_all_[d].segment(free_contact_vars_start_index_, num_contact_vars_free_)
-				= evaluation_manager_->getGroupTrajectory()->getFreeContactTrajectoryBlock(d);
+				= group_trajectory->getFreeContactTrajectoryBlock(d);
 	}
-	*/
 }
 
 void ImprovementManagerChomp::computeRolloutControlCost(Rollout& rollout)

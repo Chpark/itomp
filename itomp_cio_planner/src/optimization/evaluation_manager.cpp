@@ -98,6 +98,19 @@ double EvaluationManager::evaluate()
   return data_->costAccumulator_.getTrajectoryCost();
 }
 
+double EvaluationManager::evaluate(Eigen::VectorXd& costs)
+{
+  double ret = evaluate();
+
+  int num_vars_free = getGroupTrajectory()->getFreePoints().rows();
+  for (int i = 0; i < num_vars_free; i++)
+  {
+    costs(i) = data_->costAccumulator_.getWaypointCost(i);
+  }
+
+  return ret;
+}
+
 double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index, int joint_index)
 {
   int stride = getGroupTrajectory()->getContactPhaseStride();
@@ -152,6 +165,32 @@ void EvaluationManager::setTrajectory(const Eigen::MatrixXd& parameters, const E
   getGroupTrajectory()->getContactTrajectory() = contact_parameters;
 
   getGroupTrajectory()->updateTrajectoryFromFreePoints();
+
+  // respect joint limits:
+  handleJointLimits();
+
+  // copy to full traj:
+  updateFullTrajectory();
+}
+
+void EvaluationManager::setTrajectory(const std::vector<Eigen::VectorXd>& parameters,
+    const std::vector<Eigen::VectorXd>& contact_parameters)
+{
+  // copy the parameters into group_trajectory:
+  int cols = getGroupTrajectory()->getTrajectory().cols();
+  for (int d = 0; d < num_joints_; ++d)
+  {
+    getGroupTrajectory()->getFreeJointTrajectoryBlock(d) = parameters[d];
+  }
+
+  cols = num_contact_points_;
+  for (int d = 0; d < num_contacts_; ++d)
+  {
+    //getGroupTrajectory()->getContactTrajectory().block(i, 0, 1, cols) = contact_parameters[i];
+    getGroupTrajectory()->getFreeContactTrajectoryBlock(d) = contact_parameters[d];
+  }
+
+  //getGroupTrajectory()->updateTrajectoryFromFreePoints();
 
   // respect joint limits:
   handleJointLimits();
@@ -434,7 +473,8 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
   // for each point in the trajectory
   for (int i = safe_begin; i < safe_end; ++i)
   {
-    getFullTrajectory()->getTrajectoryPointKDL(i, data_->kdl_joint_array_);
+    int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(i);
+    getFullTrajectory()->getTrajectoryPointKDL(full_traj_index, data_->kdl_joint_array_);
     // update kdl_joint_array with vel, acc
     if (i < 1)
     {
@@ -720,8 +760,9 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
 
     ADD_TIMER_POINT
 
-    data_->contact_force_solver_(PlanningParameters::getInstance()->getFrictionCoefficient(), data_->contact_forces_[point],
-        contact_positions, data_->wrenchSum_[point], contact_values, contact_parent_frames);
+    data_->contact_force_solver_(PlanningParameters::getInstance()->getFrictionCoefficient(),
+        data_->contact_forces_[point], contact_positions, data_->wrenchSum_[point], contact_values,
+        contact_parent_frames);
 
     ADD_TIMER_POINT
 
@@ -729,7 +770,8 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     {
       double cost = 0.0;
       for (int j = 0; j < 4; ++j)
-        cost += 16.0 * data_->contactViolationVector_[i][point].data_[j] * data_->contactViolationVector_[i][point].data_[j];
+        cost += 16.0 * data_->contactViolationVector_[i][point].data_[j]
+            * data_->contactViolationVector_[i][point].data_[j];
       cost += 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
@@ -753,10 +795,11 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
         KDL::Vector rel_pos = (contact_positions[i] - data_->CoMPositions_[point]);
         KDL::Vector contact_torque = rel_pos * data_->contact_forces_[point][i];
         printf("CP %d V:%f F:(%f %f %f) RT:(%f %f %f)xF=(%f %f %f) r:(%f %f %f) p:(%f %f %f)\n", i, contact_values[i],
-            data_->contact_forces_[point][i].x(), data_->contact_forces_[point][0].y(), data_->contact_forces_[point][i].z(), rel_pos.x(), rel_pos.y(), rel_pos.z(),
-            contact_torque.x(), contact_torque.y(), contact_torque.z(), contact_parent_frames[i].p.x(),
-            contact_parent_frames[i].p.y(), contact_parent_frames[i].p.z(), contact_positions[i].x(),
-            contact_positions[i].y(), contact_positions[i].z());
+            data_->contact_forces_[point][i].x(), data_->contact_forces_[point][0].y(),
+            data_->contact_forces_[point][i].z(), rel_pos.x(), rel_pos.y(), rel_pos.z(), contact_torque.x(),
+            contact_torque.y(), contact_torque.z(), contact_parent_frames[i].p.x(), contact_parent_frames[i].p.y(),
+            contact_parent_frames[i].p.z(), contact_positions[i].x(), contact_positions[i].y(),
+            contact_positions[i].z());
       }
     }
 
@@ -818,9 +861,10 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
   {
     double depthSum = 0.0;
 
+    int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(i);
     for (std::size_t k = 0; k < num_all_joints; k++)
     {
-      positions[k] = (*getFullTrajectory())(i, k);
+      positions[k] = (*getFullTrajectory())(full_traj_index, k);
     }
     data_->kinematic_state_->setVariablePositions(&positions[0]);
 
@@ -841,68 +885,75 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
   }
 }
 
-std::vector<double> computeFTR(const std::string& group_name, int contact_point_index, int begin, int end, const EvaluationData* data, const ItompPlanningGroup * planning_group)
+std::vector<double> computeFTR(const std::string& group_name, int contact_point_index, int begin, int end,
+    const EvaluationData* data, const ItompPlanningGroup * planning_group)
 {
-    std::vector<double> positions, trajectory_ftrs;
-    int num_joints = data->getFullTrajectory()->getNumJoints();
-    positions.resize(num_joints);
-    for(int i=begin; i<end; ++i)
+  std::vector<double> positions, trajectory_ftrs;
+  int num_joints = data->getFullTrajectory()->getNumJoints();
+  positions.resize(num_joints);
+  for (int i = begin; i < end; ++i)
+  {
+    int full_traj_index = data->getGroupTrajectory()->getFullTrajectoryIndex(i);
+    double cost = 0;
+    for (std::size_t k = 0; k < num_joints; k++)
     {
-        double cost = 0;
-        for (std::size_t k = 0; k < num_joints; k++)
-        {
-            positions[k] = (*data->getFullTrajectory())(i, k);
-        }
-        data->kinematic_state_->setVariablePositions(&positions[0]);
-        robot_model::RobotModelConstPtr robot_model_ptr = data->getItompRobotModel()->getRobotModel();
-        Eigen::MatrixXd jacobianFull = (data->kinematic_state_->getJacobian(robot_model_ptr->getJointModelGroup(group_name)));
-        Eigen::MatrixXd jacobian = jacobianFull.block(0,0,3,jacobianFull.cols());
-        Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
-
-        // computing direction, first version as COM velocity between poses
-        const KDL::Vector& dir_kdl = data->contact_forces_[i][contact_point_index];
-        Eigen::Vector3d direction(dir_kdl.x(), dir_kdl.y(), dir_kdl.z());
-        if(direction.norm() != 0)
-        {
-            direction.normalize();
-            double ftr = 1 / std::sqrt(direction.transpose() * (jacobian * jacobian_transpose) * direction);
-            KDL::Vector position, unused, normal;
-            planning_group->contactPoints_[contact_point_index].getPosition(i, position, data->segment_frames_);
-            GroundManager::getInstance().getNearestGroundPosition(position, unused, normal, data->planning_scene_); // TODO get more accurate normal
-            Eigen::Vector3d normalEigen(normal.x(), normal.y(), normal.z());
-            double contact_variable = data->getGroupTrajectory()->getContactTrajectory()(i / data->getGroupTrajectory()->getContactPhaseStride(), contact_point_index);
-
-            ftr *= -direction.dot(normalEigen);
-            // bound value btw -10 and 10, then 0 and 1
-            ftr = (ftr < -10) ? -10 : ftr;
-            ftr = (ftr >  10) ?  10 : ftr;
-            ftr = (ftr + 10) / 20;
-            cost = dir_kdl.Norm() - ftr;
-            cost = (cost < 0) ? 0 : cost;
-        }
-        trajectory_ftrs.push_back(cost);
+      positions[k] = (*data->getFullTrajectory())(full_traj_index, k);
     }
-    return trajectory_ftrs;
+    data->kinematic_state_->setVariablePositions(&positions[0]);
+    robot_model::RobotModelConstPtr robot_model_ptr = data->getItompRobotModel()->getRobotModel();
+    Eigen::MatrixXd jacobianFull =
+        (data->kinematic_state_->getJacobian(robot_model_ptr->getJointModelGroup(group_name)));
+    Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3, jacobianFull.cols());
+    Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
+
+    // computing direction, first version as COM velocity between poses
+    const KDL::Vector& dir_kdl = data->contact_forces_[i][contact_point_index];
+    Eigen::Vector3d direction(dir_kdl.x(), dir_kdl.y(), dir_kdl.z());
+    if (direction.norm() != 0)
+    {
+      direction.normalize();
+      double ftr = 1 / std::sqrt(direction.transpose() * (jacobian * jacobian_transpose) * direction);
+      KDL::Vector position, unused, normal;
+      planning_group->contactPoints_[contact_point_index].getPosition(i, position, data->segment_frames_);
+      GroundManager::getInstance().getNearestGroundPosition(position, unused, normal, data->planning_scene_); // TODO get more accurate normal
+      Eigen::Vector3d normalEigen(normal.x(), normal.y(), normal.z());
+      double contact_variable = data->getGroupTrajectory()->getContactTrajectory()(
+          i / data->getGroupTrajectory()->getContactPhaseStride(), contact_point_index);
+
+      ftr *= -direction.dot(normalEigen);
+      // bound value btw -10 and 10, then 0 and 1
+      ftr = (ftr < -10) ? -10 : ftr;
+      ftr = (ftr > 10) ? 10 : ftr;
+      ftr = (ftr + 10) / 20;
+      cost = dir_kdl.Norm() - ftr;
+      cost = (cost < 0) ? 0 : cost;
+    }
+    trajectory_ftrs.push_back(cost);
+  }
+  return trajectory_ftrs;
 }
 
 void EvaluationManager::computeFTRs(int begin, int end)
 {
-    int safe_begin = max(0, begin);
-    int safe_end = min(num_points_, end);
-    std::vector<double> left_leg_cost= computeFTR("left_leg", 0, safe_begin, safe_end, data_, planning_group_);
-    std::vector<double> right_leg_cost= computeFTR("right_leg", 1, safe_begin, safe_end, data_, planning_group_);
-    std::vector<double> left_arm_cost= computeFTR("left_arm", 2, safe_begin, safe_end, data_, planning_group_);
-    std::vector<double> right_arm_cost= computeFTR("right_arm", 3, safe_begin, safe_end, data_, planning_group_);
-    for(unsigned int i=safe_begin; i< safe_end; ++i)
-    {
-        int v_index = i-safe_begin;
-        data_->stateFTRCost_[i] = (left_leg_cost[v_index] + right_leg_cost[v_index]) + 0.5*(left_arm_cost[v_index] + right_arm_cost[v_index]) ;
-    }
+  int safe_begin = max(0, begin);
+  int safe_end = min(num_points_, end);
+  std::vector<double> left_leg_cost = computeFTR("left_leg", 0, safe_begin, safe_end, data_, planning_group_);
+  std::vector<double> right_leg_cost = computeFTR("right_leg", 1, safe_begin, safe_end, data_, planning_group_);
+  std::vector<double> left_arm_cost = computeFTR("left_arm", 2, safe_begin, safe_end, data_, planning_group_);
+  std::vector<double> right_arm_cost = computeFTR("right_arm", 3, safe_begin, safe_end, data_, planning_group_);
+  for (unsigned int i = safe_begin; i < safe_end; ++i)
+  {
+    int v_index = i - safe_begin;
+    data_->stateFTRCost_[i] = (left_leg_cost[v_index] + right_leg_cost[v_index])
+        + 0.5 * (left_arm_cost[v_index] + right_arm_cost[v_index]);
+  }
 
 }
 
 void EvaluationManager::postprocess_ik()
 {
+  return;
+
   const double threshold = 0.01;
 
   const Eigen::MatrixXd& contactTrajectoryBlock = getGroupTrajectory()->getContactTrajectory();

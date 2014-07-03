@@ -57,8 +57,10 @@ public:
 
   void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters);
+  void setTrajectory(const std::vector<Eigen::VectorXd>& parameters, const std::vector<Eigen::VectorXd>& contact_parameters);
 
   double evaluate();
+  double evaluate(Eigen::VectorXd& costs);
   double evaluateDerivatives(double value, DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index,
       int joint_index);
 

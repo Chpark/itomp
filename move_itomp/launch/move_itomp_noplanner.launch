@@ -20,7 +20,7 @@
     <arg name="debug" value="$(arg debug)"/>
   </include>
 
-  <rosparam command="load" file="$(find itomp_cio_planner)/config/params.yaml" ns="itomp_planner"/>
+  <rosparam command="load" file="$(find itomp_cio_planner)/config/params_hm.yaml" ns="itomp_planner"/>
   <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml" ns="move_itomp"/>
   <param name="/move_itomp/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
 

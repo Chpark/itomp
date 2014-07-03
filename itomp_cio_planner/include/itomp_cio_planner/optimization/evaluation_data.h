@@ -69,6 +69,8 @@ public:
   std::vector<double> stateCollisionCost_;
   std::vector<double> stateFTRCost_;
 
+  std::vector<std::vector<KDL::Vector> > contact_forces_;
+
   TrajectoryCostAccumulator costAccumulator_;
 
   KDL::TreeFkSolverJointPosAxisPartial fk_solver_;

@@ -39,8 +39,6 @@ private:
   bool computeProjectedNoise(Rollout& rollout);
   void computeRolloutControlCost(Rollout& rollout);
 
-  EvaluationManager *evaluation_manager_;
-
   int last_planning_parameter_index_;
 
   int num_dimensions_;

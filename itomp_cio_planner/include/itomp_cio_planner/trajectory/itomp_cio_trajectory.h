@@ -57,6 +57,8 @@ public:
   double getDiscretization() const;
   double getDuration() const;
 
+  int getFullTrajectoryIndex(int i) const;
+
   /**
    * \brief Generates a minimum jerk trajectory from the start index to end index
    *
@@ -88,6 +90,16 @@ public:
 
   void printTrajectory() const;
 
+  int getNumFreePoints() const;
+
+  Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeTrajectoryBlock();
+  Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeJointTrajectoryBlock(int joint);
+  const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeJointTrajectoryBlock(
+      int joint) const;
+  Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeContactTrajectoryBlock(int contact);
+  const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeContactTrajectoryBlock(
+      int contact) const;
+
 private:
   void init(); /**< \brief Allocates memory for the trajectory */
 
@@ -112,6 +124,10 @@ private:
 
   Eigen::VectorXd vel_start_;
   Eigen::VectorXd acc_start_;
+
+  int start_index_;
+  int end_index_;
+  std::vector<int> full_trajectory_index_;
 };
 
 typedef boost::shared_ptr<ItompCIOTrajectory> ItompCIOTrajectoryPtr;
@@ -220,7 +236,12 @@ inline int ItompCIOTrajectory::getContactPhase(int traj_point) const
 
 inline void ItompCIOTrajectory::getContactPhaseRange(int contact_index, int& start_point, int& end_point)
 {
-  start_point = contact_index * phase_stride_;
+  /*
+   start_point = contact_index * phase_stride_;
+   end_point = start_point + phase_stride_;
+   */
+
+  start_point = start_index_ - 1 + contact_index * phase_stride_;
   end_point = start_point + phase_stride_;
 }
 
@@ -257,6 +278,45 @@ inline Eigen::MatrixXd& ItompCIOTrajectory::getFreeVelPoints()
 inline const Eigen::MatrixXd& ItompCIOTrajectory::getFreeVelPoints() const
 {
   return free_vel_trajectory_;
+}
+
+inline int ItompCIOTrajectory::getNumFreePoints() const
+{
+  return (end_index_ - start_index_) + 1;
+}
+
+inline Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> ItompCIOTrajectory::getFreeTrajectoryBlock()
+{
+  return trajectory_.block(start_index_, 0, getNumFreePoints(), getNumJoints());
+}
+
+inline Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> ItompCIOTrajectory::getFreeJointTrajectoryBlock(
+    int joint)
+{
+  return trajectory_.block(start_index_, joint, getNumFreePoints(), 1);
+}
+
+inline const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> ItompCIOTrajectory::getFreeJointTrajectoryBlock(
+    int joint) const
+{
+  return trajectory_.block(start_index_, joint, getNumFreePoints(), 1);
+}
+
+inline Eigen::Block<Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> ItompCIOTrajectory::getFreeContactTrajectoryBlock(
+    int contact)
+{
+  return contact_trajectory_.block(1, contact, getNumContactPhases() - 1, 1);
+}
+
+inline const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> ItompCIOTrajectory::getFreeContactTrajectoryBlock(
+    int contact) const
+{
+  return contact_trajectory_.block(1, contact, getNumContactPhases() - 1, 1);
+}
+
+inline int ItompCIOTrajectory::getFullTrajectoryIndex(int i) const
+{
+  return full_trajectory_index_[i];
 }
 
 }
