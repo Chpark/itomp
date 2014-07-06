@@ -86,7 +86,7 @@ double EvaluationManager::evaluate()
 
   computeCollisionCosts();
 
-  computeFTRs();
+  //computeFTRs();
 
   data_->costAccumulator_.compute(data_);
 
@@ -739,6 +739,9 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     }
 
     int num_contacts = planning_group_->getNumContacts();
+    if (num_contacts == 0)
+      return;
+
     std::vector<KDL::Frame> contact_parent_frames(num_contacts);
     std::vector<double> contact_values(num_contacts);
     std::vector<KDL::Vector> contact_positions(num_contacts);
