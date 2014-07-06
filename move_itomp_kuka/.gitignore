@@ -1,0 +1,6 @@
+/bin
+/build
+/catkin_generated
+/devel
+/gtest
+/CMakeLists.txt~

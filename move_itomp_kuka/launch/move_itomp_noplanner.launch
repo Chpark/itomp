@@ -1,0 +1,35 @@
+<launch>
+  <!-- By default, we are not in debug mode -->
+  <arg name="debug" default="false" />
+
+  <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
+  <include file="$(find kuka_moveit_generated)/launch/planning_context.launch">
+    <arg name="load_robot_description" value="true"/>
+  </include>
+
+  <node pkg="tf" type="static_transform_publisher" name="virtual_joint_broadcaster_0" args="0 0 0 0 0 0 odom_combined root_link 100" />
+
+  <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
+    <param name="/use_gui" value="false"/>
+  </node>
+
+  <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
+
+  <include file="$(find human_moveit_generated)/launch/moveit_rviz.launch">
+    <arg name="config" value="true"/>
+    <arg name="debug" value="$(arg debug)"/>
+  </include>
+
+  <rosparam command="load" file="$(find itomp_cio_planner)/config/params_hm.yaml" ns="itomp_planner"/>
+  <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml" ns="move_itomp"/>
+  <param name="/move_itomp/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
+
+
+<!--
+  <node name="move_itomp" pkg="move_itomp" type="move_itomp" respawn="false" output="screen">
+    <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml"/>
+   <param name="/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
+  </node>
+-->
+
+</launch>
