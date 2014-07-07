@@ -142,7 +142,8 @@ int main(int argc, char **argv)
   // Set start_state
   const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("lower_body");
   std::map<std::string, double> values;
-  joint_model_group->getVariableDefaultPositions("pose_1", values);
+  //joint_model_group->getVariableDefaultPositions("pose_1", values);
+  joint_model_group->getVariableDefaultPositions("idle", values);
   start_state.setVariablePositions(values);
   double jointValue = 0.0;
   //start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
@@ -165,7 +166,8 @@ int main(int argc, char **argv)
 
   // Now, setup a goal state
   robot_state::RobotState goal_state(start_state);
-  joint_model_group->getVariableDefaultPositions("pose_1", values);
+  //joint_model_group->getVariableDefaultPositions("pose_1", values);
+  joint_model_group->getVariableDefaultPositions("idle", values);
   goal_state.setVariablePositions(values);
   jointValue = 2.5;
   //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
@@ -174,11 +176,18 @@ int main(int argc, char **argv)
   req.goal_constraints.push_back(joint_goal);
 
   // setup cartesian trajectory waypoints
-  //addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
-  //addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
+  /*
+  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
   addWaypoint(req, 2.5514, 0, 9.5772, 0.707, 0, -0.707, 0);
-  //addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
-  //addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
+  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  */
+  const double inv_sqrt_2 = 1.0 / sqrt(2.0);
+  addWaypoint(req, -3, 4, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, -3, 4, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, 3, 4, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, 3, 4, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
 
   // display start / goal states
   int num_variables = start_state.getVariableNames().size();
