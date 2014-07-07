@@ -26,7 +26,7 @@ EvaluationData::~EvaluationData()
 
 void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
     ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, const EvaluationManager* evaluation_manager,
-    int num_mass_segments)
+    int num_mass_segments, const moveit_msgs::Constraints& path_constraints)
 {
   full_trajectory_ = full_trajectory;
   group_trajectory_ = group_trajectory;
@@ -87,6 +87,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   statePhysicsViolationCost_.resize(num_points);
   stateCollisionCost_.resize(num_points);
   stateFTRCost_.resize(num_points);
+  stateCartesianTrajectoryCost_.resize(num_points);
 
   linkPositions_.resize(num_mass_segments);
   linkVelocities_.resize(num_mass_segments);
@@ -121,12 +122,22 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_VALIDITY));
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT));
   costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
-  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_FTR));
+  //costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_GOAL_POSE));
+  //costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_COM));
+  //costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_FTR));
+  costAccumulator_.addCost(TrajectoryCost::CreateTrajectoryCost(TrajectoryCost::COST_CARTESIAN_TRAJECTORY));
   costAccumulator_.init(this);
 
   fk_solver_ = *planning_group->fk_solver_.get();
+
+  cartesian_waypoints_.resize(path_constraints.position_constraints.size());
+  for (int i = 0; i < path_constraints.position_constraints.size(); ++i)
+  {
+    geometry_msgs::Vector3 position = path_constraints.position_constraints[i].target_point_offset;
+    geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[i].orientation;
+    cartesian_waypoints_[i].p = KDL::Vector(position.x, position.y, position.z);
+    cartesian_waypoints_[i].M = KDL::Rotation::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w);
+  }
 }
 
 void EvaluationData::initStaticEnvironment()

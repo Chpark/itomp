@@ -708,6 +708,7 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       x0 = x1;
     }
   }
+  //printTrajectory();
 }
 
 void ItompCIOTrajectory::printTrajectory() const

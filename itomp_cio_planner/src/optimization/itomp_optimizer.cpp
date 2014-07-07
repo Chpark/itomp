@@ -12,21 +12,22 @@ namespace itomp_cio_planner
 {
 
 ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
-    const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time) :
+    const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time,
+    const moveit_msgs::Constraints& path_constraints) :
     is_succeed_(false), terminated_(false), trajectory_index_(trajectory_index), planning_start_time_(
         planning_start_time), iteration_(-1), feasible_iteration_(0), last_improvement_iteration_(-1), full_trajectory_(
         trajectory), group_trajectory_(*full_trajectory_, planning_group, DIFF_RULE_LENGTH), evaluation_manager_(
         &iteration_), best_group_trajectory_(group_trajectory_.getTrajectory()), best_group_contact_trajectory_(
         group_trajectory_.getContactTrajectory())
 {
-  initialize(robot_model, planning_group, trajectory_start_time);
+  initialize(robot_model, planning_group, trajectory_start_time, path_constraints);
 }
 
 void ItompOptimizer::initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
-    double trajectory_start_time)
+    double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
 {
   evaluation_manager_.initialize(full_trajectory_, &group_trajectory_, robot_model, planning_group,
-      planning_start_time_, trajectory_start_time);
+      planning_start_time_, trajectory_start_time, path_constraints);
 
   //improvement_manager_.reset(new ImprovementManagerNLP());
   improvement_manager_.reset(new ImprovementManagerChomp());

@@ -25,7 +25,8 @@ public:
 
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
       ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
-      const EvaluationManager* evaluation_manager, int num_mass_segments);
+      const EvaluationManager* evaluation_manager, int num_mass_segments,
+      const moveit_msgs::Constraints& path_constraints);
 
   double getNumPoints() const;
   double getNumJoints() const;
@@ -68,6 +69,7 @@ public:
   std::vector<double> statePhysicsViolationCost_;
   std::vector<double> stateCollisionCost_;
   std::vector<double> stateFTRCost_;
+  std::vector<double> stateCartesianTrajectoryCost_;
 
   std::vector<std::vector<KDL::Vector> > contact_forces_;
 
@@ -78,6 +80,8 @@ public:
 
   planning_scene::PlanningScenePtr planning_scene_;
   robot_state::RobotStatePtr kinematic_state_;
+
+  std::vector<KDL::Frame> cartesian_waypoints_;
 
   EvaluationData* clone() const;
   void deepCopy(const EvaluationData& data);
@@ -115,7 +119,7 @@ inline const ItompCIOTrajectory* EvaluationData::getFullTrajectory() const
 }
 inline const ItompRobotModel* EvaluationData::getItompRobotModel() const
 {
-    return robot_model_;
+  return robot_model_;
 }
 inline double EvaluationData::getNumPoints() const
 {

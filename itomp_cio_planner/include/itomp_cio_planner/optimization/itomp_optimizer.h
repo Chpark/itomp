@@ -14,7 +14,8 @@ class ItompOptimizer
 {
 public:
 	ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
-			const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time);
+			const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time,
+			const moveit_msgs::Constraints& path_constraints);
 	virtual ~ItompOptimizer();
 
 	bool optimize();
@@ -24,7 +25,7 @@ public:
 
 private:
 	void initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
-			double trajectory_start_time);
+			double trajectory_start_time, const moveit_msgs::Constraints& path_constraints);
 	bool updateBestTrajectory(double cost);
 
 	bool is_succeed_;

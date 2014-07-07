@@ -33,7 +33,7 @@ EvaluationManager::~EvaluationManager()
 
 void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
     ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-    double trajectory_start_time)
+    double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
 {
   planning_start_time_ = planning_start_time;
   trajectory_start_time_ = trajectory_start_time;
@@ -65,7 +65,8 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
 
   GroundManager::getInstance().init();
 
-  default_data_.initialize(full_trajectory, group_trajectory, robot_model, planning_group, this, num_mass_segments_);
+  default_data_.initialize(full_trajectory, group_trajectory, robot_model, planning_group, this, num_mass_segments_,
+      path_constraints);
 
   timings_.resize(100, 0);
   for (int i = 0; i < 100; ++i)
@@ -89,6 +90,8 @@ double EvaluationManager::evaluate()
 
   //computeFTRs();
 
+  computeCartesianTrajectoryCosts();
+
   data_->costAccumulator_.compute(data_);
 
   last_trajectory_collision_free_ &= data_->costAccumulator_.isFeasible();
@@ -103,7 +106,10 @@ double EvaluationManager::evaluate(Eigen::VectorXd& costs)
 {
   double ret = evaluate();
 
-  int num_vars_free = getGroupTrajectory()->getFreePoints().rows();
+  //int num_vars_free = getGroupTrajectory()->getFreePoints().rows();
+
+  // TODO
+  int num_vars_free = 99;
   for (int i = 0; i < num_vars_free; i++)
   {
     costs(i) = data_->costAccumulator_.getWaypointCost(i);
@@ -952,6 +958,40 @@ void EvaluationManager::computeFTRs(int begin, int end)
         + 0.5 * (left_arm_cost[v_index] + right_arm_cost[v_index]);
   }
 
+}
+
+void EvaluationManager::computeCartesianTrajectoryCosts()
+{
+  // TODO: fix hard-coded values
+  const int END_EFFECTOR_SEGMENT_INDEX = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex("segment_7");
+
+  const double rotation_weight = 1.0;
+
+  int num_vars_free = 100;
+  int num_cartesian_waypoints = data_->cartesian_waypoints_.size();
+  double waypoint_stride = (double) num_vars_free / (num_cartesian_waypoints + 1);
+
+  for (int i = 0; i < num_points_; ++i)
+    data_->stateCartesianTrajectoryCost_[i] = 0;
+
+  // TODO: fix
+  int point_index = 5;
+  for (int i = 0; i < num_cartesian_waypoints; ++i)
+  {
+    point_index = (int) (point_index + waypoint_stride);
+    KDL::Frame& frame = data_->segment_frames_[point_index][END_EFFECTOR_SEGMENT_INDEX];
+
+    KDL::Rotation cartesian_rot = data_->cartesian_waypoints_[i].M;
+    KDL::Rotation rotation = (cartesian_rot * frame.M.Inverse());
+    KDL::Vector rotation_vector = rotation.GetRot();
+    double rotation_angle = rotation_vector.Norm();
+
+    double distance = (data_->cartesian_waypoints_[i].p - frame.p).Norm();
+
+    double cost = distance + rotation_weight * rotation_angle;
+
+    data_->stateCartesianTrajectoryCost_[point_index] = cost / num_cartesian_waypoints;
+  }
 }
 
 void EvaluationManager::postprocess_ik()

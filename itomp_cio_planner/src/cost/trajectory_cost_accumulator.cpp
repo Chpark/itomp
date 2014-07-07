@@ -93,11 +93,11 @@ double TrajectoryCostAccumulator::getTrajectoryCost() const
 
 void TrajectoryCostAccumulator::print(int number) const
 {
-  printf("[%d] Trajectory cost : %f (s=%f, c=%f, ci=%f pv=%f frp=%f)\n", number, getTrajectoryCost(),
+  printf("[%d] Trajectory cost : %f (s=%f, c=%f, ci=%f pv=%f ct=%f)\n", number, getTrajectoryCost(),
       getTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS), getTrajectoryCost(TrajectoryCost::COST_COLLISION),
       getTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT),
       getTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION),
-      getTrajectoryCost(TrajectoryCost::COST_FTR));
+      getTrajectoryCost(TrajectoryCost::COST_CARTESIAN_TRAJECTORY));
 
 }
 

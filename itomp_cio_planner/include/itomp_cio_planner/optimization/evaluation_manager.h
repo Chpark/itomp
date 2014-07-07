@@ -53,7 +53,7 @@ public:
 
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
       ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-      double trajectory_start_time);
+      double trajectory_start_time, const moveit_msgs::Constraints& path_constraints);
 
   void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters);
@@ -93,6 +93,7 @@ private:
   void updateCoM(int point);
   void computeCollisionCosts();
   void computeFTRs();
+  void computeCartesianTrajectoryCosts();
 
   void updateFullTrajectory(int point_index, int joint_index);
   bool performForwardKinematics(int begin, int end);
