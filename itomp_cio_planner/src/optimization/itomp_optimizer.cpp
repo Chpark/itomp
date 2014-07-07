@@ -57,7 +57,7 @@ bool ItompOptimizer::optimize()
   updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
   ++iteration_;
 
-  while (iteration_ < 1)//PlanningParameters::getInstance()->getMaxIterations())
+  while (iteration_ < PlanningParameters::getInstance()->getMaxIterations())
   {
     improvement_manager_->runSingleIteration(iteration_);
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();

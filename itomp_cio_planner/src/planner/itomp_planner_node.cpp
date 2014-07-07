@@ -260,7 +260,7 @@ void ItompPlannerNode::trajectoryOptimization(const string& groupName, const sen
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
   optimizer_.reset(
       new ItompOptimizer(0, trajectory_.get(), &robot_model_, group, planning_start_time_, trajectory_start_time_));
-  //optimizer_->optimize();
+  optimizer_->optimize();
   last_planning_time_ = (ros::WallTime::now() - create_time).toSec();
   ROS_INFO("Optimization of group %s took %f sec", groupName.c_str(), last_planning_time_);
 }

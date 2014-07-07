@@ -80,11 +80,12 @@ double EvaluationManager::evaluate()
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
 
-  computeWrenchSum();
+  //computeWrenchSum();
 
-  computeStabilityCosts();
+  //computeStabilityCosts();
 
-  computeCollisionCosts();
+  // TODO: reuse
+  //computeCollisionCosts();
 
   //computeFTRs();
 

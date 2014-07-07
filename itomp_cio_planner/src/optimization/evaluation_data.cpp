@@ -131,6 +131,9 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
 
 void EvaluationData::initStaticEnvironment()
 {
+  // TODO:
+  return;
+
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
   if (!environment_file.empty())
   {

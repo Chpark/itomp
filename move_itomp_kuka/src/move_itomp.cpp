@@ -174,11 +174,11 @@ int main(int argc, char **argv)
   req.goal_constraints.push_back(joint_goal);
 
   // setup cartesian trajectory waypoints
-  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
-  addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
+  //addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  //addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
   addWaypoint(req, 2.5514, 0, 9.5772, 0.707, 0, -0.707, 0);
-  addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
-  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  //addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
+  //addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
 
   // display start / goal states
   int num_variables = start_state.getVariableNames().size();

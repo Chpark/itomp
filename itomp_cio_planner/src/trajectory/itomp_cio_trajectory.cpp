@@ -658,14 +658,6 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       if (range != num_cartesian_waypoints)
       {
         x1 = cartesian_waypoints_ik_solutions[range][d];
-        /*
-         coeff[d][0] = x0;
-         coeff[d][1] = v0;
-         coeff[d][2] = 0.5 * a0;
-         coeff[d][3] = (-0.5 * a0 - v0 - x0 + x1);
-         coeff[d][4] = 0;
-         coeff[d][5] = 0;
-         */
       }
       else
       {
@@ -673,14 +665,6 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
         duration = (to - from) * discretization_;
         x1 = (*this)(end_index, d);
       }
-
-      // endpoint vel, acc = 0
-      coeff[d][0] = x0;
-      coeff[d][1] = v0;
-      coeff[d][2] = 0.5 * a0;
-      coeff[d][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-      coeff[d][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-      coeff[d][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
 
       if (std::abs(x1 - x0) > 3.14)
       {
@@ -691,6 +675,14 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
         else
           x1 += 2 * M_PI;
       }
+
+      // endpoint vel, acc = 0
+      coeff[d][0] = x0;
+      coeff[d][1] = v0;
+      coeff[d][2] = 0.5 * a0;
+      coeff[d][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
+      coeff[d][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
+      coeff[d][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
 
       ROS_INFO("Joint %d range %d from %f(%f %f) to %f", d, range, x0, v0, a0, x1);
 
@@ -714,33 +706,8 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       to = std::min((int) (from + waypoint_stride), end_index);
       duration = (to - from) * discretization_;
       x0 = x1;
-
-      // update v0, a0
-      /*
-       if (range != num_cartesian_waypoints)
-       {
-       double t[6]; // powers of the time index point
-       t[0] = 1.0;
-       t[1] = duration;
-       for (int k = 2; k <= 5; k++)
-       t[k] = t[k - 1] * t[1];
-
-       v0 = 0;
-       for (int k = 1; k <= 5; ++k)
-       {
-       v0 += k * coeff[d][k] * t[k - 1];
-       }
-
-       a0 = 0;
-       for (int k = 2; k <= 5; ++k)
-       {
-       a0 += k * (k - 1) * coeff[d][k] * t[k - 2];
-       }
-       }
-       */
     }
   }
-  printTrajectory();
 }
 
 void ItompCIOTrajectory::printTrajectory() const
@@ -755,26 +722,28 @@ void ItompCIOTrajectory::printTrajectory() const
     }
     printf("\n");
   }
-  printf("Free Trajectory\n");
-  for (int i = 0; i <= num_contact_phases_; ++i)
-  {
-    printf("%d : ", i);
-    for (int j = 0; j < num_joints_; ++j)
-    {
-      printf("%f ", free_trajectory_(i, j));
-    }
-    printf("\n");
-  }
-  printf("Free Velocity Trajectory\n");
-  for (int i = 0; i <= num_contact_phases_; ++i)
-  {
-    printf("%d : ", i);
-    for (int j = 0; j < num_joints_; ++j)
-    {
-      printf("%f ", free_vel_trajectory_(i, j));
-    }
-    printf("\n");
-  }
+  /*
+   printf("Free Trajectory\n");
+   for (int i = 0; i <= num_contact_phases_; ++i)
+   {
+   printf("%d : ", i);
+   for (int j = 0; j < num_joints_; ++j)
+   {
+   printf("%f ", free_trajectory_(i, j));
+   }
+   printf("\n");
+   }
+   printf("Free Velocity Trajectory\n");
+   for (int i = 0; i <= num_contact_phases_; ++i)
+   {
+   printf("%d : ", i);
+   for (int j = 0; j < num_joints_; ++j)
+   {
+   printf("%f ", free_vel_trajectory_(i, j));
+   }
+   printf("\n");
+   }
+   */
 }
 
 }

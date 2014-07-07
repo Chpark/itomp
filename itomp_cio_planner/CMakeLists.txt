@@ -51,6 +51,7 @@ src/optimization/evaluation_data.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
 src/optimization/improvement_manager_chomp.cpp
+src/optimization/rollout.cpp
 )
 target_link_libraries(itomp dlib)
 set(LIBRARY_INPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

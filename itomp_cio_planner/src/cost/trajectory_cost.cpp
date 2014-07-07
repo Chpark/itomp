@@ -91,7 +91,7 @@ void TrajectorySmoothnessCost::doCompute(const EvaluationData* data, Eigen::Vect
 	double smoothness_cost = 0.0;
 	// joint costs:
 	for (int i = 0; i < data->getNumJoints(); i++)
-		smoothness_cost += data->joint_costs_[i].getCost(data->getGroupTrajectory()->getJointTrajectory(i));
+	  smoothness_cost += data->joint_costs_[i].getCost(data->getGroupTrajectory()->getJointTrajectory(i));
 
 	costData(1) = smoothness_cost;
 }
