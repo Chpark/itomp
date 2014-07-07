@@ -682,6 +682,16 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       coeff[d][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
       coeff[d][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
 
+      if (std::abs(x1 - x0) > 3.14)
+      {
+        // TODO: check whether joint is continuous
+        ROS_INFO("Angle greater than pi : value changed");
+        if (x1 > x0)
+          x1 -= 2 * M_PI;
+        else
+          x1 += 2 * M_PI;
+      }
+
       ROS_INFO("Joint %d range %d from %f(%f %f) to %f", d, range, x0, v0, a0, x1);
 
       // fill in the joint positions at each time step
