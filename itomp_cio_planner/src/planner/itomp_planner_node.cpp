@@ -90,6 +90,43 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
     sensor_msgs::JointState jointGoalState;
     getGoalState(req, jointGoalState);
 
+    // test : overwrite from goal pose ik
+    /*
+     {
+     robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_.getRobotModel()));
+     const robot_state::JointModelGroup* joint_model_group = robot_model_.getRobotModel()->getJointModelGroup(
+     req.group_name);
+     Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+     Eigen::Quaternion<double> rot(1, 0, 0, 0);
+     Eigen::Vector3d trans(3.3597, 0, 10.641-0.25);
+
+     Eigen::Matrix3d mat = rot.toRotationMatrix();
+     end_effector_state.linear() = mat;
+     end_effector_state.translation() = trans;
+
+     kinematics::KinematicsQueryOptions options;
+     options.return_approximate_solution = true;
+     bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+     moveit::core::GroupStateValidityCallbackFn(), options);
+     // Now, we can print out the IK solution (if found):
+     if (found_ik)
+     {
+     std::vector<double> group_values;
+     kinematic_state->copyJointGroupPositions(joint_model_group, group_values);
+     double* state_pos = kinematic_state->getVariablePositions();
+     for (std::size_t k = 0; k < kinematic_state->getVariableCount(); k++)
+     {
+     jointGoalState.position[k] = state_pos[k];
+     }
+     ROS_INFO("IK solution found");
+     }
+     else
+     {
+     ROS_INFO("Did not find IK solution");
+     }
+     }
+     */
+
     planning_start_time_ = ros::Time::now().toSec();
 
     // for each planning group
@@ -98,7 +135,7 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
       const string& groupName = planningGroups[i];
 
       // optimize
-      trajectoryOptimization(groupName, jointGoalState);
+      trajectoryOptimization(groupName, jointGoalState, req.path_constraints);
 
       writePlanningInfo(c, i);
     }
@@ -193,7 +230,6 @@ void ItompPlannerNode::getGoalState(const planning_interface::MotionPlanRequest 
       goalState.position[kdl_number] = goal_joint_state.position[i];
     }
   }
-
 }
 
 void ItompPlannerNode::getPlanningGroups(std::vector<std::string>& plannningGroups, const string& groupName)
@@ -213,18 +249,18 @@ void ItompPlannerNode::getPlanningGroups(std::vector<std::string>& plannningGrou
   }
 }
 
-void ItompPlannerNode::trajectoryOptimization(const string& groupName,
-    const sensor_msgs::JointState& jointGoalState)
+void ItompPlannerNode::trajectoryOptimization(const string& groupName, const sensor_msgs::JointState& jointGoalState,
+    const moveit_msgs::Constraints& path_constraints)
 {
   ros::WallTime create_time = ros::WallTime::now();
 
-  fillGroupJointTrajectory(groupName, jointGoalState);
+  fillGroupJointTrajectory(groupName, jointGoalState, path_constraints);
 
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
   optimizer_.reset(
       new ItompOptimizer(0, trajectory_.get(), &robot_model_, group, planning_start_time_, trajectory_start_time_));
-  optimizer_->optimize();
+  //optimizer_->optimize();
   last_planning_time_ = (ros::WallTime::now() - create_time).toSec();
   ROS_INFO("Optimization of group %s took %f sec", groupName.c_str(), last_planning_time_);
 }
@@ -277,7 +313,8 @@ void ItompPlannerNode::fillInResult(const std::vector<std::string>& planningGrou
   }
 }
 
-void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const sensor_msgs::JointState& jointGoalState)
+void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const sensor_msgs::JointState& jointGoalState,
+    const moveit_msgs::Constraints& path_constraints)
 {
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
@@ -326,8 +363,16 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const s
   {
     groupJointsKDLIndices.insert(group->group_joints_[i].kdl_joint_index_);
   }
-  trajectory_->fillInMinJerk(groupJointsKDLIndices, start_point_velocities_.row(0),
-      start_point_accelerations_.row(0));
+
+  if (path_constraints.position_constraints.size() == 0)
+  {
+    trajectory_->fillInMinJerk(groupJointsKDLIndices, start_point_velocities_.row(0), start_point_accelerations_.row(0));
+  }
+  else
+  {
+    trajectory_->fillInMinJerkCartesianTrajectory(groupJointsKDLIndices, start_point_velocities_.row(0), start_point_accelerations_.row(0),
+        path_constraints, groupName);
+  }
 }
 
 void ItompPlannerNode::printTrajectory(ItompCIOTrajectory* trajectory)

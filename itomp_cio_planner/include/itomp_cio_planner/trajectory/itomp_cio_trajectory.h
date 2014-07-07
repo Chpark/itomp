@@ -67,6 +67,9 @@ public:
       const Eigen::MatrixXd::RowXpr joint_acc_array);
   void fillInMinJerkWithMidPoint(const std::vector<double>& midPoint, const std::set<int>& groupJointsKDLIndices,
       int index);
+  void fillInMinJerkCartesianTrajectory(const std::set<int>& groupJointsKDLIndices,
+      const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array,
+      const moveit_msgs::Constraints& path_constraints, const std::string& group_name);
 
   Eigen::MatrixXd& getTrajectory();
   const Eigen::MatrixXd& getTrajectory() const;

@@ -46,6 +46,25 @@
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
+#include <moveit_msgs/PositionConstraint.h>
+#include <moveit_msgs/OrientationConstraint.h>
+
+void addWaypoint(planning_interface::MotionPlanRequest& req, double x, double y, double z, double qx, double qy,
+    double qz, double qw)
+{
+  moveit_msgs::PositionConstraint pos_constraint;
+  moveit_msgs::OrientationConstraint ori_constraint;
+  pos_constraint.target_point_offset.x = x;
+  pos_constraint.target_point_offset.y = y;
+  pos_constraint.target_point_offset.z = z;
+  ori_constraint.orientation.x = qx;
+  ori_constraint.orientation.y = qy;
+  ori_constraint.orientation.z = qz;
+  ori_constraint.orientation.w = qw;
+  req.path_constraints.position_constraints.push_back(pos_constraint);
+  req.path_constraints.orientation_constraints.push_back(ori_constraint);
+
+}
 
 int main(int argc, char **argv)
 {
@@ -146,7 +165,7 @@ int main(int argc, char **argv)
 
   // Now, setup a goal state
   robot_state::RobotState goal_state(start_state);
-  joint_model_group->getVariableDefaultPositions("pose_3", values);
+  joint_model_group->getVariableDefaultPositions("pose_1", values);
   goal_state.setVariablePositions(values);
   jointValue = 2.5;
   //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
@@ -154,6 +173,14 @@ int main(int argc, char **argv)
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
 
+  // setup cartesian trajectory waypoints
+  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+  addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
+  addWaypoint(req, 2.5514, 0, 9.5772, 0.707, 0, -0.707, 0);
+  addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
+  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+
+  // display start / goal states
   int num_variables = start_state.getVariableNames().size();
   ros::Publisher start_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
       "/move_itomp/display_start_state", 1, true);
