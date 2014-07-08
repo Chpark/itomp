@@ -107,7 +107,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   wrenchSum_.resize(num_points);
   contact_forces_.resize(num_points);
   for (int i = 0; i < num_points; ++i)
-      contact_forces_[i].resize(num_contacts);
+    contact_forces_[i].resize(num_contacts);
 
   contactViolationVector_.resize(num_contacts);
   contactPointVelVector_.resize(num_contacts);
@@ -143,7 +143,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
 void EvaluationData::initStaticEnvironment()
 {
   // TODO:
-  return;
+  //return;
 
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
   if (!environment_file.empty())
@@ -160,36 +160,42 @@ void EvaluationData::initStaticEnvironment()
     pose.position.x = environment_position[0];
     pose.position.y = environment_position[1];
     pose.position.z = environment_position[2];
-    pose.orientation.x = sqrt(0.5);
+    /*
+     pose.orientation.x = sqrt(0.5);
+     pose.orientation.y = 0.0;
+     pose.orientation.z = 0.0;
+     pose.orientation.w = sqrt(0.5);
+     */
+    pose.orientation.x = 0.0;
     pose.orientation.y = 0.0;
     pose.orientation.z = 0.0;
-    pose.orientation.w = sqrt(0.5);
+    pose.orientation.w = 1.0;
 
-    shapes::Mesh* shape = shapes::createMeshFromResource("package://move_itomp/meshes/" + environment_file);
+    shapes::Mesh* shape = shapes::createMeshFromResource(environment_file);
     shapes::ShapeMsg mesh_msg;
     shapes::constructMsgFromShape(shape, mesh_msg);
     shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
 
     collision_object.meshes.push_back(mesh);
     collision_object.mesh_poses.push_back(pose);
-/*
-    // replace mesh with box
-    shape_msgs::SolidPrimitive primitive;
-    primitive.type = primitive.BOX;
-    primitive.dimensions.resize(3);
-    primitive.dimensions[0] = 2.0;
-    primitive.dimensions[1] = 5.0;
-    primitive.dimensions[2] = 5.0;
-    collision_object.primitives.push_back(primitive);
-    pose.position.x = 0.0;
-    pose.position.y = 0.0;
-    pose.position.z = -2.6;
-    pose.orientation.x = 0.0;
-    pose.orientation.y = 0.0;
-    pose.orientation.z = 0.0;
-    pose.orientation.w = 1.0;
-    collision_object.primitive_poses.push_back(pose);
-*/
+    /*
+     // replace mesh with box
+     shape_msgs::SolidPrimitive primitive;
+     primitive.type = primitive.BOX;
+     primitive.dimensions.resize(3);
+     primitive.dimensions[0] = 2.0;
+     primitive.dimensions[1] = 5.0;
+     primitive.dimensions[2] = 5.0;
+     collision_object.primitives.push_back(primitive);
+     pose.position.x = 0.0;
+     pose.position.y = 0.0;
+     pose.position.z = -2.6;
+     pose.orientation.x = 0.0;
+     pose.orientation.y = 0.0;
+     pose.orientation.z = 0.0;
+     pose.orientation.w = 1.0;
+     collision_object.primitive_poses.push_back(pose);
+     */
 
     collision_object.operation = collision_object.ADD;
     moveit_msgs::PlanningScene planning_scene_msg;
@@ -201,15 +207,15 @@ void EvaluationData::initStaticEnvironment()
     std::vector<std::string> object_ids = world->getObjectIds();
     for (int i = 0; i < object_ids.size(); ++i)
     {
-        collision_detection::World::ObjectPtr obj = world->getObject(object_ids[i]);
-        for (int j = 0; j < obj->shapes_.size(); ++j)
-        {
-            shapes::Shape* shape = const_cast<shapes::Shape*>(obj->shapes_[j].get());
-            shapes::Mesh* mesh = dynamic_cast<shapes::Mesh*>(shape);
-            if (mesh == NULL)
-                continue;
-            mesh->computeTriangleNormals();
-        }
+      collision_detection::World::ObjectPtr obj = world->getObject(object_ids[i]);
+      for (int j = 0; j < obj->shapes_.size(); ++j)
+      {
+        shapes::Shape* shape = const_cast<shapes::Shape*>(obj->shapes_[j].get());
+        shapes::Mesh* mesh = dynamic_cast<shapes::Mesh*>(shape);
+        if (mesh == NULL)
+          continue;
+        mesh->computeTriangleNormals();
+      }
     }
   }
 

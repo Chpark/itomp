@@ -55,15 +55,21 @@ void VisualizationManager::renderEnvironment()
   msg.pose.position.x = environment_position[0];
   msg.pose.position.y = environment_position[1];
   msg.pose.position.z = environment_position[2];
-  msg.pose.orientation.x = sqrt(0.5);
+  /*
+   msg.pose.orientation.x = sqrt(0.5);
+   msg.pose.orientation.y = 0.0;
+   msg.pose.orientation.z = 0.0;
+   msg.pose.orientation.w = sqrt(0.5);
+   */
+  msg.pose.orientation.x = 0.0;
   msg.pose.orientation.y = 0.0;
   msg.pose.orientation.z = 0.0;
-  msg.pose.orientation.w = sqrt(0.5);
+  msg.pose.orientation.w = 1.0;
   msg.color.a = 1.0;
   msg.color.r = 0.5;
   msg.color.g = 0.5;
   msg.color.b = 0.5;
-  msg.mesh_resource = "package://move_itomp/meshes/" + environment_file;
+  msg.mesh_resource = environment_file;
   ma.markers.push_back(msg);
   vis_marker_array_publisher_.publish(ma);
 }

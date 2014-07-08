@@ -184,10 +184,10 @@ int main(int argc, char **argv)
   addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
   */
   const double inv_sqrt_2 = 1.0 / sqrt(2.0);
-  addWaypoint(req, -3, 4, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, -3, 4, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, 3, 4, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, 3, 4, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, -3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, -3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, 3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+  addWaypoint(req, 3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
 
   // display start / goal states
   int num_variables = start_state.getVariableNames().size();
