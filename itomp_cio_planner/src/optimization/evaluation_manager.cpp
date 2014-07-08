@@ -109,7 +109,7 @@ double EvaluationManager::evaluate(Eigen::VectorXd& costs)
   //int num_vars_free = getGroupTrajectory()->getFreePoints().rows();
 
   // TODO
-  int num_vars_free = 99;
+  int num_vars_free = num_points_ - 10 - 2;
   int start = 6;
   for (int i = 0; i < num_vars_free; i++)
   {

@@ -63,7 +63,127 @@ void addWaypoint(planning_interface::MotionPlanRequest& req, double x, double y,
   ori_constraint.orientation.w = qw;
   req.path_constraints.position_constraints.push_back(pos_constraint);
   req.path_constraints.orientation_constraints.push_back(ori_constraint);
+}
 
+void plan(planning_interface::PlannerManagerPtr& planner_instance, planning_scene::PlanningScenePtr planning_scene,
+    planning_interface::MotionPlanRequest& req, planning_interface::MotionPlanResponse& res,
+    const std::string& group_name, robot_state::RobotState& start_state, robot_state::RobotState& goal_state)
+{
+  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup(group_name);
+  req.group_name = group_name;
+
+  // Copy from start_state to req.start_state
+  unsigned int num_joints = start_state.getVariableCount();
+  req.start_state.joint_state.name = start_state.getVariableNames();
+  req.start_state.joint_state.position.resize(num_joints);
+  req.start_state.joint_state.velocity.resize(num_joints);
+  req.start_state.joint_state.effort.resize(num_joints);
+  memcpy(&req.start_state.joint_state.position[0], start_state.getVariablePositions(), sizeof(double) * num_joints);
+  if (start_state.hasVelocities())
+    memcpy(&req.start_state.joint_state.velocity[0], start_state.getVariableVelocities(), sizeof(double) * num_joints);
+  else
+    memset(&req.start_state.joint_state.velocity[0], 0, sizeof(double) * num_joints);
+  if (start_state.hasAccelerations())
+    memcpy(&req.start_state.joint_state.effort[0], start_state.getVariableAccelerations(), sizeof(double) * num_joints);
+  else
+    memset(&req.start_state.joint_state.effort[0], 0, sizeof(double) * num_joints);
+
+  // goal state
+  moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
+  req.goal_constraints.clear();
+  req.goal_constraints.push_back(joint_goal);
+
+  planning_interface::PlanningContextPtr context = planner_instance->getPlanningContext(planning_scene, req,
+      res.error_code_);
+  context->solve(res);
+  if (res.error_code_.val != res.error_code_.SUCCESS)
+  {
+    ROS_ERROR("Could not compute plan successfully");
+    return;
+  }
+}
+
+void displayStates(ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model,
+    robot_state::RobotState& start_state, robot_state::RobotState& goal_state)
+{
+  // display start / goal states
+  int num_variables = start_state.getVariableNames().size();
+  ros::Publisher start_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
+      "/move_itomp/display_start_state", 1, true);
+  moveit_msgs::DisplayRobotState disp_start_state;
+  disp_start_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
+  disp_start_state.state.joint_state.name = start_state.getVariableNames();
+  disp_start_state.state.joint_state.position.resize(num_variables);
+  memcpy(&disp_start_state.state.joint_state.position[0], start_state.getVariablePositions(),
+      sizeof(double) * num_variables);
+  disp_start_state.highlight_links.clear();
+  const std::vector<std::string>& link_model_names = robot_model->getLinkModelNames();
+  for (int i = 0; i < link_model_names.size(); ++i)
+  {
+    std_msgs::ColorRGBA color;
+    color.a = 0.5;
+    color.r = 0.0;
+    color.g = 1.0;
+    color.b = 0.5;
+    moveit_msgs::ObjectColor obj_color;
+    obj_color.id = link_model_names[i];
+    obj_color.color = color;
+    disp_start_state.highlight_links.push_back(obj_color);
+  }
+  start_state_display_publisher.publish(disp_start_state);
+
+  ros::Publisher goal_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
+      "/move_itomp/display_goal_state", 1, true);
+  moveit_msgs::DisplayRobotState disp_goal_state;
+  disp_goal_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
+  disp_goal_state.state.joint_state.name = goal_state.getVariableNames();
+  disp_goal_state.state.joint_state.position.resize(num_variables);
+  memcpy(&disp_goal_state.state.joint_state.position[0], goal_state.getVariablePositions(),
+      sizeof(double) * num_variables);
+  disp_goal_state.highlight_links.clear();
+  for (int i = 0; i < link_model_names.size(); ++i)
+  {
+    std_msgs::ColorRGBA color;
+    color.a = 0.5;
+    color.r = 0.0;
+    color.g = 0.5;
+    color.b = 1.0;
+    moveit_msgs::ObjectColor obj_color;
+    obj_color.id = link_model_names[i];
+    obj_color.color = color;
+    disp_goal_state.highlight_links.push_back(obj_color);
+  }
+  goal_state_display_publisher.publish(disp_goal_state);
+}
+
+void computeIKState(robot_state::RobotState& ik_state, const std::string& group_name, double x, double y, double z,
+    double qx, double qy, double qz, double qw)
+{
+  // compute waypoint ik solutions
+
+  const robot_state::JointModelGroup* joint_model_group = ik_state.getJointModelGroup(group_name);
+
+  int num_joints = ik_state.getVariableCount();
+
+  Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+  Eigen::Quaternion<double> rot(qw, qx, qy, qz);
+  Eigen::Vector3d trans(x, y, z);
+  Eigen::Matrix3d mat = rot.toRotationMatrix();
+  end_effector_state.linear() = mat;
+  end_effector_state.translation() = trans;
+
+  kinematics::KinematicsQueryOptions options;
+  options.return_approximate_solution = false;
+  bool found_ik = ik_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+      moveit::core::GroupStateValidityCallbackFn(), options);
+  if (found_ik)
+  {
+    ROS_INFO("IK solution found");
+  }
+  else
+  {
+    ROS_INFO("Could not find IK solution");
+  }
 }
 
 int main(int argc, char **argv)
@@ -129,17 +249,20 @@ int main(int argc, char **argv)
         "Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
   }
 
+  ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>(
+      "/move_group/display_planned_path", 1, true);
+  moveit_msgs::DisplayTrajectory display_trajectory;
+  moveit_msgs::MotionPlanResponse response;
+
   /* Sleep a little to allow time to startup rviz, etc. */
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
 
-  // We will now create a motion plan request
-  // specifying the desired pose of the end-effector as input.
   planning_interface::MotionPlanRequest req;
   planning_interface::MotionPlanResponse res;
-  robot_state::RobotState& start_state = planning_scene->getCurrentStateNonConst();
 
   // Set start_state
+  robot_state::RobotState& start_state = planning_scene->getCurrentStateNonConst();
   const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("lower_body");
   std::map<std::string, double> values;
   //joint_model_group->getVariableDefaultPositions("pose_1", values);
@@ -148,122 +271,59 @@ int main(int argc, char **argv)
   double jointValue = 0.0;
   //start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 
-  // Copy from start_state to req.start_state
-  unsigned int num_joints = start_state.getVariableCount();
-  req.start_state.joint_state.name = start_state.getVariableNames();
-  req.start_state.joint_state.position.resize(num_joints);
-  req.start_state.joint_state.velocity.resize(num_joints);
-  req.start_state.joint_state.effort.resize(num_joints);
-  memcpy(&req.start_state.joint_state.position[0], start_state.getVariablePositions(), sizeof(double) * num_joints);
-  if (start_state.hasVelocities())
-    memcpy(&req.start_state.joint_state.velocity[0], start_state.getVariableVelocities(), sizeof(double) * num_joints);
-  else
-    memset(&req.start_state.joint_state.velocity[0], 0, sizeof(double) * num_joints);
-  if (start_state.hasAccelerations())
-    memcpy(&req.start_state.joint_state.effort[0], start_state.getVariableAccelerations(), sizeof(double) * num_joints);
-  else
-    memset(&req.start_state.joint_state.effort[0], 0, sizeof(double) * num_joints);
-
-  // Now, setup a goal state
+  // Setup a goal state
   robot_state::RobotState goal_state(start_state);
-  //joint_model_group->getVariableDefaultPositions("pose_1", values);
+  //joint_model_group->getVariableDefaultPositions("pose_2", values);
   joint_model_group->getVariableDefaultPositions("idle", values);
   goal_state.setVariablePositions(values);
   jointValue = 2.5;
   //goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  req.group_name = "lower_body";
-  moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
-  req.goal_constraints.push_back(joint_goal);
 
   // setup cartesian trajectory waypoints
   /*
-  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
-  addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
-  addWaypoint(req, 2.5514, 0, 9.5772, 0.707, 0, -0.707, 0);
-  addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
-  addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
-  */
-  const double inv_sqrt_2 = 1.0 / sqrt(2.0);
-  addWaypoint(req, -3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, -3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, 3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-  addWaypoint(req, 3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+   addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+   addWaypoint(req,  0, 2.5514, 9.5772, 0.5, 0.5, -0.5, 0.5);
+   addWaypoint(req, 2.5514, 0, 9.5772, 0.707, 0, -0.707, 0);
+   addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
+   addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
+   */
 
-  // display start / goal states
-  int num_variables = start_state.getVariableNames().size();
-  ros::Publisher start_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
-      "/move_itomp/display_start_state", 1, true);
-  moveit_msgs::DisplayRobotState disp_start_state;
-  disp_start_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
-  disp_start_state.state.joint_state.name = start_state.getVariableNames();
-  disp_start_state.state.joint_state.position.resize(num_variables);
-  memcpy(&disp_start_state.state.joint_state.position[0], start_state.getVariablePositions(),
-      sizeof(double) * num_variables);
-  disp_start_state.highlight_links.clear();
-  const std::vector<std::string>& link_model_names = robot_model->getLinkModelNames();
-  for (int i = 0; i < link_model_names.size(); ++i)
+  /*
+   const double inv_sqrt_2 = 1.0 / sqrt(2.0);
+   addWaypoint(req, -3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+   addWaypoint(req, -3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+   addWaypoint(req, 3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+   addWaypoint(req, 3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
+   */
+
+  displayStates(node_handle, robot_model, start_state, goal_state);
+
+  const double INV_SQRT_2 = 1.0 / sqrt(2.0);
+  const double EE_CONSTRAINTS[][7] =
   {
-    std_msgs::ColorRGBA color;
-    color.a = 0.5;
-    color.r = 0.0;
-    color.g = 1.0;
-    color.b = 0.5;
-    moveit_msgs::ObjectColor obj_color;
-    obj_color.id = link_model_names[i];
-    obj_color.color = color;
-    disp_start_state.highlight_links.push_back(obj_color);
-  }
-  start_state_display_publisher.publish(disp_start_state);
+  { -3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+  { -3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+  { 3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+  { 3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 } };
 
-  ros::Publisher goal_state_display_publisher = node_handle.advertise<moveit_msgs::DisplayRobotState>(
-      "/move_itomp/display_goal_state", 1, true);
-  moveit_msgs::DisplayRobotState disp_goal_state;
-  disp_goal_state.state.joint_state.header.frame_id = robot_model->getModelFrame();
-  disp_goal_state.state.joint_state.name = goal_state.getVariableNames();
-  disp_goal_state.state.joint_state.position.resize(num_variables);
-  memcpy(&disp_goal_state.state.joint_state.position[0], goal_state.getVariablePositions(),
-      sizeof(double) * num_variables);
-  disp_goal_state.highlight_links.clear();
-  for (int i = 0; i < link_model_names.size(); ++i)
+  robot_state::RobotState from_state(start_state);
+  robot_state::RobotState to_state(start_state);
+  for (int i = 0; i < 4; ++i)
   {
-    std_msgs::ColorRGBA color;
-    color.a = 0.5;
-    color.r = 0.0;
-    color.g = 0.5;
-    color.b = 1.0;
-    moveit_msgs::ObjectColor obj_color;
-    obj_color.id = link_model_names[i];
-    obj_color.color = color;
-    disp_goal_state.highlight_links.push_back(obj_color);
+    computeIKState(to_state, "lower_body", EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2],
+        EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
+
+    plan(planner_instance, planning_scene, req, res, "lower_body", from_state, to_state);
+    res.getMessage(response);
+    if (i == 0)
+      display_trajectory.trajectory_start = response.trajectory_start;
+    display_trajectory.trajectory.push_back(response.trajectory);
+    from_state = to_state;
   }
-  goal_state_display_publisher.publish(disp_goal_state);
-
-  // We now construct a planning context that encapsulate the scene,
-  // the request and the response. We call the planner using this
-  // planning context
-  planning_interface::PlanningContextPtr context = planner_instance->getPlanningContext(planning_scene, req,
-      res.error_code_);
-  context->solve(res);
-  if (res.error_code_.val != res.error_code_.SUCCESS)
-  {
-    ROS_ERROR("Could not compute plan successfully");
-    return 0;
-  }
-
-  // Visualize the result
-  // ^^^^^^^^^^^^^^^^^^^^
-  ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>(
-      "/move_group/display_planned_path", 1, true);
-  moveit_msgs::DisplayTrajectory display_trajectory;
-
-  /* Visualize the trajectory */
-
-  ROS_INFO("Visualizing the trajectory");
-  moveit_msgs::MotionPlanResponse response;
+  plan(planner_instance, planning_scene, req, res, "lower_body", from_state, goal_state);
   res.getMessage(response);
-
-  display_trajectory.trajectory_start = response.trajectory_start;
   display_trajectory.trajectory.push_back(response.trajectory);
+
   display_publisher.publish(display_trajectory);
 
   sleep_time.sleep();
