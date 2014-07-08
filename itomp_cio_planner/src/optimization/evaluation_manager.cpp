@@ -86,7 +86,7 @@ double EvaluationManager::evaluate()
   //computeStabilityCosts();
 
   // TODO: reuse
-  //computeCollisionCosts();
+  computeCollisionCosts();
 
   //computeFTRs();
 
@@ -110,9 +110,10 @@ double EvaluationManager::evaluate(Eigen::VectorXd& costs)
 
   // TODO
   int num_vars_free = 99;
+  int start = 6;
   for (int i = 0; i < num_vars_free; i++)
   {
-    costs(i) = data_->costAccumulator_.getWaypointCost(i);
+    costs(i) = data_->costAccumulator_.getWaypointCost(start + i);
   }
 
   return ret;
