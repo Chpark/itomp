@@ -78,6 +78,8 @@ double EvaluationManager::evaluate()
   // do forward kinematics:
   last_trajectory_collision_free_ = performForwardKinematics();
 
+  handleTrajectoryConstraint();
+
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
 
@@ -455,6 +457,105 @@ void EvaluationManager::handleJointLimits()
         (*getGroupTrajectory())(i, joint) = joint_min;
       }
     }
+  }
+}
+
+void EvaluationManager::handleTrajectoryConstraint()
+{
+  if (data_->cartesian_waypoints_.size() == 0)
+    return;
+
+  // TODO: temp
+  // handle cartesian traj
+  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
+  const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(
+      "lower_body");
+
+  KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
+  KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
+  KDL::Vector dir = (end_pos - start_pos);
+  dir.Normalize();
+  KDL::Rotation orientation = data_->cartesian_waypoints_[0].M;
+
+  int start = 6;
+
+  Eigen::Matrix3d mat;
+  for (int i = 0; i < 3; ++i)
+    for (int j = 0; j < 3; ++j)
+      mat(i, j) = orientation(i, j);
+
+  // set state to the start config
+  std::vector<double> positions(num_joints_);
+  for (std::size_t k = 0; k < num_joints_; k++)
+  {
+    positions[k] = (*getGroupTrajectory())(5, k);
+  }
+  kinematic_state->setVariablePositions(&positions[0]);
+  kinematic_state->update();
+
+  const int END_EFFECTOR_SEGMENT_INDEX = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex("segment_7");
+  int num_vars_free = num_points_ - 10 - 2;
+
+  for (int i = start; i < start + num_vars_free; i++)
+  {
+    int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(i);
+
+    for (std::size_t k = 0; k < num_joints_; k++)
+      positions[k] = (*getGroupTrajectory())(i, k);
+    kinematic_state->setVariablePositions(&positions[0]);
+    kinematic_state->update();
+
+    KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+    KDL::Vector proj = start_pos + KDL::dot(dir, (frame.p - start_pos)) * dir;
+    if (KDL::dot((proj - start_pos), dir) < 0)
+      proj = start_pos;
+    if (KDL::dot((proj - end_pos), dir) > 0)
+      proj = end_pos;
+
+    proj = start_pos + (end_pos - start_pos) * (double) (i - start) / num_vars_free;
+
+    double dist = (frame.p - proj).Norm();
+
+    // Use IK to compute joint values
+    vector<double> ik_solution(num_joints_);
+
+    Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+    Eigen::Vector3d trans(proj.x(), proj.y(), proj.z());
+
+    end_effector_state.linear() = mat;
+    end_effector_state.translation() = trans;
+
+    kinematics::KinematicsQueryOptions options;
+    options.return_approximate_solution = false;
+    bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+        moveit::core::GroupStateValidityCallbackFn(), options);
+    if (found_ik)
+    {
+      std::vector<double> group_values;
+      kinematic_state->copyJointGroupPositions(joint_model_group, group_values);
+      double* state_pos = kinematic_state->getVariablePositions();
+      for (std::size_t k = 0; k < kinematic_state->getVariableCount(); ++k)
+      {
+        ik_solution[k] = state_pos[k];
+        (*getGroupTrajectory())(i, k) = state_pos[k];
+        (*getFullTrajectory())(full_traj_index, k) = state_pos[k];
+      }
+    }
+    else
+    {
+      ROS_INFO("Could not find IK solution for waypoint %d", i);
+    }
+  }
+  performForwardKinematics();
+
+  // check
+  for (int i = start; i < start + num_vars_free; i++)
+  {
+    KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+    KDL::Vector proj = start_pos + KDL::dot(dir, (frame.p - start_pos)) * dir;
+    double dist = (frame.p - proj).Norm();
+    if (dist > 0.1)
+      ROS_INFO("error : %d dist : %f", i, dist);
   }
 }
 
@@ -977,7 +1078,7 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
     return;
 
   KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
-  KDL::Vector end_pos = data_->cartesian_waypoints_[0].p;
+  KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
   KDL::Vector dir = (end_pos - start_pos);
   dir.Normalize();
 
@@ -992,6 +1093,9 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
     double cost = distance;
 
     data_->stateCartesianTrajectoryCost_[i] = cost * cost;
+
+    if (distance > 0.1)
+      ROS_INFO("error : %d dist : %f", i, distance);
   }
 }
 

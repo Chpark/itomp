@@ -94,6 +94,7 @@ private:
   void computeCollisionCosts();
   void computeFTRs();
   void computeCartesianTrajectoryCosts();
+  void handleTrajectoryConstraint();
 
   void updateFullTrajectory(int point_index, int joint_index);
   bool performForwardKinematics(int begin, int end);

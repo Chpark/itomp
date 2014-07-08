@@ -1,11 +1,11 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 0
+max_iterations: 20
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
-smoothness_cost_weight: 0.001
-obstacle_cost_weight: 1.0
+smoothness_cost_weight: 0.00001
+obstacle_cost_weight: 10.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
@@ -14,7 +14,7 @@ physics_violation_cost_weight: 0.0
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
-cartesian_trajectory_cost_weight: 0.01
+cartesian_trajectory_cost_weight: 1.0
 smoothness_cost_velocity: 0.0
 smoothness_cost_acceleration: 1.0
 smoothness_cost_jerk: 0.0
@@ -53,8 +53,8 @@ collision_links:
 use_cumulative_costs: true
 use_smooth_noises: true
 
-num_rollouts: 10
-num_reused_rollouts: 5
+num_rollouts: 20
+num_reused_rollouts: 10
 noise_stddev: 2.0
 noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
 
