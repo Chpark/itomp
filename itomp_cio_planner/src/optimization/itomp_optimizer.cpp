@@ -58,6 +58,7 @@ bool ItompOptimizer::optimize()
   updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
   ++iteration_;
 
+  int iteration_after_solution = 0;
   while (iteration_ < PlanningParameters::getInstance()->getMaxIterations())
   {
     improvement_manager_->runSingleIteration(iteration_);
@@ -66,7 +67,9 @@ bool ItompOptimizer::optimize()
     bool is_best = updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
     if (best_group_trajectory_cost_ < 0.01)
     {
-      break;
+      ++iteration_after_solution;
+      if (iteration_after_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
+        break;
     }
     if (!is_best)
     {
