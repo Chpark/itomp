@@ -313,6 +313,16 @@ int main(int argc, char **argv)
     computeIKState(to_state, "lower_body", EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2],
         EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
 
+    if (i != 0)
+    {
+      req.path_constraints.position_constraints.clear();
+      req.path_constraints.orientation_constraints.clear();
+      addWaypoint(req, EE_CONSTRAINTS[i - 1][0], EE_CONSTRAINTS[i - 1][1], EE_CONSTRAINTS[i - 1][2],
+          EE_CONSTRAINTS[i - 1][3], EE_CONSTRAINTS[i - 1][4], EE_CONSTRAINTS[i - 1][5], EE_CONSTRAINTS[i - 1][6]);
+      addWaypoint(req, EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2], EE_CONSTRAINTS[i][3],
+          EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
+    }
+
     plan(planner_instance, planning_scene, req, res, "lower_body", from_state, to_state);
     res.getMessage(response);
     if (i == 0)
@@ -320,6 +330,8 @@ int main(int argc, char **argv)
     display_trajectory.trajectory.push_back(response.trajectory);
     from_state = to_state;
   }
+  req.path_constraints.position_constraints.clear();
+  req.path_constraints.orientation_constraints.clear();
   plan(planner_instance, planning_scene, req, res, "lower_body", from_state, goal_state);
   res.getMessage(response);
   display_trajectory.trajectory.push_back(response.trajectory);

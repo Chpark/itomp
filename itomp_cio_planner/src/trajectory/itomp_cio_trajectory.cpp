@@ -575,29 +575,101 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
     const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array,
     const moveit_msgs::Constraints& path_constraints, const string& group_name)
 {
+  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
+  const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(group_name);
+
+  geometry_msgs::Vector3 start_position = path_constraints.position_constraints[0].target_point_offset;
+  geometry_msgs::Vector3 goal_position = path_constraints.position_constraints[1].target_point_offset;
+  geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[0].orientation;
+
   vel_start_ = joint_vel_array;
   acc_start_ = joint_acc_array;
+  double start_index = start_index_ - 1;
+  double end_index = end_index_ + 1;
+  double duration = (end_index - start_index) * discretization_;
 
-  int start_index = start_index_ - 1;
-  int end_index = end_index_ + 1;
-  int numPoints = end_index - start_index;
-
-  ROS_ASSERT(path_constraints.position_constraints.size() == path_constraints.orientation_constraints.size());
-  int num_cartesian_waypoints = path_constraints.position_constraints.size();
-  double waypoint_stride = (double) numPoints / (num_cartesian_waypoints + 1);
-
-  // compute waypoint ik solutions
-  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
+  // set state to the start config
   std::vector<double> positions(num_joints_);
-  for (int i = 0; i < kinematic_state->getVariableCount(); ++i)
-    positions[i] = kinematic_state->getVariablePositions()[i];
-  const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(group_name);
-  vector<vector<double> > cartesian_waypoints_ik_solutions(num_cartesian_waypoints);
-  for (int i = 0; i < num_cartesian_waypoints; ++i)
+  for (std::size_t k = 0; k < num_joints_; k++)
   {
-    cartesian_waypoints_ik_solutions[i].resize(num_joints_);
-    geometry_msgs::Vector3 position = path_constraints.position_constraints[i].target_point_offset;
-    geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[i].orientation;
+    positions[k] = (*this)(start_index, k);
+  }
+  kinematic_state->setVariablePositions(&positions[0]);
+  kinematic_state->update();
+
+  double T[6]; // powers of the time duration
+  T[0] = 1.0;
+  T[1] = duration;
+
+  for (int i = 2; i <= 5; i++)
+    T[i] = T[i - 1] * T[1];
+
+  // calculate the spline coefficients for 3d space
+  const int CARTESIAN_SPACE_DOF = 3;
+  double coeff[CARTESIAN_SPACE_DOF][6];
+
+  for (int i = 0; i < 3; ++i)
+  {
+    double x0, x1;
+    switch (i)
+    {
+    case 0:
+      x0 = start_position.x;
+      x1 = goal_position.x;
+      break;
+    case 1:
+      x0 = start_position.y;
+      x1 = goal_position.y;
+      break;
+    case 2:
+      x0 = start_position.z;
+      x1 = goal_position.z;
+      break;
+    }
+
+    double v0 = 0.0;
+    double a0 = 0.0;
+    ROS_INFO("CartesianSpace %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
+
+    v0 = v0 * duration;
+    a0 = a0 * duration * duration;
+
+    coeff[i][0] = x0;
+    coeff[i][1] = v0;
+    coeff[i][2] = 0.5 * a0;
+    coeff[i][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
+    coeff[i][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
+    coeff[i][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
+  }
+
+  // now evaluate 3d pos for each pos
+  int numPoints = end_index - start_index;
+  for (int i = start_index; i <= end_index; i++)
+  {
+    double t[6]; // powers of the time index point
+    t[0] = 1.0;
+    t[1] = (double) (i - start_index) / numPoints; //(i - start_index) * discretization_;
+    for (int k = 2; k <= 5; k++)
+      t[k] = t[k - 1] * t[1];
+
+    double pos[3];
+
+    for (int j = 0; j < 3; ++j)
+    {
+      pos[j] = 0;
+      for (int k = 0; k <= 5; k++)
+      {
+        pos[j] += t[k] * coeff[j][k];
+      }
+    }
+    geometry_msgs::Vector3 position;
+    position.x = pos[0];
+    position.y = pos[1];
+    position.z = pos[2];
+
+    // Use IK to compute joint values
+    vector<double> ik_solution(num_joints_);
+
     Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
     Eigen::Quaternion<double> rot(orientation.w, orientation.x, orientation.y, orientation.z);
     Eigen::Vector3d trans(position.x, position.y, position.z);
@@ -607,8 +679,6 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
 
     kinematics::KinematicsQueryOptions options;
     options.return_approximate_solution = false;
-    //kinematic_state->setVariablePositions(&positions[0]);
-    //kinematic_state->update();
     bool found_ik = kinematic_state->setFromIK(joint_model_group, end_effector_state, 10, 0.1,
         moveit::core::GroupStateValidityCallbackFn(), options);
     if (found_ik)
@@ -623,7 +693,9 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
           orientation.z, orientation.w);
       for (std::size_t k = 0; k < kinematic_state->getVariableCount(); ++k)
       {
-        cartesian_waypoints_ik_solutions[i][k] = state_pos[k];
+        ik_solution[k] = state_pos[k];
+        if (i != start_index && i != end_index)
+          (*this)(i, k) = state_pos[k];
         printf("%f ", state_pos[k]);
       }
       printf("\n");
@@ -633,82 +705,6 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       ROS_INFO("Could not find IK solution for waypoint %d", i);
     }
   }
-
-  // calculate the spline coefficients for each joint:
-  double coeff[num_joints_][6];
-
-  for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-  {
-    int d = *it;
-
-    int from = start_index;
-    int to = std::min((int) (from + waypoint_stride), end_index);
-    double duration = (to - from) * discretization_;
-
-    double v0 = 0.0;
-    double a0 = 0.0;
-    double x0 = (*this)(start_index, d);
-    double x1;
-    for (int range = 0; range <= num_cartesian_waypoints; ++range)
-    {
-      // evaluate coefficients
-      v0 = v0 * duration;
-      a0 = a0 * duration * duration;
-
-      if (range != num_cartesian_waypoints)
-      {
-        x1 = cartesian_waypoints_ik_solutions[range][d];
-      }
-      else
-      {
-        to = end_index;
-        duration = (to - from) * discretization_;
-        x1 = (*this)(end_index, d);
-      }
-
-      if (std::abs(x1 - x0) > 3.14)
-      {
-        // TODO: check whether joint is continuous
-        ROS_INFO("Angle greater than pi : value changed");
-        if (x1 > x0)
-          x1 -= 2 * M_PI;
-        else
-          x1 += 2 * M_PI;
-      }
-
-      // endpoint vel, acc = 0
-      coeff[d][0] = x0;
-      coeff[d][1] = v0;
-      coeff[d][2] = 0.5 * a0;
-      coeff[d][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-      coeff[d][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-      coeff[d][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-
-      ROS_INFO("Joint %d range %d from %f(%f %f) to %f", d, range, x0, v0, a0, x1);
-
-      // fill in the joint positions at each time step
-      for (int i = from; i <= to; ++i)
-      {
-        double t[6]; // powers of the time index point
-        t[0] = 1.0;
-        t[1] = (double) (i - from) / (to - from);
-        for (int k = 2; k <= 5; k++)
-          t[k] = t[k - 1] * t[1];
-
-        (*this)(i, d) = 0.0;
-        for (int k = 0; k <= 5; k++)
-        {
-          (*this)(i, d) += t[k] * coeff[d][k];
-        }
-      }
-
-      from = to;
-      to = std::min((int) (from + waypoint_stride), end_index);
-      duration = (to - from) * discretization_;
-      x0 = x1;
-    }
-  }
-  //printTrajectory();
 }
 
 void ItompCIOTrajectory::printTrajectory() const

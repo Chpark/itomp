@@ -966,32 +966,32 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
   // TODO: fix hard-coded values
   const int END_EFFECTOR_SEGMENT_INDEX = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex("segment_7");
 
-  const double rotation_weight = 1.0;
+  const double rotation_weight = 0.0;
 
   int num_vars_free = 100;
-  int num_cartesian_waypoints = data_->cartesian_waypoints_.size();
-  double waypoint_stride = (double) num_vars_free / (num_cartesian_waypoints + 1);
 
   for (int i = 0; i < num_points_; ++i)
     data_->stateCartesianTrajectoryCost_[i] = 0;
 
+  if (data_->cartesian_waypoints_.size() == 0)
+    return;
+
+  KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
+  KDL::Vector end_pos = data_->cartesian_waypoints_[0].p;
+  KDL::Vector dir = (end_pos - start_pos);
+  dir.Normalize();
+
   // TODO: fix
   int point_index = 5;
-  for (int i = 0; i < num_cartesian_waypoints; ++i)
+  for (int i = point_index; i < point_index + num_vars_free; ++i)
   {
-    point_index = (int) (point_index + waypoint_stride);
-    KDL::Frame& frame = data_->segment_frames_[point_index][END_EFFECTOR_SEGMENT_INDEX];
+    KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+    KDL::Vector distToLine = (frame.p - start_pos) - KDL::dot(dir, (frame.p - start_pos)) * dir;
+    double distance = distToLine.Norm();
 
-    KDL::Rotation cartesian_rot = data_->cartesian_waypoints_[i].M;
-    KDL::Rotation rotation = (cartesian_rot * frame.M.Inverse());
-    KDL::Vector rotation_vector = rotation.GetRot();
-    double rotation_angle = rotation_vector.Norm();
+    double cost = distance;
 
-    double distance = (data_->cartesian_waypoints_[i].p - frame.p).Norm();
-
-    double cost = distance + rotation_weight * rotation_angle;
-
-    data_->stateCartesianTrajectoryCost_[point_index] = cost / num_cartesian_waypoints;
+    data_->stateCartesianTrajectoryCost_[i] = cost * cost;
   }
 }
 
