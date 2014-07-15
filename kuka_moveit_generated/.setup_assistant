@@ -1,0 +1,8 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: kuka_description
+    relative_path: lbr5_7.urdf
+  SRDF:
+    relative_path: config/lbr5_7.srdf
+  CONFIG:
+    generated_timestamp: 1404629807
