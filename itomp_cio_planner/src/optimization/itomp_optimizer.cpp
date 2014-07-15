@@ -63,7 +63,7 @@ bool ItompOptimizer::optimize()
   {
     improvement_manager_->runSingleIteration(iteration_);
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
-    ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
+    //ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
     bool is_best = updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
     if (best_group_trajectory_cost_ < 0.01)
     {

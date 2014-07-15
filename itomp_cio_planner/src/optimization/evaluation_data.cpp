@@ -146,7 +146,7 @@ void EvaluationData::initStaticEnvironment()
   //return;
 
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
-      //"package://kuka_description/cad/monitor_obs.dae";
+      //"package://kuka_description/env/monitor_col2.dae";
   if (!environment_file.empty())
   {
     vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();

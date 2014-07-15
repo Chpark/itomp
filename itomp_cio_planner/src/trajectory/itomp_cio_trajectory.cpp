@@ -683,22 +683,22 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
         moveit::core::GroupStateValidityCallbackFn(), options);
     if (found_ik)
     {
-      ROS_INFO("IK solution found for waypoint %d", i);
+      //ROS_INFO("IK solution found for waypoint %d", i);
 
       std::vector<double> group_values;
       kinematic_state->copyJointGroupPositions(joint_model_group, group_values);
       double* state_pos = kinematic_state->getVariablePositions();
       ROS_ASSERT(num_joints_ == kinematic_state->getVariableCount());
-      printf("EE : (%f %f %f)(%f %f %f %f) : ", position.x, position.y, position.z, orientation.x, orientation.y,
-          orientation.z, orientation.w);
+      //printf("EE : (%f %f %f)(%f %f %f %f) : ", position.x, position.y, position.z, orientation.x, orientation.y,
+        //  orientation.z, orientation.w);
       for (std::size_t k = 0; k < kinematic_state->getVariableCount(); ++k)
       {
         ik_solution[k] = state_pos[k];
-        if (i != start_index && i != end_index)
+        if (i != start_index)
           (*this)(i, k) = state_pos[k];
-        printf("%f ", state_pos[k]);
+        //printf("%f ", state_pos[k]);
       }
-      printf("\n");
+      //printf("\n");
     }
     else
     {

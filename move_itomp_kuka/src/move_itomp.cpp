@@ -287,15 +287,6 @@ int main(int argc, char **argv)
    addWaypoint(req,  0, -2.5514, 9.5772, -0.5, 0.5, 0.5, 0.5);
    addWaypoint(req, -2.5514, 0, 9.5772, 0, 0.707, 0, 0.707);
    */
-
-  /*
-   const double inv_sqrt_2 = 1.0 / sqrt(2.0);
-   addWaypoint(req, -3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-   addWaypoint(req, -3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-   addWaypoint(req, 3, 5, 7.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-   addWaypoint(req, 3, 5, 3.0, 0, inv_sqrt_2, inv_sqrt_2, 0);
-   */
-
   displayStates(node_handle, robot_model, start_state, goal_state);
 
   const double INV_SQRT_2 = 1.0 / sqrt(2.0);
@@ -329,6 +320,13 @@ int main(int argc, char **argv)
       display_trajectory.trajectory_start = response.trajectory_start;
     display_trajectory.trajectory.push_back(response.trajectory);
     from_state = to_state;
+
+    // use the last configuration of prev trajectory
+    int num_joints = from_state.getVariableCount();
+    std::vector<double> positions(num_joints);
+    const robot_state::RobotState& last_state = res.trajectory_->getLastWayPoint();
+    from_state.setVariablePositions(last_state.getVariablePositions());
+    from_state.update();
   }
   req.path_constraints.position_constraints.clear();
   req.path_constraints.orientation_constraints.clear();
