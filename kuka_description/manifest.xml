@@ -1,0 +1,16 @@
+<package>
+  <description brief="kuka_description">
+
+     kuka_description
+
+  </description>
+  <author>Chonhyon Park</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/kuka_description</url>
+  <depend package="urdf"/>
+  <depend package="xacro"/>
+
+</package>
+
+
