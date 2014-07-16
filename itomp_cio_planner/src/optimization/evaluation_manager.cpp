@@ -48,6 +48,10 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   num_points_ = group_trajectory->getNumPoints();
   num_contact_points_ = group_trajectory->getNumContactPhases() + 1;
 
+  num_vars_full_ = num_points_ - 2 * (DIFF_RULE_LENGTH - 2); // 111 - 2(7 - 2) = 101
+  full_vars_start_ = (DIFF_RULE_LENGTH - 2); // 7 - 2 = 5
+  full_vars_end_ = num_points_ - (DIFF_RULE_LENGTH - 2); // 111 - (7 - 2) = 106(next var of the last full traj var)
+
   // set up joint index:
   group_joint_to_kdl_joint_index_.resize(num_joints_);
   for (int i = 0; i < num_joints_; ++i)
@@ -83,9 +87,9 @@ double EvaluationManager::evaluate()
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
 
-  //computeWrenchSum();
+  computeWrenchSum();
 
-  //computeStabilityCosts();
+  computeStabilityCosts();
 
   // TODO: reuse
   computeCollisionCosts();
@@ -584,6 +588,8 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
   {
     int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(i);
     getFullTrajectory()->getTrajectoryPointKDL(full_traj_index, data_->kdl_joint_array_);
+    // TODO: ?
+    /*
     // update kdl_joint_array with vel, acc
     if (i < 1)
     {
@@ -593,6 +599,7 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
         data_->kdl_joint_array_(target_joint) = (*getGroupTrajectory())(i, j);
       }
     }
+    */
 
     if (i == safe_begin)
       data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i],
@@ -713,8 +720,8 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
     updateCoM(point);
   }
 
-  safe_begin = max(1, begin);
-  safe_end = min(num_points_ - 1, end);
+  safe_begin = max(full_vars_start_ + 1, begin);
+  safe_end = min(full_vars_end_ - 1, end);
 
   // compute \dot{CoM} \ddot{CoM}
   itomp_cio_planner::getVectorVelocitiesAndAccelerations(safe_begin, safe_end - 1,
@@ -765,8 +772,8 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
   }
 
   // compute angular momentum
-  data_->AngularMomentums_[0] = KDL::Vector(0.0, 0.0, 0.0);
-  data_->AngularMomentums_[num_points_ - 1] = KDL::Vector(0.0, 0.0, 0.0);
+  //data_->AngularMomentums_[0] = KDL::Vector(0.0, 0.0, 0.0);
+  //data_->AngularMomentums_[num_points_ - 1] = KDL::Vector(0.0, 0.0, 0.0);
   for (int point = safe_begin; point < safe_end; ++point)
   {
     data_->AngularMomentums_[point] = KDL::Vector(0.0, 0.0, 0.0);
@@ -831,8 +838,8 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
 
 void EvaluationManager::computeStabilityCosts(int begin, int end)
 {
-  int safe_begin = max(1, begin);
-  int safe_end = min(num_points_ - 1, end);
+  int safe_begin = max(full_vars_start_ + 1, begin);
+  int safe_end = min(full_vars_end_ - 1, end);
   for (int point = safe_begin; point < safe_end; point++)
   {
     INIT_TIME_MEASUREMENT(10)
@@ -882,7 +889,7 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     {
       double cost = 0.0;
       for (int j = 0; j < 4; ++j)
-        cost += 16.0 * data_->contactViolationVector_[i][point].data_[j]
+        cost += data_->contactViolationVector_[i][point].data_[j]
             * data_->contactViolationVector_[i][point].data_[j];
       cost += 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;

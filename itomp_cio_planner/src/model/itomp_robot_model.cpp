@@ -172,7 +172,6 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   }
 
   // TODO: add contact points to lower body
-  /*
   planning_groups_["lower_body"].contactPoints_.push_back(ContactPoint("left_foot_endeffector_link", this));
   planning_groups_["lower_body"].contactPoints_.push_back(ContactPoint("right_foot_endeffector_link", this));
 
@@ -180,7 +179,6 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("right_foot_endeffector_link", this));
   planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("left_hand_endeffector_link", this));
   planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("right_hand_endeffector_link", this));
-  */
 
   ROS_INFO("Initialized ITOMP robot model in %s reference frame.", reference_frame_.c_str());
 

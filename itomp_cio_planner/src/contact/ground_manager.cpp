@@ -36,6 +36,12 @@ double interpolateSqrt(double x, double x1, double x2, double y1, double y2)
 void GroundManager::getNearestGroundPosition(const KDL::Vector& in, KDL::Vector& out, KDL::Vector& normal, const planning_scene::PlanningScenePtr& planning_scene) const
 {
     normal = KDL::Vector(0, 0, 1);
+
+    double height = 0.0;
+
+    out = KDL::Vector(in.x(), in.y(), height);
+
+    /*
     double current_min_distance = std::numeric_limits<double>::max();
     Eigen::Vector3d in_eigen(in.x(), in.y(), in.z());
     const collision_detection::WorldConstPtr& world = planning_scene->getWorld();
@@ -80,6 +86,7 @@ void GroundManager::getNearestGroundPosition(const KDL::Vector& in, KDL::Vector&
         }
 
     }
+    */
 }
 
 void GroundManager::getSafeGroundPosition(const KDL::Vector& in, KDL::Vector& out) const

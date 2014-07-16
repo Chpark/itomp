@@ -101,13 +101,25 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   CoMPositions_.resize(num_points);
   CoMVelocities_.resize(num_points);
   CoMAccelerations_.resize(num_points);
-  CoMAccelerations_.resize(num_points);
   AngularMomentums_.resize(num_points);
   Torques_.resize(num_points);
   wrenchSum_.resize(num_points);
   contact_forces_.resize(num_points);
   for (int i = 0; i < num_points; ++i)
     contact_forces_[i].resize(num_contacts);
+
+  // init values to 0
+  for (int i = 0; i < num_points; ++i)
+  {
+    CoMPositions_[i] = KDL::Vector::Zero();
+    CoMVelocities_[i] = KDL::Vector::Zero();
+    CoMAccelerations_[i] = KDL::Vector::Zero();
+    AngularMomentums_[i] = KDL::Vector::Zero();
+    Torques_[i] = KDL::Vector::Zero();
+    wrenchSum_[i] = KDL::Wrench::Zero();
+    for (int j = 0; j < num_contacts; ++j)
+      contact_forces_[i][j] = KDL::Vector::Zero();
+  }
 
   contactViolationVector_.resize(num_contacts);
   contactPointVelVector_.resize(num_contacts);

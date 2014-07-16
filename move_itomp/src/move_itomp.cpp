@@ -47,6 +47,8 @@
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
 
+const std::string GROUP_NAME = "lower_body";
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "move_itomp");
@@ -121,7 +123,7 @@ int main(int argc, char **argv)
   robot_state::RobotState& start_state = planning_scene->getCurrentStateNonConst();
 
   // Set start_state
-  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
+  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("lower_body");
   std::map<std::string, double> values;
   //joint_model_group->getVariableDefaultPositions("pressup", values);
   joint_model_group->getVariableDefaultPositions("standup", values);
@@ -164,7 +166,7 @@ int main(int argc, char **argv)
   jointValue = 0.0;
   //goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
    */
-  req.group_name = "whole_body";
+  req.group_name = GROUP_NAME;
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
 

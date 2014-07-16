@@ -132,6 +132,10 @@ private:
   int num_points_;
   int num_contact_points_;
 
+  int num_vars_full_;
+  int full_vars_start_;
+  int full_vars_end_;
+
   std::vector<int> group_joint_to_kdl_joint_index_;
 
   bool is_collision_free_;
@@ -218,7 +222,7 @@ inline void EvaluationManager::setDataToDefault()
 
 inline void EvaluationManager::computeCollisionCosts()
 {
-  computeCollisionCosts(0, num_points_);
+  computeCollisionCosts(full_vars_start_ + 1, full_vars_end_ - 1);
 }
 
 inline void EvaluationManager::computeFTRs()
@@ -228,17 +232,17 @@ inline void EvaluationManager::computeFTRs()
 
 inline void EvaluationManager::computeStabilityCosts()
 {
-  computeStabilityCosts(1, num_points_ - 1);
+  computeStabilityCosts(full_vars_start_ + 1, full_vars_end_ - 1);
 }
 
 inline bool EvaluationManager::performForwardKinematics()
 {
-  return performForwardKinematics(0, num_points_);
+  return performForwardKinematics(full_vars_start_, full_vars_end_);
 }
 
 inline void EvaluationManager::computeWrenchSum()
 {
-  computeWrenchSum(0, num_points_);
+  computeWrenchSum(full_vars_start_, full_vars_end_);
 }
 
 }
