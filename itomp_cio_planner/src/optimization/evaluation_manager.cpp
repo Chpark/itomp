@@ -1036,7 +1036,7 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
       depthSum += contact.depth;
 
       // for debug
-      ROS_INFO("Collision between %s and %s : %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
+      //ROS_INFO("Collision between %s and %s : %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
     }
     collision_result.clear();
     data_->stateCollisionCost_[i] = depthSum;

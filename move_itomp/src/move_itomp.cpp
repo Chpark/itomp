@@ -49,6 +49,36 @@
 
 const std::string GROUP_NAME = "lower_body";
 
+void computeIKState(robot_state::RobotState& ik_state, const std::string& group_name, double x, double y, double z,
+    double qx, double qy, double qz, double qw)
+{
+  // compute waypoint ik solutions
+
+  const robot_state::JointModelGroup* joint_model_group = ik_state.getJointModelGroup(group_name);
+
+  int num_joints = ik_state.getVariableCount();
+
+  Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+  Eigen::Quaternion<double> rot(qw, qx, qy, qz);
+  Eigen::Vector3d trans(x, y, z);
+  Eigen::Matrix3d mat = rot.toRotationMatrix();
+  end_effector_state.linear() = mat;
+  end_effector_state.translation() = trans;
+
+  kinematics::KinematicsQueryOptions options;
+  options.return_approximate_solution = false;
+  bool found_ik = ik_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+      moveit::core::GroupStateValidityCallbackFn(), options);
+  if (found_ik)
+  {
+    ROS_INFO("IK solution found");
+  }
+  else
+  {
+    ROS_INFO("Could not find IK solution");
+  }
+}
+
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "move_itomp");
@@ -123,17 +153,20 @@ int main(int argc, char **argv)
   robot_state::RobotState& start_state = planning_scene->getCurrentStateNonConst();
 
   // Set start_state
-  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("lower_body");
+  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
   std::map<std::string, double> values;
-  //joint_model_group->getVariableDefaultPositions("pressup", values);
   joint_model_group->getVariableDefaultPositions("standup", values);
+  joint_model_group->getVariableDefaultPositions("door_1_whole", values);
   start_state.setVariablePositions(values);
   double jointValue = 0.0;
 
-  jointValue = -0.5;
+  jointValue = -0.55;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-  jointValue = -2.0;
+  jointValue = -0.5;
   start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+
+  const double INV_SQRT_2 = 1.0 / sqrt(2.0);
+  computeIKState(start_state, "right_arm", -0.5, -0.065, 1.6, INV_SQRT_2, 0, 0, INV_SQRT_2);
 
   // Copy from start_state to req.start_state
   unsigned int num_joints = start_state.getVariableCount();
@@ -155,17 +188,14 @@ int main(int argc, char **argv)
   robot_state::RobotState goal_state(start_state);
   //joint_model_group->getVariableDefaultPositions("pressup", values);
   //joint_model_group->getVariableDefaultPositions("standup", values);
+  joint_model_group->getVariableDefaultPositions("door_2_whole", values);
   goal_state.setVariablePositions(values);
-  jointValue = -0.5;
+  jointValue = -0.55;
   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-  jointValue = 2.0;
+  jointValue = 0.5;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  /*
-   jointValue = -3.0;
-   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-   jointValue = 0.0;
-   //goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-   */
+  computeIKState(goal_state, "right_arm", 0.0-0.065, 0.5, 1.6, 0.5, -0.5, -0.5, 0.5);
+
   req.group_name = GROUP_NAME;
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
   req.goal_constraints.push_back(joint_goal);
@@ -240,6 +270,51 @@ int main(int argc, char **argv)
 
   ROS_INFO("Visualizing the trajectory");
   moveit_msgs::MotionPlanResponse response;
+
+  // hack
+  int num_waypoints = res.trajectory_->getWayPointCount();
+  const double radius = sqrt(0.5 * 0.5 + 0.065 * 0.065);
+  const double theta_start = atan2(-0.065, -0.5) + 2 * M_PI;
+  const double theta_end = atan2(0.5, -0.065) - 0.3;
+  const Eigen::Quaternion<double> rot_start(INV_SQRT_2, INV_SQRT_2, 0, 0);
+  const Eigen::Quaternion<double> rot_end(0.5, 0.5, -0.5, -0.5);
+  double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
+  double end_y = res.trajectory_->getLastWayPoint().getVariablePosition(1);
+
+  const robot_state::JointModelGroup* joint_model_group2 = res.trajectory_->getFirstWayPoint().getJointModelGroup("right_arm");
+  const std::vector<std::string> joint_model_names = joint_model_group2->getJointModelNames();
+
+  std::map<std::string, double> joint_val_map;
+  for (int i = 0; i < num_waypoints; ++i)
+  {
+    robot_state::RobotStatePtr state = res.trajectory_->getWayPointPtr(i);
+    double cy = state->getVariablePosition(1);
+    //double t = (double)i / (num_waypoints - 1);
+    double t = (cy-start_y)/(end_y-start_y);
+    ROS_INFO("T : %f", t);
+    double theta_interp = theta_start + t * (theta_end - theta_start);
+
+    double x = cos(theta_interp) * radius;
+    double y = sin(theta_interp) * radius;
+
+    const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
+
+    if (i != 0)
+    {
+      state->setVariablePositions(joint_val_map);
+    }
+
+    computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(), q.z(), q.w());
+
+    for (int j = 0; j < joint_model_names.size(); ++j)
+    {
+      const std::string name = joint_model_names[j];
+      double v = state->getVariablePosition(name);
+      joint_val_map[name] = v;
+    }
+  }
+
+
   res.getMessage(response);
 
   display_trajectory.trajectory_start = response.trajectory_start;

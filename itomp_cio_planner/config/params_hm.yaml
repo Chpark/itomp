@@ -9,8 +9,8 @@ obstacle_cost_weight: 20.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
-contact_invariant_cost_weight: 1.0
-physics_violation_cost_weight: 1.0
+contact_invariant_cost_weight: 0.0
+physics_violation_cost_weight: 0.0
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
@@ -34,7 +34,7 @@ animate_endeffector_segment:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 5.0
 trajectory_discretization: 0.05
-phase_duration: 0.5
+phase_duration: 1.0
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0
