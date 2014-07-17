@@ -129,13 +129,11 @@ int main(int argc, char **argv)
   joint_model_group->getVariableDefaultPositions("standup", values);
   start_state.setVariablePositions(values);
   double jointValue = 0.0;
-  start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  /*
-  jointValue = -3.0;
+
+  jointValue = -0.5;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-  jointValue = -3.0;
-  start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-  */
+  jointValue = -2.0;
+  start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 
   // Copy from start_state to req.start_state
   unsigned int num_joints = start_state.getVariableCount();
@@ -158,13 +156,15 @@ int main(int argc, char **argv)
   //joint_model_group->getVariableDefaultPositions("pressup", values);
   //joint_model_group->getVariableDefaultPositions("standup", values);
   goal_state.setVariablePositions(values);
-  jointValue = 2.5;
+  jointValue = -0.5;
+  goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = 2.0;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   /*
-  jointValue = -3.0;
-  goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-  jointValue = 0.0;
-  //goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
+   jointValue = -3.0;
+   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+   jointValue = 0.0;
+   //goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
    */
   req.group_name = GROUP_NAME;
   moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);

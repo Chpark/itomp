@@ -17,11 +17,11 @@ inline int safeToInt(double a)
 
 ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
     double num_contacts, double contact_phase_duration) :
-    robot_model_(robot_model), planning_group_(NULL), phase_stride_(safeToInt(contact_phase_duration / discretization)), num_contact_phases_(
-        safeToInt(duration / contact_phase_duration)), num_points_(phase_stride_ * num_contact_phases_ + 1), num_joints_(
-        robot_model_->getNumKDLJoints()), discretization_(discretization), duration_(
-        (num_points_ - 1) * discretization), num_contacts_(num_contacts), contact_phase_duration_(
-        contact_phase_duration), start_index_(1), end_index_(num_points_ - 2)
+    robot_model_(robot_model), planning_group_(NULL), num_points_(safeToInt(duration / discretization) + 1), num_joints_(
+        robot_model_->getNumKDLJoints()), discretization_(discretization), duration_(duration), num_contacts_(
+        num_contacts), start_index_(1), end_index_(num_points_ - 2), contact_phase_duration_(contact_phase_duration), num_contact_phases_(
+        safeToInt(duration / contact_phase_duration) + 2), phase_stride_(
+        safeToInt(contact_phase_duration / discretization))
 {
   ROS_ASSERT(duration == duration_);
   init();
@@ -134,12 +134,20 @@ void ItompCIOTrajectory::init()
   free_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_joints_);
   free_vel_trajectory_ = Eigen::MatrixXd::Zero(num_contact_phases_ + 1, num_joints_);
 
+  contact_start_points_.clear();
+  contact_start_points_.push_back(0);
+
+  for (int i = start_index_; i < end_index_ + 1; i += phase_stride_)
+  {
+    contact_start_points_.push_back(i);
+  }
+  contact_start_points_.push_back(end_index_ + 1);
+  ROS_ASSERT(contact_start_points_.size() == num_contact_phases_);
+
   ROS_INFO("Contact Phases");
   for (int i = 0; i < num_contact_phases_; ++i)
   {
-    int start_point, end_point;
-    getContactPhaseRange(i, start_point, end_point);
-    ROS_INFO("Phase %d : %d - %d", i, start_point, end_point);
+    ROS_INFO("Phase %d : %d - %d", i, contact_start_points_[i], contact_start_points_[i + 1] - 1);
   }
 }
 
@@ -167,7 +175,17 @@ void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& gro
         group_trajectory.start_index_, i, num_vars_free, 1);
   }
 
-  contact_trajectory_ = group_trajectory.contact_trajectory_;
+  //contact_trajectory_ = group_trajectory.contact_trajectory_;
+  int contact_end_index = num_contact_phases_ - 2;
+  int contact_start_index = 1;
+  int num_contact_vars_free = contact_end_index - contact_start_index + 1;
+  for (int i = 0; i < group_trajectory.planning_group_->getNumContacts(); i++)
+  {
+    // TODO: need to be changed when multiple groups have contacts;
+    int target_contact = i;
+    contact_trajectory_.block(contact_start_index, target_contact, num_contact_vars_free, 1) =
+        group_trajectory.contact_trajectory_.block(contact_start_index, i, num_contact_vars_free, 1);
+  }
 }
 
 void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index,
@@ -690,7 +708,7 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       double* state_pos = kinematic_state->getVariablePositions();
       ROS_ASSERT(num_joints_ == kinematic_state->getVariableCount());
       //printf("EE : (%f %f %f)(%f %f %f %f) : ", position.x, position.y, position.z, orientation.x, orientation.y,
-        //  orientation.z, orientation.w);
+      //  orientation.z, orientation.w);
       for (std::size_t k = 0; k < kinematic_state->getVariableCount(); ++k)
       {
         ik_solution[k] = state_pos[k];

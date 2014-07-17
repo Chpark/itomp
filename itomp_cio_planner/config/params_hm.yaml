@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 100
+max_iterations: 10
 max_iterations_after_collision_free: 10
 num_trajectories: 1
 
@@ -71,8 +71,8 @@ num_contacts: 2
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://move_itomp/meshes/swimmingpool.dae
-environment_model_position: [-3.5, -5.0, -0.4]
+environment_model: package://move_itomp/meshes/merged_all_nodoor.dae
+environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 
 

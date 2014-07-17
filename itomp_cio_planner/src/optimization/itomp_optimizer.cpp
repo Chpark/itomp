@@ -79,7 +79,7 @@ bool ItompOptimizer::optimize()
 
     ++iteration_;
   }
-  evaluation_manager_.postprocess_ik();
+  //evaluation_manager_.postprocess_ik();
 
   group_trajectory_.getTrajectory() = best_group_trajectory_;
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;

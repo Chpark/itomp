@@ -35,12 +35,9 @@ public:
 
   double& operator()(int traj_point, int joint);
   double operator()(int traj_point, int joint) const;
-  double getContactValue(int phase, int contact) const;
 
-  int getContactPhase(int traj_point) const;
   Eigen::MatrixXd::RowXpr getTrajectoryPoint(int traj_point);
   Eigen::MatrixXd::RowXpr getContactTrajectoryPoint(int phase);
-  void getContactPhaseRange(int contact_index, int& start_point, int& end_point);
 
   void getTrajectoryPointKDL(int traj_point, KDL::JntArray& kdl_jnt_array) const;
 
@@ -49,10 +46,7 @@ public:
   Eigen::MatrixXd::ColXpr getContactTrajectory(int contact);
 
   int getNumPoints() const;
-  int getNumContactPhases() const;
   int getNumJoints() const;
-  int getNumContacts() const;
-  int getContactPhaseStride() const;
 
   double getDiscretization() const;
   double getDuration() const;
@@ -103,13 +97,21 @@ public:
   const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic> getFreeContactTrajectoryBlock(
       int contact) const;
 
+  // contact functions
+  double getContactValue(int phase, int contact) const;
+  int getNumContactPhases() const;
+  int getNumContacts() const;
+  int getContactPhaseStride() const;
+  int getContactPhase(int traj_point) const;
+  int getContactPhaseStartPoint(int traj_point) const;
+  int getContactPhaseEndPoint(int traj_point) const;
+
 private:
   void init(); /**< \brief Allocates memory for the trajectory */
 
   const ItompRobotModel* robot_model_; /**< Robot Model */
   const ItompPlanningGroup* planning_group_; /**< Planning group that this trajectory corresponds to, if any */
-  int phase_stride_;
-  int num_contact_phases_;
+
   int num_points_; /**< Number of points in the trajectory */
   int num_joints_; /**< Number of joints in each trajectory point */
   double discretization_; /**< Discretization of the trajectory */
@@ -119,10 +121,6 @@ private:
   Eigen::MatrixXd free_trajectory_;
   Eigen::MatrixXd free_vel_trajectory_;
 
-  // contact variables
-  int num_contacts_;
-  double contact_phase_duration_;
-
   Eigen::MatrixXd contact_trajectory_;
 
   Eigen::VectorXd vel_start_;
@@ -131,6 +129,13 @@ private:
   int start_index_;
   int end_index_;
   std::vector<int> full_trajectory_index_;
+
+  // contact variables
+  int num_contacts_;
+  double contact_phase_duration_;
+  int num_contact_phases_;
+  int phase_stride_;
+  std::vector<int> contact_start_points_;
 };
 
 typedef boost::shared_ptr<ItompCIOTrajectory> ItompCIOTrajectoryPtr;
@@ -234,18 +239,12 @@ inline void ItompCIOTrajectory::setContactTrajectory(Eigen::MatrixXd& contact_tr
 }
 inline int ItompCIOTrajectory::getContactPhase(int traj_point) const
 {
-  return traj_point / phase_stride_;
-}
-
-inline void ItompCIOTrajectory::getContactPhaseRange(int contact_index, int& start_point, int& end_point)
-{
-  /*
-   start_point = contact_index * phase_stride_;
-   end_point = start_point + phase_stride_;
-   */
-
-  start_point = start_index_ - 1 + contact_index * phase_stride_;
-  end_point = start_point + phase_stride_;
+  for (int i = num_contact_phases_ - 1; i > 0; --i)
+  {
+    if (traj_point >= contact_start_points_[i])
+      return i;
+  }
+  return 0;
 }
 
 inline Eigen::MatrixXd::ColXpr ItompCIOTrajectory::getContactTrajectory(int contact)
@@ -320,6 +319,16 @@ inline const Eigen::Block<const Eigen::MatrixXd, Eigen::Dynamic, Eigen::Dynamic>
 inline int ItompCIOTrajectory::getFullTrajectoryIndex(int i) const
 {
   return full_trajectory_index_[i];
+}
+
+inline int ItompCIOTrajectory::getContactPhaseStartPoint(int traj_point) const
+{
+  return contact_start_points_[getContactPhase(traj_point)];
+}
+
+inline int ItompCIOTrajectory::getContactPhaseEndPoint(int traj_point) const
+{
+  return contact_start_points_[getContactPhase(traj_point) + 1] - 1;
 }
 
 }

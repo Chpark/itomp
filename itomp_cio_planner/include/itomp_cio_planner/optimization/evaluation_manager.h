@@ -57,7 +57,8 @@ public:
 
   void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters);
-  void setTrajectory(const std::vector<Eigen::VectorXd>& parameters, const std::vector<Eigen::VectorXd>& contact_parameters);
+  void setTrajectory(const std::vector<Eigen::VectorXd>& parameters,
+      const std::vector<Eigen::VectorXd>& contact_parameters);
 
   double evaluate();
   double evaluate(Eigen::VectorXd& costs);
@@ -153,6 +154,14 @@ private:
   ros::Publisher vis_marker_pub_;
 
   BackupData backup_data_;
+
+  // TODO: refactoring
+  int getSegmentIndex(int link, bool isLeft) const;
+  void getJointIndex(int& groupIndex, int& kdlIndex, int joint, bool isLeft) const;
+  void computeBaseFrames(KDL::JntArray& curJointArray, int point);
+  void ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::Vector& rootPos, const KDL::Frame& destPose,
+      KDL::JntArray& curJointArray, int point, bool support = true);
+  KDL::JntArray phaseJointArray_[3];
 
   // for debug
   std::vector<double> timings_;

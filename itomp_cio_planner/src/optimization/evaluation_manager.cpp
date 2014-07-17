@@ -15,8 +15,38 @@
 using namespace std;
 using namespace Eigen;
 
+const static int NUM_CONTACT_POINTS = 2;
+
 namespace itomp_cio_planner
 {
+static int LeftLegStart = 0;
+
+enum LEG_LINKS
+{
+  LEG_LINK_WAIST = 1,
+  LEG_LINK_HIP_YAW = 2,
+  LEG_LINK_HIP_ROLL = 3,
+  LEG_LINK_HIP_PITCH = 4,
+  LEG_LINK_KNEE_PITCH = 5,
+  LEG_LINK_ANKLE_PITCH = 6,
+  LEG_LINK_ANKLE_ROLL = 7,
+  LEG_LINK_FOOT = 8,
+  LEG_LINK_END_EFFECTOR = 9,
+  LEG_LINK_NUM = 10,
+};
+enum LEG_JOINTS
+{
+  LEG_JOINT_WAIST = 1,
+  LEG_JOINT_HIP_YAW = 2,
+  LEG_JOINT_HIP_ROLL = 3,
+  LEG_JOINT_HIP_PITCH = 4,
+  LEG_JOINT_KNEE_PITCH = 5,
+  LEG_JOINT_ANKLE_PITCH = 6,
+  LEG_JOINT_ANKLE_ROLL = 7,
+  LEG_JOINT_FOOT = 8,
+  LEG_JOINT_END_EFFECTOR = 9,
+  LEG_JOINT_NUM = 10,
+};
 
 static bool STABILITY_COST_VERBOSE = false;
 
@@ -75,6 +105,11 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   timings_.resize(100, 0);
   for (int i = 0; i < 100; ++i)
     timings_[i] = 0;
+
+  for (int i = 0; i < 3; ++i)
+  {
+    phaseJointArray_[i].resize(robot_model_->getKDLTree()->getNrOfJoints());
+  }
 }
 
 double EvaluationManager::evaluate()
@@ -401,13 +436,13 @@ void EvaluationManager::render(int trajectory_index)
 {
   if (PlanningParameters::getInstance()->getAnimateEndeffector())
   {
-    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_points_, 0, data_->segment_frames_,
+    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_vars_full_, full_vars_start_, data_->segment_frames_,
         data_->state_validity_, false);
-    VisualizationManager::getInstance()->animateCoM(num_points_, 0, data_->CoMPositions_, false);
+    VisualizationManager::getInstance()->animateCoM(num_vars_full_, full_vars_start_, data_->CoMPositions_, false);
   }
   if (PlanningParameters::getInstance()->getAnimatePath())
   {
-    VisualizationManager::getInstance()->animatePath(0, num_points_ - 1);
+    VisualizationManager::getInstance()->animatePath(full_vars_start_, full_vars_end_ - 1);
   }
 }
 
@@ -590,16 +625,18 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
     getFullTrajectory()->getTrajectoryPointKDL(full_traj_index, data_->kdl_joint_array_);
     // TODO: ?
     /*
-    // update kdl_joint_array with vel, acc
-    if (i < 1)
-    {
-      for (int j = 0; j < planning_group_->num_joints_; j++)
-      {
-        int target_joint = planning_group_->group_joints_[j].kdl_joint_index_;
-        data_->kdl_joint_array_(target_joint) = (*getGroupTrajectory())(i, j);
-      }
-    }
-    */
+     // update kdl_joint_array with vel, acc
+     if (i < 1)
+     {
+     for (int j = 0; j < planning_group_->num_joints_; j++)
+     {
+     int target_joint = planning_group_->group_joints_[j].kdl_joint_index_;
+     data_->kdl_joint_array_(target_joint) = (*getGroupTrajectory())(i, j);
+     }
+     }
+     */
+
+    computeBaseFrames(data_->kdl_joint_array_, i);
 
     if (i == safe_begin)
       data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i],
@@ -889,8 +926,7 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     {
       double cost = 0.0;
       for (int j = 0; j < 4; ++j)
-        cost += data_->contactViolationVector_[i][point].data_[j]
-            * data_->contactViolationVector_[i][point].data_[j];
+        cost += data_->contactViolationVector_[i][point].data_[j] * data_->contactViolationVector_[i][point].data_[j];
       cost += 16.0 * KDL::dot(data_->contactPointVelVector_[i][point], data_->contactPointVelVector_[i][point]);
       state_contact_invariant_cost += contact_values[i] * cost;
     }
@@ -998,6 +1034,9 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
     {
       const collision_detection::Contact& contact = it->second[0];
       depthSum += contact.depth;
+
+      // for debug
+      ROS_INFO("Collision between %s and %s : %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
     }
     collision_result.clear();
     data_->stateCollisionCost_[i] = depthSum;
@@ -1247,4 +1286,726 @@ double EvaluationManager::getTrajectoryCost(bool verbose)
   return data_->costAccumulator_.getTrajectoryCost();
 }
 
+////////////////////////////////////////////////////////////////////////////////
+void computeFrameDebug(int point, const char* label, const char* v1_name, KDL::Vector& v1, const char* v2_name,
+    KDL::Vector& v2, const char* v3_name, KDL::Vector& v3)
+{
+  printf("[%d] %s %s(%.14lf %.14lf %.14lf) %s(%.14lf %.14lf %.14lf) %s(%.14lf %.14lf %.14lf)\n", point, label, v1_name,
+      v1.x(), v1.y(), v1.z(), v2_name, v2.x(), v2.y(), v2.z(), v3_name, v3.x(), v3.y(), v3.z());
 }
+//#define DEBUG_COMPUTE_FRAME
+#ifdef DEBUG_COMPUTE_FRAME
+#define COMPUTE_FRAME_DEBUG(point, label, v1_name, v1, v2_name, v2, v3_name, v3) computeFrameDebug(point, label, v1_name, v1, v2_name, v2, v3_name, v3);
+#else
+#define COMPUTE_FRAME_DEBUG(point, label, v1_name, v1, v2_name, v2, v3_name, v3)
+#endif
+
+void EvaluationManager::computeBaseFrames(KDL::JntArray& curJointArray, int point)
+{
+  // HRP4 stand pose hip - ankle distance : (-0.028, 0.01905, -0.698)
+  double max_lower_body_stretch = sqrt(0.698 * 0.698 + /*0.01905 * 0.01905 +*/0.028 * 0.028);
+  double initial_root_height = 0.791;
+  double endeffector_to_ankle_height = 0.093;
+  double hip_to_knee_right = 0.01905;
+  double knee_to_ankle_dir = -0.028;
+  KDL::Vector robot_model_dir = KDL::Vector(1.0, 0.0, 0.0);
+  KDL::Vector robot_model_right = KDL::Vector(0.0, -1.0, 0.0);
+  KDL::Vector robot_model_up = KDL::Vector(0.0, 0.0, 1.0);
+
+  // human
+  if (robot_name_.find("human") != std::string::npos)
+  {
+    max_lower_body_stretch = 1.02;
+    initial_root_height = 1.12;
+    endeffector_to_ankle_height = 0.1;
+    hip_to_knee_right = 0.0;
+    knee_to_ankle_dir = 0.0;
+    robot_model_dir = KDL::Vector(1.0, 0.0, 0.0);
+    robot_model_right = KDL::Vector(0.0, -1.0, 0.0);
+    robot_model_up = KDL::Vector(0.0, 0.0, 1.0);
+  }
+
+  int nextPhaseStartPoint = getGroupTrajectory()->getContactPhaseStartPoint(point + 3);
+  if (nextPhaseStartPoint > point)
+  {
+    phaseJointArray_[nextPhaseStartPoint - point - 1] = curJointArray;
+  }
+
+  if (point == 0)
+    data_->fk_solver_.JntToCartPartial(curJointArray, data_->joint_pos_[point], data_->joint_axis_[point],
+        data_->segment_frames_[point]);
+  else
+    data_->fk_solver_.JntToCartPartial(curJointArray, data_->joint_pos_[point], data_->joint_axis_[point],
+        data_->segment_frames_[point]);
+
+  if (planning_group_->name_ != "lower_body" && planning_group_->name_ != "unified_body")
+    return;
+
+  int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(point);
+
+  // fix supporting foot frame
+  int supportingLeg = (getGroupTrajectory()->getContactPhase(point) + LeftLegStart) % 2 == 0 ? 0 : 1;
+  int floatingLeg = 1 - supportingLeg;
+  int supportingLegSegmentNumber[LEG_LINK_NUM];
+  int otherLegSegmentNumber[LEG_LINK_NUM];
+  int rootSegmentNumber;
+
+  rootSegmentNumber = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
+      PlanningParameters::getInstance()->getLowerBodyRoot());
+  KDL::Vector rootPos = data_->segment_frames_[point][rootSegmentNumber].p;
+
+  bool isLeft = (supportingLeg == 0);
+  supportingLegSegmentNumber[LEG_LINK_HIP_YAW] = getSegmentIndex(LEG_LINK_HIP_YAW, isLeft);
+  otherLegSegmentNumber[LEG_LINK_HIP_YAW] = getSegmentIndex(LEG_LINK_HIP_YAW, !isLeft);
+
+  supportingLegSegmentNumber[LEG_LINK_END_EFFECTOR] = getSegmentIndex(LEG_LINK_END_EFFECTOR, isLeft);
+  otherLegSegmentNumber[LEG_LINK_END_EFFECTOR] = getSegmentIndex(LEG_LINK_END_EFFECTOR, !isLeft);
+
+  // TODO: cleanup
+  int root_sn = rootSegmentNumber;
+  int ef_sn = supportingLegSegmentNumber[LEG_LINK_END_EFFECTOR];
+  int of_sn = otherLegSegmentNumber[LEG_LINK_END_EFFECTOR];
+  KDL::Vector root_pos = rootPos;
+
+  COMPUTE_FRAME_DEBUG(point, "beginning",
+      "root:", data_->segment_frames_[point][root_sn].p,
+      "ef:", data_->segment_frames_[point][ef_sn].p,
+      "of:", data_->segment_frames_[point][of_sn].p);
+
+  int free_vars_start = full_vars_start_ + 1;
+  int free_vars_end = full_vars_end_ - 2;
+
+  // debug
+  if (point < free_vars_start || point > free_vars_end)
+    return;
+
+  // set current supporting foot frame to foot frame of phase start point foot frame.
+  KDL::Frame ef_frame = data_->segment_frames_[getGroupTrajectory()->getContactPhaseStartPoint(point)][ef_sn];
+  KDL::Vector ef_ground, ef_normal;
+  // phase start point foot frame = last point foot frame of the previous phase.
+  if (getGroupTrajectory()->getContactPhaseStartPoint(point) == point)
+  {
+    ef_frame = data_->segment_frames_[point - 1][ef_sn];
+    GroundManager::getInstance().getNearestGroundPosition(ef_frame.p, ef_ground, ef_normal, data_->planning_scene_);
+    // always on ground
+    ef_frame.p.z(ef_ground.z());
+    double eulerAngles[3];
+    ef_frame.M.GetEulerZYX(eulerAngles[0], eulerAngles[1], eulerAngles[2]);
+    ef_frame.M = KDL::Rotation::RotZ(eulerAngles[0]);
+
+  }
+
+  // if current root position is not reachable from the current supporting foot frame,
+  // change root position to max reachable position between ankle pos & root pos
+  {
+    const double EPSILON = 1E-7;
+    const double NEAR_ONE = 1.0 - EPSILON;
+    bool needUpdate = false;
+
+    KDL::Vector desiredAnklePos = ef_frame.p + endeffector_to_ankle_height * robot_model_up;
+    KDL::Vector hipPos = data_->segment_frames_[point][supportingLegSegmentNumber[LEG_LINK_HIP_YAW]].p;
+
+    KDL::Vector robotDir = data_->segment_frames_[point][rootSegmentNumber].M * robot_model_dir;
+    KDL::Vector robotRight = data_->segment_frames_[point][rootSegmentNumber].M * robot_model_right;
+
+    KDL::Vector diffHipToAnkle = hipPos - desiredAnklePos;
+    double dist = diffHipToAnkle.Normalize();
+    if (dist > max_lower_body_stretch * NEAR_ONE)
+    {
+      KDL::Vector newHipPos = desiredAnklePos + NEAR_ONE * max_lower_body_stretch * diffHipToAnkle;
+      root_pos -= hipPos - newHipPos;
+      needUpdate = true;
+    }
+
+    if (needUpdate)
+    {
+      double old_x = curJointArray(0);
+      double old_y = curJointArray(1);
+      double old_z = curJointArray(2);
+
+      curJointArray(0) = root_pos.x();
+      curJointArray(1) = root_pos.y();
+      curJointArray(2) = root_pos.z() - initial_root_height;
+
+      // update trajectory
+      (*getFullTrajectory())(full_traj_index, 0) = root_pos.x();
+      (*getFullTrajectory())(full_traj_index, 1) = root_pos.y();
+      (*getFullTrajectory())(full_traj_index, 2) = root_pos.z() - initial_root_height;
+      (*getGroupTrajectory())(point, 0) = root_pos.x();
+      (*getGroupTrajectory())(point, 1) = root_pos.y();
+      (*getGroupTrajectory())(point, 2) = root_pos.z() - initial_root_height;
+
+      if (getGroupTrajectory()->getContactPhaseStartPoint(point + 1) == point + 1)
+      {
+        double adjusted_x = root_pos.x() - old_x;
+        double adjusted_y = root_pos.y() - old_y;
+        double adjusted_z = root_pos.z() - initial_root_height - old_z;
+
+        double adjusted_x_vel = adjusted_x
+            - (data_->segment_frames_[point - 1][root_sn].p.x() - phaseJointArray_[1](0));
+        double adjusted_y_vel = adjusted_y
+            - (data_->segment_frames_[point - 1][root_sn].p.y() - phaseJointArray_[1](1));
+        double adjusted_z_vel = adjusted_z
+            - (data_->segment_frames_[point - 1][root_sn].p.z() - initial_root_height - phaseJointArray_[1](2));
+
+        double adjusted_x_vel2 = (data_->segment_frames_[point - 1][root_sn].p.x() - phaseJointArray_[1](0))
+            - (data_->segment_frames_[point - 2][root_sn].p.x() - phaseJointArray_[2](0));
+        double adjusted_y_vel2 = (data_->segment_frames_[point - 1][root_sn].p.y() - phaseJointArray_[1](1))
+            - (data_->segment_frames_[point - 2][root_sn].p.y() - phaseJointArray_[2](1));
+        double adjusted_z_vel2 = (data_->segment_frames_[point - 1][root_sn].p.z() - phaseJointArray_[1](2))
+            - (data_->segment_frames_[point - 2][root_sn].p.z() - phaseJointArray_[2](2));
+
+        double adjusted_x_acc = adjusted_x_vel - adjusted_x_vel2;
+        double adjusted_y_acc = adjusted_y_vel - adjusted_y_vel2;
+        double adjusted_z_acc = adjusted_z_vel - adjusted_z_vel2;
+
+        MinJerkTrajectory xTraj(adjusted_x, adjusted_x_vel, adjusted_x_acc, 0.0, 0.0, 0.0);
+        MinJerkTrajectory yTraj(adjusted_y, adjusted_y_vel, adjusted_y_acc, 0.0, 0.0, 0.0);
+        MinJerkTrajectory zTraj(adjusted_z, adjusted_z_vel, adjusted_z_acc, 0.0, 0.0, 0.0);
+
+        for (int i = point + 1; i <= free_vars_end; ++i)
+        {
+          double t = (double) (i - point) / (free_vars_end - point);
+          int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
+
+          double xEval = xTraj(t);
+          double yEval = yTraj(t);
+          double zEval = zTraj(t);
+
+          (*getFullTrajectory())(full_traj_index2, 0) += xEval;
+          (*getFullTrajectory())(full_traj_index2, 1) += yEval;
+          (*getFullTrajectory())(full_traj_index2, 2) += zEval;
+          (*getGroupTrajectory())(i, 0) += xEval;
+          (*getGroupTrajectory())(i, 1) += yEval;
+          (*getGroupTrajectory())(i, 2) += zEval;
+        }
+      }
+
+      data_->fk_solver_.JntToCartPartial(curJointArray, data_->joint_pos_[point], data_->joint_axis_[point],
+          data_->segment_frames_[point]);
+    }
+
+    COMPUTE_FRAME_DEBUG(point, "afterroot",
+        "root:", data_->segment_frames_[point][root_sn].p,
+        "ef:", data_->segment_frames_[point][ef_sn].p,
+        "of:", data_->segment_frames_[point][of_sn].p);
+
+  }
+
+  COMPUTE_FRAME_DEBUG(point, "beforeIK1",
+      "root:", data_->segment_frames_[point][root_sn].p,
+      "ef:", data_->segment_frames_[point][ef_sn].p,
+      "ef_frame:", ef_frame.p);
+
+  ComputeCollisionFreeLegUsingIK(supportingLeg, root_pos, ef_frame, curJointArray, point);
+
+  COMPUTE_FRAME_DEBUG(point, "afterIK1",
+      "root:", data_->segment_frames_[point][root_sn].p,
+      "ef:", data_->segment_frames_[point][ef_sn].p,
+      "ef_frame:", ef_frame.p);
+
+  bool needsUpdate = false;
+  KDL::Frame of_frame = data_->segment_frames_[point][of_sn];
+
+  // ?
+
+  if (getIteration() <= 0)
+  {
+
+    needsUpdate = true;
+    ef_frame = data_->segment_frames_[getGroupTrajectory()->getContactPhaseStartPoint(point)][ef_sn];
+    KDL::Frame root_frame = data_->segment_frames_[point][root_sn];
+    //KDL::Vector rootDir = root_frame.M * robot_model_dir;
+    KDL::Vector rootMoveDir = getSegmentPosition(num_points_ - 1, root_sn) - getSegmentPosition(0, root_sn);
+    KDL::Vector diff = root_frame.p - ef_frame.p;
+    KDL::Vector newOF = root_frame.p + diff;
+    newOF.z(0.0);
+
+    // TODO: arbitrary dir
+    KDL::Vector goalOF = getSegmentPosition(num_points_ - 1, of_sn);
+    goalOF.z(0.0);
+    if (dot(newOF, rootMoveDir) > dot(goalOF, rootMoveDir))
+    {
+      newOF.x(goalOF.x());
+      newOF.y(goalOF.y());
+    }
+    of_frame.p.x(newOF.x());
+    of_frame.p.y(newOF.y());
+
+    COMPUTE_FRAME_DEBUG(point, "init0",
+        "root:", data_->segment_frames_[point][root_sn].p,
+        "ef:", ef_frame.p,
+        "of:", of_frame.p);
+  }
+
+  KDL::Vector of_ground, normal;
+  GroundManager::getInstance().getNearestGroundPosition(of_frame.p, of_ground, normal, data_->planning_scene_);
+
+  if (of_ground.z() > of_frame.p.z())
+  {
+    of_frame.p.z(of_ground.z());
+    //of_frame.M = data_->segment_frames_[point][root_sn].M;
+    double eulerAngles[3];
+    of_frame.M.GetEulerZYX(eulerAngles[0], eulerAngles[1], eulerAngles[2]);
+    of_frame.M = KDL::Rotation::RotZ(eulerAngles[0]);
+    needsUpdate = true;
+  }
+  if (getGroupTrajectory()->getContactPhaseStartPoint(point + 1) == point + 1) // && getGroupTrajectory()->getContactPhase(point)        % 2 == 1)
+  {
+    //GroundManager::getInstance().getSafeGroundPosition(of_frame.p, of_ground);
+    of_frame.p.z(of_ground.z());
+    //of_frame.M = data_->segment_frames_[point][root_sn].M;
+    double eulerAngles[3];
+    of_frame.M.GetEulerZYX(eulerAngles[0], eulerAngles[1], eulerAngles[2]);
+    of_frame.M = KDL::Rotation::RotZ(eulerAngles[0]);
+    needsUpdate = true;
+  }
+
+  if (needsUpdate)
+  {
+    COMPUTE_FRAME_DEBUG(point, "beforeIK2",
+        "root:", data_->segment_frames_[point][root_sn].p,
+        "of:", data_->segment_frames_[point][of_sn].p,
+        "of_frame:", of_frame.p);
+
+    ComputeCollisionFreeLegUsingIK(floatingLeg, root_pos, of_frame, curJointArray, point, false);
+
+    COMPUTE_FRAME_DEBUG(point, "afterIK2",
+        "root:", data_->segment_frames_[point][root_sn].p,
+        "of:", data_->segment_frames_[point][of_sn].p,
+        "of_frame:", of_frame.p);
+  }
+}
+
+bool fuzzyEquals(double a, double b)
+{
+  const double eps = 1E-15;
+  return abs(a - b) < eps * max(abs(a), abs(b));
+}
+
+double solveASinXPlusBCosXIsC(double a, double b, double c)
+{
+  // solve a sin x + b cos x = c
+  double r = sqrt(a * a + b * b);
+  double alpha = atan2(a, b);
+
+  // cos (x-alpha) = c / r
+  // x = alpha +- acos (c/r)
+
+  double t = c / r;
+  if (fuzzyEquals(t, 1.0))
+    t = 1.0;
+  else if (fuzzyEquals(t, -1.0))
+    t = -1.0;
+
+  double v = min(max(t, -1.0), 1.0);
+  double x1 = alpha + acos(v);
+  double x2 = alpha - acos(v);
+
+  while (x1 > M_PI)
+    x1 -= 2 * M_PI;
+  while (x1 <= -M_PI)
+    x1 += 2 * M_PI;
+
+  while (x2 > M_PI)
+    x2 -= 2 * M_PI;
+  while (x2 <= -M_PI)
+    x2 += 2 * M_PI;
+
+  if (abs(x1) < abs(x2))
+    return x1;
+  else
+    return x2;
+}
+
+int EvaluationManager::getSegmentIndex(int link, bool isLeft) const
+{
+  string segmentName;
+  if (robot_name_.find("hrp4") != std::string::npos)
+  {
+    if (link >= LEG_LINK_HIP_YAW && link <= LEG_LINK_FOOT)
+    {
+      const string segmentNames[] =
+      { "", "", "HipYaw", "HipRoll", "HipPitch", "KneePitch", "AnklePitch", "AnkleRoll", "Foot", "_foot_endeffector" };
+      string supportingLegPrefix = isLeft ? "L" : "R";
+      segmentName = supportingLegPrefix + segmentNames[link] + "_link";
+    }
+    else if (link == LEG_LINK_END_EFFECTOR)
+    {
+      string supportingLegPrefix = isLeft ? "left" : "right";
+      segmentName = supportingLegPrefix + "_foot_endeffector_link";
+    }
+    else
+    {
+      ROS_ERROR("Unknown Robot Link!!!");
+      return -1;
+    }
+  }
+  else if (robot_name_.find("human") != std::string::npos)
+  {
+    if (link >= LEG_LINK_HIP_YAW && link <= LEG_LINK_END_EFFECTOR)
+    {
+      const string segmentNamesPre[] =
+      { "", "", "upper_", "upper_", "upper_", "lower_", "", "", "", "" };
+      const string segmentNamesPost[] =
+      { "", "", "_leg_z", "_leg_y", "_leg_x", "_leg", "_foot_x", "_foot_y", "_foot_z", "_foot_endeffector" };
+
+      string supportingLegPrefix = isLeft ? "left" : "right";
+      segmentName = segmentNamesPre[link] + supportingLegPrefix + segmentNamesPost[link] + "_link";
+    }
+    else
+    {
+      ROS_ERROR("Unknown Robot Link!!!");
+      return -1;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Unknown Robot Type!!!");
+    return -1;
+  }
+
+  int segmentIndex = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(segmentName);
+
+  return segmentIndex;
+}
+
+void EvaluationManager::getJointIndex(int& groupIndex, int& kdlIndex, int joint, bool isLeft) const
+{
+  string jointName;
+  if (robot_name_.find("hrp4") != std::string::npos)
+  {
+    if (joint >= LEG_JOINT_HIP_YAW && joint <= LEG_JOINT_FOOT)
+    {
+      const string segmentNames[] =
+      { "", "", "HipYaw", "HipRoll", "HipPitch", "KneePitch", "AnklePitch", "AnkleRoll", "Foot", "_foot_endeffector" };
+      string supportingLegPrefix = isLeft ? "L" : "R";
+      jointName = supportingLegPrefix + segmentNames[joint] + "_joint";
+    }
+    else if (joint == LEG_JOINT_END_EFFECTOR)
+    {
+      string supportingLegPrefix = isLeft ? "left" : "right";
+      jointName = supportingLegPrefix + "_foot_endeffector_joint";
+    }
+    else
+    {
+      ROS_ERROR("Unknown Robot Joint!!!");
+      return;
+    }
+  }
+  else if (robot_name_.find("human") != std::string::npos)
+  {
+    if (joint >= LEG_JOINT_HIP_YAW && joint <= LEG_JOINT_END_EFFECTOR)
+    {
+      const string segmentNamesPre[] =
+      { "", "", "upper_", "upper_", "upper_", "lower_", "", "", "", "" };
+      const string segmentNamesPost[] =
+      { "", "", "_leg_z", "_leg_y", "_leg_x", "_leg", "_foot_x", "_foot_y", "_foot_z", "_foot_endeffector" };
+
+      string supportingLegPrefix = isLeft ? "left" : "right";
+      jointName = segmentNamesPre[joint] + supportingLegPrefix + segmentNamesPost[joint] + "_joint";
+    }
+    else
+    {
+      ROS_ERROR("Unknown Robot Joint!!!");
+      return;
+    }
+  }
+  else
+  {
+    ROS_ERROR("Unknown Robot Type!!!");
+    return;
+  }
+
+  for (int j = 0; j < planning_group_->group_joints_.size(); ++j)
+  {
+    if (jointName == planning_group_->group_joints_[j].joint_name_)
+    {
+      groupIndex = j;
+      kdlIndex = planning_group_->group_joints_[j].kdl_joint_index_;
+      break;
+    }
+  }
+  return;
+}
+
+void EvaluationManager::ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::Vector& rootPos,
+    const KDL::Frame& destPose, KDL::JntArray& curJointArray, int point, bool support)
+{
+  int free_vars_start = full_vars_start_ + 1;
+  int free_vars_end = full_vars_end_ - 2;
+
+  // HRP4 stand pose hip - ankle distance : (-0.028, 0.01905, -0.698)
+  double max_lower_body_stretch = sqrt(0.698 * 0.698 + /*0.01905 * 0.01905 +*/0.028 * 0.028);
+  double initial_root_height = 0.791;
+  double endeffector_to_ankle_height = 0.093;
+  double root_to_hip_right = -0.0875;
+  double hip_to_knee_right = 0.01905;
+  double hip_to_knee_up = -0.358;
+  double knee_to_ankle_dir = -0.028;
+  double knee_to_ankle_up = -0.34;
+  KDL::Vector robot_model_dir = KDL::Vector(1.0, 0.0, 0.0);
+  KDL::Vector robot_model_right = KDL::Vector(0.0, -1.0, 0.0);
+  KDL::Vector robot_model_up = KDL::Vector(0.0, 0.0, 1.0);
+
+  // human
+  if (robot_name_.find("human") != std::string::npos)
+  {
+    max_lower_body_stretch = 1.02;
+    initial_root_height = 1.12;
+    endeffector_to_ankle_height = 0.1;
+    root_to_hip_right = -0.1;
+    hip_to_knee_right = 0.0;
+    hip_to_knee_up = -0.5;
+    knee_to_ankle_dir = 0.0;
+    knee_to_ankle_up = -0.52;
+    robot_model_dir = KDL::Vector(0.0, 1.0, 0.0);
+    robot_model_right = KDL::Vector(1.0, 0.0, 0.0);
+    robot_model_up = KDL::Vector(0.0, 0.0, 1.0);
+  }
+
+  // compute IK for destPose of endeffector
+  // clamp to joint limit
+  // support foot - interpolate only for next phase
+  // other foot - interpolate in the current phase
+
+  int legSegmentNumber[LEG_LINK_NUM];
+  KDL::Frame legFrames[LEG_LINK_NUM];
+  double legJointAngles[LEG_JOINT_NUM];
+
+  int rootSegmentNumber = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
+      PlanningParameters::getInstance()->getLowerBodyRoot());
+  KDL::Frame rootFrame = data_->segment_frames_[point][rootSegmentNumber];
+
+  int jointGroupNumber[LEG_JOINT_NUM];
+  int jointKDLNumber[LEG_JOINT_NUM];
+
+  for (int i = LEG_LINK_HIP_YAW; i < LEG_LINK_NUM; ++i)
+  {
+    int segmentNumber = getSegmentIndex(i, legIndex == 0);
+    getJointIndex(jointGroupNumber[i], jointKDLNumber[i], i, legIndex == 0);
+  }
+
+  // foot.p = ROOT.p + ROOT.M * (L2 + R2 * R3 * R4 * (L5 + R5 * (L6 + R6 * R7 * R8(I) * L7)))
+  // foot.M = ROOT.M * R2 * R3 * R4 * R5 * R6 * R7 * R8(I)
+  // set R8 (foot_yaw, foot) = I
+  legJointAngles[LEG_JOINT_FOOT] = 0.0;
+
+  // for human
+  // foot.p = ROOT.p + ROOT.M * (L2 + Rz2 * Ry3 * Rx4 * (L5 + Rx5 * (L6 + Rx6 * Ry7 * L7)))               (1)
+  // foot.M = ROOT.M * Rz2 * Ry3 * Rx4 * Rx5 * Rx6 * Ry7                                                                                  (2)
+
+  // from (1), ROOT.M^-1 * (foot.p - ROOT.p) - L2 = Rz2 * Ry3 * Rx4 * (L5 + Rx5 * (L6 + Rx6 * Ry7 * L7))  (3)
+  // from (2), ROOT.M^-1 * foot.M * Ry7^-1 * Rx6^-1 * Rx5^-1 = Rz2 * Ry3 * Rx4                                                    (4)
+
+  // from (3) and (4), (foot.p - ROOT.p) - ROOT.M * L2 = foot.M * Ry7^-1 * Rx6^-1 * Rx5^-1 * (L5 + Rx5 * (L6 + Rx6 * Ry7 * L7))
+  //                                                                                                       = foot.M * (Ry7^-1 * Rx6^-1 * (Rx5^-1 * L5 + L6) + L7)                                         (5)
+  // from (5), foot.M^-1 * ((foot.p - ROOT.p) - ROOT.M * L2) - L7 = Ry7^-1 * Rx6^-1 * (Rx5^-1 * L5 + L6)                                                  (6)
+  // let foot.M^-1 * ((foot.p - ROOT.p) - ROOT.M * L2) - L7 = v
+  // v = Ry7^-1 * Rx6^-1 * (Rx5^-1 * L5 + L6)                             (7)
+  // Rx5 * Rx6 * Ry7 * v = (L5 * Rx5 * L6)                                (8)
+  // length(v) = length(L5 + Rx5 * L6) : get theta5               (9)
+  // let Rx5^-1 * L5 + L6=k
+  // from (8),
+  //   cos7               0               sin7
+  // ( sin6sin7   cos6    -sin6cos7 ) ( v ) = k   (10)
+  //  -cos6sin7   sin6    cos6cos7
+  // solve v.x * cos7 + v.z * sin7 = k.x : get theta7 (11)
+  // solve (v.x * sin7 - v.z * cos7) * sin6 + v.y * cos6 = k.y : get theta6 (12)
+  // let ROOT.M^-1 * foot.M * Ry7^-1 * Rx6^-1 * Rx5^-1 = M,
+  // from (4), Rz2 * Ry3 * Rx4 = M                (13)
+  //   c2c3       -s2c4+c2s3s4    s2s4+c2s3c4
+  // ( s2c3       c2c4+s2s3s4             -c2s4+s2s3c4 ) = M              (14)
+  //   -s3        c3s4                    c3c4
+  // -s3 = M(2,0) : get theta3 (15)
+  // s2c3 = M(1,0) : get theta2 (16)
+  // c3s4 = M(2,1) : get theta4 (17)
+
+  const KDL::Vector L2 =
+      (legIndex == 0) ? root_to_hip_right * robot_model_right : -root_to_hip_right * robot_model_right;
+  const KDL::Vector L5 = hip_to_knee_up * robot_model_up
+      + ((legIndex == 0) ? hip_to_knee_right * robot_model_right : -hip_to_knee_right * robot_model_right);
+  const KDL::Vector L6 = knee_to_ankle_dir * robot_model_dir + knee_to_ankle_up * robot_model_up;
+  const KDL::Vector L7 = -endeffector_to_ankle_height * robot_model_up;
+
+  const KDL::Vector v = destPose.M.Inverse() * ((destPose.p - rootFrame.p) - rootFrame.M * L2) - L7;
+
+  // let foot.M^-1 * ((foot.p - ROOT.p) - ROOT.M * L2) = v
+  // length(v) = length(L5 + Rx5 * L6) : get theta5               (9)
+  {
+    double sqDist = v.x() * v.x() + v.y() * v.y() + v.z() * v.z();
+    const double maxSqDist = knee_to_ankle_dir * knee_to_ankle_dir
+        + (hip_to_knee_up + knee_to_ankle_up) * (hip_to_knee_up + knee_to_ankle_up);
+    sqDist = min(sqDist, maxSqDist);
+    // theta5 = thetaPrime + thetaDelta
+    const double thetaDelta = atan2(-knee_to_ankle_dir, -knee_to_ankle_up);
+    const double sqR = knee_to_ankle_dir * knee_to_ankle_dir + knee_to_ankle_up * knee_to_ankle_up;
+    const double r = sqrt(sqR);
+    const double q = min(max((sqDist - sqR - hip_to_knee_up * hip_to_knee_up) / (2 * r * -hip_to_knee_up), -1.0), 1.0);
+    double thetaPrime = acos(q);
+
+    if (robot_name_.find("human") != std::string::npos)
+      thetaPrime = -thetaPrime;
+
+    legJointAngles[LEG_JOINT_KNEE_PITCH] = thetaPrime - thetaDelta;
+  }
+  // let Rx5^-1 * L5 + L6=k
+  // solve v.x * cos7 + v.z * sin7 = k.x : get theta7 (11)
+  // solve (v.x * sin7 - v.z * cos7) * sin6 + v.y * cos6 = k.y : get theta6 (12)
+  {
+    KDL::Vector k = KDL::Rotation::RotX(-legJointAngles[LEG_JOINT_KNEE_PITCH]) * L5 + L6;
+    legJointAngles[LEG_JOINT_ANKLE_ROLL] = solveASinXPlusBCosXIsC(v.z(), v.x(), k.x());
+    legJointAngles[LEG_JOINT_ANKLE_PITCH] = solveASinXPlusBCosXIsC(
+        v.x() * sin(legJointAngles[LEG_JOINT_ANKLE_ROLL]) - v.z() * cos(legJointAngles[LEG_JOINT_ANKLE_ROLL]), v.y(),
+        k.y());
+  }
+  // let ROOT.M^-1 * foot.M * Ry7^-1 * Rx6^-1 * Rx5^-1 = M,
+  // -s3 = M(2,0) : get theta3 (15)
+  // s2c3 = M(1,0) : get theta2 (16)
+  // c3s4 = M(2,1) : get theta4 (17)
+  {
+    KDL::Rotation M = rootFrame.M.Inverse() * destPose.M * KDL::Rotation::RotY(-legJointAngles[LEG_JOINT_ANKLE_ROLL])
+        * KDL::Rotation::RotX(-legJointAngles[LEG_JOINT_ANKLE_PITCH])
+        * KDL::Rotation::RotX(-legJointAngles[LEG_JOINT_KNEE_PITCH]);
+    legJointAngles[LEG_JOINT_HIP_ROLL] = -asin(M(2, 0));
+    legJointAngles[LEG_JOINT_HIP_YAW] = asin(M(1, 0) / cos(legJointAngles[LEG_JOINT_HIP_ROLL]));
+    legJointAngles[LEG_JOINT_HIP_PITCH] = asin(M(2, 1) / cos(legJointAngles[LEG_JOINT_HIP_ROLL]));
+  }
+
+  // validate foot pos
+  // foot.p = ROOT.p + ROOT.M * (L2 + Rz2 * Ry3 * Rx4 * (L5 + Rx5 * (L6 + Rx6 * Ry7 * Rz8(I) * L7)))
+  // foot.M = ROOT.M * Rz2 * Ry3 * Rx4 * Rx5 * Rx6 * Ry7 * Rz8(I)
+  KDL::Vector evaluatedPos = rootFrame.p
+      + rootFrame.M
+          * (L2
+              + KDL::Rotation::RotZ(legJointAngles[LEG_JOINT_HIP_YAW])
+                  * KDL::Rotation::RotY(legJointAngles[LEG_JOINT_HIP_ROLL])
+                  * KDL::Rotation::RotX(legJointAngles[LEG_JOINT_HIP_PITCH])
+                  * (L5
+                      + KDL::Rotation::RotX(legJointAngles[LEG_JOINT_KNEE_PITCH])
+                          * (L6
+                              + KDL::Rotation::RotX(legJointAngles[LEG_JOINT_ANKLE_PITCH])
+                                  * KDL::Rotation::RotY(legJointAngles[LEG_JOINT_ANKLE_ROLL])
+                                  * KDL::Rotation::RotZ(legJointAngles[LEG_JOINT_FOOT]) * L7)));
+  KDL::Rotation evaluatedRot = rootFrame.M * KDL::Rotation::RotZ(legJointAngles[LEG_JOINT_HIP_YAW])
+      * KDL::Rotation::RotY(legJointAngles[LEG_JOINT_HIP_ROLL])
+      * KDL::Rotation::RotX(legJointAngles[LEG_JOINT_HIP_PITCH])
+      * KDL::Rotation::RotX(legJointAngles[LEG_JOINT_KNEE_PITCH])
+      * KDL::Rotation::RotX(legJointAngles[LEG_JOINT_ANKLE_PITCH])
+      * KDL::Rotation::RotY(legJointAngles[LEG_JOINT_ANKLE_ROLL]) * KDL::Rotation::RotZ(legJointAngles[LEG_JOINT_FOOT]);
+
+  // joint limit
+  for (int i = LEG_JOINT_HIP_YAW; i <= LEG_JOINT_FOOT; ++i)
+  {
+    const itomp_cio_planner::ItompRobotJoint& joint = planning_group_->group_joints_[jointGroupNumber[i]];
+    if (legJointAngles[i] > joint.joint_limit_max_)
+    {
+      //ROS_INFO("Joint %d clamped from %f to max %f", i, legJointAngles[i], joint.joint_limit_max_);
+      legJointAngles[i] = joint.joint_limit_max_;
+    }
+    if (legJointAngles[i] < joint.joint_limit_min_)
+    {
+      //ROS_INFO("Joint %d clamped from %f to min %f", i, legJointAngles[i], joint.joint_limit_min_);
+      legJointAngles[i] = joint.joint_limit_min_;
+    }
+  }
+
+  // update trajectories
+  int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(point);
+  for (int j = LEG_JOINT_HIP_YAW; j <= LEG_JOINT_FOOT; ++j)
+  {
+    (*getFullTrajectory())(full_traj_index, jointKDLNumber[j]) = legJointAngles[j];
+    (*getGroupTrajectory())(point, jointGroupNumber[j]) = legJointAngles[j];
+
+    double adjusted;
+    adjusted = legJointAngles[j] - curJointArray(jointKDLNumber[j]);
+
+    double adjusted_vel, adjusted_vel2, adjusted_acc;
+    adjusted_vel = adjusted
+        - ((*getGroupTrajectory())(point - 1, jointGroupNumber[j]) - phaseJointArray_[1](jointKDLNumber[j]));
+
+    adjusted_vel2 = ((*getGroupTrajectory())(point - 1, jointGroupNumber[j]) - phaseJointArray_[1](jointKDLNumber[j]))
+        - ((*getGroupTrajectory())(point - 2, jointGroupNumber[j]) - phaseJointArray_[2](jointKDLNumber[j]));
+    adjusted_acc = adjusted_vel - adjusted_vel2;
+
+    curJointArray(jointKDLNumber[j]) = legJointAngles[j];
+
+    if (support)
+    {
+      if (getGroupTrajectory()->getContactPhaseStartPoint(point + 1) == point + 1)
+      {
+        MinJerkTrajectory joint(adjusted, adjusted_vel, adjusted_acc, 0.0, 0.0, 0.0);
+        for (int i = point + 1; i <= free_vars_end; ++i)
+        {
+          double t = (double) (i - point) / (free_vars_end - point);
+          int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
+
+          double jointEval = joint(t);
+
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) += jointEval;
+
+          double jointMax = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_max_;
+          double jointMin = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_min_;
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) = max((*getGroupTrajectory())(i, jointGroupNumber[j]),
+              jointMin);
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) = min((*getGroupTrajectory())(i, jointGroupNumber[j]),
+              jointMax);
+          (*getFullTrajectory())(full_traj_index2, jointKDLNumber[j]) = (*getGroupTrajectory())(i, jointGroupNumber[j]);
+        }
+      }
+    }
+    else // !support
+    {
+      int phaseStart = getGroupTrajectory()->getContactPhaseStartPoint(point);
+      int phaseEnd = getGroupTrajectory()->getContactPhaseEndPoint(point);
+
+      int mid = (phaseStart + 1 + phaseEnd);
+
+      MinJerkTrajectory jointB(0.0, 0.0, 0.0, adjusted, 0.0, 0.0);
+      for (int i = mid + 1; i < point; ++i)
+      {
+        double t = (double) (i - phaseStart) / (point - mid);
+        int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
+
+        double jointEval = jointB(t);
+
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) += jointEval;
+
+        double jointMax = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_max_;
+        double jointMin = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_min_;
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) = max((*getGroupTrajectory())(i, jointGroupNumber[j]),
+            jointMin);
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) = min((*getGroupTrajectory())(i, jointGroupNumber[j]),
+            jointMax);
+        (*getFullTrajectory())(full_traj_index2, jointKDLNumber[j]) = (*getGroupTrajectory())(i, jointGroupNumber[j]);
+      }
+
+      MinJerkTrajectory jointA(adjusted, 0.0, 0.0, 0.0, 0.0, 0.0);
+      for (int i = point + 1; i < phaseEnd; ++i)
+      {
+        double t = (double) (i - point) / (phaseEnd - point);
+        int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
+
+        double jointEval = jointA(t);
+
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) += jointEval;
+
+        double jointMax = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_max_;
+        double jointMin = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_min_;
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) = max((*getGroupTrajectory())(i, jointGroupNumber[j]),
+            jointMin);
+        (*getGroupTrajectory())(i, jointGroupNumber[j]) = min((*getGroupTrajectory())(i, jointGroupNumber[j]),
+            jointMax);
+        (*getFullTrajectory())(full_traj_index2, jointKDLNumber[j]) = (*getGroupTrajectory())(i, jointGroupNumber[j]);
+      }
+    }
+
+  }
+
+  // update data_->segment_frames_
+  data_->fk_solver_.JntToCartPartial(curJointArray, data_->joint_pos_[point], data_->joint_axis_[point],
+      data_->segment_frames_[point]);
+}
+
+}
+

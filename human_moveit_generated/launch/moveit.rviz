@@ -6,7 +6,7 @@ Panels:
       Expanded:
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
-      Splitter Ratio: 0.74256
+      Splitter Ratio: 0.465479
     Tree Height: 837
   - Class: rviz/Help
     Name: Help
@@ -33,7 +33,7 @@ Visualization Manager:
         Y: 0
         Z: 0
       Plane: XY
-      Plane Cell Count: 10
+      Plane Cell Count: 24
       Reference Frame: <Fixed Frame>
       Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
@@ -265,7 +265,7 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: true
         Show Trail: false
-        State Display Time: 0.25 s
+        State Display Time: 0.05 s
         Trajectory Topic: /move_group/display_planned_path
       Planning Metrics:
         Payload: 1
@@ -280,7 +280,7 @@ Visualization Manager:
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
-        Planning Group: left_arm
+        Planning Group: base
         Query Goal State: false
         Query Start State: false
         Show Workspace: false
@@ -975,7 +975,40 @@ Visualization Manager:
       Marker Topic: /pomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
+        environment: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.1
+      Reference Frame: <Fixed Frame>
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /amc_viewer/visualization_marker_array
+      Name: MarkerArray
+      Namespaces:
         {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /pomp_planner/visualization_marker_array
+      Name: MarkerArray
+      Namespaces:
+        environment: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /pomp_planner/visualization_marker
+      Name: Marker
+      Namespaces:
+        environment: true
+        itomp_CoM: true
+        itomp_endeffector: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -993,22 +1026,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 12.8032
+      Distance: 9.02625
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.665844
-        Y: -0.385719
+        X: 1.16756
+        Y: 1.27708
         Z: 2.47874e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.370203
+      Pitch: 0.0752042
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 6.08495
+      Yaw: 6.25333
     Saved: ~
 Window Geometry:
   Displays:
@@ -1020,7 +1053,7 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd00000001000000000000016f000003dafc0200000005fb000000100044006900730070006c0061007900730100000028000003da000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001ee0000017f0000017400ffffff000005ca000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000001c3000003dafc0200000005fb000000100044006900730070006c0061007900730100000028000003da000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000001ee0000017f0000017400ffffff00000576000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855
