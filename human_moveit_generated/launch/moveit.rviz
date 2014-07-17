@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
+        - /RobotState1
       Splitter Ratio: 0.465479
     Tree Height: 837
   - Class: rviz/Help
@@ -173,6 +174,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          right_hand_door_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           right_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
@@ -260,7 +266,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-        Loop Animation: true
+        Loop Animation: false
         Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: true
@@ -425,6 +431,11 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
+          right_hand_door_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           right_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
@@ -519,7 +530,7 @@ Visualization Manager:
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -644,6 +655,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         right_foot_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hand_door_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -741,12 +757,12 @@ Visualization Manager:
       Robot State Topic: /move_itomp/display_goal_state
       Show All Links: true
       Show Highlights: true
-      Value: true
+      Value: false
       Visual Enabled: true
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -875,6 +891,11 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        right_hand_door_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         right_hand_endeffector_link:
           Alpha: 1
           Show Axes: false
@@ -968,7 +989,7 @@ Visualization Manager:
       Robot State Topic: /move_itomp/display_start_state
       Show All Links: true
       Show Highlights: true
-      Value: true
+      Value: false
       Visual Enabled: true
     - Class: rviz/MarkerArray
       Enabled: true
@@ -979,12 +1000,12 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
-      Enabled: true
+      Enabled: false
       Length: 1
       Name: Axes
       Radius: 0.1
       Reference Frame: <Fixed Frame>
-      Value: true
+      Value: false
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /amc_viewer/visualization_marker_array
@@ -1002,15 +1023,13 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: true
+      Enabled: false
       Marker Topic: /pomp_planner/visualization_marker
       Name: Marker
       Namespaces:
-        environment: true
-        itomp_CoM: true
-        itomp_endeffector: true
+        {}
       Queue Size: 100
-      Value: true
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1038,10 +1057,10 @@ Visualization Manager:
         Z: 2.47874e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.0752042
+      Pitch: 0.265204
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 6.25333
+      Yaw: 2.73832
     Saved: ~
 Window Geometry:
   Displays:

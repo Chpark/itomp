@@ -49,6 +49,38 @@
 
 const std::string GROUP_NAME = "lower_body";
 
+void renderEnvironment(const std::string& environment_file, robot_model::RobotModelPtr& robot_model)
+{
+  ros::NodeHandle node_handle;
+  ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(
+        "pomp_planner/visualization_marker_array", 10);
+  visualization_msgs::MarkerArray ma;
+  visualization_msgs::Marker msg;
+  msg.header.frame_id = robot_model->getModelFrame();
+  msg.header.stamp = ros::Time::now();
+  msg.ns = "environment";
+  msg.type = visualization_msgs::Marker::MESH_RESOURCE;
+  msg.action = visualization_msgs::Marker::ADD;
+  msg.scale.x = 1.0;
+  msg.scale.y = 1.0;
+  msg.scale.z = 1.0;
+  msg.id = 0;
+  msg.pose.position.x = 0.0;
+  msg.pose.position.y = 0.0;
+  msg.pose.position.z = 0.0;
+  msg.pose.orientation.x = 0.0;
+  msg.pose.orientation.y = 0.0;
+  msg.pose.orientation.z = 0.0;
+  msg.pose.orientation.w = 1.0;
+  msg.color.a = 1.0;
+  msg.color.r = 0.5;
+  msg.color.g = 0.5;
+  msg.color.b = 0.5;
+  msg.mesh_resource = environment_file;
+  ma.markers.push_back(msg);
+  vis_marker_array_publisher_.publish(ma);
+}
+
 void computeIKState(robot_state::RobotState& ik_state, const std::string& group_name, double x, double y, double z,
     double qx, double qy, double qz, double qw)
 {
@@ -145,6 +177,8 @@ int main(int argc, char **argv)
   /* Sleep a little to allow time to startup rviz, etc. */
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
+
+  renderEnvironment("package://move_itomp/meshes/merged_all_door_closed.dae", robot_model);
 
   // We will now create a motion plan request
   // specifying the desired pose of the end-effector as input.
@@ -314,6 +348,9 @@ int main(int argc, char **argv)
     }
   }
 
+  for (int i = 0; i < 100; ++i)
+  res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
+
 
   res.getMessage(response);
 
@@ -321,7 +358,14 @@ int main(int argc, char **argv)
   display_trajectory.trajectory.push_back(response.trajectory);
   display_publisher.publish(display_trajectory);
 
+  renderEnvironment("package://move_itomp/meshes/merged_all_nodoor.dae", robot_model);
+
   sleep_time.sleep();
+
+  ros::WallDuration sleep_time2(10.0);
+  sleep_time2.sleep();
+  renderEnvironment("package://move_itomp/meshes/merged_all_door_closed.dae", robot_model);
+
   ROS_INFO("Done");
   planner_instance.reset();
 
