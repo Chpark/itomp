@@ -50,7 +50,7 @@
 const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
-void renderEnvironment(const std::string& environment_file, robot_model::RobotModelPtr& robot_model)
+void renderEnvironment(const std::string& environment_file, robot_model::RobotModelPtr& robot_model, const std::string& ns, std_msgs::ColorRGBA& color)
 {
   ros::NodeHandle node_handle;
   ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(
@@ -59,7 +59,7 @@ void renderEnvironment(const std::string& environment_file, robot_model::RobotMo
   visualization_msgs::Marker msg;
   msg.header.frame_id = robot_model->getModelFrame();
   msg.header.stamp = ros::Time::now();
-  msg.ns = "environment";
+  msg.ns = ns;
   msg.type = visualization_msgs::Marker::MESH_RESOURCE;
   msg.action = visualization_msgs::Marker::ADD;
   msg.scale.x = 1.0;
@@ -73,10 +73,13 @@ void renderEnvironment(const std::string& environment_file, robot_model::RobotMo
   msg.pose.orientation.y = 0.0;
   msg.pose.orientation.z = 0.0;
   msg.pose.orientation.w = 1.0;
+  msg.color = color;
+  /*
   msg.color.a = 1.0;
   msg.color.r = 0.5;
   msg.color.g = 0.5;
   msg.color.b = 0.5;
+  */
   msg.mesh_resource = environment_file;
   ma.markers.push_back(msg);
   vis_marker_array_publisher_.publish(ma);
@@ -112,12 +115,13 @@ void computeIKState(robot_state::RobotState& ik_state, const std::string& group_
   }
 }
 
-void visualizeResult(planning_interface::MotionPlanResponse& res, ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
+void visualizeResult(planning_interface::MotionPlanResponse& res, ros::NodeHandle& node_handle, int repeat_last,
+    double sleep_time)
 {
   // Visualize the result
   // ^^^^^^^^^^^^^^^^^^^^
-  static ros::Publisher display_publisher = node_handle.advertise < moveit_msgs::DisplayTrajectory
-      > ("/move_group/display_planned_path", 1, true);
+  static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>(
+      "/move_group/display_planned_path", 1, true);
   moveit_msgs::DisplayTrajectory display_trajectory;
 
   ROS_INFO("Visualizing the trajectory");
@@ -139,7 +143,7 @@ void doPlan(const std::string& group_name, planning_interface::MotionPlanRequest
     robot_state::RobotState& goal_state, planning_scene::PlanningScenePtr& planning_scene,
     planning_interface::PlannerManagerPtr& planner_instance)
 {
-  const robot_state::JointModelGroup* joint_model_group = goal_state.getJointModelGroup(group_name);
+  const robot_state::JointModelGroup* joint_model_group = goal_state.getJointModelGroup("whole_body");
 
   // Copy from start_state to req.start_state
   unsigned int num_joints = start_state.getVariableCount();
@@ -257,33 +261,39 @@ void setDoorOpeningStates(robot_state::RobotState& start_state, robot_state::Rob
   computeIKState(goal_state, "right_arm", 0.0 - 0.065, 0.5, 1.6, 0.5, -0.5, -0.5, 0.5);
 }
 
-void setDrawerStates(robot_state::RobotState& start_state, robot_state::RobotState& goal_state)
+void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
+    robot_state::RobotState& goal_state, robot_state::RobotState& post_state)
 {
+  double jointValue = 0.0;
+
   // Set start_state
   const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
   std::map<std::string, double> values;
+
+  joint_model_group->getVariableDefaultPositions("stand", values);
+  pre_state.setVariablePositions(values);
+  jointValue = -2.71;
+  pre_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = 5.3 - 0.23;
+  pre_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  jointValue = M_PI * 0.5;
+  pre_state.setJointPositions("base_revolute_joint_z", &jointValue);
+
   joint_model_group->getVariableDefaultPositions("open_whole3", values);
   start_state.setVariablePositions(values);
-  double jointValue = 0.0;
-
   jointValue = -2.71;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
   jointValue = 5.3 - 0.23;
   start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  jointValue = -0.01;
-  start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
   jointValue = M_PI * 0.5;
   start_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
-  // Now, setup a goal state
   joint_model_group->getVariableDefaultPositions("open_whole3", values);
   goal_state.setVariablePositions(values);
   jointValue = -2.71;
   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
   jointValue = 5.3 - 0.23;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  jointValue = -0.01;
-  goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
   jointValue = M_PI * 0.5;
   goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
@@ -305,6 +315,8 @@ void setDrawerStates(robot_state::RobotState& start_state, robot_state::RobotSta
       ROS_INFO("Could not find IK solution");
     }
   }
+
+  post_state = pre_state;
 }
 
 int main(int argc, char **argv)
@@ -374,7 +386,16 @@ int main(int argc, char **argv)
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
 
-  renderEnvironment("package://move_itomp/meshes/merged_all_nodoor.dae", robot_model);
+  std_msgs::ColorRGBA color;
+  color.a = 1.0;
+  color.r = 0.5;
+  color.g = 0.5;
+  color.b = 0.5;
+  renderEnvironment("package://move_itomp/meshes/merged_all_nodoor.dae", robot_model, "environment", color);
+  color.r = 1.0;
+  color.g = 1.0;
+  color.b = 1.0;
+  renderEnvironment("package://move_itomp/meshes/door.dae", robot_model, "object", color);
 
   // We will now create a motion plan request
   // specifying the desired pose of the end-effector as input.
@@ -384,6 +405,7 @@ int main(int argc, char **argv)
   std::vector<robot_state::RobotState> robot_states;
 
   int state_index = 0;
+
   robot_states.push_back(planning_scene->getCurrentStateNonConst());
   robot_states.push_back(robot_states.back());
 
@@ -438,19 +460,40 @@ int main(int argc, char **argv)
       }
     }
   }
-
   visualizeResult(res, node_handle, 100, 10.0);
+
+  state_index += 2;
+
 
   // opening a drawer
   //////////////
-  state_index += 2;
+  /*
   robot_states.push_back(planning_scene->getCurrentStateNonConst());
   robot_states.push_back(robot_states.back());
-  setDrawerStates(robot_states[state_index], robot_states[state_index + 1]);
+  robot_states.push_back(robot_states.back());
+  robot_states.push_back(robot_states.back());
+  setDrawerStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+      robot_states[state_index + 3]);
+
+  doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+      planner_instance);
+  displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+  visualizeResult(res, node_handle, 100, 10.0);
+  ++state_index;
+
   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
       planner_instance);
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
   visualizeResult(res, node_handle, 100, 10.0);
+  ++state_index;
+
+  doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+      planner_instance);
+  displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+  visualizeResult(res, node_handle, 100, 10.0);
+  ++state_index;
+  */
+
 
   ROS_INFO("Done");
   planner_instance.reset();
