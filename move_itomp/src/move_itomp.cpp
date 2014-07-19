@@ -112,7 +112,7 @@ void computeIKState(robot_state::RobotState& ik_state, const std::string& group_
   }
 }
 
-void visualizeResult(planning_interface::MotionPlanResponse& res, ros::NodeHandle& node_handle, double sleep_time)
+void visualizeResult(planning_interface::MotionPlanResponse& res, ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
 {
   // Visualize the result
   // ^^^^^^^^^^^^^^^^^^^^
@@ -123,6 +123,8 @@ void visualizeResult(planning_interface::MotionPlanResponse& res, ros::NodeHandl
   ROS_INFO("Visualizing the trajectory");
   moveit_msgs::MotionPlanResponse response;
 
+  for (int i = 0; i < repeat_last; ++i)
+    res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
   res.getMessage(response);
 
   display_trajectory.trajectory_start = response.trajectory_start;
@@ -435,12 +437,9 @@ int main(int argc, char **argv)
         joint_val_map[name] = v;
       }
     }
-
-    for (int i = 0; i < 100; ++i)
-      res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
   }
 
-  visualizeResult(res, node_handle, 10.0);
+  visualizeResult(res, node_handle, 100, 10.0);
 
   // opening a drawer
   //////////////
@@ -451,7 +450,7 @@ int main(int argc, char **argv)
   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
       planner_instance);
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-  visualizeResult(res, node_handle, 10.0);
+  visualizeResult(res, node_handle, 100, 10.0);
 
   ROS_INFO("Done");
   planner_instance.reset();
