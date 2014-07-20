@@ -59,7 +59,10 @@ bool ItompOptimizer::optimize()
   ++iteration_;
 
   int iteration_after_solution = 0;
-  while (iteration_ < PlanningParameters::getInstance()->getMaxIterations())
+  int num_iterations = PlanningParameters::getInstance()->getMaxIterations();
+  if (evaluation_manager_.getPlanningGroup()->name_ == "torso")
+    num_iterations = 0;
+  while (iteration_ < num_iterations)
   {
     improvement_manager_->runSingleIteration(iteration_);
     is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();

@@ -46,11 +46,84 @@
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
+#include <map>
 
 const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
-void renderEnvironment(const std::string& environment_file, robot_model::RobotModelPtr& robot_model, const std::string& ns, std_msgs::ColorRGBA& color)
+void renderHierarchicalTrajectory(robot_trajectory::RobotTrajectoryPtr& robot_trajectory, ros::NodeHandle& node_handle,
+    robot_model::RobotModelPtr& robot_model)
+{
+  static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(
+      "pomp_planner/trajectory", 10);
+  visualization_msgs::MarkerArray ma;
+  std::vector < std::string > link_names = robot_model->getLinkModelNames();
+  std_msgs::ColorRGBA color;
+  std::string ns = "robot";
+  ros::Duration dur(100.0);
+
+  std::map<std::string, std_msgs::ColorRGBA> colorMap;
+  color.a = 0.3;
+  color.r = 0.5;
+  color.g = 1.0;
+  color.b = 1.0;
+  colorMap["lower_body"] = color;
+  color.a = 0.3;
+  color.r = 0.5;
+  color.g = 1.0;
+  color.b = 0.3;
+  colorMap["torso"] = color;
+  color.g = 0.3;
+  color.b = 1.0;
+  colorMap["head"] = color;
+  color.r = 0.9;
+  color.g = 0.5;
+  color.b = 0.3;
+  colorMap["left_arm"] = color;
+  color.r = 0.9;
+  color.g = 0.3;
+  color.b = 0.5;
+  colorMap["right_arm"] = color;
+  color.r = 1.0;
+  color.g = 1.0;
+  color.b = 1.0;
+  colorMap["object"] = color;
+
+  const robot_state::JointModelGroup* joint_model_group;
+  std::map < std::string, std::vector<std::string> > group_links_map;
+
+  group_links_map["lower_body"] = robot_model->getJointModelGroup("lower_body")->getLinkModelNames();
+  group_links_map["torso"] = robot_model->getJointModelGroup("torso")->getLinkModelNames();
+  group_links_map["head"] = robot_model->getJointModelGroup("head")->getLinkModelNames();
+  group_links_map["left_arm"] = robot_model->getJointModelGroup("left_arm")->getLinkModelNames();
+  group_links_map["right_arm"] = robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
+
+  group_links_map["object"].clear();
+  group_links_map["object"].push_back("right_hand_object_link");
+
+  int num_waypoints = robot_trajectory->getWayPointCount();
+  for (int i = 0; i < num_waypoints; ++i)
+  {
+    ma.markers.clear();
+    robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(i);
+
+    for (std::map<std::string, std::vector<std::string> >::iterator it = group_links_map.begin();
+        it != group_links_map.end(); ++it)
+    {
+      std::string ns = "robot_" + it->first;
+      state->getRobotMarkers(ma, group_links_map[it->first], colorMap[it->first], ns, dur);
+    }
+    vis_marker_array_publisher_.publish(ma);
+
+    double time = (i == 0 || i == num_waypoints - 1) ? 2.0 : 0.05;
+    ros::WallDuration timer(time);
+    timer.sleep();
+  }
+
+}
+
+void renderEnvironment(const std::string& environment_file, robot_model::RobotModelPtr& robot_model,
+    const std::string& ns, std_msgs::ColorRGBA& color)
 {
   ros::NodeHandle node_handle;
   ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(
@@ -75,11 +148,11 @@ void renderEnvironment(const std::string& environment_file, robot_model::RobotMo
   msg.pose.orientation.w = 1.0;
   msg.color = color;
   /*
-  msg.color.a = 1.0;
-  msg.color.r = 0.5;
-  msg.color.g = 0.5;
-  msg.color.b = 0.5;
-  */
+   msg.color.a = 1.0;
+   msg.color.r = 0.5;
+   msg.color.g = 0.5;
+   msg.color.b = 0.5;
+   */
   msg.mesh_resource = environment_file;
   ma.markers.push_back(msg);
   vis_marker_array_publisher_.publish(ma);
@@ -232,16 +305,24 @@ void displayStates(robot_state::RobotState& start_state, robot_state::RobotState
   goal_state_display_publisher.publish(disp_goal_state);
 }
 
-void setDoorOpeningStates(robot_state::RobotState& start_state, robot_state::RobotState& goal_state)
+void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
+    robot_state::RobotState& goal_state, robot_state::RobotState& post_state)
 {
   std::map<std::string, double> values;
   double jointValue = 0.0;
 
   const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
 
+  // pre state
+  joint_model_group->getVariableDefaultPositions("standup", values);
+  pre_state.setVariablePositions(values);
+  jointValue = -0.55;
+  pre_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = -0.5;
+  pre_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+
   joint_model_group->getVariableDefaultPositions("door_1_whole", values);
   start_state.setVariablePositions(values);
-
   jointValue = -0.55;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
   jointValue = -0.5;
@@ -259,6 +340,15 @@ void setDoorOpeningStates(robot_state::RobotState& start_state, robot_state::Rob
   jointValue = 0.5;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   computeIKState(goal_state, "right_arm", 0.0 - 0.065, 0.5, 1.6, 0.5, -0.5, -0.5, 0.5);
+
+  // post state
+  joint_model_group->getVariableDefaultPositions("standup", values);
+  post_state.setVariablePositions(values);
+  jointValue = -0.55;
+  post_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = 0.5;
+  post_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+
 }
 
 void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
@@ -395,7 +485,7 @@ int main(int argc, char **argv)
   color.r = 1.0;
   color.g = 1.0;
   color.b = 1.0;
-  renderEnvironment("package://move_itomp/meshes/door.dae", robot_model, "object", color);
+  //renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae", robot_model, "object", color);
 
   // We will now create a motion plan request
   // specifying the desired pose of the end-effector as input.
@@ -406,68 +496,86 @@ int main(int argc, char **argv)
 
   int state_index = 0;
 
-  robot_states.push_back(planning_scene->getCurrentStateNonConst());
-  robot_states.push_back(robot_states.back());
+  /*
+   robot_states.push_back(planning_scene->getCurrentStateNonConst());
+   robot_states.push_back(robot_states.back());
+   robot_states.push_back(robot_states.back());
+   robot_states.push_back(robot_states.back());
 
-  // opening a door states
-  setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1]);
-  doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-      planner_instance);
-  displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+   // opening a door states
+   setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+   robot_states[state_index + 3]);
 
-  {
-    // hack
-    int num_waypoints = res.trajectory_->getWayPointCount();
-    const double radius = sqrt(0.5 * 0.5 + 0.065 * 0.065);
-    const double theta_start = atan2(-0.065, -0.5) + 2 * M_PI;
-    const double theta_end = atan2(0.5, -0.065) - 0.3;
-    const Eigen::Quaternion<double> rot_start(INV_SQRT_2, INV_SQRT_2, 0, 0);
-    const Eigen::Quaternion<double> rot_end(0.5, 0.5, -0.5, -0.5);
-    double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
-    double end_y = res.trajectory_->getLastWayPoint().getVariablePosition(1);
+   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+   planner_instance);
+   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
 
-    const robot_state::JointModelGroup* joint_model_group2 = res.trajectory_->getFirstWayPoint().getJointModelGroup(
-        "right_arm");
-    const std::vector<std::string> joint_model_names = joint_model_group2->getJointModelNames();
+   ++state_index;
 
-    std::map<std::string, double> joint_val_map;
-    for (int i = 0; i < num_waypoints; ++i)
-    {
-      robot_state::RobotStatePtr state = res.trajectory_->getWayPointPtr(i);
-      double cy = state->getVariablePosition(1);
-      //double t = (double)i / (num_waypoints - 1);
-      double t = (cy - start_y) / (end_y - start_y);
-      ROS_INFO("T : %f", t);
-      double theta_interp = theta_start + t * (theta_end - theta_start);
+   doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+   planner_instance);
+   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+   {
+   // hack
+   double x = 0.5 - 0.05;
+   double y = 0.065 + 0.1 + 0.065 - 0.02;
+   int num_waypoints = res.trajectory_->getWayPointCount();
+   const double radius = sqrt(x * x + y * y);
+   const double theta_start = atan2(-y, -x) + 2 * M_PI;
+   const double theta_end = atan2(x, -y) - 0.3;
+   const Eigen::Quaternion<double> rot_start(INV_SQRT_2, INV_SQRT_2, 0, 0);
+   const Eigen::Quaternion<double> rot_end(0.5, 0.5, -0.5, -0.5);
+   double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
+   double end_y = res.trajectory_->getLastWayPoint().getVariablePosition(1);
 
-      double x = cos(theta_interp) * radius;
-      double y = sin(theta_interp) * radius;
+   const robot_state::JointModelGroup* joint_model_group2 = res.trajectory_->getFirstWayPoint().getJointModelGroup(
+   "right_arm");
+   const std::vector<std::string> joint_model_names = joint_model_group2->getJointModelNames();
 
-      const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
+   std::map<std::string, double> joint_val_map;
+   for (int i = 0; i < num_waypoints; ++i)
+   {
+   robot_state::RobotStatePtr state = res.trajectory_->getWayPointPtr(i);
+   double cy = state->getVariablePosition(1);
+   //double t = (double)i / (num_waypoints - 1);
+   double t = (cy - start_y) / (end_y - start_y);
+   ROS_INFO("T : %f", t);
+   double theta_interp = theta_start + t * (theta_end - theta_start);
 
-      if (i != 0)
-      {
-        state->setVariablePositions(joint_val_map);
-      }
+   double x = cos(theta_interp) * radius;
+   double y = sin(theta_interp) * radius;
 
-      computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(), q.z(), q.w());
+   const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
 
-      for (int j = 0; j < joint_model_names.size(); ++j)
-      {
-        const std::string name = joint_model_names[j];
-        double v = state->getVariablePosition(name);
-        joint_val_map[name] = v;
-      }
-    }
-  }
-  visualizeResult(res, node_handle, 100, 10.0);
+   if (i != 0)
+   {
+   state->setVariablePositions(joint_val_map);
+   }
 
-  state_index += 2;
+   computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(), q.z(), q.w());
 
+   for (int j = 0; j < joint_model_names.size(); ++j)
+   {
+   const std::string name = joint_model_names[j];
+   double v = state->getVariablePosition(name);
+   joint_val_map[name] = v;
+   }
+   }
+   }
+
+   ++state_index;
+
+   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+   planner_instance);
+   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+
+   renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+
+   state_index += 2;
+   */
 
   // opening a drawer
   //////////////
-  /*
   robot_states.push_back(planning_scene->getCurrentStateNonConst());
   robot_states.push_back(robot_states.back());
   robot_states.push_back(robot_states.back());
@@ -478,22 +586,22 @@ int main(int argc, char **argv)
   doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
       planner_instance);
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-  visualizeResult(res, node_handle, 100, 10.0);
+
   ++state_index;
 
   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
       planner_instance);
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-  visualizeResult(res, node_handle, 100, 10.0);
+
   ++state_index;
 
   doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
       planner_instance);
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-  visualizeResult(res, node_handle, 100, 10.0);
-  ++state_index;
-  */
 
+  ++state_index;
+
+  renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
 
   ROS_INFO("Done");
   planner_instance.reset();

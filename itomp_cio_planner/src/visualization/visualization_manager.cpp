@@ -37,8 +37,6 @@ void VisualizationManager::renderEnvironment()
   if (environment_file.empty())
     return;
 
-  return;
-
   vector<double> environment_position = PlanningParameters::getInstance()->getEnvironmentModelPosition();
   double scale = PlanningParameters::getInstance()->getEnvironmentModelScale();
   environment_position.resize(3, 0);

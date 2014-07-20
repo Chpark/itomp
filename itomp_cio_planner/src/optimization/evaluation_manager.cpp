@@ -436,8 +436,8 @@ void EvaluationManager::render(int trajectory_index)
 {
   if (PlanningParameters::getInstance()->getAnimateEndeffector())
   {
-    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_vars_full_, full_vars_start_, data_->segment_frames_,
-        data_->state_validity_, false);
+    VisualizationManager::getInstance()->animateEndeffector(trajectory_index, num_vars_full_, full_vars_start_,
+        data_->segment_frames_, data_->state_validity_, false);
     VisualizationManager::getInstance()->animateCoM(num_vars_full_, full_vars_start_, data_->CoMPositions_, false);
   }
   if (PlanningParameters::getInstance()->getAnimatePath())
@@ -1033,6 +1033,17 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
         it != contact_map.end(); ++it)
     {
       const collision_detection::Contact& contact = it->second[0];
+
+      if (contact.body_name_1.find("left") != std::string::npos
+          || contact.body_name_2.find("left") != std::string::npos)
+        continue;
+      if (contact.body_name_1.find("environment") == std::string::npos
+          && contact.body_name_2.find("environment") == std::string::npos)
+      {
+        if (contact.depth < 0.01)
+          continue;
+      }
+
       depthSum += contact.depth;
 
       // for debug

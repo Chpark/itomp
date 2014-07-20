@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 10
+max_iterations: 50
 max_iterations_after_collision_free: 10
 num_trajectories: 1
 
@@ -34,7 +34,7 @@ animate_endeffector_segment:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 5.0
 trajectory_discretization: 0.05
-phase_duration: 1.0
+phase_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0
@@ -71,7 +71,7 @@ num_contacts: 2
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://move_itomp/meshes/merged_all_nodoor.dae
+environment_model: package://move_itomp/meshes/new_merged_nodoor.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 
