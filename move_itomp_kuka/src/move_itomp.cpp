@@ -48,6 +48,10 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/PositionConstraint.h>
 #include <moveit_msgs/OrientationConstraint.h>
+#include <boost/variant/get.hpp>
+#include <geometric_shapes/mesh_operations.h>
+#include <geometric_shapes/shape_operations.h>
+#include <geometric_shapes/shapes.h>
 
 void addWaypoint(planning_interface::MotionPlanRequest& req, double x, double y, double z, double qx, double qy,
     double qz, double qw)
@@ -100,6 +104,63 @@ void plan(planning_interface::PlannerManagerPtr& planner_instance, planning_scen
   {
     ROS_ERROR("Could not compute plan successfully");
     return;
+  }
+}
+
+void loadStaticScene(ros::NodeHandle& node_handle, planning_scene::PlanningScenePtr& planning_scene,
+    robot_model::RobotModelPtr& robot_model)
+{
+  std::string environment_file;
+  std::vector<double> environment_position;
+
+  node_handle.param<std::string>("/itomp_planner/environment_model", environment_file, "");
+
+  if (!environment_file.empty())
+  {
+    double scale;
+    node_handle.param("/itomp_planner/environment_model_scale", scale, 1.0);
+    environment_position.resize(3, 0);
+    if (node_handle.hasParam("/itomp_planner/environment_model_position"))
+    {
+      XmlRpc::XmlRpcValue segment;
+      node_handle.getParam("/itomp_planner/environment_model_position", segment);
+      if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+      {
+        int size = segment.size();
+        for (int i = 0; i < size; ++i)
+        {
+          double value = segment[i];
+          environment_position.push_back(value);
+        }
+      }
+    }
+
+    // Collision object
+    moveit_msgs::CollisionObject collision_object;
+    collision_object.header.frame_id = robot_model->getModelFrame();
+    collision_object.id = "environment";
+    geometry_msgs::Pose pose;
+    pose.position.x = environment_position[0];
+    pose.position.y = environment_position[1];
+    pose.position.z = environment_position[2];
+    pose.orientation.x = 0.0;
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+    pose.orientation.w = 1.0;
+
+    shapes::Mesh* shape = shapes::createMeshFromResource(environment_file);
+    shapes::ShapeMsg mesh_msg;
+    shapes::constructMsgFromShape(shape, mesh_msg);
+    shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
+
+    collision_object.meshes.push_back(mesh);
+    collision_object.mesh_poses.push_back(pose);
+
+    collision_object.operation = collision_object.ADD;
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    planning_scene_msg.is_diff = true;
+    planning_scene->setPlanningSceneDiffMsg(planning_scene_msg);
   }
 }
 
@@ -156,8 +217,22 @@ void displayStates(ros::NodeHandle& node_handle, robot_model::RobotModelPtr& rob
   goal_state_display_publisher.publish(disp_goal_state);
 }
 
-void computeIKState(robot_state::RobotState& ik_state, const std::string& group_name, double x, double y, double z,
-    double qx, double qy, double qz, double qw)
+bool isCollide(robot_state::RobotState& ik_state, planning_scene::PlanningScenePtr& planning_scene)
+{
+  collision_detection::CollisionRequest collision_request;
+  collision_detection::CollisionResult collision_result;
+  collision_request.verbose = true;
+  collision_request.contacts = false;
+
+  collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+  acm.setEntry("environment", "segment_0", true);
+
+  planning_scene->checkCollisionUnpadded(collision_request, collision_result, ik_state, acm);
+  return collision_result.collision;
+}
+
+void computeIKState(robot_state::RobotState& ik_state, planning_scene::PlanningScenePtr& planning_scene,
+    const std::string& group_name, Eigen::Affine3d& end_effector_state)
 {
   // compute waypoint ik solutions
 
@@ -165,6 +240,40 @@ void computeIKState(robot_state::RobotState& ik_state, const std::string& group_
 
   int num_joints = ik_state.getVariableCount();
 
+  kinematics::KinematicsQueryOptions options;
+  options.return_approximate_solution = false;
+  bool found_ik = false;
+
+  robot_state::RobotState org_start(ik_state);
+  int i = 0;
+  while(true)
+  {
+    found_ik = ik_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1,
+        moveit::core::GroupStateValidityCallbackFn(), options);
+    found_ik &= !isCollide(ik_state, planning_scene);
+    if (found_ik)
+      break;
+
+    ++i;
+
+    double dist = log(-3 + 0.001 * i) / log(10);
+
+    ik_state.setToRandomPositionsNearBy(joint_model_group, org_start, dist);
+  }
+
+  if (found_ik)
+  {
+    ROS_INFO("IK solution found after %d trials", i + 1);
+  }
+  else
+  {
+    ROS_INFO("Could not find IK solution");
+  }
+}
+
+void computeIKState(robot_state::RobotState& ik_state, planning_scene::PlanningScenePtr& planning_scene,
+    const std::string& group_name, double x, double y, double z, double qx, double qy, double qz, double qw)
+{
   Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
   Eigen::Quaternion<double> rot(qw, qx, qy, qz);
   Eigen::Vector3d trans(x, y, z);
@@ -172,18 +281,38 @@ void computeIKState(robot_state::RobotState& ik_state, const std::string& group_
   end_effector_state.linear() = mat;
   end_effector_state.translation() = trans;
 
-  kinematics::KinematicsQueryOptions options;
-  options.return_approximate_solution = false;
-  bool found_ik = ik_state.setFromIK(joint_model_group, end_effector_state, 10, 0.1,
-      moveit::core::GroupStateValidityCallbackFn(), options);
-  if (found_ik)
-  {
-    ROS_INFO("IK solution found");
-  }
-  else
-  {
-    ROS_INFO("Could not find IK solution");
-  }
+  computeIKState(ik_state, planning_scene, group_name, end_effector_state);
+}
+
+void transformConstraint(double& x, double& y, double& z, double& qx, double& qy, double& qz, double& qw,
+    const Eigen::Affine3d& transform)
+{
+  Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
+
+  Eigen::Quaternion<double> rot(qw, qx, qy, qz);
+  Eigen::Vector3d trans(x, y, z);
+  Eigen::Matrix3d mat = rot.toRotationMatrix();
+  end_effector_state.linear() = mat;
+  end_effector_state.translation() = trans;
+
+  Eigen::Matrix3d parent_mat = mat * transform.rotation().inverse();
+  Eigen::Vector3d parent_trans = trans - parent_mat * transform.translation();
+
+  Eigen::Matrix3d temp = transform.rotation().inverse();
+  Eigen::Vector3d temp2 = temp * transform.translation();
+
+
+  rot = Eigen::Quaternion<double>(parent_mat);
+
+  x = parent_trans.data()[0];
+  y = parent_trans.data()[1];
+  z = parent_trans.data()[2];
+
+  qw = rot.w();
+  qx = rot.x();
+  qy = rot.y();
+  qz = rot.z();
+
 }
 
 int main(int argc, char **argv)
@@ -254,6 +383,8 @@ int main(int argc, char **argv)
   moveit_msgs::DisplayTrajectory display_trajectory;
   moveit_msgs::MotionPlanResponse response;
 
+  loadStaticScene(node_handle, planning_scene, robot_model);
+
   /* Sleep a little to allow time to startup rviz, etc. */
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
@@ -290,19 +421,50 @@ int main(int argc, char **argv)
   displayStates(node_handle, robot_model, start_state, goal_state);
 
   const double INV_SQRT_2 = 1.0 / sqrt(2.0);
-  const double EE_CONSTRAINTS[][7] =
+  double EE_CONSTRAINTS[][7] =
   {
-  { -3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
-  { -3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
-  { 3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
-  { 3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 } };
+  /*
+   { -3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+   { -3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+   { 3, 5, 7.0, 0, INV_SQRT_2, INV_SQRT_2, 0 },
+   { 3, 5, 3.0, 0, INV_SQRT_2, INV_SQRT_2, 0 }
+   */
+
+  { 2, 0.5, 12, -0.5, -0.5, 0.5, 0.5 },
+  { 2, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+  { 2, 1.0, 12, -0.5, -0.5, 0.5, 0.5 },
+  { 1.5, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+  { 2, 1.5, 12, -0.5, -0.5, 0.5, 0.5 },
+  { 1, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+
+  };
+
+  // transform from tcp to arm end-effector
+  Eigen::Affine3d transform_1 = robot_model->getLinkModel("tcp_1_link")->getJointOriginTransform();
+  Eigen::Affine3d transform_2 = robot_model->getLinkModel("tcp_2_link")->getJointOriginTransform();
+  for (int i = 0; i < 6; ++i)
+  {
+    transformConstraint(EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2], EE_CONSTRAINTS[i][3],
+        EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6], (i % 2 == 0) ? transform_1 : transform_2);
+  }
 
   robot_state::RobotState from_state(start_state);
   robot_state::RobotState to_state(start_state);
-  for (int i = 0; i < 4; ++i)
+
+  isCollide(from_state, planning_scene);
+  for (int i = 0; i < 6; ++i)
   {
-    computeIKState(to_state, "lower_body", EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2],
-        EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
+    ROS_INFO("*** Planning Sequence %d ***", i);
+
+    computeIKState(to_state, planning_scene, "lower_body", EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1],
+        EE_CONSTRAINTS[i][2], EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
+
+    // for KUKA
+    if (i == 0)
+    {
+      from_state = to_state;
+      goal_state = to_state;
+    }
 
     if (i != 0)
     {
@@ -319,6 +481,7 @@ int main(int argc, char **argv)
     if (i == 0)
       display_trajectory.trajectory_start = response.trajectory_start;
     display_trajectory.trajectory.push_back(response.trajectory);
+    display_publisher.publish(display_trajectory);
     from_state = to_state;
 
     // use the last configuration of prev trajectory
@@ -328,12 +491,15 @@ int main(int argc, char **argv)
     from_state.setVariablePositions(last_state.getVariablePositions());
     from_state.update();
   }
+
+  // return to the initial position
   req.path_constraints.position_constraints.clear();
   req.path_constraints.orientation_constraints.clear();
   plan(planner_instance, planning_scene, req, res, "lower_body", from_state, goal_state);
   res.getMessage(response);
   display_trajectory.trajectory.push_back(response.trajectory);
 
+  // publish trajectory
   display_publisher.publish(display_trajectory);
 
   sleep_time.sleep();

@@ -96,6 +96,7 @@ private:
   void computeFTRs();
   void computeCartesianTrajectoryCosts();
   void handleTrajectoryConstraint();
+  void computeSingularityCosts();
 
   void updateFullTrajectory(int point_index, int joint_index);
   bool performForwardKinematics(int begin, int end);
@@ -103,6 +104,7 @@ private:
   void computeStabilityCosts(int begin, int end);
   void computeCollisionCosts(int begin, int end);
   void computeFTRs(int begin, int end);
+  void computeSingularityCosts(int begin, int end);
 
   void backupAndSetVariables(double new_value, DERIVATIVE_VARIABLE_TYPE variable_type, int free_point_index,
       int joint_index);
@@ -160,12 +162,15 @@ private:
   void getJointIndex(int& groupIndex, int& kdlIndex, int joint, bool isLeft) const;
   void computeBaseFrames(KDL::JntArray& curJointArray, int point);
   void ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::Vector& rootPos, const KDL::Frame& destPose,
-      KDL::JntArray& curJointArray, int point, bool support = true);
+      KDL::JntArray& curJointArray, int point, bool support = true, bool updatePhase = false);
   KDL::JntArray phaseJointArray_[3];
 
   // for debug
   std::vector<double> timings_;
   int count_;
+public:
+  bool print_debug_texts_;
+
 };
 typedef boost::shared_ptr<EvaluationManager> EvaluationManagerPtr;
 
@@ -246,12 +251,17 @@ inline void EvaluationManager::computeStabilityCosts()
 
 inline bool EvaluationManager::performForwardKinematics()
 {
-  return performForwardKinematics(full_vars_start_, full_vars_end_);
+  return performForwardKinematics(0, num_points_);
 }
 
 inline void EvaluationManager::computeWrenchSum()
 {
   computeWrenchSum(full_vars_start_, full_vars_end_);
+}
+
+inline void EvaluationManager::computeSingularityCosts()
+{
+  computeSingularityCosts(full_vars_start_ + 1, full_vars_end_ - 1);
 }
 
 }

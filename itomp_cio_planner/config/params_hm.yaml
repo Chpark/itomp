@@ -1,16 +1,16 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 50
-max_iterations_after_collision_free: 10
+max_iterations: 10
+max_iterations_after_collision_free: 0
 num_trajectories: 1
 
-smoothness_cost_weight: 0.0001
+smoothness_cost_weight: 0.000001
 obstacle_cost_weight: 20.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
-contact_invariant_cost_weight: 0.0
-physics_violation_cost_weight: 0.0
+contact_invariant_cost_weight: 1.0
+physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
@@ -71,7 +71,7 @@ num_contacts: 2
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://move_itomp/meshes/new_merged_nodoor.dae
+environment_model: package://move_itomp/meshes/merged_empty.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 

@@ -62,32 +62,41 @@ bool ItompOptimizer::optimize()
   int num_iterations = PlanningParameters::getInstance()->getMaxIterations();
   if (evaluation_manager_.getPlanningGroup()->name_ == "torso")
     num_iterations = 0;
-  while (iteration_ < num_iterations)
+  if (!evaluation_manager_.isLastTrajectoryFeasible())
   {
-    improvement_manager_->runSingleIteration(iteration_);
-    is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
-    //ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
-    bool is_best = updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
-    if (best_group_trajectory_cost_ < 0.01)
+    while (iteration_ < num_iterations)
     {
-      ++iteration_after_solution;
-      if (iteration_after_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
-        break;
-    }
-    if (!is_best)
-    {
-      group_trajectory_.getTrajectory() = best_group_trajectory_;
-      group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
-    }
+      improvement_manager_->runSingleIteration(iteration_);
+      is_succeed_ = evaluation_manager_.isLastTrajectoryFeasible();
+      //ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_succeed_ ? "True" : "False"));
+      bool is_best = updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true));
+      if (is_succeed_) //best_group_trajectory_cost_ < 0.01)
+      {
+        ++iteration_after_solution;
+        if (iteration_after_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
+          break;
+      }
+      if (!is_best)
+      {
+        group_trajectory_.getTrajectory() = best_group_trajectory_;
+        group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
+      }
 
-    ++iteration_;
+      ++iteration_;
+
+      if (iteration_ == num_iterations)
+      {
+        if (!is_succeed_)
+          num_iterations += 100;
+      }
+    }
   }
   //evaluation_manager_.postprocess_ik();
 
   group_trajectory_.getTrajectory() = best_group_trajectory_;
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
   evaluation_manager_.updateFullTrajectory();
-  evaluation_manager_.evaluate();
+  //evaluation_manager_.evaluate();
 
   evaluation_manager_.render(trajectory_index_);
 

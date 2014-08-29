@@ -237,10 +237,10 @@ void ItompPlannerNode::getPlanningGroups(std::vector<std::string>& plannningGrou
   plannningGroups.clear();
   if (groupName == "decomposed_body")
   {
-    //plannningGroups.push_back("lower_body");
+    plannningGroups.push_back("lower_body");
     plannningGroups.push_back("torso");
     //plannningGroups.push_back("head");
-    //plannningGroups.push_back("left_arm");
+    plannningGroups.push_back("left_arm");
     plannningGroups.push_back("right_arm");
   }
   else

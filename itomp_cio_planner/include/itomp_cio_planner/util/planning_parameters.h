@@ -96,6 +96,7 @@ public:
   std::string getEnvironmentModel() const;
   const std::vector<double>& getEnvironmentModelPosition() const;
   double getEnvironmentModelScale() const;
+  bool getHasRoot6d() const;
 
 private:
   int updateIndex;
@@ -152,6 +153,8 @@ private:
   std::string environment_model_;
   std::vector<double> environment_model_position_;
   double environment_model_scale_;
+
+  bool has_root_6d_;
 
   friend class Singleton<PlanningParameters> ;
 };
@@ -364,6 +367,11 @@ inline const std::vector<double>& PlanningParameters::getEnvironmentModelPositio
 inline double PlanningParameters::getEnvironmentModelScale() const
 {
   return environment_model_scale_;
+}
+
+inline bool PlanningParameters::getHasRoot6d() const
+{
+  return has_root_6d_;
 }
 
 }

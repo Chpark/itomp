@@ -53,7 +53,7 @@ static bool STABILITY_COST_VERBOSE = false;
 EvaluationManager::EvaluationManager(int* iteration) :
     iteration_(iteration), data_(&default_data_), count_(0)
 {
-
+  print_debug_texts_ = false;
 }
 
 EvaluationManager::~EvaluationManager()
@@ -117,7 +117,7 @@ double EvaluationManager::evaluate()
   // do forward kinematics:
   last_trajectory_collision_free_ = performForwardKinematics();
 
-  handleTrajectoryConstraint();
+  //handleTrajectoryConstraint();
 
   computeTrajectoryValidity();
   last_trajectory_collision_free_ &= trajectory_validity_;
@@ -130,6 +130,7 @@ double EvaluationManager::evaluate()
   computeCollisionCosts();
 
   //computeFTRs();
+  computeSingularityCosts();
 
   computeCartesianTrajectoryCosts();
 
@@ -618,6 +619,12 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
   int safe_begin = max(0, begin);
   int safe_end = min(num_points_, end);
 
+  // used in computeBaseFrames
+  int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(num_points_ - 1);
+  getFullTrajectory()->getTrajectoryPointKDL(full_traj_index, data_->kdl_joint_array_);
+  data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[num_points_ - 1],
+      data_->joint_axis_[num_points_ - 1], data_->segment_frames_[num_points_ - 1]);
+
   // for each point in the trajectory
   for (int i = safe_begin; i < safe_end; ++i)
   {
@@ -636,8 +643,7 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
      }
      */
 
-    computeBaseFrames(data_->kdl_joint_array_, i);
-
+    //computeBaseFrames(data_->kdl_joint_array_, i);
     if (i == safe_begin)
       data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i],
           data_->segment_frames_[i]);
@@ -757,6 +763,25 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
     updateCoM(point);
   }
 
+  if (begin == full_vars_start_)
+  {
+    for (int i = 0; i < begin; ++i)
+    {
+      data_->CoMPositions_[i] = data_->CoMPositions_[begin];
+      for (int j = 0; j < num_mass_segments_; ++j)
+        data_->linkPositions_[j][i] = data_->linkPositions_[j][begin];
+    }
+  }
+  if (end == full_vars_end_)
+  {
+    for (int i = end; i < num_points_; ++i)
+    {
+      data_->CoMPositions_[i] = data_->CoMPositions_[end - 1];
+      for (int j = 0; j < num_mass_segments_; ++j)
+        data_->linkPositions_[j][i] = data_->linkPositions_[j][end - 1];
+    }
+  }
+
   safe_begin = max(full_vars_start_ + 1, begin);
   safe_end = min(full_vars_end_ - 1, end);
 
@@ -858,7 +883,8 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
           "[%d] Ang mon:(%f %f %f)", point, data_->AngularMomentums_[point].x(), data_->AngularMomentums_[point].y(), data_->AngularMomentums_[point].z());
       ROS_INFO(
           "[%d] Com Tor:(%f %f %f)", point, data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
-      ROS_INFO("[%d] Wre For:(%f %f %f)", point, gravity_force_.x(), gravity_force_.y(), gravity_force_.z());
+      ROS_INFO(
+          "[%d] Wre For:(%f %f %f)", point, data_->wrenchSum_[point].force.x(), data_->wrenchSum_[point].force.y(), data_->wrenchSum_[point].force.z());
       ROS_INFO(
           "[%d] Wre Tor:(%f %f %f)=(%f %f %f)x(%f %f %f)+(%f %f %f)x%f(%f %f %f)-(%f %f %f)", point, data_->wrenchSum_[point].torque.x(), data_->wrenchSum_[point].torque.y(), data_->wrenchSum_[point].torque.z(), data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(), gravity_force_.x(), gravity_force_.y(), gravity_force_.z(), data_->CoMPositions_[point].x(), data_->CoMPositions_[point].y(), data_->CoMPositions_[point].z(), total_mass_, data_->CoMAccelerations_[point].x(), data_->CoMAccelerations_[point].y(), data_->CoMAccelerations_[point].z(), data_->Torques_[point].x(), data_->Torques_[point].y(), data_->Torques_[point].z());
     }
@@ -870,6 +896,14 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
     planning_group_->contactPoints_[i].updateContactViolationVector(safe_begin, safe_end - 1,
         getGroupTrajectory()->getDiscretization(), data_->contactViolationVector_[i], data_->contactPointVelVector_[i],
         data_->segment_frames_, data_->planning_scene_);
+
+    for (int point = safe_begin; point < safe_end; ++point)
+    {
+      if (getGroupTrajectory()->getContactPhaseEndPoint(point) == point)
+      {
+        data_->contactPointVelVector_[i][point] = KDL::Vector::Zero();
+      }
+    }
   }
 }
 
@@ -913,6 +947,18 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     int phase = getGroupTrajectory()->getContactPhase(point);
     for (int i = 0; i < num_contacts; ++i)
       contact_values[i] = getGroupTrajectory()->getContactValue(phase, i);
+
+    // test
+    if (point <= full_vars_start_ || point >= full_vars_end_ - 1)
+    {
+      contact_values[0] = 10.0;
+      contact_values[1] = 10.0;
+    }
+    else
+    {
+      contact_values[0] = (phase + LeftLegStart) % 2 == 0 ? 10.0 : 0.0;
+      contact_values[1] = (phase + LeftLegStart) % 2 == 0 ? 0.0 : 10.0;
+    }
 
     ADD_TIMER_POINT
 
@@ -976,6 +1022,14 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
       printf("Violation : (%f %f %f) (%f %f %f)\n", violation.force.x(), violation.force.y(), violation.force.z(),
           violation.torque.x(), violation.torque.y(), violation.torque.z());
 
+      for (int i = 0; i < num_contacts; ++i)
+      {
+        printf("CP %d violation (%f %f %f %f) vel (%f %f %f)\n", i, data_->contactViolationVector_[i][point].data_[0],
+            data_->contactViolationVector_[i][point].data_[1], data_->contactViolationVector_[i][point].data_[2],
+            data_->contactViolationVector_[i][point].data_[3], data_->contactPointVelVector_[i][point].x(),
+            data_->contactPointVelVector_[i][point].y(), data_->contactPointVelVector_[i][point].z());
+      }
+
       printf("[%d] contactWrench (%f %f %f)(%f %f %f)\n", point, contactWrench.force.x(), contactWrench.force.y(),
           contactWrench.force.z(), contactWrench.torque.x(), contactWrench.torque.y(), contactWrench.torque.z());
       printf("[%d] violation (%f %f %f)(%f %f %f)\n", point, violation.force.x(), violation.force.y(),
@@ -1034,16 +1088,22 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
     {
       const collision_detection::Contact& contact = it->second[0];
 
-      if (contact.body_name_1.find("left") != std::string::npos
-          || contact.body_name_2.find("left") != std::string::npos)
+      // TODO:
+      if (contact.body_name_1 == "segment_0" || contact.body_name_2 == "segment_0")
         continue;
-      if (contact.body_name_1.find("environment") == std::string::npos
-          && contact.body_name_2.find("environment") == std::string::npos)
-      {
-        if (contact.depth < 0.01)
-          continue;
-      }
 
+      /*
+       if (contact.body_name_1.find("left") != std::string::npos
+       || contact.body_name_2.find("left") != std::string::npos)
+       continue;
+       if (contact.body_name_1.find("environment") == std::string::npos
+       && contact.body_name_2.find("environment") == std::string::npos)
+       {
+       if (contact.depth < 0.01)
+       continue;
+       }
+       */
+      //continue;
       depthSum += contact.depth;
 
       // for debug
@@ -1124,35 +1184,59 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
   // TODO: fix hard-coded values
   const int END_EFFECTOR_SEGMENT_INDEX = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex("segment_7");
 
-  const double rotation_weight = 0.0;
+  /*
+   const double rotation_weight = 0.0;
 
+   int num_vars_free = 100;
+
+   for (int i = 0; i < num_points_; ++i)
+   data_->stateCartesianTrajectoryCost_[i] = 0;
+
+   if (data_->cartesian_waypoints_.size() == 0)
+   return;
+
+   KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
+   KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
+   KDL::Vector dir = (end_pos - start_pos);
+   dir.Normalize();
+
+   // TODO: fix
+   int point_index = 5;
+   for (int i = point_index; i < point_index + num_vars_free; ++i)
+   {
+   KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+   KDL::Vector distToLine = (frame.p - start_pos) - KDL::dot(dir, (frame.p - start_pos)) * dir;
+   double distance = distToLine.Norm();
+
+   double cost = distance;
+
+   data_->stateCartesianTrajectoryCost_[i] = cost * cost;
+
+   if (distance > 0.1)
+   ROS_INFO("error : %d dist : %f", i, distance);
+   }
+   */
+
+  // orientation constraint
   int num_vars_free = 100;
-
-  for (int i = 0; i < num_points_; ++i)
-    data_->stateCartesianTrajectoryCost_[i] = 0;
-
-  if (data_->cartesian_waypoints_.size() == 0)
-    return;
-
-  KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
-  KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
-  KDL::Vector dir = (end_pos - start_pos);
-  dir.Normalize();
-
-  // TODO: fix
   int point_index = 5;
   for (int i = point_index; i < point_index + num_vars_free; ++i)
   {
     KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
-    KDL::Vector distToLine = (frame.p - start_pos) - KDL::dot(dir, (frame.p - start_pos)) * dir;
-    double distance = distToLine.Norm();
+    KDL::Rotation rot = frame.M;
+    KDL::Vector x_dir = rot.UnitX();
+    KDL::Vector y_dir = rot.UnitY();
+    KDL::Vector z_dir = rot.UnitZ();
 
-    double cost = distance;
+    double cost = 0;
+    double dot = KDL::dot(y_dir, KDL::Vector(0, 0, -1));
+    double angle = (dot > 1.0) ? 0 : acos(dot);
+    //angle -= 5.0 * M_PI / 180.0;
+    if (angle < 0)
+      angle = 0;
+    cost = angle * angle;
 
-    data_->stateCartesianTrajectoryCost_[i] = cost * cost;
-
-    if (distance > 0.1)
-      ROS_INFO("error : %d dist : %f", i, distance);
+    data_->stateCartesianTrajectoryCost_[i] = cost ;
   }
 }
 
@@ -1298,11 +1382,15 @@ double EvaluationManager::getTrajectoryCost(bool verbose)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-void computeFrameDebug(int point, const char* label, const char* v1_name, KDL::Vector& v1, const char* v2_name,
-    KDL::Vector& v2, const char* v3_name, KDL::Vector& v3)
+void computeFrameDebug(int point, const char* label, const char* v1_name, KDL::Frame& f1, const char* v2_name,
+    KDL::Frame& f2, const char* v3_name, KDL::Frame& f3)
 {
-  printf("[%d] %s %s(%.14lf %.14lf %.14lf) %s(%.14lf %.14lf %.14lf) %s(%.14lf %.14lf %.14lf)\n", point, label, v1_name,
-      v1.x(), v1.y(), v1.z(), v2_name, v2.x(), v2.y(), v2.z(), v3_name, v3.x(), v3.y(), v3.z());
+  // %.14lf?
+  //printf("[%d] %s %s(%.14lf %.14lf %.14lf %f) %s(%.14lf %.14lf %.14lf %f) %s(%.14lf %.14lf %.14lf %f)\n", point, label, v1_name,
+  printf("[%d] %s %s(%f %f %f %f) %s(%f %f %f %f) %s(%f %f %f %f)\n", point, label, v1_name, f1.p.x(), f1.p.y(),
+      f1.p.z(), atan2(f1.M.data[3], f1.M.data[0]) * 180.0 / M_PI, v2_name, f2.p.x(), f2.p.y(), f2.p.z(),
+      atan2(f2.M.data[3], f2.M.data[0]) * 180.0 / M_PI, v3_name, f3.p.x(), f3.p.y(), f3.p.z(),
+      atan2(f3.M.data[3], f3.M.data[0]) * 180.0 / M_PI);
 }
 //#define DEBUG_COMPUTE_FRAME
 #ifdef DEBUG_COMPUTE_FRAME
@@ -1378,10 +1466,8 @@ void EvaluationManager::computeBaseFrames(KDL::JntArray& curJointArray, int poin
   int of_sn = otherLegSegmentNumber[LEG_LINK_END_EFFECTOR];
   KDL::Vector root_pos = rootPos;
 
-  COMPUTE_FRAME_DEBUG(point, "beginning",
-      "root:", data_->segment_frames_[point][root_sn].p,
-      "ef:", data_->segment_frames_[point][ef_sn].p,
-      "of:", data_->segment_frames_[point][of_sn].p);
+  COMPUTE_FRAME_DEBUG(point, "beginning", "root:", data_->segment_frames_[point][root_sn], "ef:",
+      data_->segment_frames_[point][ef_sn], "of:", data_->segment_frames_[point][of_sn]);
 
   int free_vars_start = full_vars_start_ + 1;
   int free_vars_end = full_vars_end_ - 2;
@@ -1496,24 +1582,18 @@ void EvaluationManager::computeBaseFrames(KDL::JntArray& curJointArray, int poin
           data_->segment_frames_[point]);
     }
 
-    COMPUTE_FRAME_DEBUG(point, "afterroot",
-        "root:", data_->segment_frames_[point][root_sn].p,
-        "ef:", data_->segment_frames_[point][ef_sn].p,
-        "of:", data_->segment_frames_[point][of_sn].p);
+    COMPUTE_FRAME_DEBUG(point, "afterroot", "root:", data_->segment_frames_[point][root_sn], "ef:",
+        data_->segment_frames_[point][ef_sn], "of:", data_->segment_frames_[point][of_sn]);
 
   }
 
-  COMPUTE_FRAME_DEBUG(point, "beforeIK1",
-      "root:", data_->segment_frames_[point][root_sn].p,
-      "ef:", data_->segment_frames_[point][ef_sn].p,
-      "ef_frame:", ef_frame.p);
+  COMPUTE_FRAME_DEBUG(point, "beforeIK1", "root:", data_->segment_frames_[point][root_sn], "ef:",
+      data_->segment_frames_[point][ef_sn], "ef_frame:", ef_frame);
 
   ComputeCollisionFreeLegUsingIK(supportingLeg, root_pos, ef_frame, curJointArray, point);
 
-  COMPUTE_FRAME_DEBUG(point, "afterIK1",
-      "root:", data_->segment_frames_[point][root_sn].p,
-      "ef:", data_->segment_frames_[point][ef_sn].p,
-      "ef_frame:", ef_frame.p);
+  COMPUTE_FRAME_DEBUG(point, "afterIK1", "root:", data_->segment_frames_[point][root_sn], "ef:",
+      data_->segment_frames_[point][ef_sn], "ef_frame:", ef_frame);
 
   bool needsUpdate = false;
   KDL::Frame of_frame = data_->segment_frames_[point][of_sn];
@@ -1540,13 +1620,17 @@ void EvaluationManager::computeBaseFrames(KDL::JntArray& curJointArray, int poin
       newOF.x(goalOF.x());
       newOF.y(goalOF.y());
     }
-    of_frame.p.x(newOF.x());
-    of_frame.p.y(newOF.y());
 
-    COMPUTE_FRAME_DEBUG(point, "init0",
-        "root:", data_->segment_frames_[point][root_sn].p,
-        "ef:", ef_frame.p,
-        "of:", of_frame.p);
+    // for different goal orientation
+    if (getGroupTrajectory()->getContactPhaseStartPoint(point + 1) == point + 1
+        || getGroupTrajectory()->getContactPhase(point) != getGroupTrajectory()->getNumContactPhases() - 2)
+    {
+      of_frame.p.x(newOF.x());
+      of_frame.p.y(newOF.y());
+    }
+
+    COMPUTE_FRAME_DEBUG(point, "init0", "root:", data_->segment_frames_[point][root_sn], "ef:", ef_frame, "of:",
+        of_frame);
   }
 
   KDL::Vector of_ground, normal;
@@ -1569,22 +1653,43 @@ void EvaluationManager::computeBaseFrames(KDL::JntArray& curJointArray, int poin
     double eulerAngles[3];
     of_frame.M.GetEulerZYX(eulerAngles[0], eulerAngles[1], eulerAngles[2]);
     of_frame.M = KDL::Rotation::RotZ(eulerAngles[0]);
+
     needsUpdate = true;
   }
 
   if (needsUpdate)
   {
-    COMPUTE_FRAME_DEBUG(point, "beforeIK2",
-        "root:", data_->segment_frames_[point][root_sn].p,
-        "of:", data_->segment_frames_[point][of_sn].p,
-        "of_frame:", of_frame.p);
+    COMPUTE_FRAME_DEBUG(point, "beforeIK2", "root:", data_->segment_frames_[point][root_sn], "of:",
+        data_->segment_frames_[point][of_sn], "of_frame:", of_frame);
 
     ComputeCollisionFreeLegUsingIK(floatingLeg, root_pos, of_frame, curJointArray, point, false);
 
-    COMPUTE_FRAME_DEBUG(point, "afterIK2",
-        "root:", data_->segment_frames_[point][root_sn].p,
-        "of:", data_->segment_frames_[point][of_sn].p,
-        "of_frame:", of_frame.p);
+    COMPUTE_FRAME_DEBUG(point, "afterIK2", "root:", data_->segment_frames_[point][root_sn], "of:",
+        data_->segment_frames_[point][of_sn], "of_frame:", of_frame);
+  }
+
+  if (getGroupTrajectory()->getContactPhaseStartPoint(point + 1) == point + 1)
+  {
+    // test for rotation
+    double eulerAngles[3];
+    data_->segment_frames_[point][root_sn].M.GetEulerZYX(eulerAngles[0], eulerAngles[1], eulerAngles[2]);
+    of_frame.M = KDL::Rotation::RotZ(eulerAngles[0]);
+    COMPUTE_FRAME_DEBUG(point, "beforeIK3", "root:", data_->segment_frames_[point][root_sn], "of:",
+        data_->segment_frames_[point][of_sn], "of_frame:", of_frame);
+
+    ComputeCollisionFreeLegUsingIK(floatingLeg, root_pos, of_frame, curJointArray, point, false, true);
+
+    COMPUTE_FRAME_DEBUG(point, "afterIK3", "root:", data_->segment_frames_[point][root_sn], "of:",
+        data_->segment_frames_[point][of_sn], "of_frame:", of_frame);
+  }
+
+  if (point == 104)
+  {
+    for (point = 0; point <= 104; ++point)
+    {
+      COMPUTE_FRAME_DEBUG(point, "final", "root:", data_->segment_frames_[point][root_sn], "ef:",
+          data_->segment_frames_[point][ef_sn], "of:", data_->segment_frames_[point][of_sn]);
+    }
   }
 }
 
@@ -1741,7 +1846,7 @@ void EvaluationManager::getJointIndex(int& groupIndex, int& kdlIndex, int joint,
 }
 
 void EvaluationManager::ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::Vector& rootPos,
-    const KDL::Frame& destPose, KDL::JntArray& curJointArray, int point, bool support)
+    const KDL::Frame& destPose, KDL::JntArray& curJointArray, int point, bool support, bool updatePhase)
 {
   int free_vars_start = full_vars_start_ + 1;
   int free_vars_end = full_vars_end_ - 2;
@@ -1970,25 +2075,26 @@ void EvaluationManager::ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::
       int phaseStart = getGroupTrajectory()->getContactPhaseStartPoint(point);
       int phaseEnd = getGroupTrajectory()->getContactPhaseEndPoint(point);
 
-      int mid = (phaseStart + 1 + phaseEnd);
-
-      MinJerkTrajectory jointB(0.0, 0.0, 0.0, adjusted, 0.0, 0.0);
-      for (int i = mid + 1; i < point; ++i)
+      if (updatePhase && j == LEG_JOINT_HIP_YAW)
       {
-        double t = (double) (i - phaseStart) / (point - mid);
-        int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
+        MinJerkTrajectory jointB(0.0, 0.0, 0.0, adjusted, 0.0, 0.0);
+        for (int i = phaseStart; i < point; ++i)
+        {
+          double t = (double) (i - phaseStart) / (point - phaseStart);
+          int full_traj_index2 = getGroupTrajectory()->getFullTrajectoryIndex(i);
 
-        double jointEval = jointB(t);
+          double jointEval = jointB(t);
 
-        (*getGroupTrajectory())(i, jointGroupNumber[j]) += jointEval;
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) += jointEval;
 
-        double jointMax = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_max_;
-        double jointMin = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_min_;
-        (*getGroupTrajectory())(i, jointGroupNumber[j]) = max((*getGroupTrajectory())(i, jointGroupNumber[j]),
-            jointMin);
-        (*getGroupTrajectory())(i, jointGroupNumber[j]) = min((*getGroupTrajectory())(i, jointGroupNumber[j]),
-            jointMax);
-        (*getFullTrajectory())(full_traj_index2, jointKDLNumber[j]) = (*getGroupTrajectory())(i, jointGroupNumber[j]);
+          double jointMax = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_max_;
+          double jointMin = planning_group_->group_joints_[jointGroupNumber[j]].joint_limit_min_;
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) = max((*getGroupTrajectory())(i, jointGroupNumber[j]),
+              jointMin);
+          (*getGroupTrajectory())(i, jointGroupNumber[j]) = min((*getGroupTrajectory())(i, jointGroupNumber[j]),
+              jointMax);
+          (*getFullTrajectory())(full_traj_index2, jointKDLNumber[j]) = (*getGroupTrajectory())(i, jointGroupNumber[j]);
+        }
       }
 
       MinJerkTrajectory jointA(adjusted, 0.0, 0.0, 0.0, 0.0, 0.0);
@@ -2016,6 +2122,52 @@ void EvaluationManager::ComputeCollisionFreeLegUsingIK(int legIndex, const KDL::
   // update data_->segment_frames_
   data_->fk_solver_.JntToCartPartial(curJointArray, data_->joint_pos_[point], data_->joint_axis_[point],
       data_->segment_frames_[point]);
+}
+
+void EvaluationManager::computeSingularityCosts(int begin, int end)
+{
+  const string group_name = "lower_body";
+
+  double min_singular_value = std::numeric_limits<double>::max();
+  int min_singular_value_index = begin;
+
+  std::vector<double> positions, trajectory_ftrs;
+  int num_joints = data_->getFullTrajectory()->getNumJoints();
+  positions.resize(num_joints);
+  for (int i = begin; i < end; ++i)
+  {
+    int full_traj_index = data_->getGroupTrajectory()->getFullTrajectoryIndex(i);
+    double cost = 0;
+    for (std::size_t k = 0; k < num_joints; k++)
+    {
+      positions[k] = (*data_->getFullTrajectory())(full_traj_index, k);
+    }
+    data_->kinematic_state_->setVariablePositions(&positions[0]);
+    robot_model::RobotModelConstPtr robot_model_ptr = data_->getItompRobotModel()->getRobotModel();
+    Eigen::MatrixXd jacobianFull = (data_->kinematic_state_->getJacobian(
+        robot_model_ptr->getJointModelGroup(group_name)));
+
+    Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobianFull);
+
+    /*
+     printf("[%d] svd values : ", i);
+     for (int j = 0; j < svd.singularValues().rows(); ++j)
+     {
+     printf("%f ", svd.singularValues()(j));
+     }
+     printf("\n");
+     */
+
+    int rows = svd.singularValues().rows();
+    double value = svd.singularValues()(rows - 1);
+    if (value < min_singular_value)
+    {
+      min_singular_value = value;
+      min_singular_value_index = i;
+    }
+  }
+  if (print_debug_texts_)
+    printf("Min Singular value : (%d) %f ", min_singular_value_index, min_singular_value);
 }
 
 }

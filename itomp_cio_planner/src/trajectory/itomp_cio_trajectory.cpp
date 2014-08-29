@@ -2,6 +2,7 @@
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
+#include <itomp_cio_planner/util/planning_parameters.h>
 #include <ros/console.h>
 #include <ros/assert.h>
 
@@ -103,6 +104,7 @@ void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_t
       (*this)(i, j) = full_trajectory(source_traj_point, source_joint);
     }
   }
+
   // set pre start points using vel, acc
   for (int j = 0; j < num_joints_; j++)
   {
@@ -300,76 +302,6 @@ void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point_index, int join
 void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
     const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array)
 {
-  /*
-   vel_start_ = joint_vel_array;
-   acc_start_ = joint_acc_array;
-
-   double start_index = 0;
-   double end_index = num_points_ - 1;
-   double duration = duration_;
-   double discretization = discretization_;
-
-   // calculate the spline coefficients for each joint:
-   double coeff[num_joints_][6];
-
-   bool hasRotation = false;
-   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-   {
-   int i = *it;
-
-   double x0 = (*this)(start_index, i);
-   double x1 = (*this)(end_index, i);
-   double v0 = joint_vel_array(i);
-   double a0 = joint_acc_array(i);
-   ROS_INFO("Joint %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
-
-   v0 = v0 * duration;
-   a0 = a0 * duration * duration;
-
-   coeff[i][0] = x0;
-   coeff[i][1] = v0;
-   coeff[i][2] = 0.5 * a0;
-   coeff[i][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-   coeff[i][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-   coeff[i][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-   }
-
-   // now fill in the joint positions at each time step
-   int numPoints = end_index - start_index;
-   for (int i = start_index + 1; i < end_index; i++)
-   {
-   double t[6]; // powers of the time index point
-   t[0] = 1.0;
-   t[1] = (double) (i - start_index) / (num_points_ - 1);
-   for (int k = 2; k <= 5; k++)
-   t[k] = t[k - 1] * t[1];
-
-   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-   {
-   int j = *it;
-
-   (*this)(i, j) = 0.0;
-   for (int k = 0; k <= 5; k++)
-   {
-   (*this)(i, j) += t[k] * coeff[j][k];
-   }
-   }
-   }
-
-   updateFreePointsFromTrajectory();
-   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-   {
-   int i = *it;
-   free_vel_trajectory_(0, i) = joint_vel_array(i);
-   free_vel_trajectory_(num_contact_phases_, i) = 0.0;
-
-   for (int j = 1; j < num_contact_phases_; ++j)
-   {
-   free_vel_trajectory_(j, i) = 0.5 * ((*this)(j * phase_stride_ + 1, i) - (*this)(j * phase_stride_ - 1, i));
-   }
-   }
-   */
-
   vel_start_ = joint_vel_array;
   acc_start_ = joint_acc_array;
   double start_index = start_index_ - 1;
@@ -387,19 +319,25 @@ void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndice
   // (these are for the special case of zero start and end vel and acc)
   double coeff[num_joints_][6];
 
+  const int ROT_JOINT_INDEX = 5;
+
   bool hasRotation = false;
   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
   {
     int i = *it;
 
     // rotation is handled in a special manner
-    /*
-     if (i == 3)
-     {
-     hasRotation = true;
-     continue;
-     }
-     */
+
+    if (i == ROT_JOINT_INDEX && PlanningParameters::getInstance()->getHasRoot6d())
+    {
+      if (std::abs((*this)(start_index, 0) - (*this)(end_index, 0)) > 1E-7 ||
+          std::abs((*this)(start_index, 1) - (*this)(end_index, 1)) > 1E-7)
+      {
+        hasRotation = true;
+        continue;
+      }
+    }
+
     double x0 = (*this)(start_index, i);
     double x1 = (*this)(end_index, i);
     double v0 = (i < 6) ? joint_vel_array(i) : 0.0;
@@ -439,68 +377,76 @@ void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndice
     }
   }
 
-  /*
-   // rotation reaches the goal in the first contact phase
-   if (hasRotation)
-   {
-   double interp_end_index = contact_start_points_[2] - 1;
-   double duration = (interp_end_index - start_index) * discretization_;
+  // rotation reaches the goal in the first contact phase
+  if (hasRotation)
+  {
+    double diff_x = (*this)(end_index, 0) - (*this)(start_index, 0);
+    double diff_y = (*this)(end_index, 1) - (*this)(start_index, 1);
+    double dir_angle = atan2(diff_y, diff_x) - M_PI * 0.5;
 
-   double T[6]; // powers of the time duration
-   T[0] = 1.0;
-   T[1] = duration;
+    double interp_indices[] =
+    { start_index, contact_start_points_[2] - 1, contact_start_points_[contact_start_points_.size() - 3] - 1,
+        contact_start_points_[contact_start_points_.size() - 2] - 1, end_index - 1 };
+    double interp_values[] =
+    { (*this)(start_index, ROT_JOINT_INDEX), dir_angle, dir_angle, (*this)(end_index, ROT_JOINT_INDEX), (*this)(end_index,
+        ROT_JOINT_INDEX) };
 
-   for (int i = 2; i <= 5; i++)
-   T[i] = T[i - 1] * T[1];
+    for (int idx = 0; idx < 4; ++idx)
+    {
+      double interp_start_index = interp_indices[idx];
+      double interp_end_index = interp_indices[idx + 1];
+      double duration = (interp_end_index - interp_start_index) * discretization_;
 
-   // calculate the spline coefficients for each joint:
-   // (these are for the special case of zero start and end vel and acc)
-   double coeff[num_joints_][6];
+      double T[6]; // powers of the time duration
+      T[0] = 1.0;
+      T[1] = duration;
 
-   {
-   int i = 3;
-   double x0 = (*this)(start_index, i);
-   double x1 = (*this)(end_index, i);
-   double v0 = joint_vel_array(i);
-   double a0 = joint_acc_array(i);
-   ROS_INFO("Joint %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
+      for (int i = 2; i <= 5; i++)
+        T[i] = T[i - 1] * T[1];
 
-   v0 = v0 * duration;
-   a0 = a0 * duration * duration;
+      // calculate the spline coefficients for each joint:
+      // (these are for the special case of zero start and end vel and acc)
+      double coeff[num_joints_][6];
+      {
+        double x0 = interp_values[idx];
+        double x1 = interp_values[idx + 1];
+        double v0 = (idx == 0) ? joint_vel_array(ROT_JOINT_INDEX) : 0.0;
+        double a0 = (idx == 0) ? joint_acc_array(ROT_JOINT_INDEX) : 0.0;
+        //ROS_INFO("Joint %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
 
-   coeff[i][0] = x0;
-   coeff[i][1] = v0;
-   coeff[i][2] = 0.5 * a0;
-   coeff[i][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-   coeff[i][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-   coeff[i][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-   }
+        v0 = v0 * duration;
+        a0 = a0 * duration * duration;
 
-   // now fill in the joint positions at each time step
-   int numPoints = interp_end_index - start_index;
-   for (int i = start_index + 1; i < interp_end_index; i++)
-   {
-   double t[6]; // powers of the time index point
-   t[0] = 1.0;
-   t[1] = (double) (i - start_index) / numPoints; //(i - start_index) * discretization_;
-   for (int k = 2; k <= 5; k++)
-   t[k] = t[k - 1] * t[1];
+        coeff[ROT_JOINT_INDEX][0] = x0;
+        coeff[ROT_JOINT_INDEX][1] = v0;
+        coeff[ROT_JOINT_INDEX][2] = 0.5 * a0;
+        coeff[ROT_JOINT_INDEX][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
+        coeff[ROT_JOINT_INDEX][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
+        coeff[ROT_JOINT_INDEX][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
+      }
 
-   {
-   int j = 3;
+      // now fill in the joint positions at each time step
+      int numPoints = interp_end_index - interp_start_index;
+      for (int i = interp_start_index + 1; i <= interp_end_index; i++)
+      {
+        double t[6]; // powers of the time index point
+        t[0] = 1.0;
+        t[1] = (double) (i - interp_start_index) / numPoints;
+        for (int k = 2; k <= 5; k++)
+          t[k] = t[k - 1] * t[1];
 
-   (*this)(i, j) = 0.0;
-   for (int k = 0; k <= 5; k++)
-   {
-   (*this)(i, j) += t[k] * coeff[j][k];
-   }
-   }
-   }
-   for (int i = interp_end_index; i < end_index; i++)
-   {
-   (*this)(i, 3) = (*this)(end_index, 3);
-   }
-   }*/
+        {
+          int j = ROT_JOINT_INDEX;
+
+          (*this)(i, j) = 0.0;
+          for (int k = 0; k <= 5; k++)
+          {
+            (*this)(i, j) += t[k] * coeff[j][k];
+          }
+        }
+      }
+    }
+  }
 }
 
 void ItompCIOTrajectory::fillInMinJerkWithMidPoint(const vector<double>& midPoint,

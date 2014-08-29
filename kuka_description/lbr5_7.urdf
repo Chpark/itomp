@@ -5,6 +5,16 @@
        xmlns:xacro="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
        name="lbr5_7">
 
+ <link name="kuka_root">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+ </link>
+
  <link name="segment_0">
     <visual>
       <geometry>
@@ -109,9 +119,48 @@
     </collision>
   </link>
 
+  <link name="tool">
+    <visual>
+      <geometry>
+        <mesh filename="package://kuka_description/cad/tool_s.dae"/>
+      </geometry>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://kuka_description/cad/tool_s.dae"/>
+      </geometry>
+    </collision>
+  </link>
+
  <link name="end_effector_link">
   </link>
 
+ <link name="tcp_1_link">
+ </link>
+
+ <link name="tcp_2_link">
+ </link>
+
+ <link name="goal_1_link">
+ </link>
+ <link name="goal_2_link">
+ </link>
+ <link name="goal_3_link">
+ </link>
+ <link name="goal_4_link">
+ </link>
+ <link name="goal_5_link">
+ </link>
+ <link name="goal_6_link">
+ </link>
+
+
+  <joint name="joint_root" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="segment_0"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 3.14159" xyz="5.4 1.9 4.16"/>
+  </joint>
 
   <joint name="joint_0" type="continuous">
     <parent link="segment_0"/>
@@ -162,11 +211,74 @@
     <origin xyz="0 0 0.80"/>
   </joint>
 
-  <joint name="joint_ee" type="fixed">
+  <joint name="joint_tool" type="fixed">
     <parent link="segment_7"/>
+    <child link="tool"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <joint name="joint_ee" type="fixed">
+    <parent link="tool"/>
     <child link="end_effector_link"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="0 0 0.25"/>
+    <origin xyz="0 0 0"/>
+  </joint>
+
+  <joint name="joint_tcp_1" type="fixed">
+    <parent link="tool"/>
+    <child link="tcp_1_link"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="-1.64 -0.28 2.32"/>
+  </joint>
+
+  <joint name="joint_tcp_2" type="fixed">
+    <parent link="tool"/>
+    <child link="tcp_2_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 -1.570796 0" xyz="-2.94 -0.11 0.44"/>
+  </joint>
+
+  <joint name="joint_goal_1" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_1_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="2.0 0.5 12.0"/>
+  </joint>
+
+  <joint name="joint_goal_2" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_2_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="2.0 1.0 12.0"/>
+  </joint>
+
+  <joint name="joint_goal_3" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_3_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="2.0 1.5 12.0"/>
+  </joint>
+
+  <joint name="joint_goal_4" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_4_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="2.0 2.0 8.5"/>
+  </joint>
+
+  <joint name="joint_goal_5" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_5_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="1.5 2.0 8.5"/>
+  </joint>
+
+  <joint name="joint_goal_6" type="fixed">
+    <parent link="kuka_root"/>
+    <child link="goal_6_link"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="1.0 2.0 8.5"/>
   </joint>
 
 

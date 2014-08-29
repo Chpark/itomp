@@ -293,7 +293,9 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
   getParameters();
   //evaluation_manager_->evaluate(parameters_, contact_parameters_, tmp_rollout_cost_);
   evaluation_manager_->setTrajectory(parameters_, contact_parameters_);
+  evaluation_manager_->print_debug_texts_ = true;
   evaluation_manager_->evaluate(tmp_rollout_cost_);
+  evaluation_manager_->print_debug_texts_ = false;
 
   // add the noiseless rollout into policy_improvement:
   addExtraRollout(parameters_, contact_parameters_, tmp_rollout_cost_);

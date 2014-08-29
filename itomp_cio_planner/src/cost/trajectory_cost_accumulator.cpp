@@ -14,7 +14,7 @@ namespace itomp_cio_planner
 
 TrajectoryCostAccumulator::TrajectoryCostAccumulator()
 {
-
+  best_cost_ = std::numeric_limits<double>::max();
 }
 
 TrajectoryCostAccumulator::~TrajectoryCostAccumulator()
@@ -93,7 +93,10 @@ double TrajectoryCostAccumulator::getTrajectoryCost() const
 
 void TrajectoryCostAccumulator::print(int number) const
 {
-  printf("[%d] Trajectory cost : %f (s=%f, c=%f, ci=%f pv=%f ct=%f)\n", number, getTrajectoryCost(),
+  double cost = getTrajectoryCost();
+  if (cost < best_cost_)
+    best_cost_ = cost;
+  printf("[%d] Trajectory cost : %f/%f (s=%f, c=%f, ci=%f pv=%f ct=%f)\n", number, cost, best_cost_,
       getTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS), getTrajectoryCost(TrajectoryCost::COST_COLLISION),
       getTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT),
       getTrajectoryCost(TrajectoryCost::COST_PHYSICS_VIOLATION),
@@ -106,7 +109,14 @@ bool TrajectoryCostAccumulator::isFeasible() const
   //if (getTrajectoryCost(TrajectoryCost::COST_CONTACT_INVARIANT) > 1E-7)
   //return false;
 
-  return true;
+  //if (getTrajectoryCost() - getTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS) < 0.01)
+    //return true;
+
+  if (getTrajectoryCost(TrajectoryCost::COST_COLLISION) < 1E-7 &&
+      getTrajectoryCost(TrajectoryCost::COST_CARTESIAN_TRAJECTORY) < 1E-1)
+    return true;
+
+  return false;
 }
 
 }

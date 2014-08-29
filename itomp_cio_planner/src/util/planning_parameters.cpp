@@ -193,6 +193,7 @@ void PlanningParameters::initFromNodeHandle()
   }
   node_handle.param("environment_model_scale", environment_model_scale_, 1.0);
 
+  node_handle.param("has_root_6d", has_root_6d_, true);
 }
 
 } // namespace
