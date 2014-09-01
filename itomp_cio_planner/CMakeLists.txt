@@ -50,6 +50,7 @@ src/optimization/evaluation_manager.cpp
 src/optimization/evaluation_data.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
+src/rom/ROM.cpp
 )
 target_link_libraries(itomp dlib)
 set(LIBRARY_INPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
