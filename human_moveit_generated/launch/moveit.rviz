@@ -1013,11 +1013,7 @@ Visualization Manager:
       Marker Topic: /move_itomp/pomp_planner/trajectory
       Name: MarkerArray
       Namespaces:
-        robot_head: true
-        robot_left_arm: true
-        robot_lower_body: true
-        robot_right_arm: true
-        robot_torso: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -1035,22 +1031,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 5.15867
+      Distance: 6.40191
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -1.07234
-        Y: -1.67021
+        X: 0.31813
+        Y: 2.57376
         Z: 6.23132e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.304796
+      Pitch: 0.394796
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 3.64835
+      Yaw: 0.538371
     Saved: ~
 Window Geometry:
   Displays:
@@ -1066,5 +1062,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 58
+  X: 1985
   Y: 24

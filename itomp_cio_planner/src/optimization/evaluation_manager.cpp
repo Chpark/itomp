@@ -643,7 +643,7 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
      }
      */
 
-    //computeBaseFrames(data_->kdl_joint_array_, i);
+    computeBaseFrames(data_->kdl_joint_array_, i);
     if (i == safe_begin)
       data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_, data_->joint_pos_[i], data_->joint_axis_[i],
           data_->segment_frames_[i]);
