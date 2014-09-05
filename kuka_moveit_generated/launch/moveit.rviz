@@ -6,9 +6,16 @@ Panels:
       Expanded:
         - /Global Options1
         - /MotionPlanning1
+        - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Scene Robot1/Links1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_1_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_2_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_3_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_4_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_5_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_6_link1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
-        - /MotionPlanning1/Planned Path1/Links1
         - /MarkerArray1
       Splitter Ratio: 0.74256
     Tree Height: 837
@@ -61,27 +68,27 @@ Visualization Manager:
             Show Trail: false
           goal_1_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           goal_2_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           goal_3_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           goal_4_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           goal_5_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           goal_6_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           kuka_root:
             Alpha: 1
@@ -130,11 +137,11 @@ Visualization Manager:
             Value: true
           tcp_1_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           tcp_2_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
           tool:
             Alpha: 1
@@ -190,27 +197,27 @@ Visualization Manager:
             Show Trail: false
           goal_1_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_2_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_3_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_4_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_5_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_6_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           kuka_root:
             Alpha: 1
@@ -297,22 +304,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 69.9665
+      Distance: 18.0736
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -6.25146
-        Y: -2.89442
-        Z: 2.23518e-07
+        X: -4.48849
+        Y: -1.62474
+        Z: 2.4587e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: -0.035203
+      Pitch: 0.329797
       Target Frame: segment_0
       Value: XYOrbit (rviz)
-      Yaw: 3.19995
+      Yaw: 0.844951
     Saved: ~
 Window Geometry:
   Displays:
@@ -324,7 +331,7 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c0061007900730000000028000003da000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000002830000017f0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c0061007900730000000028000003da000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a005600690065007700730000000028000003da000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000002830000017f0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855
