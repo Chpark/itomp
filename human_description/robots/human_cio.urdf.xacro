@@ -107,25 +107,21 @@
     <parent link="base_prismatic_dummy2"/>
     <child link="base_prismatic_dummy3"/>
   </joint>
-  <joint name="base_revolute_joint_x" type="continuous">
-<!--  <joint name="base_revolute_joint_x" type="revolute">-->
-<!--    <limit effort="15" lower="-1.57079632679" upper="1.57079632679" velocity="5"/>-->
+  <joint name="base_revolute_joint_x" type="revolute">
     <axis xyz="1 0 0"/>
+    <limit effort="15" lower="0.0" upper="0.0" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_prismatic_dummy3"/>
     <child link="base_revolute_dummy1"/>
   </joint>
-  <joint name="base_revolute_joint_y" type="continuous">
-<!--  <joint name="base_revolute_joint_y" type="revolute">-->
-<!--    <limit effort="15" lower="-1.57079632679" upper="1.57079632679" velocity="5"/>-->
+  <joint name="base_revolute_joint_y" type="revolute">
     <axis xyz="0 1 0"/>
+    <limit effort="15" lower="0.0" upper="0.0" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_revolute_dummy1"/>
     <child link="base_revolute_dummy2"/>
   </joint>
   <joint name="base_revolute_joint_z" type="continuous">
-<!--  <joint name="base_revolute_joint_z" type="revolute">-->
-<!--    <limit effort="15" lower="-1.57079632679" upper="1.57079632679" velocity="5"/>-->
     <axis xyz="0 0 1"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_revolute_dummy2"/>
@@ -656,14 +652,16 @@
   <link name="left_hand_y_link"/>
   <link name="left_hand_x_link">
     <visual>
-      <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>
+<!--      <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>-->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://human_description/meshes/leftHand.dae"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>
+<!--      <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>-->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://human_description/meshes/collision/leftHand.dae"/>
       </geometry>
@@ -799,14 +797,16 @@
   <link name="right_hand_y_link"/>
   <link name="right_hand_x_link">
     <visual>
-      <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>
+<!--      <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>-->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://human_description/meshes/rightHand.dae"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
-      <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>
+<!--      <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>-->
+      <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
         <mesh filename="package://human_description/meshes/collision/rightHand.dae"/>
       </geometry>
@@ -842,7 +842,8 @@
     </collision>
   </link>
 
-  <link name="right_hand_door_link">
+<!--
+  <link name="right_hand_object_link">
     <visual>
       <origin rpy="0 0 0" xyz="0.5 0.065 -1.6"/>
       <geometry>
@@ -858,9 +859,38 @@
     </collision>
   </link>
   <joint name="door_joint" type="fixed">
-    <origin rpy="-1.57 0 0" xyz="0 0 0"/>
+    <origin rpy="3.141592 0 -1.570796" xyz="0 0 0"/>
     <parent link="right_hand_endeffector_link"/>
-    <child link="right_hand_door_link"/>
+    <child link="right_hand_object_link"/>
   </joint>
+-->
 
+<!--
+  <link name="right_hand_object_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="3.1245 -5.3 -1.0819"/>
+      <geometry>
+        <mesh filename="package://move_itomp/meshes/drawer2.dae"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="3.1245 -5.3 -1.0819"/>
+      <geometry>
+	<mesh filename="package://move_itomp/meshes/drawer2.dae"/>
+      </geometry>
+    </collision>
+  </link>
+  <link name="drawer_dummy"/>
+  <joint name="drawer_joint" type="fixed">
+    <origin rpy="0 -2.468985 0" xyz="0 0 0"/>
+    <parent link="drawer_dummy"/>
+    <child link="right_hand_object_link"/>
+  </joint>
+  <joint name="drawer_joint2" type="fixed">
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="right_hand_endeffector_link"/>
+    <child link="drawer_dummy"/>
+  </joint>
+-->
 </robot>
