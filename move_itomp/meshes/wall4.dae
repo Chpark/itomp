@@ -5,15 +5,15 @@
             <author>VCGLab</author>
             <authoring_tool>VCGLib | MeshLab</authoring_tool>
         </contributor>
-        <created>Mon Jul 21 02:14:38 2014</created>
-        <modified>Mon Jul 21 02:14:38 2014</modified>
+        <created>Sat Jul 19 08:59:42 2014</created>
+        <modified>Sat Jul 19 08:59:42 2014</modified>
         <up_axis>Y_UP</up_axis>
     </asset>
     <library_geometries>
         <geometry id="shape0-lib" name="shape0">
             <mesh>
                 <source id="shape0-lib-positions" name="position">
-                    <float_array id="shape0-lib-positions-array" count="24">-6.4 0 -0.41 6.4 0 -0.41 -6.4 12.8 -0.41 6.4 12.8 -0.41 -6.4 0 -0.01 6.4 0 -0.01 -6.4 12.8 -0.01 6.4 12.8 -0.01</float_array>
+                    <float_array id="shape0-lib-positions-array" count="24">5.88 -0.0600002 2.38419e-08 5.88 11.46 2.38419e-08 5.78 -0.0600002 2.38419e-08 5.78 11.46 2.38419e-08 5.88 -0.0600002 3.2 5.88 11.46 3.2 5.78 -0.0600002 3.2 5.78 11.46 3.2</float_array>
                     <technique_common>
                         <accessor count="8" source="#shape0-lib-positions-array" stride="3">
                             <param name="X" type="float"/>
@@ -23,7 +23,7 @@
                     </technique_common>
                 </source>
                 <source id="shape0-lib-normals" name="normal">
-                    <float_array id="shape0-lib-normals-array" count="36">0 0 -1 0 0 -1 -1 0 0 -1 0 0 0 -1 0 0 -1 0 0 0 1 0 0 1 0 1 0 0 1 0 1 0 0 1 0 0</float_array>
+                    <float_array id="shape0-lib-normals-array" count="36">0 0 -1 0 0 -1 1.49012e-07 -1 0 1.49012e-07 -1 0 1 4.13921e-08 0 1 4.13921e-08 0 0 0 1 0 0 1 -1 -4.13921e-08 0 -1 -4.13921e-08 0 0 1 0 0 1 0</float_array>
                     <technique_common>
                         <accessor count="12" source="#shape0-lib-normals-array" stride="3">
                             <param name="X" type="float"/>

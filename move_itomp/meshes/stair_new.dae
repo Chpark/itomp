@@ -5,15 +5,15 @@
             <author>VCGLab</author>
             <authoring_tool>VCGLib | MeshLab</authoring_tool>
         </contributor>
-        <created>Thu Jul 17 11:18:47 2014</created>
-        <modified>Thu Jul 17 11:18:47 2014</modified>
+        <created>Sun Jul 20 08:52:48 2014</created>
+        <modified>Sun Jul 20 08:52:48 2014</modified>
         <up_axis>Y_UP</up_axis>
     </asset>
     <library_geometries>
         <geometry id="shape0-lib" name="shape0">
             <mesh>
                 <source id="shape0-lib-positions" name="position">
-                    <float_array id="shape0-lib-positions-array" count="24">-2 -2.2 -1.11 2 -2.2 -1.11 -2 -1.7 -1.11 2 -1.7 -1.11 -2 -2.2 -0.71 2 -2.2 -0.71 -2 -1.7 -0.71 2 -1.7 -0.71</float_array>
+                    <float_array id="shape0-lib-positions-array" count="24">-2 0 -0.11 2 0 -0.11 -2 0.4 -0.11 2 0.4 -0.11 -2 0 0.19 2 0 0.19 -2 0.4 0.19 2 0.4 0.19</float_array>
                     <technique_common>
                         <accessor count="8" source="#shape0-lib-positions-array" stride="3">
                             <param name="X" type="float"/>

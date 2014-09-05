@@ -99,7 +99,8 @@ void renderHierarchicalTrajectory(robot_trajectory::RobotTrajectoryPtr& robot_tr
   group_links_map["right_arm"] = robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
 
   group_links_map["object"].clear();
-  group_links_map["object"].push_back("right_hand_object_link");
+  if (robot_model->hasLinkModel("right_hand_object_link"))
+    group_links_map["object"].push_back("right_hand_object_link");
 
   int num_waypoints = robot_trajectory->getWayPointCount();
   for (int i = 0; i < num_waypoints; ++i)
@@ -116,6 +117,23 @@ void renderHierarchicalTrajectory(robot_trajectory::RobotTrajectoryPtr& robot_tr
     vis_marker_array_publisher_.publish(ma);
 
     double time = (i == 0 || i == num_waypoints - 1) ? 2.0 : 0.05;
+    ros::WallDuration timer(time);
+    timer.sleep();
+  }
+  for (int i = 0; i < 10; ++i)
+  {
+    ma.markers.clear();
+    robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(num_waypoints - 1);
+
+    for (std::map<std::string, std::vector<std::string> >::iterator it = group_links_map.begin();
+        it != group_links_map.end(); ++it)
+    {
+      std::string ns = "robot_" + it->first;
+      state->getRobotMarkers(ma, group_links_map[it->first], colorMap[it->first], ns, dur);
+    }
+    vis_marker_array_publisher_.publish(ma);
+
+    double time = 0.05;
     ros::WallDuration timer(time);
     timer.sleep();
   }
@@ -180,7 +198,7 @@ void computeIKState(robot_state::RobotState& ik_state, const std::string& group_
       moveit::core::GroupStateValidityCallbackFn(), options);
   if (found_ik)
   {
-    ROS_INFO("IK solution found");
+    //ROS_INFO("IK solution found");
   }
   else
   {
@@ -305,6 +323,39 @@ void displayStates(robot_state::RobotState& start_state, robot_state::RobotState
   goal_state_display_publisher.publish(disp_goal_state);
 }
 
+void setWalkingStates(robot_state::RobotState& start_state, robot_state::RobotState& goal_state,
+    Eigen::Vector3d& start_trans, Eigen::Vector3d& goal_trans, double start_rot = 0, double end_rot = 0)
+{
+  std::map<std::string, double> values;
+  double jointValue = 0.0;
+
+  const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("whole_body");
+
+  joint_model_group->getVariableDefaultPositions("standup", values);
+  start_state.setVariablePositions(values);
+  jointValue = start_trans(0);
+  start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = start_trans(1);
+  start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  jointValue = start_trans(2);
+  start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
+  jointValue = start_rot;
+  start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+
+  goal_state = start_state;
+  joint_model_group->getVariableDefaultPositions("standup", values);
+  goal_state.setVariablePositions(values);
+  jointValue = goal_trans(0);
+  goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
+  jointValue = goal_trans(1);
+  goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
+  jointValue = goal_trans(2);
+  goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
+  jointValue = end_rot;
+  goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
+
+}
+
 void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
     robot_state::RobotState& goal_state, robot_state::RobotState& post_state)
 {
@@ -321,7 +372,7 @@ void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::Robot
   jointValue = -0.5;
   pre_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 
-  joint_model_group->getVariableDefaultPositions("door_1_whole", values);
+  joint_model_group->getVariableDefaultPositions("door_1_new_whole", values);
   start_state.setVariablePositions(values);
   jointValue = -0.55;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
@@ -329,17 +380,17 @@ void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::Robot
   start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 
   const double INV_SQRT_2 = 1.0 / sqrt(2.0);
-  computeIKState(start_state, "right_arm", -0.5, -0.065, 1.6, INV_SQRT_2, 0, 0, INV_SQRT_2);
+  computeIKState(start_state, "right_arm", -0.5, -0.065, 1.6, INV_SQRT_2, -INV_SQRT_2, 0, 0);
 
   // Now, setup a goal state
   goal_state = start_state;
-  joint_model_group->getVariableDefaultPositions("door_2_whole", values);
+  joint_model_group->getVariableDefaultPositions("door_2_new_whole", values);
   goal_state.setVariablePositions(values);
   jointValue = -0.55;
   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
   jointValue = 0.5;
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-  computeIKState(goal_state, "right_arm", 0.0 - 0.065, 0.5, 1.6, 0.5, -0.5, -0.5, 0.5);
+  computeIKState(goal_state, "right_arm", 0.0 - 0.065, 0.5, 1.6, 0, 1, 0, 0);
 
   // post state
   joint_model_group->getVariableDefaultPositions("standup", values);
@@ -369,7 +420,7 @@ void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState
   jointValue = M_PI * 0.5;
   pre_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
-  joint_model_group->getVariableDefaultPositions("open_whole3", values);
+  joint_model_group->getVariableDefaultPositions("open_whole_3_new", values);
   start_state.setVariablePositions(values);
   jointValue = -2.71;
   start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
@@ -377,8 +428,30 @@ void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState
   start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   jointValue = M_PI * 0.5;
   start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+  start_state.updateLinkTransforms();
+  Eigen::Matrix3d mat;
+  Eigen::Affine3d transform = start_state.getFrameTransform("right_hand_endeffector_link");
+  {
+    Eigen::Affine3d transform = start_state.getFrameTransform("right_hand_endeffector_link");
+    Eigen::Quaternion<double> rot(0.33, 0, sqrt(1.0 - 0.33 * 0.33), 0);
+    mat = rot.toRotationMatrix();
+    transform.linear() = mat;
+    kinematics::KinematicsQueryOptions options;
+    options.return_approximate_solution = false;
+    const robot_state::JointModelGroup* joint_model_group = start_state.getJointModelGroup("right_arm");
+    bool found_ik = start_state.setFromIK(joint_model_group, transform, 10, 0.1,
+        moveit::core::GroupStateValidityCallbackFn(), options);
+    if (found_ik)
+    {
+      ROS_INFO("IK solution found");
+    }
+    else
+    {
+      ROS_INFO("Could not find IK solution");
+    }
+  }
 
-  joint_model_group->getVariableDefaultPositions("open_whole3", values);
+  joint_model_group->getVariableDefaultPositions("open_whole_3_new", values);
   goal_state.setVariablePositions(values);
   jointValue = -2.71;
   goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
@@ -386,11 +459,11 @@ void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState
   goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
   jointValue = M_PI * 0.5;
   goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
-
   goal_state.updateLinkTransforms();
   {
     Eigen::Affine3d transform = goal_state.getFrameTransform("right_hand_endeffector_link");
     transform.translation()(0) += 0.2;
+    transform.linear() = mat;
     kinematics::KinematicsQueryOptions options;
     options.return_approximate_solution = false;
     const robot_state::JointModelGroup* joint_model_group = goal_state.getJointModelGroup("right_arm");
@@ -411,6 +484,13 @@ void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState
 
 int main(int argc, char **argv)
 {
+  int motion = 0;
+  if (argc >= 2)
+  {
+    motion = atoi(argv[1]);
+  }
+  printf("%d Motion %d\n", argc, motion);
+
   ros::init(argc, argv, "move_itomp");
   ros::AsyncSpinner spinner(1);
   spinner.start();
@@ -481,11 +561,14 @@ int main(int argc, char **argv)
   color.r = 0.5;
   color.g = 0.5;
   color.b = 0.5;
-  renderEnvironment("package://move_itomp/meshes/merged_all_nodoor.dae", robot_model, "environment", color);
+  renderEnvironment("package://move_itomp/meshes/merged_empty.dae", robot_model, "environment", color);
   color.r = 1.0;
   color.g = 1.0;
   color.b = 1.0;
-  //renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae", robot_model, "object", color);
+  renderEnvironment("package://move_itomp/meshes/drawer2.dae", robot_model, "drawer", color);
+  renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae", robot_model, "drawer_opened", color);
+  renderEnvironment("package://move_itomp/meshes/door.dae", robot_model, "door", color);
+  renderEnvironment("package://move_itomp/meshes/door_opened.dae", robot_model, "door_opened", color);
 
   // We will now create a motion plan request
   // specifying the desired pose of the end-effector as input.
@@ -496,112 +579,199 @@ int main(int argc, char **argv)
 
   int state_index = 0;
 
-  /*
-   robot_states.push_back(planning_scene->getCurrentStateNonConst());
-   robot_states.push_back(robot_states.back());
-   robot_states.push_back(robot_states.back());
-   robot_states.push_back(robot_states.back());
+  switch (motion)
+  {
+  case 0:
+    //walking
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    Eigen::Vector3d start_trans(-0.55, -2.7, -0.6);
+    Eigen::Vector3d goal_trans(-0.55, -0.5, 0);
+    setWalkingStates(robot_states[state_index], robot_states[state_index + 1], start_trans, goal_trans);
+    doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+    renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+  }
+    break;
 
-   // opening a door states
-   setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
-   robot_states[state_index + 3]);
+  case 1:
+    // move hand
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
 
-   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-   planner_instance);
-   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+    // opening a door states
+    setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
 
-   ++state_index;
+    doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
 
-   doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-   planner_instance);
-   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-   {
-   // hack
-   double x = 0.5 - 0.05;
-   double y = 0.065 + 0.1 + 0.065 - 0.02;
-   int num_waypoints = res.trajectory_->getWayPointCount();
-   const double radius = sqrt(x * x + y * y);
-   const double theta_start = atan2(-y, -x) + 2 * M_PI;
-   const double theta_end = atan2(x, -y) - 0.3;
-   const Eigen::Quaternion<double> rot_start(INV_SQRT_2, INV_SQRT_2, 0, 0);
-   const Eigen::Quaternion<double> rot_end(0.5, 0.5, -0.5, -0.5);
-   double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
-   double end_y = res.trajectory_->getLastWayPoint().getVariablePosition(1);
+  case 2: // open door
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
 
-   const robot_state::JointModelGroup* joint_model_group2 = res.trajectory_->getFirstWayPoint().getJointModelGroup(
-   "right_arm");
-   const std::vector<std::string> joint_model_names = joint_model_group2->getJointModelNames();
+    // opening a door states
+    setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
 
-   std::map<std::string, double> joint_val_map;
-   for (int i = 0; i < num_waypoints; ++i)
-   {
-   robot_state::RobotStatePtr state = res.trajectory_->getWayPointPtr(i);
-   double cy = state->getVariablePosition(1);
-   //double t = (double)i / (num_waypoints - 1);
-   double t = (cy - start_y) / (end_y - start_y);
-   ROS_INFO("T : %f", t);
-   double theta_interp = theta_start + t * (theta_end - theta_start);
+    ++state_index;
 
-   double x = cos(theta_interp) * radius;
-   double y = sin(theta_interp) * radius;
+    doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+    {
+      // hack
+      double x = 0.5;  // - 0.05;
+      double y = 0.065;  // + 0.1 + 0.065 - 0.02;
+      int num_waypoints = res.trajectory_->getWayPointCount();
+      const double radius = sqrt(x * x + y * y);
+      const double theta_start = atan2(-y, -x) + 2 * M_PI;
+      const double theta_end = atan2(x, -y);  // - 0.3;
+      const Eigen::Quaternion<double> rot_start(0, INV_SQRT_2, -INV_SQRT_2, 0);
+      const Eigen::Quaternion<double> rot_end(0, 0, 1, 0);
+      double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
+      double end_y = res.trajectory_->getLastWayPoint().getVariablePosition(1);
 
-   const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
+      const robot_state::JointModelGroup* joint_model_group2 = res.trajectory_->getFirstWayPoint().getJointModelGroup(
+          "right_arm");
+      const std::vector<std::string> joint_model_names = joint_model_group2->getJointModelNames();
 
-   if (i != 0)
-   {
-   state->setVariablePositions(joint_val_map);
-   }
+      std::map<std::string, double> joint_val_map;
+      for (int i = 0; i < num_waypoints; ++i)
+      {
+        robot_state::RobotStatePtr state = res.trajectory_->getWayPointPtr(i);
+        double cy = state->getVariablePosition(1);
+        //double t = (double)i / (num_waypoints - 1);
+        double t = (cy - start_y) / (end_y - start_y);
+        //ROS_INFO("T : %f", t);
+        double theta_interp = theta_start + t * (theta_end - theta_start);
 
-   computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(), q.z(), q.w());
+        double x = cos(theta_interp) * radius;
+        double y = sin(theta_interp) * radius;
 
-   for (int j = 0; j < joint_model_names.size(); ++j)
-   {
-   const std::string name = joint_model_names[j];
-   double v = state->getVariablePosition(name);
-   joint_val_map[name] = v;
-   }
-   }
-   }
+        const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
 
-   ++state_index;
+        if (i != 0)
+        {
+          state->setVariablePositions(joint_val_map);
+        }
 
-   doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-   planner_instance);
-   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
+        computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(), q.z(), q.w());
 
-   renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+        for (int j = 0; j < joint_model_names.size(); ++j)
+        {
+          const std::string name = joint_model_names[j];
+          double v = state->getVariablePosition(name);
+          joint_val_map[name] = v;
+        }
+      }
+    }
+  }
+    break;
 
-   state_index += 2;
-   */
+  case 3: // move hand
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
 
-  // opening a drawer
-  //////////////
-  robot_states.push_back(planning_scene->getCurrentStateNonConst());
-  robot_states.push_back(robot_states.back());
-  robot_states.push_back(robot_states.back());
-  robot_states.push_back(robot_states.back());
-  setDrawerStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
-      robot_states[state_index + 3]);
+    // opening a door states
+    setDoorOpeningStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
 
-  doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-      planner_instance);
+    state_index += 2;
+
+    doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+
+  case 4: //walking
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    Eigen::Vector3d start_trans(-0.55, 0.5, 0);
+    Eigen::Vector3d goal_trans(-0.55, 3.5, 0);
+    setWalkingStates(robot_states[state_index], robot_states[state_index + 1], start_trans, goal_trans, 0, 0);
+    doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+
+  case 5: // walking
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    Eigen::Vector3d start_trans(-0.55, 3.5, 0);
+    Eigen::Vector3d goal_trans(-2.71, 5.3 - 0.23, 0);
+    setWalkingStates(robot_states[state_index], robot_states[state_index + 1], start_trans, goal_trans, 0, M_PI * 0.5);
+
+    doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+
+  case 6: // move hand
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    setDrawerStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
+
+    doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+
+  case 7: // pull drawer
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    setDrawerStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
+
+    ++state_index;
+
+    doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+
+  case 8: // move hand
+  {
+    robot_states.push_back(planning_scene->getCurrentStateNonConst());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    robot_states.push_back(robot_states.back());
+    setDrawerStates(robot_states[state_index], robot_states[state_index + 1], robot_states[state_index + 2],
+        robot_states[state_index + 3]);
+
+    state_index += 2;
+
+    doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+        planner_instance);
+  }
+    break;
+  }
+
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
 
-  ++state_index;
-
-  doPlan("right_arm", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-      planner_instance);
-  displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-
-  ++state_index;
-
-  doPlan("decomposed_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
-      planner_instance);
-  displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
-
-  ++state_index;
-
+  //visualizeResult(res, node_handle, 0, 1.0);
   renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+  //renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
 
   ROS_INFO("Done");
   planner_instance.reset();
