@@ -4,9 +4,11 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
-        - /MotionPlanning1/Planning Request1
+        - /MotionPlanning1
         - /MotionPlanning1/Planned Path1
         - /RobotState1
+        - /MarkerArray1
+        - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.465479
     Tree Height: 837
   - Class: rviz/Help
@@ -174,11 +176,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          right_hand_door_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
           right_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
@@ -266,7 +263,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-        Loop Animation: false
+        Loop Animation: true
         Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: true
@@ -286,7 +283,7 @@ Visualization Manager:
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
-        Planning Group: base
+        Planning Group: lower_body
         Query Goal State: false
         Query Start State: false
         Show Workspace: false
@@ -427,11 +424,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           right_foot_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-            Value: true
-          right_hand_door_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -655,11 +647,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
         right_foot_z_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        right_hand_door_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -891,11 +878,6 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
-        right_hand_door_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
         right_hand_endeffector_link:
           Alpha: 1
           Show Axes: false
@@ -996,6 +978,10 @@ Visualization Manager:
       Marker Topic: /pomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
+        door: true
+        door_opened: true
+        drawer: true
+        drawer_opened: true
         environment: true
       Queue Size: 100
       Value: true
@@ -1014,14 +1000,6 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /pomp_planner/visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        environment: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/Marker
       Enabled: false
       Marker Topic: /pomp_planner/visualization_marker
@@ -1030,6 +1008,18 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: false
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /move_itomp/pomp_planner/trajectory
+      Name: MarkerArray
+      Namespaces:
+        robot_head: true
+        robot_left_arm: true
+        robot_lower_body: true
+        robot_right_arm: true
+        robot_torso: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -1045,22 +1035,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 9.02625
+      Distance: 5.15867
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 1.16756
-        Y: 1.27708
-        Z: 2.47874e-07
+        X: -1.07234
+        Y: -1.67021
+        Z: 6.23132e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.265204
+      Pitch: 0.304796
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 2.73832
+      Yaw: 3.64835
     Saved: ~
 Window Geometry:
   Displays:
@@ -1076,5 +1066,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 1978
+  X: 58
   Y: 24
