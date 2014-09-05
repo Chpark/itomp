@@ -1181,6 +1181,9 @@ void EvaluationManager::computeFTRs(int begin, int end)
 
 void EvaluationManager::computeCartesianTrajectoryCosts()
 {
+  if (PlanningParameters::getInstance()->getCartesianTrajectoryCostWeight() == 0.0)
+    return;
+
   // TODO: fix hard-coded values
   const int END_EFFECTOR_SEGMENT_INDEX = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex("segment_7");
 
@@ -1217,6 +1220,8 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
    }
    */
 
+  data_->costAccumulator_.is_last_trajectory_valid_ = true;
+
   // orientation constraint
   int num_vars_free = 100;
   int point_index = 5;
@@ -1232,11 +1237,15 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
     double dot = KDL::dot(y_dir, KDL::Vector(0, 0, -1));
     double angle = (dot > 1.0) ? 0 : acos(dot);
     //angle -= 5.0 * M_PI / 180.0;
+    // TODO: ?
+    if (angle > 5.0 * M_PI / 180.0)
+      data_->costAccumulator_.is_last_trajectory_valid_ = false;
+
     if (angle < 0)
       angle = 0;
     cost = angle * angle;
 
-    data_->stateCartesianTrajectoryCost_[i] = cost ;
+    data_->stateCartesianTrajectoryCost_[i] = cost;
   }
 }
 
@@ -2128,6 +2137,9 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
 {
   const string group_name = "lower_body";
 
+  if (PlanningParameters::getInstance()->getSingularityCostWeight() == 0.0)
+    return;
+
   double min_singular_value = std::numeric_limits<double>::max();
   int min_singular_value_index = begin;
 
@@ -2136,6 +2148,8 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
   positions.resize(num_joints);
   for (int i = begin; i < end; ++i)
   {
+    data_->stateSingularityCost_[i] = 0.0;
+
     int full_traj_index = data_->getGroupTrajectory()->getFullTrajectoryIndex(i);
     double cost = 0;
     for (std::size_t k = 0; k < num_joints; k++)

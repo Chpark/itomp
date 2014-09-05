@@ -13,6 +13,7 @@ namespace itomp_cio_planner
 {
 
 TrajectoryCostAccumulator::TrajectoryCostAccumulator()
+: is_last_trajectory_valid_(true)
 {
   best_cost_ = std::numeric_limits<double>::max();
 }
@@ -112,8 +113,10 @@ bool TrajectoryCostAccumulator::isFeasible() const
   //if (getTrajectoryCost() - getTrajectoryCost(TrajectoryCost::COST_SMOOTHNESS) < 0.01)
     //return true;
 
-  if (getTrajectoryCost(TrajectoryCost::COST_COLLISION) < 1E-7 &&
-      getTrajectoryCost(TrajectoryCost::COST_CARTESIAN_TRAJECTORY) < 1E-1)
+  if (!is_last_trajectory_valid_)
+    return false;
+
+  if (getTrajectoryCost(TrajectoryCost::COST_COLLISION) < 1E-7)
     return true;
 
   return false;

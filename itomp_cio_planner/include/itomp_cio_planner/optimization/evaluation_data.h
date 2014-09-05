@@ -70,6 +70,7 @@ public:
   std::vector<double> stateCollisionCost_;
   std::vector<double> stateFTRCost_;
   std::vector<double> stateCartesianTrajectoryCost_;
+  std::vector<double> stateSingularityCost_;
 
   std::vector<std::vector<KDL::Vector> > contact_forces_;
 

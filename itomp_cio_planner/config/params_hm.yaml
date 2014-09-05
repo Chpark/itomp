@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 10
+max_iterations: 1
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
@@ -14,6 +14,8 @@ physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
+cartesian_trajectory_cost_weight: 0.0
+singularity_cost_weight: 0.0
 smoothness_cost_velocity: 0.0
 smoothness_cost_acceleration: 1.0
 smoothness_cost_jerk: 0.0

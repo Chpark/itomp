@@ -44,6 +44,8 @@ void PlanningParameters::initFromNodeHandle()
   node_handle.param("CoM_cost_weight", com_cost_weight_, 1.0);
   node_handle.param("FTR_cost_weight", ftr_cost_weight_, 1.0);
   node_handle.param("cartesian_trajectory_cost_weight", cartesian_trajectory_cost_weight_, 1.0);
+  node_handle.param("singularity_cost_weight", singularity_cost_weight_, 1.0);
+
   node_handle.param("smoothness_cost_velocity", smoothness_cost_velocity_, 0.0);
   node_handle.param("smoothness_cost_acceleration", smoothness_cost_acceleration_, 1.0);
   node_handle.param("smoothness_cost_jerk", smoothness_cost_jerk_, 0.0);

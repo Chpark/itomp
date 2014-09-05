@@ -29,6 +29,7 @@ public:
     COST_RVO,
     COST_FTR,
     COST_CARTESIAN_TRAJECTORY,
+    COST_SINGULARITY,
     COST_TYPES_NUM,
     COST_TYPE_INVALID = COST_TYPES_NUM,
   };
@@ -223,6 +224,23 @@ public:
   {
   }
   virtual ~TrajectoryCartesianCost()
+  {
+  }
+
+  virtual double getWeight() const;
+
+protected:
+  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
+};
+
+class TrajectorySingularityCost: public TrajectoryCost
+{
+public:
+  TrajectorySingularityCost() :
+      TrajectoryCost(COST_SINGULARITY)
+  {
+  }
+  virtual ~TrajectorySingularityCost()
   {
   }
 

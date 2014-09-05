@@ -41,6 +41,8 @@ public:
   double getCoMCostWeight() const;
   double getFTRCostWeight() const;
   double getCartesianTrajectoryCostWeight() const;
+  double getSingularityCostWeight() const;
+
   bool getAnimatePath() const;
   double getSmoothnessCostVelocity() const;
   double getSmoothnessCostAcceleration() const;
@@ -116,6 +118,7 @@ private:
   double com_cost_weight_;
   double ftr_cost_weight_;
   double cartesian_trajectory_cost_weight_;
+  double singularity_cost_weight_;
   bool animate_path_;
   double smoothness_cost_velocity_;
   double smoothness_cost_acceleration_;
@@ -243,6 +246,11 @@ inline double PlanningParameters::getGoalPoseCostWeight() const
 inline double PlanningParameters::getCartesianTrajectoryCostWeight() const
 {
   return cartesian_trajectory_cost_weight_;
+}
+
+inline double PlanningParameters::getSingularityCostWeight() const
+{
+  return singularity_cost_weight_;
 }
 
 inline bool PlanningParameters::getAnimatePath() const

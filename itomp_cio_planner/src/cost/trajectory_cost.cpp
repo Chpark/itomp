@@ -56,6 +56,10 @@ TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
     newCost.reset(new TrajectoryCartesianCost());
     break;
 
+  case COST_SINGULARITY:
+    newCost.reset(new TrajectorySingularityCost());
+    break;
+
   case COST_ENDEFFECTOR_VELOCITY:
   case COST_TORQUE:
   case COST_RVO:
@@ -266,6 +270,20 @@ void TrajectoryCartesianCost::doCompute(const EvaluationData* data, Eigen::Vecto
 double TrajectoryCartesianCost::getWeight() const
 {
   return PlanningParameters::getInstance()->getCartesianTrajectoryCostWeight();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+void TrajectorySingularityCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
+{
+  for (int i = 0; i < data->getNumPoints(); i++)
+  {
+    costData(i) = data->stateSingularityCost_[i];
+  }
+}
+
+double TrajectorySingularityCost::getWeight() const
+{
+  return PlanningParameters::getInstance()->getSingularityCostWeight();
 }
 
 }

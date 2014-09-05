@@ -40,6 +40,9 @@ protected:
 	std::map<TrajectoryCost::COST_TYPE, double> costSumMap_;
 
 	mutable double best_cost_;
+
+public:
+	bool is_last_trajectory_valid_;
 };
 
 }

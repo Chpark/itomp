@@ -86,8 +86,8 @@ bool ItompOptimizer::optimize()
 
       if (iteration_ == num_iterations)
       {
-        if (!is_succeed_)
-          num_iterations += 100;
+        //if (!is_succeed_)
+          //num_iterations += 100;
       }
     }
   }

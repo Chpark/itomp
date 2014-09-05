@@ -88,6 +88,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   stateCollisionCost_.resize(num_points);
   stateFTRCost_.resize(num_points);
   stateCartesianTrajectoryCost_.resize(num_points);
+  stateSingularityCost_.resize(num_points);
 
   linkPositions_.resize(num_mass_segments);
   linkVelocities_.resize(num_mass_segments);
