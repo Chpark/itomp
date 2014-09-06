@@ -239,9 +239,9 @@ struct RBDL_DLLAPI Joint {
 		if (joint_type == JointTypeRevolute) {
 			// make sure we have a unit axis
 			mJointAxes[0].set (
-					joint_axis[0],
-					joint_axis[1], 
-					joint_axis[2], 
+					(const double&)joint_axis[0],
+					(const double&)joint_axis[1],
+					(const double&)joint_axis[2],
 					0., 0., 0.
 					);
 
@@ -251,9 +251,9 @@ struct RBDL_DLLAPI Joint {
 
 			mJointAxes[0].set (
 					0., 0., 0.,
-					joint_axis[0],
-					joint_axis[1],
-					joint_axis[2]
+					(const double&)joint_axis[0],
+					(const double&)joint_axis[1],
+					(const double&)joint_axis[2]
 					);
 		}
 	}

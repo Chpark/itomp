@@ -10,9 +10,10 @@
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
 #include <map>
+#include <cmath>
 
 const std::string GROUP_NAME = "lower_body";
-const double INV_SQRT_2 = 1.0 / sqrt(2.0);
+const double INV_SQRT_2 = 1.0 / std::sqrt(2.0);
 
 void renderHierarchicalTrajectory(robot_trajectory::RobotTrajectoryPtr& robot_trajectory, ros::NodeHandle& node_handle,
     robot_model::RobotModelPtr& robot_model)
@@ -342,7 +343,7 @@ void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::Robot
   jointValue = -0.5;
   start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 
-  const double INV_SQRT_2 = 1.0 / sqrt(2.0);
+  const double INV_SQRT_2 = 1.0 / std::sqrt(2.0);
   computeIKState(start_state, "right_arm", -0.5, -0.065, 1.6, INV_SQRT_2, -INV_SQRT_2, 0, 0);
 
   // Now, setup a goal state
@@ -396,7 +397,7 @@ void setDrawerStates(robot_state::RobotState& pre_state, robot_state::RobotState
   Eigen::Affine3d transform = start_state.getFrameTransform("right_hand_endeffector_link");
   {
     Eigen::Affine3d transform = start_state.getFrameTransform("right_hand_endeffector_link");
-    Eigen::Quaternion<double> rot(0.33, 0, sqrt(1.0 - 0.33 * 0.33), 0);
+    Eigen::Quaternion<double> rot(0.33, 0, std::sqrt(1.0 - 0.33 * 0.33), 0);
     mat = rot.toRotationMatrix();
     transform.linear() = mat;
     kinematics::KinematicsQueryOptions options;
@@ -596,9 +597,9 @@ int main(int argc, char **argv)
       double x = 0.5;  // - 0.05;
       double y = 0.065;  // + 0.1 + 0.065 - 0.02;
       int num_waypoints = res.trajectory_->getWayPointCount();
-      const double radius = sqrt(x * x + y * y);
-      const double theta_start = atan2(-y, -x) + 2 * M_PI;
-      const double theta_end = atan2(x, -y);  // - 0.3;
+      const double radius = std::sqrt(x * x + y * y);
+      const double theta_start = std::atan2(-y, -x) + 2 * M_PI;
+      const double theta_end = std::atan2(x, -y);  // - 0.3;
       const Eigen::Quaternion<double> rot_start(0, INV_SQRT_2, -INV_SQRT_2, 0);
       const Eigen::Quaternion<double> rot_end(0, 0, 1, 0);
       double start_y = res.trajectory_->getFirstWayPoint().getVariablePosition(1);
@@ -618,8 +619,8 @@ int main(int argc, char **argv)
         //ROS_INFO("T : %f", t);
         double theta_interp = theta_start + t * (theta_end - theta_start);
 
-        double x = cos(theta_interp) * radius;
-        double y = sin(theta_interp) * radius;
+        double x = std::cos(theta_interp) * radius;
+        double y = std::sin(theta_interp) * radius;
 
         const Eigen::Quaternion<double> q = rot_start.slerp(t, rot_end);
 
