@@ -255,10 +255,7 @@ bool construct_model (Model* rbdl_model, ModelPtr urdf_model, bool verbose) {
 RBDL_DLLAPI bool read_urdf_model (const char* filename, Model* model, bool verbose) {
 	assert (model);
 
-	cerr << "Warning: this code (RigidBodyDynamics::Addons::" << __func__ << "()) is not properly tested as" << endl;
-	cerr << "         I do not have a proper urdf model that I can use to validate the model loading." << endl;
-	cerr << "         Please use with care." << endl;
-
+	
 	boost::shared_ptr<urdf::ModelInterface> urdf_model = urdf::parseURDFFile (filename);
 
 	if (!urdf_model) {

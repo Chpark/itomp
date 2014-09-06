@@ -41,12 +41,12 @@ IF (EIGEN3_FOUND AND NOT RBDL_USE_SIMPLE_MATH)
 ENDIF (EIGEN3_FOUND AND NOT RBDL_USE_SIMPLE_MATH)
 
 # Options
-OPTION (BUILD_STATIC "Build the statically linked library" OFF)
+OPTION (BUILD_STATIC "Build the statically linked library" ON)
 OPTION (BUILD_TESTS "Build the test executables" OFF)
 OPTION (RBDL_ENABLE_LOGGING "Enable logging (warning: major impact on performance!)" OFF)
 OPTION (RBDL_USE_SIMPLE_MATH "Use slow math instead of the fast Eigen3 library (faster compilation)" OFF)
 OPTION (RBDL_STORE_VERSION "Enable storing of version information in the library (requires build from valid repository)" OFF)
-OPTION (BUILD_ADDON_URDFREADER "Build the (experimental) urdf reader" OFF)
+OPTION (BUILD_ADDON_URDFREADER "Build the (experimental) urdf reader" ON)
 OPTION (BUILD_ADDON_BENCHMARK "Build the benchmarking tool" OFF)
 OPTION (BUILD_ADDON_LUAMODEL "Build the lua model reader" OFF)
 
@@ -94,10 +94,11 @@ IF (BUILD_TESTS)
 ENDIF (BUILD_TESTS)
 
 IF (BUILD_STATIC)
+  SET (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
   ADD_LIBRARY ( rbdl-static STATIC ${RBDL_SOURCES} )
   SET_TARGET_PROPERTIES ( rbdl-static PROPERTIES
-    VERSION ${PROJECT_VERSION}
-    SOVERSION 2.2
+    VERSION ${RBDL_VERSION}
+    SOVERSION ${RBDL_SO_VERSION}
     )
   SET_TARGET_PROPERTIES ( rbdl-static PROPERTIES PREFIX "lib")
   SET_TARGET_PROPERTIES ( rbdl-static PROPERTIES OUTPUT_NAME "rbdl")
