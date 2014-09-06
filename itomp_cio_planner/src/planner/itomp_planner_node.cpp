@@ -84,7 +84,7 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
 
     // initialize trajectory with start state
     initTrajectory(req.start_state.joint_state);
-    planning_scene::PlanningScene planning_scene(robot_model_.getRobotModel());
+    planning_scene::PlanningScene planning_scene(robot_model_.getMoveitRobotModel());
     complete_initial_robot_state_ = planning_scene.getCurrentStateUpdated(req.start_state);
 
     sensor_msgs::JointState jointGoalState;
@@ -273,7 +273,7 @@ void ItompPlannerNode::fillInResult(const std::vector<std::string>& planningGrou
 
   int num_all_joints = complete_initial_robot_state_->getVariableCount();
 
-  res.trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_.getRobotModel(), ""));
+  res.trajectory_.reset(new robot_trajectory::RobotTrajectory(robot_model_.getMoveitRobotModel(), ""));
 
   std::vector<double> velocity_limits(num_all_joints, std::numeric_limits<double>::max());
 

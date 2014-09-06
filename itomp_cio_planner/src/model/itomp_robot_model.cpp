@@ -2,9 +2,6 @@
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
-#include <rbdl/rbdl_urdfreader.h>
-#include <rbdl/rbdl.h>
-//#include <planning_environment/models/model_utils.h>
 
 using namespace std;
 
@@ -13,21 +10,6 @@ namespace itomp_cio_planner
 
 ItompRobotModel::ItompRobotModel()
 {
-  RigidBodyDynamics::Model model;
-  RigidBodyDynamics::Addons::read_urdf_model("/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio.urdf", &model);
-  model.GetBodyName(0);
-
-  int num_bodies = model.mBodies.size();
-  printf("DOF : %d\n", model.dof_count);
-  for (int i = 0; i < num_bodies; ++i)
-  {
-    printf("[%d] %s parent : %d\n", i, model.GetBodyName(i).c_str(), model.GetParentBodyId(i));
-  }
-  int num_joints = model.mJoints.size();
-  for (int i = 0; i < num_joints; ++i)
-  {
-    printf("[%d] q: %d type : %d DOF : %d\n", i, model.mJoints[i].q_index, model.mJoints[i].mJointType, model.mJoints[i].mDoFCount);
-  }
 }
 
 ItompRobotModel::~ItompRobotModel()
@@ -36,8 +18,8 @@ ItompRobotModel::~ItompRobotModel()
 
 bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::string& robot_description)
 {
-  robot_model_ = robot_model;
-  reference_frame_ = robot_model_->getModelFrame();
+  moveit_robot_model_ = robot_model;
+  reference_frame_ = moveit_robot_model_->getModelFrame();
 
   // get the urdf as a string:
   string urdf_string;
@@ -46,6 +28,125 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   {
     return false;
   }
+
+  // TODO : Remove KDL-base code
+  RigidBodyDynamics::Addons::read_urdf_model(
+      "/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio_rbdl.urdf", &rbdl_robot_model_);
+  rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, -9.8);
+
+  // rbdl_robot_model_.mJoints[0] is not used
+  num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
+  rbdl_number_to_joint_name_.resize(rbdl_robot_model_.mJoints.size());
+
+  // TODO: handle root transform
+  const string ROOT_TRANSFORM_LINK_NAMES[] =
+  { "base_prismatic_dummy1", "base_prismatic_dummy2", "base_prismatic_dummy3", "base_revolute_dummy1",
+      "base_revolute_dummy2", "pelvis_link" };
+  const string ROOT_TRANSFORM_JOINT_NAMES[] =
+  { "base_prismatic_joint_x", "base_prismatic_joint_x", "base_prismatic_joint_x", "base_revolute_joint_z",
+      "base_revolute_joint_y", "base_revolute_joint_x" };
+
+  // initialize the planning groups
+  const std::vector<robot_model::JointModelGroup*>& jointModelGroups = moveit_robot_model_->getJointModelGroups();
+  for (std::vector<robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
+      it != jointModelGroups.end(); ++it)
+  {
+    ItompPlanningGroup group;
+    group.name_ = (*it)->getName();
+    ROS_INFO_STREAM("Planning group " << group.name_);
+
+    const std::vector<std::string> joint_model_names = (*it)->getJointModelNames();
+    const std::vector<std::string> link_model_names = (*it)->getLinkModelNames();
+
+    group.num_joints_ = 0;
+    std::vector<bool> active_joints;
+    active_joints.resize(num_rbdl_joints_, false);
+    for (int i = 0; i < link_model_names.size(); i++)
+    {
+      std::string link_name = link_model_names[i];
+      const moveit::core::LinkModel* link_model = moveit_robot_model_->getLinkModel(link_name.c_str());
+      if (link_model == NULL)
+      {
+        ROS_ERROR("Link name %s not exist.", link_name.c_str());
+        return false;
+      }
+      const moveit::core::JointModel* joint_model = link_model->getParentJointModel();
+      unsigned int joint_index = rbdl_robot_model_.GetBodyId(link_name.c_str());
+
+      // TODO: handle root transform
+      for (int j = 0; j < 6; ++j)
+      {
+        if (link_name == ROOT_TRANSFORM_LINK_NAMES[j])
+        {
+          joint_index = j + 1;
+          break;
+        }
+      }
+
+      // fixed joint
+      if (joint_model == NULL || joint_index >= rbdl_robot_model_.fixed_body_discriminator)
+        continue;
+      std::string joint_name = joint_model->getName();
+
+      const RigidBodyDynamics::Joint& rbdl_joint = rbdl_robot_model_.mJoints[joint_index];
+
+      ItompRobotJoint joint;
+      joint.group_joint_index_ = group.num_joints_;
+      joint.rbdl_joint_index_ = rbdl_joint.q_index;
+      joint.link_name_ = link_name;
+      joint.joint_name_ = joint_name;
+
+      switch (rbdl_joint.mJointType)
+      {
+      case RigidBodyDynamics::JointTypeRevolute:
+        if (const robot_model::RevoluteJointModel* revolute_joint =
+            dynamic_cast<const robot_model::RevoluteJointModel*>(joint_model))
+        {
+          joint.wrap_around_ = revolute_joint->isContinuous();
+          joint.has_joint_limits_ = !(joint.wrap_around_);
+          const robot_model::VariableBounds& bounds = revolute_joint->getVariableBounds(revolute_joint->getName());
+          joint.joint_limit_min_ = bounds.min_position_;
+          joint.joint_limit_max_ = bounds.max_position_;
+
+          ROS_INFO_STREAM(
+              "Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << revolute_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+        }
+        break;
+      case RigidBodyDynamics::JointTypePrismatic:
+        if (const robot_model::PrismaticJointModel* prismatic_joint =
+            dynamic_cast<const robot_model::PrismaticJointModel*>(joint_model))
+        {
+          joint.wrap_around_ = false;
+          joint.has_joint_limits_ = true;
+          const robot_model::VariableBounds& bounds = prismatic_joint->getVariableBounds(prismatic_joint->getName());
+          joint.joint_limit_min_ = bounds.min_position_;
+          joint.joint_limit_max_ = bounds.max_position_;
+          ROS_INFO_STREAM(
+              "Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << prismatic_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+        }
+        break;
+      default:
+        ROS_ERROR("Unsupported joint type for joint %s", joint_name.c_str());
+        return false;
+      }
+
+      rbdl_number_to_joint_name_[joint.rbdl_joint_index_] = joint_name;
+      joint_name_to_rbdl_number_.insert(make_pair(joint_name, joint.rbdl_joint_index_));
+
+      group.num_joints_++;
+      group.group_joints_.push_back(joint);
+      active_joints[joint.rbdl_joint_index_] = true;
+    }
+
+    for (int i = 0; i < group.num_joints_; i++)
+    {
+      group.rbdl_to_group_joint_[group.group_joints_[i].rbdl_joint_index_] = i;
+    }
+
+    planning_groups_.insert(make_pair(group.name_, group));
+  }
+  // TODO:
+  planning_groups_.clear();
 
   // Construct the KDL tree
   if (!kdl_parser::treeFromString(urdf_string, kdl_tree_))
@@ -67,7 +168,7 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   }
 
   // create the fk solver:
-  fk_solver_ = new KDL::TreeFkSolverJointPosAxis(kdl_tree_, robot_model_->getRootLinkName());
+  fk_solver_ = new KDL::TreeFkSolverJointPosAxis(kdl_tree_, moveit_robot_model_->getRootLinkName());
 
   kdl_number_to_urdf_name_.resize(num_kdl_joints_);
   // Create the inverse mapping - KDL segment to joint name
@@ -88,41 +189,22 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   }
 
   // initialize the planning groups
-  std::map<std::string, std::vector<std::string> > groups;
-  const std::vector<robot_model::JointModelGroup*>& jointModelGroups = robot_model_->getJointModelGroups();
+  //const std::vector<robot_model::JointModelGroup*>& jointModelGroups = moveit_robot_model_->getJointModelGroups();
   for (std::vector<robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
       it != jointModelGroups.end(); ++it)
   {
-    groups.insert(std::pair<std::string, std::vector<std::string> >((*it)->getName(), (*it)->getJointModelNames()));
-  }
-
-  // add unified_body group
-  std::vector<std::string> merged_joint_names;
-  for (std::map<std::string, std::vector<std::string> >::iterator it = groups.begin(); it != groups.end(); ++it)
-  {
-    for (unsigned int i = 0; i != it->second.size(); ++i)
-    {
-      if (find(merged_joint_names.begin(), merged_joint_names.end(), it->second[i]) == merged_joint_names.end())
-      {
-        merged_joint_names.push_back(it->second[i]);
-      }
-    }
-  }
-  groups["unified_body"] = merged_joint_names;
-
-  for (std::map<std::string, std::vector<std::string> >::iterator it = groups.begin(); it != groups.end(); ++it)
-  {
     ItompPlanningGroup group;
-    group.name_ = it->first;
+    group.name_ = (*it)->getName();
     ROS_INFO_STREAM("Planning group " << group.name_);
-    int num_links = it->second.size();
+
+    const std::vector<std::string> joint_model_names = (*it)->getJointModelNames();
+
     group.num_joints_ = 0;
-    group.link_names_.resize(num_links);
     std::vector<bool> active_joints;
     active_joints.resize(num_kdl_joints_, false);
-    for (int i = 0; i < num_links; i++)
+    for (int i = 0; i < joint_model_names.size(); i++)
     {
-      std::string joint_name = it->second[i];
+      std::string joint_name = joint_model_names[i];
       map<string, string>::iterator link_name_it = joint_segment_mapping_.find(joint_name);
       if (link_name_it == joint_segment_mapping_.end())
       {
@@ -130,7 +212,6 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
         return false;
       }
       std::string link_name = link_name_it->second;
-      group.link_names_[i] = link_name;
       const KDL::Segment* segment = &(kdl_tree_.getSegment(link_name)->second.segment);
       KDL::Joint::JointType joint_type = segment->getJoint().getType();
       if (joint_type != KDL::Joint::None)
@@ -138,11 +219,10 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
         ItompRobotJoint joint;
         joint.group_joint_index_ = group.num_joints_;
         joint.kdl_joint_index_ = kdl_tree_.getSegment(link_name)->second.q_nr;
-        joint.kdl_joint_ = &(segment->getJoint());
         joint.link_name_ = link_name;
         joint.joint_name_ = segment_joint_mapping_[link_name];
 
-        const robot_model::JointModel * kin_model_joint = robot_model_->getJointModel(joint.joint_name_);
+        const robot_model::JointModel * kin_model_joint = moveit_robot_model_->getJointModel(joint.joint_name_);
         if (const robot_model::RevoluteJointModel* revolute_joint =
             dynamic_cast<const robot_model::RevoluteJointModel*>(kin_model_joint))
         {
@@ -178,14 +258,14 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
 
     }
     group.fk_solver_.reset(
-        new KDL::TreeFkSolverJointPosAxisPartial(kdl_tree_, robot_model_->getRootLinkName(), active_joints));
+        new KDL::TreeFkSolverJointPosAxisPartial(kdl_tree_, moveit_robot_model_->getRootLinkName(), active_joints));
 
     for (int i = 0; i < group.num_joints_; i++)
     {
       group.kdl_to_group_joint_[group.group_joints_[i].kdl_joint_index_] = i;
     }
 
-    planning_groups_.insert(make_pair(it->first, group));
+    planning_groups_.insert(make_pair(group.name_, group));
   }
 
   // TODO: add contact points to lower body

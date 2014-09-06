@@ -32,8 +32,8 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   group_trajectory_ = group_trajectory;
 
   robot_model_ = robot_model;
-  planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getRobotModel()));
-  kinematic_state_.reset(new robot_state::RobotState(robot_model->getRobotModel()));
+  planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getMoveitRobotModel()));
+  kinematic_state_.reset(new robot_state::RobotState(robot_model->getMoveitRobotModel()));
   initStaticEnvironment();
 
   kdl_joint_array_.resize(robot_model->getKDLTree()->getNrOfJoints());
@@ -108,6 +108,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   contact_forces_.resize(num_points);
   for (int i = 0; i < num_points; ++i)
     contact_forces_[i].resize(num_contacts);
+  rbdl_models_.resize(num_points);
 
   // init values to 0
   for (int i = 0; i < num_points; ++i)
@@ -120,6 +121,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
     wrenchSum_[i] = KDL::Wrench::Zero();
     for (int j = 0; j < num_contacts; ++j)
       contact_forces_[i][j] = KDL::Vector::Zero();
+    rbdl_models_[i] = robot_model->getRBDLRobotModel();
   }
 
   contactViolationVector_.resize(num_contacts);
@@ -168,7 +170,7 @@ void EvaluationData::initStaticEnvironment()
 
     // Collision object
     moveit_msgs::CollisionObject collision_object;
-    collision_object.header.frame_id = robot_model_->getRobotModel()->getModelFrame();
+    collision_object.header.frame_id = robot_model_->getMoveitRobotModel()->getModelFrame();
     collision_object.id = "environment";
     geometry_msgs::Pose pose;
     pose.position.x = environment_position[0];
@@ -246,9 +248,9 @@ EvaluationData* EvaluationData::clone() const
   new_data->group_trajectory_ = new ItompCIOTrajectory(*group_trajectory_);
   new_data->full_trajectory_ = new ItompCIOTrajectory(*full_trajectory_);
 
-  new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getRobotModel()));
+  new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getMoveitRobotModel()));
   new_data->initStaticEnvironment();
-  new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
+  new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
   return new_data;
 }

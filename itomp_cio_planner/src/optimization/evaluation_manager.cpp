@@ -507,8 +507,8 @@ void EvaluationManager::handleTrajectoryConstraint()
 
   // TODO: temp
   // handle cartesian traj
-  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
-  const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(
+  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
+  const robot_state::JointModelGroup* joint_model_group = robot_model_->getMoveitRobotModel()->getJointModelGroup(
       "lower_body");
 
   KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
@@ -1129,7 +1129,7 @@ std::vector<double> computeFTR(const std::string& group_name, int contact_point_
       positions[k] = (*data->getFullTrajectory())(full_traj_index, k);
     }
     data->kinematic_state_->setVariablePositions(&positions[0]);
-    robot_model::RobotModelConstPtr robot_model_ptr = data->getItompRobotModel()->getRobotModel();
+    robot_model::RobotModelConstPtr robot_model_ptr = data->getItompRobotModel()->getMoveitRobotModel();
     Eigen::MatrixXd jacobianFull =
         (data->kinematic_state_->getJacobian(robot_model_ptr->getJointModelGroup(group_name)));
     Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3, jacobianFull.cols());
@@ -1323,7 +1323,7 @@ void EvaluationManager::postprocess_ik()
             contact_frame, data_->segment_frames_);
 
         // set kinematic_state to current joint values
-        robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
+        robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
         int num_all_joints = kinematic_state->getVariableCount();
         std::vector<double> positions(num_all_joints);
         for (std::size_t k = 0; k < num_all_joints; k++)
@@ -1334,7 +1334,7 @@ void EvaluationManager::postprocess_ik()
         kinematic_state->update();
 
         // compute ik for ref_point end effector position
-        const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(
+        const robot_state::JointModelGroup* joint_model_group = robot_model_->getMoveitRobotModel()->getJointModelGroup(
             ik_group_name);
 
         Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
@@ -2157,7 +2157,7 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
       positions[k] = (*data_->getFullTrajectory())(full_traj_index, k);
     }
     data_->kinematic_state_->setVariablePositions(&positions[0]);
-    robot_model::RobotModelConstPtr robot_model_ptr = data_->getItompRobotModel()->getRobotModel();
+    robot_model::RobotModelConstPtr robot_model_ptr = data_->getItompRobotModel()->getMoveitRobotModel();
     Eigen::MatrixXd jacobianFull = (data_->kinematic_state_->getJacobian(
         robot_model_ptr->getJointModelGroup(group_name)));
 

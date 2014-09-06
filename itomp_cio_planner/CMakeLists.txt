@@ -31,7 +31,6 @@ include(${PROJECT_SOURCE_DIR}/dlib/dlib/cmake)
 rosbuild_add_library(itomp
 src/planner/itomp_planner_node.cpp
 src/model/itomp_robot_model.cpp
-src/model/itomp_planning_group.cpp
 src/model/treefksolverjointposaxis.cpp
 src/model/treefksolverjointposaxis_partial.cpp
 src/trajectory/itomp_cio_trajectory.cpp
@@ -59,8 +58,8 @@ target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblevmar.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libf2c.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblapack.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libblas.a)
-target_link_libraries(itomp rbdl)
-target_link_libraries(itomp rbdl_urdfreader)
+target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/librbdl.a)
+target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/librbdl_urdfreader.a)
 
 #rosbuild_add_executable(itomp_planner_node src/main.cpp)
 #rosbuild_link_boost(itomp_planner_node thread)

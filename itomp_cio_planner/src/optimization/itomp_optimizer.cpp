@@ -60,8 +60,7 @@ bool ItompOptimizer::optimize()
 
   int iteration_after_solution = 0;
   int num_iterations = PlanningParameters::getInstance()->getMaxIterations();
-  if (evaluation_manager_.getPlanningGroup()->name_ == "torso")
-    num_iterations = 0;
+
   if (!evaluation_manager_.isLastTrajectoryFeasible())
   {
     while (iteration_ < num_iterations)
@@ -96,7 +95,7 @@ bool ItompOptimizer::optimize()
   group_trajectory_.getTrajectory() = best_group_trajectory_;
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
   evaluation_manager_.updateFullTrajectory();
-  //evaluation_manager_.evaluate();
+  evaluation_manager_.evaluate();
 
   evaluation_manager_.render(trajectory_index_);
 

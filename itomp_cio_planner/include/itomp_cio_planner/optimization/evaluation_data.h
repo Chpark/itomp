@@ -84,6 +84,8 @@ public:
 
   std::vector<KDL::Frame> cartesian_waypoints_;
 
+  std::vector<RigidBodyDynamics::Model> rbdl_models_;
+
   EvaluationData* clone() const;
   void deepCopy(const EvaluationData& data);
 

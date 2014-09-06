@@ -62,17 +62,17 @@ controller_list:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
       - base_prismatic_joint_z
-      - base_revolute_joint_x
-      - base_revolute_joint_y
       - base_revolute_joint_z
+      - base_revolute_joint_y
+      - base_revolute_joint_x
   - name: fake_lower_body_controller
     joints:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
       - base_prismatic_joint_z
-      - base_revolute_joint_x
-      - base_revolute_joint_y
       - base_revolute_joint_z
+      - base_revolute_joint_y
+      - base_revolute_joint_x
       - upper_left_leg_z_joint
       - upper_left_leg_y_joint
       - upper_left_leg_x_joint
@@ -92,9 +92,9 @@ controller_list:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
       - base_prismatic_joint_z
-      - base_revolute_joint_x
-      - base_revolute_joint_y
       - base_revolute_joint_z
+      - base_revolute_joint_y
+      - base_revolute_joint_x
       - torso_z_joint
       - torso_y_joint
       - torso_x_joint

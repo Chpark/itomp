@@ -1,7 +1,6 @@
 #ifndef ITOMP_ROBOT_MODEL_H_
 #define ITOMP_ROBOT_MODEL_H_
 
-//#include <ros/ros.h>
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/model/itomp_robot_joint.h>
@@ -12,9 +11,10 @@
 #include <boost/shared_ptr.hpp>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
 #include <moveit/robot_model/robot_model.h>
-
 #include <sensor_msgs/JointState.h>
 #include <ros/console.h>
+#include <rbdl/rbdl_urdfreader.h>
+#include <rbdl/rbdl.h>
 
 namespace itomp_cio_planner
 {
@@ -75,11 +75,14 @@ public:
 
 	const std::string& getRobotName() const;
 
-	robot_model::RobotModelPtr getRobotModel();
-	robot_model::RobotModelConstPtr getRobotModel() const;
+	robot_model::RobotModelPtr getMoveitRobotModel();
+	robot_model::RobotModelConstPtr getMoveitRobotModel() const;
+
+	const RigidBodyDynamics::Model& getRBDLRobotModel() const;
 
 private:
-	robot_model::RobotModelPtr robot_model_;
+	robot_model::RobotModelPtr moveit_robot_model_;
+	std::string reference_frame_; /**< Reference frame for all kinematics operations */
 
 	KDL::Tree kdl_tree_; /**< The KDL tree of the entire robot */
 	int num_kdl_joints_; /**< Total number of joints in the KDL tree */
@@ -87,9 +90,14 @@ private:
 	std::map<std::string, std::string> segment_joint_mapping_; /**< Segment -> Joint mapping for KDL tree */
 	std::vector<std::string> kdl_number_to_urdf_name_; /**< Mapping from KDL joint number to URDF joint name */
 	std::map<std::string, int> urdf_name_to_kdl_number_; /**< Mapping from URDF joint name to KDL joint number */
-	std::map<std::string, ItompPlanningGroup> planning_groups_; /**< Planning group information */
 	KDL::TreeFkSolverJointPosAxis *fk_solver_; /**< Forward kinematics solver for the tree */
-	std::string reference_frame_; /**< Reference frame for all kinematics operations */
+
+	RigidBodyDynamics::Model rbdl_robot_model_;
+	int num_rbdl_joints_;
+
+	std::map<std::string, ItompPlanningGroup> planning_groups_; /**< Planning group information */
+	std::vector<std::string> rbdl_number_to_joint_name_; /**< Mapping from RBDL joint number (1-base) to URDF joint name */
+	std::map<std::string, int> joint_name_to_rbdl_number_; /**< Mapping from URDF joint name to RBDL joint number (1-base) */
 };
 
 /////////////////////////////// inline functions follow ///////////////////////////////////
@@ -182,17 +190,22 @@ inline std::vector<std::string> ItompRobotModel::getJointNames() const
 
 inline const std::string& ItompRobotModel::getRobotName() const
 {
-	return robot_model_->getName();
+	return moveit_robot_model_->getName();
 }
 
-inline robot_model::RobotModelConstPtr ItompRobotModel::getRobotModel() const
+inline robot_model::RobotModelConstPtr ItompRobotModel::getMoveitRobotModel() const
 {
-	return robot_model_;
+	return moveit_robot_model_;
 }
 
-inline robot_model::RobotModelPtr ItompRobotModel::getRobotModel()
+inline robot_model::RobotModelPtr ItompRobotModel::getMoveitRobotModel()
 {
-	return robot_model_;
+	return moveit_robot_model_;
+}
+
+inline const RigidBodyDynamics::Model& ItompRobotModel::getRBDLRobotModel() const
+{
+  return rbdl_robot_model_;
 }
 
 

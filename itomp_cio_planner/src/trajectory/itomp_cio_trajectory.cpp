@@ -539,8 +539,8 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
     const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array,
     const moveit_msgs::Constraints& path_constraints, const string& group_name)
 {
-  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getRobotModel()));
-  const robot_state::JointModelGroup* joint_model_group = robot_model_->getRobotModel()->getJointModelGroup(group_name);
+  robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
+  const robot_state::JointModelGroup* joint_model_group = robot_model_->getMoveitRobotModel()->getJointModelGroup(group_name);
 
   geometry_msgs::Vector3 start_position = path_constraints.position_constraints[0].target_point_offset;
   geometry_msgs::Vector3 goal_position = path_constraints.position_constraints[1].target_point_offset;
