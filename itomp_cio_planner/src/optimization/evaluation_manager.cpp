@@ -193,7 +193,7 @@ double EvaluationManager::evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int f
 
   ADD_TIMER_POINT
 
-  computeFTRs(begin, end);
+  //computeFTRs(begin, end);
 
   data_->costAccumulator_.compute(data_);
 

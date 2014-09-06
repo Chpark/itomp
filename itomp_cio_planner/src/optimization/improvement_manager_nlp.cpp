@@ -329,7 +329,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-  dlib::find_min(dlib::bfgs_search_strategy(), dlib::objective_delta_stop_strategy(eps_).be_verbose(),
+  dlib::find_min(dlib::lbfgs_search_strategy(10), dlib::objective_delta_stop_strategy(eps_).be_verbose(),
       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
       boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, 0.1);
 }

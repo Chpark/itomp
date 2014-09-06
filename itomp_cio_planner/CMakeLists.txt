@@ -59,6 +59,8 @@ target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblevmar.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libf2c.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblapack.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libblas.a)
+target_link_libraries(itomp rbdl)
+target_link_libraries(itomp rbdl_urdfreader)
 
 #rosbuild_add_executable(itomp_planner_node src/main.cpp)
 #rosbuild_link_boost(itomp_planner_node thread)

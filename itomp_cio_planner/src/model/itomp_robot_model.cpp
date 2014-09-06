@@ -2,6 +2,8 @@
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <rbdl/rbdl_urdfreader.h>
+#include <rbdl/rbdl.h>
 //#include <planning_environment/models/model_utils.h>
 
 using namespace std;
@@ -11,6 +13,21 @@ namespace itomp_cio_planner
 
 ItompRobotModel::ItompRobotModel()
 {
+  RigidBodyDynamics::Model model;
+  RigidBodyDynamics::Addons::read_urdf_model("/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio.urdf", &model);
+  model.GetBodyName(0);
+
+  int num_bodies = model.mBodies.size();
+  printf("DOF : %d\n", model.dof_count);
+  for (int i = 0; i < num_bodies; ++i)
+  {
+    printf("[%d] %s parent : %d\n", i, model.GetBodyName(i).c_str(), model.GetParentBodyId(i));
+  }
+  int num_joints = model.mJoints.size();
+  for (int i = 0; i < num_joints; ++i)
+  {
+    printf("[%d] q: %d type : %d DOF : %d\n", i, model.mJoints[i].q_index, model.mJoints[i].mJointType, model.mJoints[i].mDoFCount);
+  }
 }
 
 ItompRobotModel::~ItompRobotModel()
