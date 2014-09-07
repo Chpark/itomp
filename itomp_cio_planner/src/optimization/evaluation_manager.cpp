@@ -601,12 +601,12 @@ void EvaluationManager::handleTrajectoryConstraint()
 
 void EvaluationManager::updateFullTrajectory()
 {
-  getFullTrajectory()->updateFromGroupTrajectory(*getGroupTrajectory());
+  getFullTrajectory()->copyFromGroupTrajectory(*getGroupTrajectory());
 }
 
 void EvaluationManager::updateFullTrajectory(int point_index, int joint_index)
 {
-  getFullTrajectory()->updateFromGroupTrajectory(*getGroupTrajectory(), point_index, joint_index);
+  getFullTrajectory()->copyFromGroupTrajectory(*getGroupTrajectory(), point_index, joint_index);
 }
 
 bool EvaluationManager::performForwardKinematics(int begin, int end)

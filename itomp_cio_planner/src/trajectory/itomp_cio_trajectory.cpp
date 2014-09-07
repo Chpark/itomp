@@ -4,7 +4,7 @@
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <ros/console.h>
-#include <ros/assert.h>
+#include <ecl/geometry.hpp>
 
 using namespace std;
 
@@ -18,55 +18,99 @@ inline int safeToInt(double a)
 
 ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
     double num_contacts, double contact_phase_duration) :
-    robot_model_(robot_model), planning_group_(NULL), num_points_(safeToInt(duration / discretization) + 1), num_joints_(
-        robot_model_->getNumKDLJoints()), discretization_(discretization), duration_(duration), num_contacts_(
-        num_contacts), start_index_(1), end_index_(num_points_ - 2), contact_phase_duration_(contact_phase_duration), num_contact_phases_(
-        safeToInt(duration / contact_phase_duration) + 2), phase_stride_(
+    is_full_trajectory_(true), robot_model_(robot_model), planning_group_(NULL), num_points_(
+        safeToInt(duration / discretization) + 1), num_joints_(robot_model_->getNumKDLJoints()), discretization_(
+        discretization), duration_(duration), num_contacts_(num_contacts), start_index_(1), end_index_(num_points_ - 2), contact_phase_duration_(
+        contact_phase_duration), num_contact_phases_(safeToInt(duration / contact_phase_duration) + 2), phase_stride_(
         safeToInt(contact_phase_duration / discretization))
 {
-  ROS_ASSERT(duration == duration_);
   init();
 }
 
-ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectory& source_traj, const ItompPlanningGroup* planning_group,
-    int diff_rule_length) :
-    robot_model_(source_traj.robot_model_), planning_group_(planning_group), phase_stride_(source_traj.phase_stride_), discretization_(
-        source_traj.discretization_)
+ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
+    double keyframe_interval, bool has_velocity_and_acceleration, bool free_end_point) :
+    is_full_trajectory_(true), robot_model_(robot_model), planning_group_(NULL), discretization_(discretization), has_velocity_and_acceleration_(
+        has_velocity_and_acceleration), has_free_end_point_(has_free_end_point_), num_joints_(
+        robot_model_->getNumJoints())
 {
-  // TODO: only contacts in this group?
-  num_contacts_ = source_traj.num_contacts_;
-  contact_phase_duration_ = source_traj.contact_phase_duration_;
-  num_contact_phases_ = source_traj.num_contact_phases_;
+  keyframe_start_index_ = 0;
 
+  // no keyframe
+  if (keyframe_interval <= discretization)
+  {
+    num_keyframe_interval_points_ = 1;
+    num_keyframes_ = num_points_ = safeToInt(duration / discretization) + 1;
+    duration_ = (num_points_ - 1) * discretization;
+  }
+  else
+  {
+    num_keyframe_interval_points_ = safeToInt(keyframe_interval / discretization_);
+    keyframe_interval_ = num_keyframe_interval_points_ * discretization_;
+    if (keyframe_interval_ != keyframe_interval)
+      ROS_INFO("Trajectory keyframe interval modified : %f -> %f", keyframe_interval, keyframe_interval_);
+    num_keyframes_ = safeToInt(duration / keyframe_interval_) + 1;
+    num_points_ = (num_keyframes_ - 1) * num_keyframe_interval_points_ + 1;
+    duration_ = (num_keyframes_ - 1) * keyframe_interval_;
+  }
+  if (duration_ != duration)
+    ROS_INFO("Trajectory duration modified : %f -> %f", duration, duration_);
+
+  start_index_ = 1;
+  end_index_ = has_free_end_point_ ? num_points_ - 1 : num_points_ - 2;
+
+  init();
+}
+
+ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectory& full_trajectory,
+    const ItompPlanningGroup* planning_group, int diff_rule_length) :
+    is_full_trajectory_(false), robot_model_(full_trajectory.robot_model_), planning_group_(planning_group), phase_stride_(
+        full_trajectory.phase_stride_), discretization_(full_trajectory.discretization_), has_velocity_and_acceleration_(
+        full_trajectory.has_velocity_and_acceleration_), has_free_end_point_(full_trajectory.has_free_end_point_), num_keyframe_interval_points_(
+        full_trajectory.num_keyframe_interval_points_), keyframe_interval_(full_trajectory.keyframe_interval_), num_keyframes_(
+        full_trajectory.num_keyframes_), duration_(full_trajectory.duration_)
+{
   num_joints_ = planning_group_->num_joints_;
 
-  int start_extra = (diff_rule_length - 1) - source_traj.start_index_;
-  int end_extra = (diff_rule_length - 1) - ((source_traj.num_points_ - 1) - source_traj.end_index_);
+  if (diff_rule_length == 0)
+  {
+    num_points_ = full_trajectory.num_points_;
+    start_index_ = full_trajectory.start_index_;
+    end_index_ = full_trajectory.end_index_;
+    keyframe_start_index_ = full_trajectory.keyframe_start_index_;
+  }
+  else
+  {
+    int start_extra = (diff_rule_length - 1) - full_trajectory.start_index_;
+    int end_extra = (diff_rule_length - 1) - ((full_trajectory.num_points_ - 1) - full_trajectory.end_index_);
+    num_points_ = full_trajectory.num_points_ + start_extra + end_extra;
+    start_index_ = diff_rule_length - 1;
+    end_index_ = (num_points_ - 1) - (diff_rule_length - 1);
+    keyframe_start_index_ = full_trajectory.keyframe_start_index_ + start_extra;
+  }
 
-  num_points_ = source_traj.num_points_ + start_extra + end_extra;
-
-  start_index_ = diff_rule_length - 1;
-  end_index_ = (num_points_ - 1) - (diff_rule_length - 1);
-
-  duration_ = source_traj.duration_;
+  // TODO: only contacts in this group?
+  num_contacts_ = full_trajectory.num_contacts_;
+  contact_phase_duration_ = full_trajectory.contact_phase_duration_;
+  num_contact_phases_ = full_trajectory.num_contact_phases_;
 
   // allocate the memory:
   init();
 
   // now copy the trajectories over:
-  copyFromFullTrajectory(source_traj);
+  copyFromFullTrajectory(full_trajectory);
 
-  contact_trajectory_ = source_traj.contact_trajectory_;
+  contact_trajectory_ = full_trajectory.contact_trajectory_;
 
   full_trajectory_index_.resize(num_points_);
   // now copy the trajectories over:
+  int start_extra = start_index_ - full_trajectory.start_index_;
   for (int i = 0; i < num_points_; i++)
   {
     int source_traj_point = i - start_extra;
     if (source_traj_point < 0)
       source_traj_point = 0;
-    if (source_traj_point >= source_traj.num_points_)
-      source_traj_point = source_traj.num_points_ - 1;
+    if (source_traj_point >= full_trajectory.num_points_)
+      source_traj_point = full_trajectory.num_points_ - 1;
     full_trajectory_index_[i] = source_traj_point;
   }
 }
@@ -75,62 +119,24 @@ ItompCIOTrajectory::~ItompCIOTrajectory()
 {
 }
 
-void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory)
-{
-  /*
-   for (int i = 0; i < num_joints_; i++)
-   {
-   int source_joint = planning_group_->group_joints_[i].kdl_joint_index_;
-   trajectory_.block(0, i, num_points_, 1) = full_trajectory.trajectory_.block(0, source_joint, num_points_, 1);
-   free_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = full_trajectory.free_trajectory_.block(0, source_joint,
-   num_contact_phases_ + 1, 1);
-   free_vel_trajectory_.block(0, i, num_contact_phases_ + 1, 1) = full_trajectory.free_vel_trajectory_.block(0,
-   source_joint, num_contact_phases_ + 1, 1);
-   }
-   */
-
-  // now copy the trajectories over:
-  int start_extra = (DIFF_RULE_LENGTH - 1) - full_trajectory.start_index_;
-  for (int i = 0; i < num_points_; i++)
-  {
-    int source_traj_point = i - start_extra;
-    if (source_traj_point < 0)
-      source_traj_point = 0;
-    if (source_traj_point >= full_trajectory.num_points_)
-      source_traj_point = full_trajectory.num_points_ - 1;
-    for (int j = 0; j < num_joints_; j++)
-    {
-      int source_joint = planning_group_->group_joints_[j].kdl_joint_index_;
-      (*this)(i, j) = full_trajectory(source_traj_point, source_joint);
-    }
-  }
-
-  // set pre start points using vel, acc
-  for (int j = 0; j < num_joints_; j++)
-  {
-    int source_joint = planning_group_->group_joints_[j].kdl_joint_index_;
-    double pos = full_trajectory(0, source_joint);
-    double vel = full_trajectory.vel_start_(source_joint);
-    double acc = full_trajectory.acc_start_(source_joint);
-
-    // only for root pos
-    if (source_joint < 6)
-    {
-      for (int i = start_extra - 1; i >= 0; --i)
-      {
-        double new_vel = vel - acc * discretization_;
-        double new_pos = pos - vel * discretization_;
-        (*this)(i, j) = new_pos;
-        vel = new_vel;
-        pos = new_pos;
-      }
-    }
-  }
-}
-
 void ItompCIOTrajectory::init()
 {
-  trajectory_ = Eigen::MatrixXd(num_points_, num_joints_);
+  trajectory_[TRAJECTORY_POSITION] = Eigen::MatrixXd(num_points_, num_joints_);
+  if (has_velocity_and_acceleration_)
+  {
+    trajectory_[TRAJECTORY_VELOCITY] = Eigen::MatrixXd(num_points_, num_joints_);
+    trajectory_[TRAJECTORY_ACCELERATION] = Eigen::MatrixXd(num_points_, num_joints_);
+  }
+
+  // use keyframes only if num_keyframe_interval_points > 1
+  if (!is_full_trajectory_ && hasKeyframes())
+  {
+    keyframes_[TRAJECTORY_POSITION] = Eigen::MatrixXd(num_keyframes_, num_joints_);
+    if (has_velocity_and_acceleration_)
+      keyframes_[TRAJECTORY_VELOCITY] = Eigen::MatrixXd(num_keyframes_, num_joints_);
+  }
+
+  // TODO: remove below
   contact_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_contacts_);
 
   free_trajectory_ = Eigen::MatrixXd(num_contact_phases_ + 1, num_joints_);
@@ -153,28 +159,28 @@ void ItompCIOTrajectory::init()
   }
 }
 
-void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory)
+void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory)
 {
-  /*
-   for (int i = 0; i < group_trajectory.planning_group_->num_joints_; i++)
-   {
-   int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
-   trajectory_.block(0, target_joint, num_points_, 1) = group_trajectory.trajectory_.block(0, i, num_points_, 1);
-   free_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) = group_trajectory.free_trajectory_.block(0, i,
-   num_contact_phases_ + 1, 1);
-   free_vel_trajectory_.block(0, target_joint, num_contact_phases_ + 1, 1) =
-   group_trajectory.free_vel_trajectory_.block(0, i, num_contact_phases_ + 1, 1);
-   }
-
-   contact_trajectory_ = group_trajectory.contact_trajectory_;
-   */
+  ROS_ASSERT(is_full_trajectory_ && !group_trajectory.is_full_trajectory_);
 
   int num_vars_free = end_index_ - start_index_ + 1;
   for (int i = 0; i < group_trajectory.planning_group_->num_joints_; i++)
   {
-    int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
-    trajectory_.block(start_index_, target_joint, num_vars_free, 1) = group_trajectory.trajectory_.block(
-        group_trajectory.start_index_, i, num_vars_free, 1);
+    int target_joint = group_trajectory.planning_group_->group_joints_[i].rbdl_joint_index_;
+    trajectory_[TRAJECTORY_POSITION].block(start_index_, target_joint, num_vars_free, 1) =
+        group_trajectory.trajectory_[TRAJECTORY_POSITION].block(group_trajectory.start_index_, i, num_vars_free, 1);
+
+    if (has_velocity_and_acceleration_)
+    {
+      ROS_ASSERT(group_trajectory.has_velocity_and_acceleration_);
+
+      trajectory_[TRAJECTORY_VELOCITY].block(start_index_, target_joint, num_vars_free, 1) =
+          group_trajectory.trajectory_[TRAJECTORY_VELOCITY].block(group_trajectory.start_index_, i, num_vars_free, 1);
+
+      trajectory_[TRAJECTORY_ACCELERATION].block(start_index_, target_joint, num_vars_free, 1) =
+          group_trajectory.trajectory_[TRAJECTORY_ACCELERATION].block(group_trajectory.start_index_, i, num_vars_free,
+              1);
+    }
   }
 
   //contact_trajectory_ = group_trajectory.contact_trajectory_;
@@ -190,113 +196,120 @@ void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& gro
   }
 }
 
-void ItompCIOTrajectory::updateFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index,
+void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index,
     int joint_index)
 {
-  int i = joint_index;
-  /*
-   {
-   int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
-   trajectory_.block((point_index - 1) * phase_stride_, target_joint, 2 * phase_stride_, 1) =
-   group_trajectory.trajectory_.block((point_index - 1) * phase_stride_, i, 2 * phase_stride_, 1);
-   }
-   */
-  int target_joint = group_trajectory.planning_group_->group_joints_[i].kdl_joint_index_;
-  trajectory_.block(start_index_ + point_index, target_joint, 1, 1) = group_trajectory.trajectory_.block(
-      group_trajectory.start_index_ + point_index, i, 1, 1);
+  ROS_ASSERT(is_full_trajectory_ && !group_trajectory.is_full_trajectory_);
+
+  int target_joint = group_trajectory.planning_group_->group_joints_[joint_index].rbdl_joint_index_;
+
+  trajectory_[TRAJECTORY_POSITION](start_index_ + point_index, target_joint) = group_trajectory(
+      group_trajectory.start_index_ + point_index, joint_index, TRAJECTORY_POSITION);
 }
 
-void ItompCIOTrajectory::updateFreePointsFromTrajectory()
+void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory)
 {
-  /*
-   for (int i = 0; i < num_joints_; ++i)
-   {
-   for (int j = 0; j <= num_contact_phases_; ++j)
-   {
-   free_trajectory_(j, i) = trajectory_(j * phase_stride_, i);
-   }
-   }
-   */
+  ROS_ASSERT(!is_full_trajectory_ && full_trajectory.is_full_trajectory_);
 
+  // now copy the trajectories over:
+  int num_vars_free = end_index_ - start_index_ + 1;
+  for (int i = 0; i < num_joints_; i++)
+  {
+    int full_joint = planning_group_->group_joints_[i].rbdl_joint_index_;
+    trajectory_[TRAJECTORY_POSITION].block(start_index_, i, num_vars_free, 1) =
+        full_trajectory.trajectory_[TRAJECTORY_POSITION].block(full_trajectory.start_index_, full_joint, num_vars_free,
+            1);
+    if (has_velocity_and_acceleration_)
+    {
+      ROS_ASSERT(full_trajectory.has_velocity_and_acceleration_);
+
+      trajectory_[TRAJECTORY_VELOCITY].block(start_index_, i, num_vars_free, 1) =
+          full_trajectory.trajectory_[TRAJECTORY_VELOCITY].block(full_trajectory.start_index_, full_joint,
+              num_vars_free, 1);
+      trajectory_[TRAJECTORY_ACCELERATION].block(start_index_, i, num_vars_free, 1) =
+          full_trajectory.trajectory_[TRAJECTORY_ACCELERATION].block(full_trajectory.start_index_, full_joint,
+              num_vars_free, 1);
+    }
+  }
+
+  // set start extra points using vel, acc
+  if (has_velocity_and_acceleration_)
+  {
+    for (int j = 0; j < num_joints_; j++)
+    {
+      int full_joint = planning_group_->group_joints_[j].rbdl_joint_index_;
+      double pos = full_trajectory(0, full_joint, TRAJECTORY_POSITION);
+      double vel = full_trajectory(0, full_joint, TRAJECTORY_VELOCITY);
+      double acc = full_trajectory(0, full_joint, TRAJECTORY_ACCELERATION);
+
+      // only for root pos
+      if (full_joint < 6)
+      {
+        for (int i = start_index_ - 2; i >= 0; --i)
+        {
+          double new_vel = vel - acc * discretization_;
+          double new_pos = pos - vel * discretization_;
+          (*this)(i, j, TRAJECTORY_POSITION) = new_pos;
+          (*this)(i, j, TRAJECTORY_VELOCITY) = new_vel;
+          vel = new_vel;
+          pos = new_pos;
+        }
+      }
+    }
+  }
 }
 
-void ItompCIOTrajectory::updateTrajectoryFromFreePoints()
+void ItompCIOTrajectory::copyKeyframesFromTrajectory()
 {
-  /*
-   double coeff[4];
-   double t[4];
+  if (!hasKeyframes())
+    return;
 
-   for (int i = 0; i < num_joints_; ++i)
-   {
-   int pos = 0;
-   for (int j = 0; j < num_contact_phases_; ++j)
-   {
-   double start_pos = free_trajectory_(j, i);
-   double end_pos = free_trajectory_(j + 1, i);
-   double start_vel = free_vel_trajectory_(j, i);
-   double end_vel = free_vel_trajectory_(j + 1, i);
+  int trajectory_start = start_index_ - 1;
+  for (int i = 0; i < num_keyframes_; ++i)
+  {
+    int trajectory_index = trajectory_start + i * num_keyframe_interval_points_;
 
-   coeff[0] = start_pos;
-   coeff[1] = start_vel;
-   coeff[2] = -end_vel + 3 * end_pos - 2 * start_vel - 3 * start_pos;
-   coeff[3] = end_vel - 2 * end_pos + start_vel + 2 * start_pos;
+    keyframes_[TRAJECTORY_POSITION].block(i, 0, 1, num_joints_) = trajectory_[TRAJECTORY_POSITION].block(
+        trajectory_index, 0, 1, num_joints_);
 
-   for (int k = 0; k < phase_stride_; ++k)
-   {
-   t[0] = 1.0;
-   t[1] = ((double) k) / phase_stride_;
-   t[2] = t[1] * t[1];
-   t[3] = t[2] * t[1];
-   (*this)(pos, i) = 0.0;
-   for (int l = 0; l <= 3; l++)
-   {
-   (*this)(pos, i) += t[l] * coeff[l];
-   }
-   ++pos;
-   }
-   }
-   }
-   */
+    if (has_velocity_and_acceleration_)
+      keyframes_[TRAJECTORY_VELOCITY].block(i, 0, 1, num_joints_) = trajectory_[TRAJECTORY_VELOCITY].block(
+          trajectory_index, 0, 1, num_joints_);
+  }
 }
 
-void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point_index, int joint_index)
+void ItompCIOTrajectory::updateTrajectoryFromKeyframes()
 {
-  /*
-   double coeff[4];
-   double t[4];
+  ROS_ASSERT(hasKeyframes());
 
-   int i = joint_index;
-   {
-   for (int j = point_index - 1; j < point_index + 1; ++j)
-   {
-   ROS_ASSERT(j >= 0 && j < num_contact_phases_);
-   double start_pos = free_trajectory_(j, i);
-   double end_pos = free_trajectory_(j + 1, i);
-   double start_vel = free_vel_trajectory_(j, i);
-   double end_vel = free_vel_trajectory_(j + 1, i);
+  if (!has_velocity_and_acceleration_)
+    ROS_ERROR("Keyframes with position only trajectory is not supported");
 
-   coeff[0] = start_pos;
-   coeff[1] = start_vel;
-   coeff[2] = -end_vel + 3 * end_pos - 2 * start_vel - 3 * start_pos;
-   coeff[3] = end_vel - 2 * end_pos + start_vel + 2 * start_pos;
-
-   int pos = j * phase_stride_;
-   for (int k = 0; k < phase_stride_; ++k)
-   {
-   t[0] = 1.0;
-   t[1] = ((double) k) / phase_stride_;
-   t[2] = t[1] * t[1];
-   t[3] = t[2] * t[1];
-   (*this)(pos, i) = 0.0;
-   for (int l = 0; l <= 3; l++)
-   {
-   (*this)(pos, i) += t[l] * coeff[l];
-   }
-   ++pos;
-   }
-   }
-   }
-   */
+  // cubic interpolation of pos, vel, acc
+  // update trajectory between (k, k+1]
+  // acc is discontinuous at each keyframe
+  for (int j = 0; j < num_joints_; ++j)
+  {
+    // skip the initial position
+    double trajectory_index = keyframe_start_index_ + 1;
+    for (int k = 0; k < num_keyframes_; ++k)
+    {
+      ecl::CubicPolynomial poly;
+      poly = ecl::CubicPolynomial::DerivativeInterpolation(0.0, keyframes_[TRAJECTORY_POSITION](k, j),
+          keyframes_[TRAJECTORY_VELOCITY](k, j), keyframe_interval_, keyframes_[TRAJECTORY_POSITION](k + 1, j),
+          keyframes_[TRAJECTORY_VELOCITY](k + 1, j));
+      for (int i = 1; i <= num_keyframe_interval_points_; ++i)
+      {
+        if (trajectory_index >= start_index_ && trajectory_index <= end_index_)
+        {
+          trajectory_[TRAJECTORY_POSITION](trajectory_index, j) = poly(discretization_ * i);
+          trajectory_[TRAJECTORY_VELOCITY](trajectory_index, j) = poly.derivative(discretization_ * i);
+          trajectory_[TRAJECTORY_ACCELERATION](trajectory_index, j) = poly.dderivative(discretization_ * i);
+        }
+        ++trajectory_index;
+      }
+    }
+  }
 }
 
 void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
@@ -304,235 +317,37 @@ void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndice
 {
   vel_start_ = joint_vel_array;
   acc_start_ = joint_acc_array;
-  double start_index = start_index_ - 1;
-  double end_index = end_index_ + 1;
+  int start_index = start_index_ - 1;
+  int end_index = end_index_ + 1;
   double duration = (end_index - start_index) * discretization_;
 
-  double T[6]; // powers of the time duration
-  T[0] = 1.0;
-  T[1] = duration;
-
-  for (int i = 2; i <= 5; i++)
-    T[i] = T[i - 1] * T[1];
-
-  // calculate the spline coefficients for each joint:
-  // (these are for the special case of zero start and end vel and acc)
-  double coeff[num_joints_][6];
-
-  const int ROT_JOINT_INDEX = 5;
-
-  bool hasRotation = false;
   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
   {
-    int i = *it;
+    int j = *it;
 
-    // rotation is handled in a special manner
+    double x0 = trajectory_[TRAJECTORY_POSITION](start_index, j);
+    double v0 = (j < 6) ? joint_vel_array(j) : 0.0;
+    double a0 = (j < 6) ? joint_acc_array(j) : 0.0;
 
-    if (i == ROT_JOINT_INDEX && PlanningParameters::getInstance()->getHasRoot6d())
+    double x1 = trajectory_[TRAJECTORY_POSITION](end_index, j);
+    double v1 = 0.0;
+    double a1 = 0.0;
+
+    ROS_INFO("Joint %d from %f(%f %f) to %f(%f %f)", j, x0, v0, a0, x1, v1, a1);
+
+    ecl::QuinticPolynomial poly;
+    poly = ecl::QuinticPolynomial::Interpolation(start_index * discretization_, x0, v0, a0, end_index * discretization_,
+        x1, v1, a1);
+    for (int i = start_index + 1; i <= end_index - 1; ++i)
     {
-      if (std::abs((*this)(start_index, 0) - (*this)(end_index, 0)) > 1E-7 ||
-          std::abs((*this)(start_index, 1) - (*this)(end_index, 1)) > 1E-7)
+      trajectory_[TRAJECTORY_POSITION](i, j) = poly(i * discretization_);
+      if (has_velocity_and_acceleration_)
       {
-        hasRotation = true;
-        continue;
-      }
-    }
-
-    double x0 = (*this)(start_index, i);
-    double x1 = (*this)(end_index, i);
-    double v0 = (i < 6) ? joint_vel_array(i) : 0.0;
-    double a0 = (i < 6) ? joint_acc_array(i) : 0.0;
-    ROS_INFO("Joint %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
-
-    v0 = v0 * duration;
-    a0 = a0 * duration * duration;
-
-    coeff[i][0] = x0;
-    coeff[i][1] = v0;
-    coeff[i][2] = 0.5 * a0;
-    coeff[i][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-    coeff[i][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-    coeff[i][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-  }
-
-  // now fill in the joint positions at each time step
-  int numPoints = end_index - start_index;
-  for (int i = start_index + 1; i < end_index; i++)
-  {
-    double t[6]; // powers of the time index point
-    t[0] = 1.0;
-    t[1] = (double) (i - start_index) / numPoints; //(i - start_index) * discretization_;
-    for (int k = 2; k <= 5; k++)
-      t[k] = t[k - 1] * t[1];
-
-    for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-    {
-      int j = *it;
-
-      (*this)(i, j) = 0.0;
-      for (int k = 0; k <= 5; k++)
-      {
-        (*this)(i, j) += t[k] * coeff[j][k];
+        trajectory_[TRAJECTORY_VELOCITY](i, j) = poly.derivative(i * discretization_);
+        trajectory_[TRAJECTORY_ACCELERATION](i, j) = poly.dderivative(i * discretization_);
       }
     }
   }
-
-  // rotation reaches the goal in the first contact phase
-  if (hasRotation)
-  {
-    double diff_x = (*this)(end_index, 0) - (*this)(start_index, 0);
-    double diff_y = (*this)(end_index, 1) - (*this)(start_index, 1);
-    double dir_angle = atan2(diff_y, diff_x) - M_PI * 0.5;
-
-    double interp_indices[] =
-    { start_index, contact_start_points_[2] - 1, contact_start_points_[contact_start_points_.size() - 3] - 1,
-        contact_start_points_[contact_start_points_.size() - 2] - 1, end_index - 1 };
-    double interp_values[] =
-    { (*this)(start_index, ROT_JOINT_INDEX), dir_angle, dir_angle, (*this)(end_index, ROT_JOINT_INDEX), (*this)(end_index,
-        ROT_JOINT_INDEX) };
-
-    for (int idx = 0; idx < 4; ++idx)
-    {
-      double interp_start_index = interp_indices[idx];
-      double interp_end_index = interp_indices[idx + 1];
-      double duration = (interp_end_index - interp_start_index) * discretization_;
-
-      double T[6]; // powers of the time duration
-      T[0] = 1.0;
-      T[1] = duration;
-
-      for (int i = 2; i <= 5; i++)
-        T[i] = T[i - 1] * T[1];
-
-      // calculate the spline coefficients for each joint:
-      // (these are for the special case of zero start and end vel and acc)
-      double coeff[num_joints_][6];
-      {
-        double x0 = interp_values[idx];
-        double x1 = interp_values[idx + 1];
-        double v0 = (idx == 0) ? joint_vel_array(ROT_JOINT_INDEX) : 0.0;
-        double a0 = (idx == 0) ? joint_acc_array(ROT_JOINT_INDEX) : 0.0;
-        //ROS_INFO("Joint %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
-
-        v0 = v0 * duration;
-        a0 = a0 * duration * duration;
-
-        coeff[ROT_JOINT_INDEX][0] = x0;
-        coeff[ROT_JOINT_INDEX][1] = v0;
-        coeff[ROT_JOINT_INDEX][2] = 0.5 * a0;
-        coeff[ROT_JOINT_INDEX][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-        coeff[ROT_JOINT_INDEX][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-        coeff[ROT_JOINT_INDEX][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-      }
-
-      // now fill in the joint positions at each time step
-      int numPoints = interp_end_index - interp_start_index;
-      for (int i = interp_start_index + 1; i <= interp_end_index; i++)
-      {
-        double t[6]; // powers of the time index point
-        t[0] = 1.0;
-        t[1] = (double) (i - interp_start_index) / numPoints;
-        for (int k = 2; k <= 5; k++)
-          t[k] = t[k - 1] * t[1];
-
-        {
-          int j = ROT_JOINT_INDEX;
-
-          (*this)(i, j) = 0.0;
-          for (int k = 0; k <= 5; k++)
-          {
-            (*this)(i, j) += t[k] * coeff[j][k];
-          }
-        }
-      }
-    }
-  }
-}
-
-void ItompCIOTrajectory::fillInMinJerkWithMidPoint(const vector<double>& midPoint,
-    const std::set<int>& groupJointsKDLIndices, int index)
-{
-  /*
-   double start_index = start_index_ - 1;
-   double end_index = end_index_ + 1;
-   double T[7]; // powers of the time duration
-   T[0] = 1.0;
-   T[1] = (end_index - start_index) * discretization_;
-
-   for (int i = 2; i <= 6; i++)
-   T[i] = T[i - 1] * T[1];
-
-   // calculate the spline coefficients for each joint:
-   // (these are for the special case of zero start and end vel and acc)
-   double coeff[num_joints_][7];
-   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-   {
-   int i = *it;
-   ROS_INFO("Joint %d from %f to %f", i, (*this)(start_index, i), (*this)(end_index, i));
-
-   if (index != 0)	// || i == 27 || i == 28 || i == 35 || i == 9)
-
-   {
-   //int group_joint_index = kdlToGroupJoint.at(i);
-
-   double x0 = (*this)(start_index, i);
-   double x1 = (*this)(end_index, i);
-   double mid = midPoint[i];
-
-   if (i == 9)
-   mid = -0.5;
-
-   if (i == 27)
-   mid = 1.2;
-
-   if (i == 28)
-   mid = -1.0;
-
-   if (i == 35)
-   mid = -0.6;
-
-   coeff[i][0] = x0;
-   coeff[i][1] = 0;
-   coeff[i][2] = 0;
-   coeff[i][3] = (-22 * (x1 - x0) + 64 * (mid - x0)) / T[3];
-   coeff[i][4] = (81 * (x1 - x0) - 192 * (mid - x0)) / T[4];
-   coeff[i][5] = (-90 * (x1 - x0) + 192 * (mid - x0)) / T[5];
-   coeff[i][6] = (32 * (x1 - x0) - 64 * (mid - x0)) / T[6];
-   }
-   else
-   {
-   double x0 = (*this)(start_index, i);
-   double x1 = (*this)(end_index, i);
-   coeff[i][0] = x0;
-   coeff[i][1] = 0;
-   coeff[i][2] = 0;
-   coeff[i][3] = (-20 * x0 + 20 * x1) / (2 * T[3]);
-   coeff[i][4] = (30 * x0 - 30 * x1) / (2 * T[4]);
-   coeff[i][5] = (-12 * x0 + 12 * x1) / (2 * T[5]);
-   coeff[i][6] = 0;
-   }
-   }
-
-   // now fill in the joint positions at each time step
-   for (int i = start_index + 1; i < end_index; i++)
-   {
-   double t[7]; // powers of the time index point
-   t[0] = 1.0;
-   t[1] = (i - start_index) * discretization_;
-   for (int k = 2; k <= 6; k++)
-   t[k] = t[k - 1] * t[1];
-
-   for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-   {
-   int j = *it;
-   (*this)(i, j) = 0.0;
-   for (int k = 0; k <= 6; k++)
-   {
-   (*this)(i, j) += t[k] * coeff[j][k];
-   }
-   }
-   }
-   */
 }
 
 void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& groupJointsKDLIndices,
@@ -540,7 +355,8 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
     const moveit_msgs::Constraints& path_constraints, const string& group_name)
 {
   robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
-  const robot_state::JointModelGroup* joint_model_group = robot_model_->getMoveitRobotModel()->getJointModelGroup(group_name);
+  const robot_state::JointModelGroup* joint_model_group = robot_model_->getMoveitRobotModel()->getJointModelGroup(
+      group_name);
 
   geometry_msgs::Vector3 start_position = path_constraints.position_constraints[0].target_point_offset;
   geometry_msgs::Vector3 goal_position = path_constraints.position_constraints[1].target_point_offset;
@@ -552,11 +368,11 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
   double end_index = end_index_ + 1;
   double duration = (end_index - start_index) * discretization_;
 
-  // set state to the start config
+  // set a state to the start config
   std::vector<double> positions(num_joints_);
-  for (std::size_t k = 0; k < num_joints_; k++)
+  for (std::size_t j = 0; j < num_joints_; j++)
   {
-    positions[k] = (*this)(start_index, k);
+    positions[j] = trajectory_[TRAJECTORY_POSITION](start_index, j);
   }
   kinematic_state->setVariablePositions(&positions[0]);
   kinematic_state->update();
@@ -572,64 +388,27 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
   const int CARTESIAN_SPACE_DOF = 3;
   double coeff[CARTESIAN_SPACE_DOF][6];
 
-  for (int i = 0; i < 3; ++i)
+  double x0[3] =
+  { start_position.x, start_position.y, start_position.z };
+  double x1[3] =
+  { goal_position.x, goal_position.y, goal_position.z };
+  double v0 = 0.0, v1 = 0.0;
+  double a0 = 0.0, a1 = 0.0;
+  ROS_INFO(
+      "CartesianPos from (%f, %f, %f)(%f %f) to (%f, %f, %f)(%f %f)", x0[0], x0[1], x0[2], v0, a0, x1[0], x1[1], x1[2], v1, a1);
+
+  for (int i = start_index; i <= end_index; ++i)
   {
-    double x0, x1;
-    switch (i)
+    ecl::QuinticPolynomial poly[3];
+    for (int d = 0; d < 3; ++d)
     {
-    case 0:
-      x0 = start_position.x;
-      x1 = goal_position.x;
-      break;
-    case 1:
-      x0 = start_position.y;
-      x1 = goal_position.y;
-      break;
-    case 2:
-      x0 = start_position.z;
-      x1 = goal_position.z;
-      break;
-    }
-
-    double v0 = 0.0;
-    double a0 = 0.0;
-    ROS_INFO("CartesianSpace %d from %f(%f %f) to %f", i, x0, v0, a0, x1);
-
-    v0 = v0 * duration;
-    a0 = a0 * duration * duration;
-
-    coeff[i][0] = x0;
-    coeff[i][1] = v0;
-    coeff[i][2] = 0.5 * a0;
-    coeff[i][3] = (-1.5 * a0 - 6 * v0 - 10 * x0 + 10 * x1);
-    coeff[i][4] = (1.5 * a0 + 8 * v0 + 15 * x0 - 15 * x1);
-    coeff[i][5] = (-0.5 * a0 - 3 * v0 - 6 * x0 + 6 * x1);
-  }
-
-  // now evaluate 3d pos for each pos
-  int numPoints = end_index - start_index;
-  for (int i = start_index; i <= end_index; i++)
-  {
-    double t[6]; // powers of the time index point
-    t[0] = 1.0;
-    t[1] = (double) (i - start_index) / numPoints; //(i - start_index) * discretization_;
-    for (int k = 2; k <= 5; k++)
-      t[k] = t[k - 1] * t[1];
-
-    double pos[3];
-
-    for (int j = 0; j < 3; ++j)
-    {
-      pos[j] = 0;
-      for (int k = 0; k <= 5; k++)
-      {
-        pos[j] += t[k] * coeff[j][k];
-      }
+      poly[d] = ecl::QuinticPolynomial::Interpolation(start_index * discretization_, x0[d], v0, a0,
+          end_index * discretization_, x1[d], v1, a1);
     }
     geometry_msgs::Vector3 position;
-    position.x = pos[0];
-    position.y = pos[1];
-    position.z = pos[2];
+    position.x = poly[0](i * discretization_);
+    position.y = poly[1](i * discretization_);
+    position.z = poly[2](i * discretization_);
 
     // Use IK to compute joint values
     vector<double> ik_solution(num_joints_);
@@ -659,7 +438,7 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
       {
         ik_solution[k] = state_pos[k];
         if (i != start_index)
-          (*this)(i, k) = state_pos[k];
+          trajectory_[TRAJECTORY_POSITION](i, k) = state_pos[k];
         //printf("%f ", state_pos[k]);
       }
       //printf("\n");
@@ -673,38 +452,55 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
 
 void ItompCIOTrajectory::printTrajectory() const
 {
-  printf("Full Trajectory\n");
+  printf("Position Trajectory\n");
   for (int i = 0; i < num_points_; ++i)
   {
     printf("%d : ", i);
     for (int j = 0; j < num_joints_; ++j)
     {
-      printf("%f ", trajectory_(i, j));
+      printf("%f ", trajectory_[TRAJECTORY_POSITION](i, j));
     }
     printf("\n");
   }
-  /*
-   printf("Free Trajectory\n");
-   for (int i = 0; i <= num_contact_phases_; ++i)
-   {
-   printf("%d : ", i);
-   for (int j = 0; j < num_joints_; ++j)
-   {
-   printf("%f ", free_trajectory_(i, j));
-   }
-   printf("\n");
-   }
-   printf("Free Velocity Trajectory\n");
-   for (int i = 0; i <= num_contact_phases_; ++i)
-   {
-   printf("%d : ", i);
-   for (int j = 0; j < num_joints_; ++j)
-   {
-   printf("%f ", free_vel_trajectory_(i, j));
-   }
-   printf("\n");
-   }
-   */
+
+  if (has_velocity_and_acceleration_)
+  {
+    printf("Velocity Trajectory\n");
+    for (int i = 0; i < num_points_; ++i)
+    {
+      printf("%d : ", i);
+      for (int j = 0; j < num_joints_; ++j)
+      {
+        printf("%f ", trajectory_[TRAJECTORY_VELOCITY](i, j));
+      }
+      printf("\n");
+    }
+    printf("Acceleration Trajectory\n");
+    for (int i = 0; i < num_points_; ++i)
+    {
+      printf("%d : ", i);
+      for (int j = 0; j < num_joints_; ++j)
+      {
+        printf("%f ", trajectory_[TRAJECTORY_ACCELERATION](i, j));
+      }
+      printf("\n");
+    }
+  }
+}
+
+// TODO: remove below
+void ItompCIOTrajectory::updateFreePointsFromTrajectory()
+{
+
+}
+
+void ItompCIOTrajectory::updateTrajectoryFromFreePoints()
+{
+
+}
+
+void ItompCIOTrajectory::updateTrajectoryFromFreePoint(int point_index, int joint_index)
+{
 }
 
 }

@@ -39,8 +39,9 @@ public:
 	const ItompPlanningGroup *getPlanningGroup(const std::string& group_name) const;
 
 	/**
-	 * \brief Gets the number of joints in the KDL tree
+	 * \brief Gets the number of total joints
 	 */
+	int getNumJoints() const;
 	int getNumKDLJoints() const;
 
 	/**
@@ -109,6 +110,11 @@ inline const ItompPlanningGroup* ItompRobotModel::getPlanningGroup(const std::st
 		return NULL;
 	else
 		return &(it->second);
+}
+
+inline int ItompRobotModel::getNumJoints() const
+{
+  return num_rbdl_joints_;
 }
 
 inline int ItompRobotModel::getNumKDLJoints() const

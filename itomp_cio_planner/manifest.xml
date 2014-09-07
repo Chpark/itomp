@@ -25,6 +25,7 @@
 <!--  <depend package="pomp_dynamic_obs_msgs"/>-->
   <depend package="moveit_core"/>
   <depend package="moveit_ros_planning"/>
+  <depend package="ecl_geometry"/>
 
   <export>
     <moveit_core plugin="${prefix}/itomp_plugin_description.xml"/>
