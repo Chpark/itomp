@@ -32,7 +32,7 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   group_trajectory_ = group_trajectory;
 
   robot_model_ = robot_model;
-  planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getMoveitRobotModel()));
+  //planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getMoveitRobotModel()));
   kinematic_state_.reset(new robot_state::RobotState(robot_model->getMoveitRobotModel()));
   initStaticEnvironment();
 
@@ -248,7 +248,7 @@ EvaluationData* EvaluationData::clone() const
   new_data->group_trajectory_ = new ItompCIOTrajectory(*group_trajectory_);
   new_data->full_trajectory_ = new ItompCIOTrajectory(*full_trajectory_);
 
-  new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getMoveitRobotModel()));
+  //new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getMoveitRobotModel()));
   new_data->initStaticEnvironment();
   new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 

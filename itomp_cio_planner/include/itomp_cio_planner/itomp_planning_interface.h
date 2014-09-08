@@ -21,11 +21,8 @@ public:
 	virtual void clear();
 	virtual bool terminate();
 
-	void setPlanRequest(const planning_interface::MotionPlanRequest& req);
-
 private:
 	boost::scoped_ptr<ItompPlannerNode> itomp_planner_node_;
-	planning_interface::MotionPlanRequest req_;
 };
 
 }

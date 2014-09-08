@@ -31,7 +31,7 @@ public:
 	 *
 	 * \return true if successful, false if not
 	 */
-	bool init(robot_model::RobotModelPtr& robot_model, const std::string& robot_description);
+	bool init(const robot_model::RobotModelConstPtr& robot_model);
 
 	/**
 	 * \brief Gets the planning group corresponding to the group name
@@ -69,20 +69,17 @@ public:
 	const std::string& getReferenceFrame() const;
 
 	void jointStateToArray(const sensor_msgs::JointState &joint_state, KDL::JntArray& joint_array);
-	void jointStateToArray(const sensor_msgs::JointState &joint_state, Eigen::MatrixXd::RowXpr joint_array,
-			Eigen::MatrixXd::RowXpr joint_vel_array, Eigen::MatrixXd::RowXpr joint_acc_array);
 
 	std::vector<std::string> getJointNames() const;
 
 	const std::string& getRobotName() const;
 
-	robot_model::RobotModelPtr getMoveitRobotModel();
 	robot_model::RobotModelConstPtr getMoveitRobotModel() const;
 
 	const RigidBodyDynamics::Model& getRBDLRobotModel() const;
 
 private:
-	robot_model::RobotModelPtr moveit_robot_model_;
+	robot_model::RobotModelConstPtr moveit_robot_model_;
 	std::string reference_frame_; /**< Reference frame for all kinematics operations */
 
 	KDL::Tree kdl_tree_; /**< The KDL tree of the entire robot */
@@ -170,25 +167,6 @@ inline void ItompRobotModel::jointStateToArray(const sensor_msgs::JointState &jo
 	}
 }
 
-inline void ItompRobotModel::jointStateToArray(const sensor_msgs::JointState &joint_state,
-		Eigen::MatrixXd::RowXpr joint_array, Eigen::MatrixXd::RowXpr joint_vel_array,
-		Eigen::MatrixXd::RowXpr joint_acc_array)
-{
-	ROS_INFO("Initial Joint States");
-	for (unsigned int i = 0; i < joint_state.name.size(); i++)
-	{
-		std::string name = joint_state.name[i];
-		int kdl_number = urdfNameToKdlNumber(name);
-		if (kdl_number >= 0)
-		{
-			joint_array(kdl_number) = joint_state.position[i];
-			joint_vel_array(kdl_number) = joint_state.velocity[i];
-			joint_acc_array(kdl_number) = joint_state.effort[i];
-			ROS_INFO("%s : %f %f %f", name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
-		}
-	}
-}
-
 inline std::vector<std::string> ItompRobotModel::getJointNames() const
 {
 	return kdl_number_to_urdf_name_;
@@ -200,11 +178,6 @@ inline const std::string& ItompRobotModel::getRobotName() const
 }
 
 inline robot_model::RobotModelConstPtr ItompRobotModel::getMoveitRobotModel() const
-{
-	return moveit_robot_model_;
-}
-
-inline robot_model::RobotModelPtr ItompRobotModel::getMoveitRobotModel()
 {
 	return moveit_robot_model_;
 }

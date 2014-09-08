@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/optimization/evaluation_manager.h>
 #include <itomp_cio_planner/optimization/improvement_manager.h>
+#include <itomp_cio_planner/planner/planning_info_manager.h>
 
 namespace itomp_cio_planner
 {
@@ -22,6 +23,8 @@ public:
 	double getBestCost() const;
 	bool isSucceed() const;
 	int getLastIteration() const;
+
+	const PlanningInfo& getPlanningInfo() const;
 
 private:
 	void initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
@@ -46,6 +49,8 @@ private:
 	Eigen::MatrixXd best_group_trajectory_;
 	Eigen::MatrixXd best_group_contact_trajectory_;
 	double best_group_trajectory_cost_;
+
+	PlanningInfo planning_info_;
 };
 
 typedef boost::shared_ptr<ItompOptimizer> ItompOptimizerPtr;
@@ -65,6 +70,11 @@ inline bool ItompOptimizer::isSucceed() const
 inline int ItompOptimizer::getLastIteration() const
 {
 	return iteration_;
+}
+
+inline const PlanningInfo& ItompOptimizer::getPlanningInfo() const
+{
+  return planning_info_;
 }
 
 }

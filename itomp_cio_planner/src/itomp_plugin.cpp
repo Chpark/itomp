@@ -53,8 +53,8 @@ public:
 			const planning_scene::PlanningSceneConstPtr& planning_scene,
 			const planning_interface::MotionPlanRequest &req, moveit_msgs::MoveItErrorCodes &error_code) const
 	{
-		//return ompl_interface_->getPlanningContext(planning_scene, req, error_code);
-		context_->setPlanRequest(req);
+	  context_->setPlanningScene(planning_scene);
+	  context_->setMotionPlanRequest(req);
 
 		return context_;
 	}

@@ -17,17 +17,6 @@ inline int safeToInt(double a)
 }
 
 ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
-    double num_contacts, double contact_phase_duration) :
-    is_full_trajectory_(true), robot_model_(robot_model), planning_group_(NULL), num_points_(
-        safeToInt(duration / discretization) + 1), num_joints_(robot_model_->getNumKDLJoints()), discretization_(
-        discretization), duration_(duration), num_contacts_(num_contacts), start_index_(1), end_index_(num_points_ - 2), contact_phase_duration_(
-        contact_phase_duration), num_contact_phases_(safeToInt(duration / contact_phase_duration) + 2), phase_stride_(
-        safeToInt(contact_phase_duration / discretization))
-{
-  init();
-}
-
-ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
     double keyframe_interval, bool has_velocity_and_acceleration, bool free_end_point) :
     is_full_trajectory_(true), robot_model_(robot_model), planning_group_(NULL), discretization_(discretization), has_velocity_and_acceleration_(
         has_velocity_and_acceleration), has_free_end_point_(has_free_end_point_), num_joints_(
@@ -122,11 +111,9 @@ ItompCIOTrajectory::~ItompCIOTrajectory()
 void ItompCIOTrajectory::init()
 {
   trajectory_[TRAJECTORY_POSITION] = Eigen::MatrixXd(num_points_, num_joints_);
-  if (has_velocity_and_acceleration_)
-  {
-    trajectory_[TRAJECTORY_VELOCITY] = Eigen::MatrixXd(num_points_, num_joints_);
-    trajectory_[TRAJECTORY_ACCELERATION] = Eigen::MatrixXd(num_points_, num_joints_);
-  }
+  // has at least the first point velocity & acceleration
+  trajectory_[TRAJECTORY_VELOCITY] = Eigen::MatrixXd(has_velocity_and_acceleration_ ? num_points_ : 1, num_joints_);
+  trajectory_[TRAJECTORY_ACCELERATION] = Eigen::MatrixXd(has_velocity_and_acceleration_ ? num_points_ : 1, num_joints_);
 
   // use keyframes only if num_keyframe_interval_points > 1
   if (!is_full_trajectory_ && hasKeyframes())
@@ -312,11 +299,8 @@ void ItompCIOTrajectory::updateTrajectoryFromKeyframes()
   }
 }
 
-void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
-    const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array)
+void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices)
 {
-  vel_start_ = joint_vel_array;
-  acc_start_ = joint_acc_array;
   int start_index = start_index_ - 1;
   int end_index = end_index_ + 1;
   double duration = (end_index - start_index) * discretization_;
@@ -326,8 +310,8 @@ void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndice
     int j = *it;
 
     double x0 = trajectory_[TRAJECTORY_POSITION](start_index, j);
-    double v0 = (j < 6) ? joint_vel_array(j) : 0.0;
-    double a0 = (j < 6) ? joint_acc_array(j) : 0.0;
+    double v0 = (j < 6) ? trajectory_[TRAJECTORY_VELOCITY](0, j) : 0.0;
+    double a0 = (j < 6) ? trajectory_[TRAJECTORY_ACCELERATION](0, j) : 0.0;
 
     double x1 = trajectory_[TRAJECTORY_POSITION](end_index, j);
     double v1 = 0.0;
@@ -351,7 +335,6 @@ void ItompCIOTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndice
 }
 
 void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& groupJointsKDLIndices,
-    const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array,
     const moveit_msgs::Constraints& path_constraints, const string& group_name)
 {
   robot_state::RobotStatePtr kinematic_state(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
@@ -362,8 +345,6 @@ void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(const std::set<int>& g
   geometry_msgs::Vector3 goal_position = path_constraints.position_constraints[1].target_point_offset;
   geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[0].orientation;
 
-  vel_start_ = joint_vel_array;
-  acc_start_ = joint_acc_array;
   double start_index = start_index_ - 1;
   double end_index = end_index_ + 1;
   double duration = (end_index - start_index) * discretization_;

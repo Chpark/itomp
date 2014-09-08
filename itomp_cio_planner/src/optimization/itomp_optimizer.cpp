@@ -96,13 +96,19 @@ bool ItompOptimizer::optimize()
   group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
   evaluation_manager_.updateFullTrajectory();
   evaluation_manager_.evaluate();
+  evaluation_manager_.getTrajectoryCost(true);
 
   evaluation_manager_.render(trajectory_index_);
 
-  ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, last_improvement_iteration_);
-  ROS_INFO("Optimization core finished in %f sec", (ros::WallTime::now() - start_time).toSec());
+  double elpsed_time = (ros::WallTime::now() - start_time).toSec();
 
-  evaluation_manager_.getTrajectoryCost(true);
+  ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, last_improvement_iteration_);
+  ROS_INFO("Optimization core finished in %f sec", elpsed_time);
+
+  planning_info_.time = elpsed_time;
+  planning_info_.iterations = getLastIteration() + 1;
+  planning_info_.cost = getBestCost();
+  planning_info_.success = isSucceed() ? 1 : 0;
 
   return is_succeed_;
 }

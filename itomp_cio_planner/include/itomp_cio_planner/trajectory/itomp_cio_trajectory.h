@@ -30,8 +30,6 @@ public:
   };
 
   // Construct a full-DOF trajectory
-  ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization, double num_contacts,
-      double contact_phase_duration);
   ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
       double keyframe_interval = 0.0, bool has_velocity_and_acceleration = false, bool free_end_point = false);
 
@@ -75,10 +73,8 @@ public:
    * \brief Generates a minimum jerk trajectory from the start index to end index
    *
    */
-  void fillInMinJerk(const std::set<int>& groupJointsKDLIndices, const Eigen::MatrixXd::RowXpr joint_vel_array,
-      const Eigen::MatrixXd::RowXpr joint_acc_array);
+  void fillInMinJerk(const std::set<int>& groupJointsKDLIndices);
   void fillInMinJerkCartesianTrajectory(const std::set<int>& groupJointsKDLIndices,
-      const Eigen::MatrixXd::RowXpr joint_vel_array, const Eigen::MatrixXd::RowXpr joint_acc_array,
       const moveit_msgs::Constraints& path_constraints, const std::string& group_name);
 
   void printTrajectory() const;
@@ -156,9 +152,6 @@ private:
   Eigen::MatrixXd free_vel_trajectory_;
 
   Eigen::MatrixXd contact_trajectory_;
-
-  Eigen::VectorXd vel_start_;
-  Eigen::VectorXd acc_start_;
 
   // contact variables
   int num_contacts_;
@@ -379,7 +372,6 @@ inline int ItompCIOTrajectory::getContactPhaseEndPoint(int traj_point) const
   return contact_start_points_[getContactPhase(traj_point) + 1] - 1;
 }
 
-
 inline double ItompCIOTrajectory::getContactValue(int phase, int contact) const
 {
   return contact_trajectory_(phase, contact);
@@ -390,12 +382,10 @@ inline Eigen::MatrixXd::RowXpr ItompCIOTrajectory::getContactTrajectoryPoint(int
   return contact_trajectory_.row(phase);
 }
 
-
 inline int ItompCIOTrajectory::getContactPhaseStride() const
 {
   return phase_stride_;
 }
-
 
 }
 

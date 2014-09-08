@@ -2,6 +2,7 @@
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
 
 using namespace std;
 
@@ -16,7 +17,7 @@ ItompRobotModel::~ItompRobotModel()
 {
 }
 
-bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::string& robot_description)
+bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 {
   moveit_robot_model_ = robot_model;
   reference_frame_ = moveit_robot_model_->getModelFrame();
@@ -24,7 +25,8 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
   // get the urdf as a string:
   string urdf_string;
   ros::NodeHandle node_handle("~");
-  if (!node_handle.getParam(robot_description, urdf_string))
+  robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+  if (!node_handle.getParam(robot_model_loader.getRobotDescription(), urdf_string))
   {
     return false;
   }
@@ -47,16 +49,16 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
       "base_revolute_joint_y", "base_revolute_joint_x" };
 
   // initialize the planning groups
-  const std::vector<robot_model::JointModelGroup*>& jointModelGroups = moveit_robot_model_->getJointModelGroups();
-  for (std::vector<robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
+  const std::vector<const robot_model::JointModelGroup*>& jointModelGroups = moveit_robot_model_->getJointModelGroups();
+  for (std::vector<const robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
       it != jointModelGroups.end(); ++it)
   {
     ItompPlanningGroup group;
     group.name_ = (*it)->getName();
     ROS_INFO_STREAM("Planning group " << group.name_);
 
-    const std::vector<std::string> joint_model_names = (*it)->getJointModelNames();
-    const std::vector<std::string> link_model_names = (*it)->getLinkModelNames();
+    const std::vector<std::string>& joint_model_names = (*it)->getJointModelNames();
+    const std::vector<std::string>& link_model_names = (*it)->getLinkModelNames();
 
     group.num_joints_ = 0;
     std::vector<bool> active_joints;
@@ -190,7 +192,7 @@ bool ItompRobotModel::init(robot_model::RobotModelPtr& robot_model, const std::s
 
   // initialize the planning groups
   //const std::vector<robot_model::JointModelGroup*>& jointModelGroups = moveit_robot_model_->getJointModelGroups();
-  for (std::vector<robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
+  for (std::vector<const robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
       it != jointModelGroups.end(); ++it)
   {
     ItompPlanningGroup group;
