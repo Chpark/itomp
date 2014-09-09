@@ -14,8 +14,8 @@ class ItompPlanningGroup;
 class ItompOptimizer
 {
 public:
-	ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
-			const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time,
+	ItompOptimizer(int trajectory_index, const ItompCIOTrajectoryPtr& trajectory, const ItompRobotModelConstPtr& robot_model,
+			const ItompPlanningGroupConstPtr& planning_group, double planning_start_time, double trajectory_start_time,
 			const moveit_msgs::Constraints& path_constraints);
 	virtual ~ItompOptimizer();
 
@@ -24,7 +24,7 @@ public:
 	const PlanningInfo& getPlanningInfo() const;
 
 private:
-	void initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
+	void initialize(const ItompRobotModelConstPtr& robot_model, const ItompPlanningGroupConstPtr& planning_group,
 			double trajectory_start_time, const moveit_msgs::Constraints& path_constraints);
 	bool updateBestTrajectory(double cost, bool is_feasible);
 
@@ -33,10 +33,10 @@ private:
 
 	int iteration_;
 
-	ItompCIOTrajectory* full_trajectory_;
+	ItompCIOTrajectoryPtr full_trajectory_;
 	ItompCIOTrajectoryPtr group_trajectory_;
 
-	EvaluationManager evaluation_manager_;
+	EvaluationManagerPtr evaluation_manager_;
 	ImprovementManagerPtr improvement_manager_;
 
 	Eigen::MatrixXd best_group_trajectory_;
@@ -46,8 +46,7 @@ private:
 
 	PlanningInfo planning_info_;
 };
-
-typedef boost::shared_ptr<ItompOptimizer> ItompOptimizerPtr;
+ITOMP_DEFINE_SHARED_POINTERS(ItompOptimizer);
 
 ////////////////////////////////////////////////////////////////////////////////
 

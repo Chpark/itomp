@@ -16,7 +16,7 @@ ItompPlanningContext::~ItompPlanningContext()
 
 bool ItompPlanningContext::initialize(const robot_model::RobotModelConstPtr& model)
 {
-  itomp_planner_node_.reset(new ItompPlannerNode(model));
+  itomp_planner_node_ = new ItompPlannerNode(model);
   return itomp_planner_node_->init();
 }
 

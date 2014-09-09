@@ -24,7 +24,7 @@ sensor_msgs::JointState jointConstraintsToJointState(const std::vector<moveit_ms
   return state;
 }
 
-sensor_msgs::JointState getGoalStateFromGoalConstraints(const ItompRobotModel& itomp_robot_model,
+sensor_msgs::JointState getGoalStateFromGoalConstraints(const ItompRobotModelConstPtr& itomp_robot_model,
     const planning_interface::MotionPlanRequest &req)
 {
   sensor_msgs::JointState goal_state;
@@ -32,7 +32,7 @@ sensor_msgs::JointState getGoalStateFromGoalConstraints(const ItompRobotModel& i
   for (unsigned int i = 0; i < goal_constraints_joint_state.name.size(); ++i)
   {
     std::string name = goal_constraints_joint_state.name[i];
-    int kdl_number = itomp_robot_model.urdfNameToKdlNumber(name);
+    int kdl_number = itomp_robot_model->urdfNameToKdlNumber(name);
     if (kdl_number >= 0)
     {
       goal_state.name[kdl_number] = name;
@@ -42,7 +42,7 @@ sensor_msgs::JointState getGoalStateFromGoalConstraints(const ItompRobotModel& i
   return goal_state;
 }
 
-void jointStateToArray(const ItompRobotModel& itomp_robot_model, const sensor_msgs::JointState &joint_state,
+void jointStateToArray(const ItompRobotModelConstPtr& itomp_robot_model, const sensor_msgs::JointState &joint_state,
     Eigen::MatrixXd::RowXpr joint_pos_array, Eigen::MatrixXd::RowXpr joint_vel_array,
     Eigen::MatrixXd::RowXpr joint_acc_array)
 {
@@ -50,7 +50,7 @@ void jointStateToArray(const ItompRobotModel& itomp_robot_model, const sensor_ms
   for (unsigned int i = 0; i < joint_state.name.size(); i++)
   {
     std::string name = joint_state.name[i];
-    int kdl_number = itomp_robot_model.urdfNameToKdlNumber(name);
+    int kdl_number = itomp_robot_model->urdfNameToKdlNumber(name);
     if (kdl_number >= 0)
     {
       joint_pos_array(kdl_number) = joint_state.position[i];

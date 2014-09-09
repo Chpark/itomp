@@ -14,9 +14,17 @@
 
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
+#include <boost/make_shared.hpp>
 
 #include <Eigen/Core>
 
 #include <itomp_cio_planner/util/itomp_debug.h>
+
+#define ITOMP_DEFINE_SHARED_POINTERS(C) \
+    typedef boost::shared_ptr<C> C##Ptr; \
+    typedef boost::shared_ptr<const C> C##ConstPtr;
+#define ITOMP_FORWARD_DECL(C) \
+    class C; \
+    ITOMP_DEFINE_SHARED_POINTERS(C)
 
 #endif

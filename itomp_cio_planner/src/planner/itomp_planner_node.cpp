@@ -28,14 +28,15 @@ bool ItompPlannerNode::init()
   PlanningParameters::getInstance()->initFromNodeHandle();
 
   // build itomp robot model
-  if (!itomp_robot_model_.init(robot_model_))
+  itomp_robot_model_ = boost::make_shared<ItompRobotModel>();
+  if (!itomp_robot_model_->init(robot_model_))
     return false;
 
   VisualizationManager::getInstance()->initialize(itomp_robot_model_);
 
-  trajectory_.reset(
-      new ItompCIOTrajectory(&itomp_robot_model_, PlanningParameters::getInstance()->getTrajectoryDuration(),
-          PlanningParameters::getInstance()->getTrajectoryDiscretization()));
+  trajectory_ = boost::make_shared<ItompCIOTrajectory>(itomp_robot_model_,
+      PlanningParameters::getInstance()->getTrajectoryDuration(),
+      PlanningParameters::getInstance()->getTrajectoryDiscretization());
 
   ROS_INFO("Initialized ITOMP planning service...");
 
@@ -73,15 +74,16 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
       ros::WallTime create_time = ros::WallTime::now();
 
       /// optimize
-      fillGroupJointTrajectory(planning_groups[i], getGoalStateFromGoalConstraints(itomp_robot_model_, req), req.path_constraints);
-      optimizer_.reset(
-          new ItompOptimizer(0, trajectory_.get(), &itomp_robot_model_,
-              itomp_robot_model_.getPlanningGroup(planning_groups[i]), planning_start_time, trajectory_start_time,
-              req.path_constraints));
+      fillGroupJointTrajectory(planning_groups[i], getGoalStateFromGoalConstraints(itomp_robot_model_, req),
+          req.path_constraints);
+      optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_robot_model_,
+          itomp_robot_model_->getPlanningGroup(planning_groups[i]), planning_start_time, trajectory_start_time,
+          req.path_constraints);
       optimizer_->optimize();
       planning_info_manager_.write(c, i, optimizer_->getPlanningInfo());
 
-      ROS_INFO("Optimization of group %s took %f sec", planning_groups[i].c_str(), (ros::WallTime::now() - create_time).toSec());
+      ROS_INFO(
+          "Optimization of group %s took %f sec", planning_groups[i].c_str(), (ros::WallTime::now() - create_time).toSec());
     }
   }
   planning_info_manager_.printSummary();
@@ -119,9 +121,8 @@ void ItompPlannerNode::initTrajectory(const sensor_msgs::JointState &joint_state
 {
   if (trajectory_->getDuration() != PlanningParameters::getInstance()->getTrajectoryDuration())
   {
-    trajectory_.reset(
-        new ItompCIOTrajectory(&itomp_robot_model_, PlanningParameters::getInstance()->getTrajectoryDuration(),
-            PlanningParameters::getInstance()->getTrajectoryDiscretization()));
+    trajectory_ = boost::make_shared<ItompCIOTrajectory>(itomp_robot_model_, PlanningParameters::getInstance()->getTrajectoryDuration(),
+        PlanningParameters::getInstance()->getTrajectoryDiscretization());
   }
 
   jointStateToArray(itomp_robot_model_, joint_state, trajectory_->getTrajectoryPoint(0),
@@ -158,7 +159,7 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 {
   int num_all_joints = robot_state->getVariableCount();
 
-  res.trajectory_.reset(new robot_trajectory::RobotTrajectory(itomp_robot_model_.getMoveitRobotModel(), ""));
+  res.trajectory_ = boost::make_shared<robot_trajectory::RobotTrajectory>(itomp_robot_model_->getMoveitRobotModel(), "");
 
   std::vector<double> velocity_limits(num_all_joints, std::numeric_limits<double>::max());
 
@@ -198,10 +199,10 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
   }
 }
 
-void ItompPlannerNode::fillGroupJointTrajectory(const string& group_name, const sensor_msgs::JointState& joint_goal_state,
-    const moveit_msgs::Constraints& path_constraints)
+void ItompPlannerNode::fillGroupJointTrajectory(const string& group_name,
+    const sensor_msgs::JointState& joint_goal_state, const moveit_msgs::Constraints& path_constraints)
 {
-  const ItompPlanningGroup* group = itomp_robot_model_.getPlanningGroup(group_name);
+  const ItompPlanningGroupConstPtr group = itomp_robot_model_->getPlanningGroup(group_name);
 
   // set trajectory goal point
   int goal_index = trajectory_->getNumPoints() - 1;
@@ -209,7 +210,7 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& group_name, const 
   for (int i = 0; i < group->num_joints_; ++i)
   {
     string name = group->group_joints_[i].joint_name_;
-    int kdl_number = itomp_robot_model_.urdfNameToKdlNumber(name);
+    int kdl_number = itomp_robot_model_->urdfNameToKdlNumber(name);
     if (kdl_number >= 0)
     {
       goalPoint(kdl_number) = joint_goal_state.position[kdl_number];
@@ -231,6 +232,5 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& group_name, const 
     trajectory_->fillInMinJerkCartesianTrajectory(group_joints_RBDL_joint_indices, path_constraints, group_name);
   }
 }
-
 
 } // namespace

@@ -22,8 +22,9 @@ public:
 	virtual bool terminate();
 
 private:
-	boost::scoped_ptr<ItompPlannerNode> itomp_planner_node_;
+	ItompPlannerNodePtr itomp_planner_node_;
 };
+ITOMP_DEFINE_SHARED_POINTERS(ItompPlanningContext);
 
 }
 

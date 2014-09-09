@@ -16,9 +16,9 @@ inline int safeToInt(double a)
   return (int) (a + 1E-7);
 }
 
-ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
-    double keyframe_interval, bool has_velocity_and_acceleration, bool free_end_point) :
-    is_full_trajectory_(true), robot_model_(robot_model), planning_group_(NULL), discretization_(discretization), has_velocity_and_acceleration_(
+ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModelConstPtr& robot_model, double duration,
+    double discretization, double keyframe_interval, bool has_velocity_and_acceleration, bool free_end_point) :
+    is_full_trajectory_(true), robot_model_(robot_model), discretization_(discretization), has_velocity_and_acceleration_(
         has_velocity_and_acceleration), has_free_end_point_(has_free_end_point_), num_joints_(
         robot_model_->getNumJoints())
 {
@@ -50,37 +50,37 @@ ItompCIOTrajectory::ItompCIOTrajectory(const ItompRobotModel* robot_model, doubl
   init();
 }
 
-ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectory& full_trajectory,
-    const ItompPlanningGroup* planning_group, int diff_rule_length) :
-    is_full_trajectory_(false), robot_model_(full_trajectory.robot_model_), planning_group_(planning_group), phase_stride_(
-        full_trajectory.phase_stride_), discretization_(full_trajectory.discretization_), has_velocity_and_acceleration_(
-        full_trajectory.has_velocity_and_acceleration_), has_free_end_point_(full_trajectory.has_free_end_point_), num_keyframe_interval_points_(
-        full_trajectory.num_keyframe_interval_points_), keyframe_interval_(full_trajectory.keyframe_interval_), num_keyframes_(
-        full_trajectory.num_keyframes_), duration_(full_trajectory.duration_)
+ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectoryConstPtr& full_trajectory,
+    const ItompPlanningGroupConstPtr& planning_group, int diff_rule_length) :
+    is_full_trajectory_(false), robot_model_(full_trajectory->robot_model_), planning_group_(planning_group), phase_stride_(
+        full_trajectory->phase_stride_), discretization_(full_trajectory->discretization_), has_velocity_and_acceleration_(
+        full_trajectory->has_velocity_and_acceleration_), has_free_end_point_(full_trajectory->has_free_end_point_), num_keyframe_interval_points_(
+        full_trajectory->num_keyframe_interval_points_), keyframe_interval_(full_trajectory->keyframe_interval_), num_keyframes_(
+        full_trajectory->num_keyframes_), duration_(full_trajectory->duration_)
 {
   num_joints_ = planning_group_->num_joints_;
 
   if (diff_rule_length == 0)
   {
-    num_points_ = full_trajectory.num_points_;
-    start_index_ = full_trajectory.start_index_;
-    end_index_ = full_trajectory.end_index_;
-    keyframe_start_index_ = full_trajectory.keyframe_start_index_;
+    num_points_ = full_trajectory->num_points_;
+    start_index_ = full_trajectory->start_index_;
+    end_index_ = full_trajectory->end_index_;
+    keyframe_start_index_ = full_trajectory->keyframe_start_index_;
   }
   else
   {
-    int start_extra = (diff_rule_length - 1) - full_trajectory.start_index_;
-    int end_extra = (diff_rule_length - 1) - ((full_trajectory.num_points_ - 1) - full_trajectory.end_index_);
-    num_points_ = full_trajectory.num_points_ + start_extra + end_extra;
+    int start_extra = (diff_rule_length - 1) - full_trajectory->start_index_;
+    int end_extra = (diff_rule_length - 1) - ((full_trajectory->num_points_ - 1) - full_trajectory->end_index_);
+    num_points_ = full_trajectory->num_points_ + start_extra + end_extra;
     start_index_ = diff_rule_length - 1;
     end_index_ = (num_points_ - 1) - (diff_rule_length - 1);
-    keyframe_start_index_ = full_trajectory.keyframe_start_index_ + start_extra;
+    keyframe_start_index_ = full_trajectory->keyframe_start_index_ + start_extra;
   }
 
   // TODO: only contacts in this group?
-  num_contacts_ = full_trajectory.num_contacts_;
-  contact_phase_duration_ = full_trajectory.contact_phase_duration_;
-  num_contact_phases_ = full_trajectory.num_contact_phases_;
+  num_contacts_ = full_trajectory->num_contacts_;
+  contact_phase_duration_ = full_trajectory->contact_phase_duration_;
+  num_contact_phases_ = full_trajectory->num_contact_phases_;
 
   // allocate the memory:
   init();
@@ -88,18 +88,18 @@ ItompCIOTrajectory::ItompCIOTrajectory(const ItompCIOTrajectory& full_trajectory
   // now copy the trajectories over:
   copyFromFullTrajectory(full_trajectory);
 
-  contact_trajectory_ = full_trajectory.contact_trajectory_;
+  contact_trajectory_ = full_trajectory->contact_trajectory_;
 
   full_trajectory_index_.resize(num_points_);
   // now copy the trajectories over:
-  int start_extra = start_index_ - full_trajectory.start_index_;
+  int start_extra = start_index_ - full_trajectory->start_index_;
   for (int i = 0; i < num_points_; i++)
   {
     int source_traj_point = i - start_extra;
     if (source_traj_point < 0)
       source_traj_point = 0;
-    if (source_traj_point >= full_trajectory.num_points_)
-      source_traj_point = full_trajectory.num_points_ - 1;
+    if (source_traj_point >= full_trajectory->num_points_)
+      source_traj_point = full_trajectory->num_points_ - 1;
     full_trajectory_index_[i] = source_traj_point;
   }
 }
@@ -146,57 +146,57 @@ void ItompCIOTrajectory::init()
   }
 }
 
-void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory)
+void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectoryConstPtr& group_trajectory)
 {
-  ROS_ASSERT(is_full_trajectory_ && !group_trajectory.is_full_trajectory_);
+  ROS_ASSERT(is_full_trajectory_ && !group_trajectory->is_full_trajectory_);
 
   int num_vars_free = end_index_ - start_index_ + 1;
-  for (int i = 0; i < group_trajectory.planning_group_->num_joints_; i++)
+  for (int i = 0; i < group_trajectory->planning_group_->num_joints_; i++)
   {
-    int target_joint = group_trajectory.planning_group_->group_joints_[i].rbdl_joint_index_;
+    int target_joint = group_trajectory->planning_group_->group_joints_[i].rbdl_joint_index_;
     trajectory_[TRAJECTORY_POSITION].block(start_index_, target_joint, num_vars_free, 1) =
-        group_trajectory.trajectory_[TRAJECTORY_POSITION].block(group_trajectory.start_index_, i, num_vars_free, 1);
+        group_trajectory->trajectory_[TRAJECTORY_POSITION].block(group_trajectory->start_index_, i, num_vars_free, 1);
 
     if (has_velocity_and_acceleration_)
     {
-      ROS_ASSERT(group_trajectory.has_velocity_and_acceleration_);
+      ROS_ASSERT(group_trajectory->has_velocity_and_acceleration_);
 
       trajectory_[TRAJECTORY_VELOCITY].block(start_index_, target_joint, num_vars_free, 1) =
-          group_trajectory.trajectory_[TRAJECTORY_VELOCITY].block(group_trajectory.start_index_, i, num_vars_free, 1);
+          group_trajectory->trajectory_[TRAJECTORY_VELOCITY].block(group_trajectory->start_index_, i, num_vars_free, 1);
 
       trajectory_[TRAJECTORY_ACCELERATION].block(start_index_, target_joint, num_vars_free, 1) =
-          group_trajectory.trajectory_[TRAJECTORY_ACCELERATION].block(group_trajectory.start_index_, i, num_vars_free,
+          group_trajectory->trajectory_[TRAJECTORY_ACCELERATION].block(group_trajectory->start_index_, i, num_vars_free,
               1);
     }
   }
 
-  //contact_trajectory_ = group_trajectory.contact_trajectory_;
+  //contact_trajectory_ = group_trajectory->contact_trajectory_;
   int contact_end_index = num_contact_phases_ - 2;
   int contact_start_index = 1;
   int num_contact_vars_free = contact_end_index - contact_start_index + 1;
-  for (int i = 0; i < group_trajectory.planning_group_->getNumContacts(); i++)
+  for (int i = 0; i < group_trajectory->planning_group_->getNumContacts(); i++)
   {
     // TODO: need to be changed when multiple groups have contacts;
     int target_contact = i;
     contact_trajectory_.block(contact_start_index, target_contact, num_contact_vars_free, 1) =
-        group_trajectory.contact_trajectory_.block(contact_start_index, i, num_contact_vars_free, 1);
+        group_trajectory->contact_trajectory_.block(contact_start_index, i, num_contact_vars_free, 1);
   }
 }
 
-void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index,
+void ItompCIOTrajectory::copyFromGroupTrajectory(const ItompCIOTrajectoryConstPtr& group_trajectory, int point_index,
     int joint_index)
 {
-  ROS_ASSERT(is_full_trajectory_ && !group_trajectory.is_full_trajectory_);
+  ROS_ASSERT(is_full_trajectory_ && !group_trajectory->is_full_trajectory_);
 
-  int target_joint = group_trajectory.planning_group_->group_joints_[joint_index].rbdl_joint_index_;
+  int target_joint = group_trajectory->planning_group_->group_joints_[joint_index].rbdl_joint_index_;
 
-  trajectory_[TRAJECTORY_POSITION](start_index_ + point_index, target_joint) = group_trajectory(
-      group_trajectory.start_index_ + point_index, joint_index, TRAJECTORY_POSITION);
+  trajectory_[TRAJECTORY_POSITION](start_index_ + point_index, target_joint) = group_trajectory->getTrajectory(TRAJECTORY_POSITION)(
+      group_trajectory->start_index_ + point_index, joint_index);
 }
 
-void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory)
+void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectoryConstPtr& full_trajectory)
 {
-  ROS_ASSERT(!is_full_trajectory_ && full_trajectory.is_full_trajectory_);
+  ROS_ASSERT(!is_full_trajectory_ && full_trajectory->is_full_trajectory_);
 
   // now copy the trajectories over:
   int num_vars_free = end_index_ - start_index_ + 1;
@@ -204,17 +204,17 @@ void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_t
   {
     int full_joint = planning_group_->group_joints_[i].rbdl_joint_index_;
     trajectory_[TRAJECTORY_POSITION].block(start_index_, i, num_vars_free, 1) =
-        full_trajectory.trajectory_[TRAJECTORY_POSITION].block(full_trajectory.start_index_, full_joint, num_vars_free,
+        full_trajectory->getTrajectory(TRAJECTORY_POSITION).block(full_trajectory->start_index_, full_joint, num_vars_free,
             1);
     if (has_velocity_and_acceleration_)
     {
-      ROS_ASSERT(full_trajectory.has_velocity_and_acceleration_);
+      ROS_ASSERT(full_trajectory->has_velocity_and_acceleration_);
 
       trajectory_[TRAJECTORY_VELOCITY].block(start_index_, i, num_vars_free, 1) =
-          full_trajectory.trajectory_[TRAJECTORY_VELOCITY].block(full_trajectory.start_index_, full_joint,
+          full_trajectory->getTrajectory(TRAJECTORY_VELOCITY).block(full_trajectory->start_index_, full_joint,
               num_vars_free, 1);
       trajectory_[TRAJECTORY_ACCELERATION].block(start_index_, i, num_vars_free, 1) =
-          full_trajectory.trajectory_[TRAJECTORY_ACCELERATION].block(full_trajectory.start_index_, full_joint,
+          full_trajectory->getTrajectory(TRAJECTORY_ACCELERATION).block(full_trajectory->start_index_, full_joint,
               num_vars_free, 1);
     }
   }
@@ -225,9 +225,9 @@ void ItompCIOTrajectory::copyFromFullTrajectory(const ItompCIOTrajectory& full_t
     for (int j = 0; j < num_joints_; j++)
     {
       int full_joint = planning_group_->group_joints_[j].rbdl_joint_index_;
-      double pos = full_trajectory(0, full_joint, TRAJECTORY_POSITION);
-      double vel = full_trajectory(0, full_joint, TRAJECTORY_VELOCITY);
-      double acc = full_trajectory(0, full_joint, TRAJECTORY_ACCELERATION);
+      double pos = (*full_trajectory)(0, full_joint, TRAJECTORY_POSITION);
+      double vel = (*full_trajectory)(0, full_joint, TRAJECTORY_VELOCITY);
+      double acc = (*full_trajectory)(0, full_joint, TRAJECTORY_ACCELERATION);
 
       // only for root pos
       if (full_joint < 6)

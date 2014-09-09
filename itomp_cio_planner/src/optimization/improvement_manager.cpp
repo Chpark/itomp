@@ -15,7 +15,7 @@ ImprovementManager::~ImprovementManager()
 
 }
 
-void ImprovementManager::initialize(EvaluationManager *evaluation_manager)
+void ImprovementManager::initialize(const EvaluationManagerPtr& evaluation_manager)
 {
   evaluation_manager_ = evaluation_manager;
 }

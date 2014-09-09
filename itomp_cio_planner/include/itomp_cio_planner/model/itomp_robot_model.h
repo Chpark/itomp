@@ -8,7 +8,6 @@
 #include <itomp_cio_planner/model/treefksolverjointposaxis_partial.hpp>
 #include <kdl/tree.hpp>
 #include <kdl/chain.hpp>
-#include <boost/shared_ptr.hpp>
 #include <kdl/chainidsolver_recursive_newton_euler.hpp>
 #include <moveit/robot_model/robot_model.h>
 #include <sensor_msgs/JointState.h>
@@ -36,7 +35,7 @@ public:
 	/**
 	 * \brief Gets the planning group corresponding to the group name
 	 */
-	const ItompPlanningGroup *getPlanningGroup(const std::string& group_name) const;
+	const ItompPlanningGroupConstPtr getPlanningGroup(const std::string& group_name) const;
 
 	/**
 	 * \brief Gets the number of total joints
@@ -93,20 +92,20 @@ private:
 	RigidBodyDynamics::Model rbdl_robot_model_;
 	int num_rbdl_joints_;
 
-	std::map<std::string, ItompPlanningGroup> planning_groups_; /**< Planning group information */
+	std::map<std::string, ItompPlanningGroupConstPtr> planning_groups_; /**< Planning group information */
 	std::vector<std::string> rbdl_number_to_joint_name_; /**< Mapping from RBDL joint number (1-base) to URDF joint name */
 	std::map<std::string, int> joint_name_to_rbdl_number_; /**< Mapping from URDF joint name to RBDL joint number (1-base) */
 };
+ITOMP_DEFINE_SHARED_POINTERS(ItompRobotModel);
 
 /////////////////////////////// inline functions follow ///////////////////////////////////
 
-inline const ItompPlanningGroup* ItompRobotModel::getPlanningGroup(const std::string& group_name) const
+inline const ItompPlanningGroupConstPtr ItompRobotModel::getPlanningGroup(const std::string& group_name) const
 {
-	std::map<std::string, ItompPlanningGroup>::const_iterator it = planning_groups_.find(group_name);
+	std::map<std::string, ItompPlanningGroupConstPtr>::const_iterator it = planning_groups_.find(group_name);
 	if (it == planning_groups_.end())
-		return NULL;
-	else
-		return &(it->second);
+		ROS_ERROR("Planning group %s does not exist!!!", group_name.c_str());
+	return it->second;
 }
 
 inline int ItompRobotModel::getNumJoints() const

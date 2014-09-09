@@ -11,30 +11,32 @@ using namespace std;
 namespace itomp_cio_planner
 {
 
-ItompOptimizer::ItompOptimizer(int trajectory_index, ItompCIOTrajectory* trajectory, ItompRobotModel *robot_model,
-    const ItompPlanningGroup *planning_group, double planning_start_time, double trajectory_start_time,
+ItompOptimizer::ItompOptimizer(int trajectory_index, const ItompCIOTrajectoryPtr& trajectory, const ItompRobotModelConstPtr& robot_model,
+    const ItompPlanningGroupConstPtr& planning_group, double planning_start_time, double trajectory_start_time,
     const moveit_msgs::Constraints& path_constraints) :
     trajectory_index_(trajectory_index), planning_start_time_(planning_start_time), iteration_(-1), full_trajectory_(
-        trajectory), evaluation_manager_(&iteration_), is_best_group_trajectory_feasible_(false), best_group_trajectory_iteration_(
+        trajectory), is_best_group_trajectory_feasible_(false), best_group_trajectory_iteration_(
         -1)
 {
   initialize(robot_model, planning_group, trajectory_start_time, path_constraints);
 }
 
-void ItompOptimizer::initialize(ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
+void ItompOptimizer::initialize(const ItompRobotModelConstPtr& robot_model, const ItompPlanningGroupConstPtr& planning_group,
     double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
 {
-  improvement_manager_.reset(new ImprovementManagerNLP());
-  group_trajectory_.reset(new ItompCIOTrajectory(*full_trajectory_, planning_group, 0));
-  //improvement_manager_.reset(new ImprovementManagerChomp());
-  //group_trajectory_(*full_trajectory_, planning_group, DIFF_RULE_LENGTH);
+  evaluation_manager_ = boost::make_shared<EvaluationManager>(&iteration_);
+
+  improvement_manager_ = boost::make_shared<ImprovementManagerNLP>();
+  group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, 0);
+  //improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
+  //group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, DIFF_RULE_LENGTH);
 
   best_group_trajectory_ = group_trajectory_->getTrajectory(ItompCIOTrajectory::TRAJECTORY_POSITION);
 
-  evaluation_manager_.initialize(full_trajectory_, group_trajectory_.get(), robot_model, planning_group,
+  evaluation_manager_->initialize(*full_trajectory_, *group_trajectory_, *robot_model, *planning_group,
       planning_start_time_, trajectory_start_time, path_constraints);
 
-  improvement_manager_->initialize(&evaluation_manager_);
+  improvement_manager_->initialize(evaluation_manager_);
 
   VisualizationManager::getInstance()->clearAnimations();
 }
@@ -53,16 +55,16 @@ bool ItompOptimizer::optimize()
 
   VisualizationManager::getInstance()->render();
 
-  evaluation_manager_.handleJointLimits();
-  evaluation_manager_.updateFullTrajectory();
-  evaluation_manager_.evaluate();
-  updateBestTrajectory(evaluation_manager_.getTrajectoryCost(true), evaluation_manager_.isLastTrajectoryFeasible());
+  evaluation_manager_->handleJointLimits();
+  evaluation_manager_->updateFullTrajectory();
+  evaluation_manager_->evaluate();
+  updateBestTrajectory(evaluation_manager_->getTrajectoryCost(true), evaluation_manager_->isLastTrajectoryFeasible());
   ++iteration_;
 
   int iteration_after_feasible_solution = 0;
   int num_max_iterations = PlanningParameters::getInstance()->getMaxIterations();
 
-  if (!evaluation_manager_.isLastTrajectoryFeasible())
+  if (!evaluation_manager_->isLastTrajectoryFeasible())
   {
     while (iteration_ < num_max_iterations)
     {
@@ -70,8 +72,8 @@ bool ItompOptimizer::optimize()
         ++iteration_after_feasible_solution;
 
       improvement_manager_->runSingleIteration(iteration_);
-      bool is_feasible = evaluation_manager_.isLastTrajectoryFeasible();
-      double cost = evaluation_manager_.getTrajectoryCost(true);
+      bool is_feasible = evaluation_manager_->isLastTrajectoryFeasible();
+      double cost = evaluation_manager_->getTrajectoryCost(true);
       bool is_cost_reduced = (cost < best_group_trajectory_cost_);
       bool is_updated = updateBestTrajectory(cost, is_feasible);
 
@@ -87,11 +89,11 @@ bool ItompOptimizer::optimize()
     }
   }
   group_trajectory_->getTrajectory() = best_group_trajectory_;
-  evaluation_manager_.updateFullTrajectory();
-  evaluation_manager_.evaluate();
-  evaluation_manager_.getTrajectoryCost(true);
+  evaluation_manager_->updateFullTrajectory();
+  evaluation_manager_->evaluate();
+  evaluation_manager_->getTrajectoryCost(true);
 
-  evaluation_manager_.render(trajectory_index_);
+  evaluation_manager_->render(trajectory_index_);
 
   double elpsed_time = (ros::WallTime::now() - start_time).toSec();
 

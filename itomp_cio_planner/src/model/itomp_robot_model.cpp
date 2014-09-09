@@ -53,14 +53,14 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
   for (std::vector<const robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
       it != jointModelGroups.end(); ++it)
   {
-    ItompPlanningGroup group;
-    group.name_ = (*it)->getName();
-    ROS_INFO_STREAM("Planning group " << group.name_);
+    ItompPlanningGroupPtr group = boost::make_shared<ItompPlanningGroup>();
+    group->name_ = (*it)->getName();
+    ROS_INFO_STREAM("Planning group " << group->name_);
 
     const std::vector<std::string>& joint_model_names = (*it)->getJointModelNames();
     const std::vector<std::string>& link_model_names = (*it)->getLinkModelNames();
 
-    group.num_joints_ = 0;
+    group->num_joints_ = 0;
     std::vector<bool> active_joints;
     active_joints.resize(num_rbdl_joints_, false);
     for (int i = 0; i < link_model_names.size(); i++)
@@ -93,7 +93,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
       const RigidBodyDynamics::Joint& rbdl_joint = rbdl_robot_model_.mJoints[joint_index];
 
       ItompRobotJoint joint;
-      joint.group_joint_index_ = group.num_joints_;
+      joint.group_joint_index_ = group->num_joints_;
       joint.rbdl_joint_index_ = rbdl_joint.q_index;
       joint.link_name_ = link_name;
       joint.joint_name_ = joint_name;
@@ -135,17 +135,17 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
       rbdl_number_to_joint_name_[joint.rbdl_joint_index_] = joint_name;
       joint_name_to_rbdl_number_.insert(make_pair(joint_name, joint.rbdl_joint_index_));
 
-      group.num_joints_++;
-      group.group_joints_.push_back(joint);
+      group->num_joints_++;
+      group->group_joints_.push_back(joint);
       active_joints[joint.rbdl_joint_index_] = true;
     }
 
-    for (int i = 0; i < group.num_joints_; i++)
+    for (int i = 0; i < group->num_joints_; i++)
     {
-      group.rbdl_to_group_joint_[group.group_joints_[i].rbdl_joint_index_] = i;
+      group->rbdl_to_group_joint_[group->group_joints_[i].rbdl_joint_index_] = i;
     }
 
-    planning_groups_.insert(make_pair(group.name_, group));
+    planning_groups_.insert(make_pair(group->name_, group));
   }
   // TODO:
   planning_groups_.clear();
@@ -195,13 +195,13 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
   for (std::vector<const robot_model::JointModelGroup*>::const_iterator it = jointModelGroups.begin();
       it != jointModelGroups.end(); ++it)
   {
-    ItompPlanningGroup group;
-    group.name_ = (*it)->getName();
-    ROS_INFO_STREAM("Planning group " << group.name_);
+    ItompPlanningGroupPtr group = boost::make_shared<ItompPlanningGroup>();
+    group->name_ = (*it)->getName();
+    ROS_INFO_STREAM("Planning group " << group->name_);
 
     const std::vector<std::string> joint_model_names = (*it)->getJointModelNames();
 
-    group.num_joints_ = 0;
+    group->num_joints_ = 0;
     std::vector<bool> active_joints;
     active_joints.resize(num_kdl_joints_, false);
     for (int i = 0; i < joint_model_names.size(); i++)
@@ -219,7 +219,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
       if (joint_type != KDL::Joint::None)
       {
         ItompRobotJoint joint;
-        joint.group_joint_index_ = group.num_joints_;
+        joint.group_joint_index_ = group->num_joints_;
         joint.kdl_joint_index_ = kdl_tree_.getSegment(link_name)->second.q_nr;
         joint.link_name_ = link_name;
         joint.joint_name_ = segment_joint_mapping_[link_name];
@@ -253,33 +253,39 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
           ROS_WARN("Cannot handle floating or planar joints yet.");
         }
 
-        group.num_joints_++;
-        group.group_joints_.push_back(joint);
+        group->num_joints_++;
+        group->group_joints_.push_back(joint);
         active_joints[joint.kdl_joint_index_] = true;
       }
 
     }
-    group.fk_solver_.reset(
+    group->fk_solver_.reset(
         new KDL::TreeFkSolverJointPosAxisPartial(kdl_tree_, moveit_robot_model_->getRootLinkName(), active_joints));
 
-    for (int i = 0; i < group.num_joints_; i++)
+    for (int i = 0; i < group->num_joints_; i++)
     {
-      group.kdl_to_group_joint_[group.group_joints_[i].kdl_joint_index_] = i;
+      group->kdl_to_group_joint_[group->group_joints_[i].kdl_joint_index_] = i;
     }
 
-    planning_groups_.insert(make_pair(group.name_, group));
+    planning_groups_.insert(make_pair(group->name_, group));
   }
 
   // TODO: add contact points to lower body
   if (robot_model->hasLinkModel("left_foot_endeffector_link"))
   {
-    planning_groups_["lower_body"].contactPoints_.push_back(ContactPoint("left_foot_endeffector_link", this));
-    planning_groups_["lower_body"].contactPoints_.push_back(ContactPoint("right_foot_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["lower_body"])->contactPoints_.push_back(
+        ContactPoint("left_foot_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["lower_body"])->contactPoints_.push_back(
+        ContactPoint("right_foot_endeffector_link", this));
 
-    planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("left_foot_endeffector_link", this));
-    planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("right_foot_endeffector_link", this));
-    planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("left_hand_endeffector_link", this));
-    planning_groups_["whole_body"].contactPoints_.push_back(ContactPoint("right_hand_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["whole_body"])->contactPoints_.push_back(
+        ContactPoint("left_foot_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["whole_body"])->contactPoints_.push_back(
+        ContactPoint("right_foot_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["whole_body"])->contactPoints_.push_back(
+        ContactPoint("left_hand_endeffector_link", this));
+    boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_["whole_body"])->contactPoints_.push_back(
+        ContactPoint("right_hand_endeffector_link", this));
   }
 
   ROS_INFO("Initialized ITOMP robot model in %s reference frame.", reference_frame_.c_str());

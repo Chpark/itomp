@@ -21,7 +21,7 @@ public:
 
 	virtual bool initialize(const robot_model::RobotModelConstPtr& model, const std::string &ns)
 	{
-		context_.reset(new ItompPlanningContext("ITOMP", "right_arm"));
+		context_ = new ItompPlanningContext("ITOMP", "right_arm");
 		return context_->initialize(model);
 	}
 
@@ -60,7 +60,7 @@ public:
 	}
 
 private:
-	boost::shared_ptr<ItompPlanningContext> context_;
+	ItompPlanningContextPtr context_;
 };
 
 }

@@ -21,7 +21,7 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 
 }
 
-void ImprovementManagerNLP::initialize(EvaluationManager *evaluation_manager)
+void ImprovementManagerNLP::initialize(const EvaluationManagerPtr& evaluation_manager)
 {
   start_time_ = ros::Time::now();
 
@@ -35,8 +35,8 @@ void ImprovementManagerNLP::initialize(EvaluationManager *evaluation_manager)
   const EvaluationData& default_data = evaluation_manager->getDefaultData();
   for (int i = 0; i < num_threads_; ++i)
   {
-    derivatives_evaluation_data_[i].reset(default_data.clone());
-    derivatives_evaluation_manager_[i].reset(new EvaluationManager(*evaluation_manager));
+    derivatives_evaluation_data_[i] = boost::make_shared<EvaluationData>(default_data.clone());
+    derivatives_evaluation_manager_[i] = boost::make_shared<EvaluationManager>(*evaluation_manager);
     derivatives_evaluation_manager_[i]->setData(derivatives_evaluation_data_[i].get());
   }
 }

@@ -539,17 +539,17 @@ void VisualizationManager::renderGround()
 
 }
 
-void VisualizationManager::initialize(const itomp_cio_planner::ItompRobotModel& robot_model)
+void VisualizationManager::initialize(const ItompRobotModelConstPtr& robot_model)
 {
   ros::NodeHandle node_handle;
   vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>(
       "pomp_planner/visualization_marker_array", 10);
   vis_marker_publisher_ = node_handle.advertise<visualization_msgs::Marker>("pomp_planner/visualization_marker", 10);
 
-  reference_frame_ = robot_model.getReferenceFrame();
+  reference_frame_ = robot_model->getReferenceFrame();
 }
 
-void VisualizationManager::setPlanningGroup(const itomp_cio_planner::ItompRobotModel& robot_model,
+void VisualizationManager::setPlanningGroup(const ItompRobotModelConstPtr& robot_model,
     const std::string& groupName)
 {
   const multimap<string, string>& endeffectorSegments =
@@ -560,7 +560,7 @@ void VisualizationManager::setPlanningGroup(const itomp_cio_planner::ItompRobotM
   {
     if (it->first == groupName)
     {
-      int segmentIndex = robot_model.getForwardKinematicsSolver()->segmentNameToIndex(it->second);
+      int segmentIndex = robot_model->getForwardKinematicsSolver()->segmentNameToIndex(it->second);
       if (segmentIndex == -1)
       {
         ROS_INFO("Invalid endeffector segment name %s for %s", it->second.c_str(), it->first.c_str());
@@ -572,7 +572,7 @@ void VisualizationManager::setPlanningGroup(const itomp_cio_planner::ItompRobotM
     }
   }
 
-  root_segment_number_ = robot_model.getForwardKinematicsSolver()->segmentNameToIndex(
+  root_segment_number_ = robot_model->getForwardKinematicsSolver()->segmentNameToIndex(
       PlanningParameters::getInstance()->getLowerBodyRoot());
 }
 

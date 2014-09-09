@@ -13,16 +13,16 @@ public:
   ImprovementManager();
   virtual ~ImprovementManager();
 
-  virtual void initialize(EvaluationManager *evaluation_manager);
+  virtual void initialize(const EvaluationManagerPtr& evaluation_manager);
   virtual bool updatePlanningParameters();
   virtual void runSingleIteration(int iteration) = 0;
 
 protected:
-  EvaluationManager *evaluation_manager_;
+  EvaluationManagerPtr evaluation_manager_;
   int last_planning_parameter_index_;
 };
+ITOMP_DEFINE_SHARED_POINTERS(ImprovementManager);
 
-typedef boost::shared_ptr<ImprovementManager> ImprovementManagerPtr;
 }
 ;
 

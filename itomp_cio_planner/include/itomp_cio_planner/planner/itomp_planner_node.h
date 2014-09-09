@@ -36,12 +36,13 @@ private:
       planning_interface::MotionPlanResponse &res);
 
   robot_model::RobotModelConstPtr robot_model_;
-  ItompRobotModel itomp_robot_model_;
+  ItompRobotModelPtr itomp_robot_model_;
 
   ItompCIOTrajectoryPtr trajectory_;
   ItompOptimizerPtr optimizer_;
   PlanningInfoManager planning_info_manager_;
 };
+ITOMP_DEFINE_SHARED_POINTERS(ItompPlannerNode);
 
 }
 

@@ -44,6 +44,7 @@ protected:
 public:
 	bool is_last_trajectory_valid_;
 };
+ITOMP_DEFINE_SHARED_POINTERS(TrajectoryCostAccumulator);
 
 }
 

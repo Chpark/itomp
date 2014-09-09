@@ -17,47 +17,47 @@ namespace itomp_cio_planner
 
 TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
 {
-  TrajectoryCostPtr newCost;
+  TrajectoryCostPtr new_cost;
   switch (type)
   {
   case COST_SMOOTHNESS:
-    newCost.reset(new TrajectorySmoothnessCost());
+    new_cost = boost::make_shared<TrajectorySmoothnessCost>();
     break;
 
   case COST_COLLISION:
-    newCost.reset(new TrajectoryCollisionCost());
+    new_cost = boost::make_shared<TrajectoryCollisionCost>();
     break;
 
   case COST_VALIDITY:
-    newCost.reset(new TrajectoryValidityCost());
+    new_cost = boost::make_shared<TrajectoryValidityCost>();
     break;
 
   case COST_CONTACT_INVARIANT:
-    newCost.reset(new TrajectoryContactInvariantCost());
+    new_cost = boost::make_shared<TrajectoryContactInvariantCost>();
     break;
 
   case COST_PHYSICS_VIOLATION:
-    newCost.reset(new TrajectoryPhysicsViolationCost());
+    new_cost = boost::make_shared<TrajectoryPhysicsViolationCost>();
     break;
 
   case COST_GOAL_POSE:
-    newCost.reset(new TrajectoryGoalPoseCost());
+    new_cost = boost::make_shared<TrajectoryGoalPoseCost>();
     break;
 
   case COST_COM:
-    newCost.reset(new TrajectoryCoMCost());
+    new_cost = boost::make_shared<TrajectoryCoMCost>();
     break;
 
   case COST_FTR:
-    newCost.reset(new TrajectoryFTRCost());
+    new_cost = boost::make_shared<TrajectoryFTRCost>();
     break;
 
   case COST_CARTESIAN_TRAJECTORY:
-    newCost.reset(new TrajectoryCartesianCost());
+    new_cost = boost::make_shared<TrajectoryCartesianCost>();
     break;
 
   case COST_SINGULARITY:
-    newCost.reset(new TrajectorySingularityCost());
+    new_cost = boost::make_shared<TrajectorySingularityCost>();
     break;
 
   case COST_ENDEFFECTOR_VELOCITY:
@@ -68,7 +68,7 @@ TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
     break;
   }
 
-  return newCost;
+  return new_cost;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

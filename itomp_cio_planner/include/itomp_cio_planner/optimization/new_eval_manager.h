@@ -96,7 +96,7 @@ public:
   bool print_debug_texts_;
 
 };
-typedef boost::shared_ptr<NewEvalManager> NewEvalManagerPtr;
+ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
 inline bool NewEvalManager::isLastTrajectoryFeasible() const
 {

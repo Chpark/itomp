@@ -73,8 +73,7 @@ protected:
   COST_TYPE type_;
 
 };
-
-typedef boost::shared_ptr<TrajectoryCost> TrajectoryCostPtr;
+ITOMP_DEFINE_SHARED_POINTERS(TrajectoryCost);
 
 class TrajectorySmoothnessCost: public TrajectoryCost
 {

@@ -99,7 +99,7 @@ protected:
   ItompCIOTrajectory* group_trajectory_;
   ItompCIOTrajectory* full_trajectory_;
 };
-typedef boost::shared_ptr<EvaluationData> EvaluationDataPtr;
+ITOMP_DEFINE_SHARED_POINTERS(EvaluationData);
 
 inline ItompCIOTrajectory* EvaluationData::getGroupTrajectory()
 {

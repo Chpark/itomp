@@ -52,7 +52,7 @@ public:
   virtual ~EvaluationManager();
 
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-      ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
+      const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
       double trajectory_start_time, const moveit_msgs::Constraints& path_constraints);
 
   void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
@@ -172,7 +172,7 @@ public:
   bool print_debug_texts_;
 
 };
-typedef boost::shared_ptr<EvaluationManager> EvaluationManagerPtr;
+ITOMP_DEFINE_SHARED_POINTERS(EvaluationManager);
 
 inline bool EvaluationManager::isLastTrajectoryFeasible() const
 {

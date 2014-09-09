@@ -16,7 +16,7 @@
 
 namespace itomp_cio_planner
 {
-
+ITOMP_FORWARD_DECL(ItompCIOTrajectory);
 /**
  * \brief Represents a discretized joint-space trajectory
  */
@@ -30,11 +30,11 @@ public:
   };
 
   // Construct a full-DOF trajectory
-  ItompCIOTrajectory(const ItompRobotModel* robot_model, double duration, double discretization,
+  ItompCIOTrajectory(const ItompRobotModelConstPtr& robot_model, double duration, double discretization,
       double keyframe_interval = 0.0, bool has_velocity_and_acceleration = false, bool free_end_point = false);
 
   // Construct a trajectory for a planning group
-  ItompCIOTrajectory(const ItompCIOTrajectory& full_trajectory, const ItompPlanningGroup* planning_group,
+  ItompCIOTrajectory(const ItompCIOTrajectoryConstPtr& full_trajectory, const ItompPlanningGroupConstPtr& planning_group,
       int diff_rule_length = 0);
 
   virtual ~ItompCIOTrajectory();
@@ -59,9 +59,9 @@ public:
   const Eigen::MatrixXd& getTrajectory(TRAJECTORY_TYPE type = TRAJECTORY_POSITION) const;
   void setTrajectory(const Eigen::MatrixXd& trajectory, TRAJECTORY_TYPE type = TRAJECTORY_POSITION);
 
-  void copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory);
-  void copyFromGroupTrajectory(const ItompCIOTrajectory& group_trajectory, int point_index, int joint_index);
-  void copyFromFullTrajectory(const ItompCIOTrajectory& full_trajectory);
+  void copyFromGroupTrajectory(const ItompCIOTrajectoryConstPtr& group_trajectory);
+  void copyFromGroupTrajectory(const ItompCIOTrajectoryConstPtr& group_trajectory, int point_index, int joint_index);
+  void copyFromFullTrajectory(const ItompCIOTrajectoryConstPtr& full_trajectory);
 
   Eigen::MatrixXd& getKeyframes(TRAJECTORY_TYPE type = TRAJECTORY_POSITION);
   const Eigen::MatrixXd& getKeyframes(TRAJECTORY_TYPE type = TRAJECTORY_POSITION) const;
@@ -126,8 +126,8 @@ private:
 
   bool is_full_trajectory_;
 
-  const ItompRobotModel* robot_model_; /**< Robot Model */
-  const ItompPlanningGroup* planning_group_; /**< Planning group that this trajectory corresponds to, if any */
+  ItompRobotModelConstPtr robot_model_; /**< Robot Model */
+  ItompPlanningGroupConstPtr planning_group_; /**< Planning group that this trajectory corresponds to, if any */
 
   double discretization_; /**< Discretization of the trajectory */
   bool has_velocity_and_acceleration_;
@@ -160,8 +160,7 @@ private:
   int phase_stride_;
   std::vector<int> contact_start_points_;
 };
-
-typedef boost::shared_ptr<ItompCIOTrajectory> ItompCIOTrajectoryPtr;
+ITOMP_DEFINE_SHARED_POINTERS(ItompCIOTrajectory);
 
 ///////////////////////// inline functions follow //////////////////////
 

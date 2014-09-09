@@ -15,8 +15,6 @@
 using namespace std;
 using namespace Eigen;
 
-const static int NUM_CONTACT_POINTS = 2;
-
 namespace itomp_cio_planner
 {
 static int LeftLegStart = 0;
@@ -62,7 +60,7 @@ EvaluationManager::~EvaluationManager()
 }
 
 void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
-    ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
+    const ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
     double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
 {
   planning_start_time_ = planning_start_time;
@@ -91,7 +89,7 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory, ItompCIO
   last_trajectory_collision_free_ = false;
 
   // Initialize visualizer
-  VisualizationManager::getInstance()->setPlanningGroup(*robot_model_, planning_group_->name_);
+  VisualizationManager::getInstance()->setPlanningGroup(robot_model_, planning_group_->name_);
   vis_marker_pub_ = VisualizationManager::getInstance()->getVisualizationMarkerPublisher();
   vis_marker_array_pub_ = VisualizationManager::getInstance()->getVisualizationMarkerArrayPublisher();
 

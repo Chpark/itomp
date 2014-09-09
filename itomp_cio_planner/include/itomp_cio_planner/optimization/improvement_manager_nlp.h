@@ -18,7 +18,7 @@ public:
   ImprovementManagerNLP();
   virtual ~ImprovementManagerNLP();
 
-  virtual void initialize(EvaluationManager *evaluation_manager);
+  virtual void initialize(const EvaluationManagerPtr& evaluation_manager);
   virtual bool updatePlanningParameters();
   virtual void runSingleIteration(int iteration);
 
