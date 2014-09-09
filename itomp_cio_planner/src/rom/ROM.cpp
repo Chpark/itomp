@@ -63,6 +63,7 @@ namespace
 	}
 }
 
+using namespace planner;
 
 rom::ROM::ROM(const Eigen::MatrixXd& A, const Eigen::VectorXd& b, const double maxRadius, const double minx, const double miny, const double minz, const double maxx, const double maxy, const double maxz, const int axis1 ,const int axis2, const int axis3)
 	: A_(A)
@@ -121,7 +122,7 @@ rom::ROM::~ROM()
 	// NOTHING
 }
 
-double rom::ROM::ResidualRadius(const double& x, const double& y, const double& z) const
+double rom::ROM::ResidualRadius(const double x, const double y, const double z) const
 {
 	Eigen::Vector3d var = (Eigen::AngleAxisd(x, vAxis1_)
 			* Eigen::AngleAxisd(y, vAxis2_)
@@ -129,7 +130,7 @@ double rom::ROM::ResidualRadius(const double& x, const double& y, const double& 
 	return (bNorm_ - ANorm_ * var).minCoeff();
 }
 
-double rom::ROM::NormalizedResidualRadius(const double& x, const double& y, const double& z) const
+double rom::ROM::NormalizedResidualRadius(const double x, const double y, const double z) const
 {
 	return ResidualRadius(x,y,z) / maxRadius_;
 }

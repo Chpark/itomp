@@ -46,11 +46,11 @@ public:
 
 	/// \brief the distance between a given point and the closest boundary of the polytope.
 	/// If the point is outside the polytope, returns -1
-	double ResidualRadius(const double& x, const double& y, const double& z) const;
+	double ResidualRadius(const double x, const double y, const double z) const;
 
 	/// \brief the distance between a given point and the closest boundary of the polytope divided by the Chebyshev radius
 	/// If the point is outside the polytope, returns -1
-	double NormalizedResidualRadius(const double& x, const double& y, const double& z) const;
+	double NormalizedResidualRadius(const double x, const double y, const double z) const;
 
 public:	
 	const Eigen::MatrixXd A_;
