@@ -481,7 +481,7 @@ int main(int argc, char **argv)
     if (i == 0)
       display_trajectory.trajectory_start = response.trajectory_start;
     display_trajectory.trajectory.push_back(response.trajectory);
-    display_publisher.publish(display_trajectory);
+    //display_publisher.publish(display_trajectory);
     from_state = to_state;
 
     // use the last configuration of prev trajectory
