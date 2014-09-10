@@ -1,5 +1,5 @@
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
-#include <itomp_cio_planner/util/multivariate_gaussian.h>
+#include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <omp.h>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -12,8 +12,8 @@ namespace itomp_cio_planner
 
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
-  evaluation_count_ = 0;
-  eps_ = 1e-7;
+	evaluation_count_ = 0;
+	eps_ = 1e-7;
 }
 
 ImprovementManagerNLP::~ImprovementManagerNLP()
@@ -21,317 +21,227 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 
 }
 
-void ImprovementManagerNLP::initialize(const EvaluationManagerPtr& evaluation_manager)
+void ImprovementManagerNLP::initialize(
+		const NewEvalManagerPtr& evaluation_manager)
 {
-  start_time_ = ros::Time::now();
+	start_time_ = ros::Time::now();
 
-  ImprovementManager::initialize(evaluation_manager);
+	ImprovementManager::initialize(evaluation_manager);
+	TrajectoryCostManager::getInstance()->buildActiveCostFunctions();
 
-  num_threads_ = omp_get_max_threads();
-  omp_set_num_threads(num_threads_);
+	num_threads_ = omp_get_max_threads();
+	omp_set_num_threads(num_threads_);
+	if (num_threads_ < 1)
+		ROS_ERROR("0 threads!!!");
 
-  derivatives_evaluation_manager_.resize(num_threads_);
-  derivatives_evaluation_data_.resize(num_threads_);
-  const EvaluationData& default_data = evaluation_manager->getDefaultData();
-  for (int i = 0; i < num_threads_; ++i)
-  {
-    derivatives_evaluation_data_[i] = boost::make_shared<EvaluationData>(default_data.clone());
-    derivatives_evaluation_manager_[i] = boost::make_shared<EvaluationManager>(*evaluation_manager);
-    derivatives_evaluation_manager_[i]->setData(derivatives_evaluation_data_[i].get());
-  }
+	const ParameterTrajectoryConstPtr& parameter_trajectory =
+			evaluation_manager_->getParameterTrajectory();
+	num_parameter_types_ = parameter_trajectory->hasVelocity() ? 2 : 1;
+	num_parameter_points_ = parameter_trajectory->getNumPoints();
+	num_parameter_elements_ = parameter_trajectory->getNumElements();
+
+	int num_costs = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+
+	derivatives_evaluation_manager_.resize(num_threads_);
+	evaluation_parameters_.resize(num_threads_);
+	evaluation_cost_matrices_.resize(num_threads_);
+	for (int i = 0; i < num_threads_; ++i)
+	{
+		derivatives_evaluation_manager_[i] = boost::make_shared<NewEvalManager>(
+				*evaluation_manager);
+
+		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
+				Eigen::MatrixXd(num_parameter_points_,
+						num_parameter_elements_));
+		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_parameter_points_,
+				num_costs);
+	}
 }
 
 bool ImprovementManagerNLP::updatePlanningParameters()
 {
-  if (!ImprovementManager::updatePlanningParameters())
-    return false;
+	if (!ImprovementManager::updatePlanningParameters())
+		return false;
 
-  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
+	TrajectoryCostManager::getInstance()->buildActiveCostFunctions();
 
-  num_dimensions_ = group_trajectory->getNumJoints();
-  num_contact_dimensions_ = group_trajectory->getNumContacts();
-  num_points_ = group_trajectory->getNumPoints();
-  num_contact_phases_ = group_trajectory->getNumContactPhases();
-
-  num_contact_vars_free_ = num_contact_dimensions_ * num_contact_phases_;
-  num_pos_variables_ = num_dimensions_ * (num_contact_phases_ - 1);
-  num_vel_variables_ = num_dimensions_ * (num_contact_phases_ - 1);
-  num_variables_ = num_contact_vars_free_ + num_pos_variables_ + num_vel_variables_;
-
-  parameters_.resize(num_threads_);
-  vel_parameters_.resize(num_threads_);
-  contact_parameters_.resize(num_threads_);
-  for (int i = 0; i < num_threads_; ++i)
-  {
-    parameters_[i] = group_trajectory->getFreePoints();
-    vel_parameters_[i] = group_trajectory->getFreeVelPoints();
-    contact_parameters_[i] = group_trajectory->getContactTrajectory();
-  }
-  derivatives_ = Eigen::VectorXd::Zero(num_variables_);
-
-  return true;
+	return true;
 }
 
 void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
-  column_vector variables(num_variables_);
+	int num_variables = num_parameter_elements_ * num_parameter_points_
+			* num_parameter_types_;
 
-  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
-  for (int i = 0; i < num_threads_; ++i)
-  {
-    parameters_[i] = group_trajectory->getFreePoints();
-    vel_parameters_[i] = group_trajectory->getFreeVelPoints();
-    contact_parameters_[i] = group_trajectory->getContactTrajectory();
-  }
-  setVariableVector(variables);
+	column_vector variables(num_variables);
 
-  if (iteration != 0)
-    addNoiseToVariables(variables);
+	evaluation_manager_->getParameters(evaluation_parameters_[0]);
+	writeToOptimizationVariables(variables, evaluation_parameters_[0]);
 
-  optimize(iteration, variables);
+	//if (iteration != 0)
+	//addNoiseToVariables(variables);
 
-  printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
-  evaluation_manager_->getTrajectoryCost(true);
-  printf("Contact Vars\n");
-  for (int i = 0; i < num_contact_phases_; ++i)
-  {
-    printf("%d : ", i);
-    for (int d = 0; d < num_contact_dimensions_; ++d)
-    {
-      printf("%f ", contact_parameters_[0](i, d));
-    }
-    printf("\n");
-  }
+	optimize(iteration, variables);
+
+	evaluation_manager_->printTrajectoryCost(iteration);
+
+	printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
 }
 
-void ImprovementManagerNLP::setVariableVector(column_vector& variables)
+void ImprovementManagerNLP::writeToOptimizationVariables(
+		column_vector& variables,
+		const std::vector<Eigen::MatrixXd>& evaluation_parameter)
 {
-  const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
-  parameters_[0] = group_trajectory->getFreePoints();
-  vel_parameters_[0] = group_trajectory->getFreeVelPoints();
-  contact_parameters_[0] = group_trajectory->getContactTrajectory();
+	int write_index = 0;
 
-  int writeIndex = 0;
-
-  // positions
-  for (int i = 1; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_dimensions_; ++d)
-    {
-      variables(writeIndex + d, 0) = parameters_[0](i, d);
-    }
-    writeIndex += num_dimensions_;
-  }
-
-  // velocities
-  for (int i = 1; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_dimensions_; ++d)
-    {
-      variables(writeIndex + d, 0) = vel_parameters_[0](i, d);
-    }
-    writeIndex += num_dimensions_;
-  }
-
-  // contact variables
-  for (int i = 0; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_contact_dimensions_; ++d)
-    {
-      variables(writeIndex + d, 0) = contact_parameters_[0](i, d);
-    }
-    writeIndex += num_contact_dimensions_;
-  }
+	for (int k = 0; k < num_parameter_types_; ++k)
+	{
+		for (int j = 0; j < num_parameter_points_; ++j)
+		{
+			for (int i = 0; i < num_parameter_elements_; ++i)
+			{
+				variables(write_index++, 0) = evaluation_parameter[k](j, i);
+			}
+		}
+	}
 }
 
-void ImprovementManagerNLP::getVariableVector(const column_vector& variables, int index)
+void ImprovementManagerNLP::readFromOptimizationVariables(
+		const column_vector& variables,
+		std::vector<Eigen::MatrixXd>& evaluation_parameter)
 {
-  int readIndex = 0;
+	int read_index = 0;
 
-  // positions
-  for (int i = 1; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_dimensions_; ++d)
-    {
-      double v = variables(readIndex + d, 0);
-      parameters_[index](i, d) = v;
-    }
-    readIndex += num_dimensions_;
-  }
-
-  // velocities
-  for (int i = 1; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_dimensions_; ++d)
-    {
-      vel_parameters_[index](i, d) = variables(readIndex + d, 0);
-    }
-    readIndex += num_dimensions_;
-  }
-
-  // contact variables
-  for (int i = 0; i < num_contact_phases_; ++i)
-  {
-    for (int d = 0; d < num_contact_dimensions_; ++d)
-    {
-      contact_parameters_[index](i, d) = fabs(variables(readIndex + d, 0));
-    }
-    readIndex += num_contact_dimensions_;
-  }
+	for (int k = 0; k < num_parameter_types_; ++k)
+	{
+		for (int j = 0; j < num_parameter_points_; ++j)
+		{
+			for (int i = 0; i < num_parameter_elements_; ++i)
+			{
+				evaluation_parameter[k](j, i) = variables(read_index++, 0);
+			}
+		}
+	}
 }
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
-  MultivariateGaussian noise_generator(VectorXd::Zero(num_variables_),
-      MatrixXd::Identity(num_variables_, num_variables_));
-  VectorXd noise = VectorXd::Zero(num_variables_);
-  noise_generator.sample(noise);
-  for (int i = 0; i < num_variables_; ++i)
-  {
-    variables(i) += 0.001 * noise(i);
-  }
+	/*
+	 MultivariateGaussian noise_generator(VectorXd::Zero (num_variables_),
+	 MatrixXd::Identity(num_variables_, num_variables_));
+	 VectorXd noise = VectorXd::Zero(num_variables_);
+	 noise_generator.sample(noise);
+	 for (int i = 0; i < num_variables_; ++i)
+	 {
+	 variables(i) += 0.001 * noise(i);
+	 }
+	 */
 }
 
 double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
-  getVariableVector(variables);
-  evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
+	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
+	evaluation_manager_->setParameters(evaluation_parameters_[0]);
 
-  double cost = evaluation_manager_->evaluate();
+	double cost = evaluation_manager_->evaluate();
 
-  if (++evaluation_count_ % 100 == 0)
-  {
-    printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
-    evaluation_manager_->getTrajectoryCost(true);
-    printf("Contact Vars\n");
-    for (int i = 0; i < num_contact_phases_; ++i)
-    {
-      printf("%d : ", i);
-      for (int d = 0; d < num_contact_dimensions_; ++d)
-      {
-        printf("%f ", contact_parameters_[0](i, d));
-      }
-      printf("\n");
-    }
-  }
+	if (++evaluation_count_ % 100 == 0)
+	{
+		evaluation_manager_->printTrajectoryCost(evaluation_count_);
 
-  return cost;
+		printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+	}
+
+	return cost;
 }
 
-column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variables)
+column_vector ImprovementManagerNLP::derivative_ref(
+		const column_vector& variables)
 {
-  const EvaluationData& default_data = evaluation_manager_->getDefaultData();
+	column_vector der(variables.size());
+	column_vector e = variables;
 
-  column_vector der(variables.size());
+	for (long i = 0; i < variables.size(); ++i)
+	{
+		const double old_val = e(i);
 
-  column_vector e(variables);
+		e(i) += eps_;
+		readFromOptimizationVariables(e, evaluation_parameters_[0]);
+		evaluation_manager_->setParameters(evaluation_parameters_[0]);
+		const double delta_plus = evaluation_manager_->evaluate();
 
-  for (long i = 0; i < variables.size(); ++i)
-  {
-    const double old_val = e(i);
+		e(i) = old_val - eps_;
+		readFromOptimizationVariables(e, evaluation_parameters_[0]);
+		evaluation_manager_->setParameters(evaluation_parameters_[0]);
+		double delta_minus = evaluation_manager_->evaluate();
 
-    e(i) += eps_;
-    getVariableVector(e);
+		der(i) = (delta_plus - delta_minus) / (2 * eps_);
 
-    evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
-    const double delta_plus = evaluation_manager_->evaluate();
+		e(i) = old_val;
+	}
 
-    e(i) = old_val - eps_;
-    getVariableVector(e);
-
-    evaluation_manager_->setTrajectory(parameters_[0], vel_parameters_[0], contact_parameters_[0]);
-    double delta_minus = evaluation_manager_->evaluate();
-
-    der(i) = (delta_plus - delta_minus) / (2 * eps_);
-
-    e(i) = old_val;
-  }
-
-  return der;
+	return der;
 }
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
-  //static double elapsed_ = 0.0;
+	// assume evaluate was called before
 
-  column_vector e(variables);
+	column_vector der(variables.size());
+	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
+	for (int i = 1; i < num_threads_; ++i)
+		evaluation_parameters_[i] = evaluation_parameters_[0];
 
-  // assume evaluate was called before and default_data has the values for 'variables' vector
-  const EvaluationData& default_data = evaluation_manager_->getDefaultData();
-
-  for (int i = 0; i < num_threads_; ++i)
-    derivatives_evaluation_data_[i]->deepCopy(default_data);
-
-  column_vector der(variables.size());
-
-  const int num_positions = (num_contact_phases_ - 1) * num_dimensions_;
-  const int num_velocities = (num_contact_phases_ - 1) * num_dimensions_;
-  const int num_contact_variables = num_contact_phases_ * num_contact_dimensions_;
-
-  /*
-   ros::Time time[10];
-   time[0] = ros::Time::now();
-   */
-
+	int parameter_index = 0;
+	for (int k = 0; k < num_parameter_types_; ++k)
+	{
 #pragma omp parallel for
-  for (int index = 0; index < num_positions + num_velocities + num_contact_variables; ++index)
-  {
-    int thread_num = omp_get_thread_num();
-    double value = variables(index);
-    double value_plus, value_minus;
-    value_plus = value + eps_;
-    value_minus = value - eps_;
+		for (int j = 0; j < num_parameter_points_; ++j)
+		{
+			int thread_index = omp_get_thread_num();
+			int thread_variable_index = parameter_index
+					+ j * num_parameter_elements_;
+			for (int i = 0; i < num_parameter_elements_; ++i)
+			{
+				const double old_val = evaluation_parameters_[thread_index][k](j,
+						i);
+				int begin, end;
 
-    int point_index, joint_index;
-    EvaluationManager::DERIVATIVE_VARIABLE_TYPE type;
+				evaluation_parameters_[thread_index][k](j, i) += eps_;
+				derivatives_evaluation_manager_[thread_index]->evaluateParameterPoint(
+						j, i, evaluation_cost_matrices_[thread_index], begin,
+						end);
+				const double delta_plus =
+						evaluation_cost_matrices_[thread_index].block(begin, 1,
+								end - begin, num_parameter_elements_).sum();
 
-    int index2;
-    if (index < num_positions)
-    {
-      point_index = (index / num_dimensions_) + 1;
-      joint_index = index % num_dimensions_;
-      type = EvaluationManager::DERIVATIVE_POSITION_VARIABLE;
+				evaluation_parameters_[thread_index][k](j, i) = old_val - eps_;
+				derivatives_evaluation_manager_[thread_index]->evaluateParameterPoint(
+						j, i, evaluation_cost_matrices_[thread_index], begin,
+						end);
+				const double delta_minus =
+						evaluation_cost_matrices_[thread_index].block(begin, 1,
+								end - begin, num_parameter_elements_).sum();
 
-    }
-    else if (index < num_positions + num_velocities)
-    {
-      index2 = index - num_positions;
-      point_index = (index2 / num_dimensions_) + 1;
-      joint_index = index2 % num_dimensions_;
-      type = EvaluationManager::DERIVATIVE_VELOCITY_VARIABLE;
-    }
-    else
-    {
-      index2 = index - num_positions - num_velocities;
-      point_index = (index2 / num_contact_dimensions_);
-      joint_index = index2 % num_contact_dimensions_;
-      type = EvaluationManager::DERIVATIVE_CONTACT_VARIABLE;
-      value_plus = fabs(value_plus);
-      value_minus = fabs(value_minus);
-    }
+				evaluation_parameters_[thread_index][k](j, i) = old_val;
 
-    double delta_plus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_plus, type, point_index,
-        joint_index);
+				der(thread_variable_index++) = (delta_plus - delta_minus)
+						/ (2 * eps_);
+			}
+		}
+		parameter_index += num_parameter_points_ * num_parameter_elements_;
+	}
 
-    double delta_minus = derivatives_evaluation_manager_[thread_num]->evaluateDerivatives(value_minus, type,
-        point_index, joint_index);
-
-    der(index) = (delta_plus - delta_minus) / (2 * eps_);
-  }
-
-  /*
-   time[1] = ros::Time::now();
-   elapsed_ += (time[1] - time[0]).toSec();
-   */
-  //printf("Elapsed : %f (%f)\n", elapsed_, (time[1] - time[0]).toSec());
-  return der;
+	return der;
 }
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-  dlib::find_min(dlib::lbfgs_search_strategy(10), dlib::objective_delta_stop_strategy(eps_).be_verbose(),
-      boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-      boost::bind(&ImprovementManagerNLP::derivative, this, _1), variables, 0.0);
+	dlib::find_min(dlib::lbfgs_search_strategy(10),
+			dlib::objective_delta_stop_strategy(eps_).be_verbose(),
+			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
+			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
+			variables, 0.0);
 }
 
 }

@@ -73,12 +73,30 @@ void FullTrajectory::allocate()
 void FullTrajectory::updateFromParameterTrajectory(
 		const ParameterTrajectoryConstPtr& parameter_trajectory)
 {
-	copyFromParameterTrajectory(parameter_trajectory);
-	updateTrajectoryFromKeyframes();
+	copyFromParameterTrajectory(parameter_trajectory, 0, parameter_trajectory->getNumPoints());
+	updateTrajectoryFromKeyframes(0, num_keyframes_);
+}
+
+void FullTrajectory::updateFromParameterTrajectory(
+		const ParameterTrajectoryConstPtr& parameter_trajectory,
+		int parameter_begin_point, int parameter_end_point,
+		int& full_begin_point, int& full_end_point)
+{
+	copyFromParameterTrajectory(parameter_trajectory, parameter_begin_point,
+			parameter_end_point);
+
+	int keyframe_begin = std::max((parameter_begin_point + 1) - 1, 0);
+	int keyframe_end = std::min((parameter_end_point + 1) + 1, num_keyframes_);
+
+	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end);
+
+	full_begin_point = keyframe_start_index_ + keyframe_begin * num_keyframe_interval_points_;
+	full_end_point = keyframe_start_index_ + keyframe_end * num_keyframe_interval_points_;
 }
 
 void FullTrajectory::copyFromParameterTrajectory(
-		const ParameterTrajectoryConstPtr& parameter_trajectory)
+		const ParameterTrajectoryConstPtr& parameter_trajectory,
+		int parameter_begin_point, int parameter_end_point)
 {
 	int num_full_joints = getComponentSize(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
@@ -89,7 +107,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 	{
 		int full_joint_index =
 				parameter_trajectory->group_to_full_joint_indices[i];
-		for (int j = 0; j < parameter_trajectory->getNumPoints(); ++j)
+		for (int j = parameter_begin_point; j < parameter_end_point; ++j)
 		{
 			int keyframe_index = keyframe_start_index_
 					+ (j + 1) * num_keyframe_interval_points_;
@@ -114,7 +132,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 			- num_parameter_joints;
 	if (copy_size > 0)
 	{
-		for (int j = 0; j < parameter_trajectory->getNumPoints(); ++j)
+		for (int j = parameter_begin_point; j < parameter_end_point; ++j)
 		{
 			int keyframe_index = keyframe_start_index_
 					+ (j + 1) * num_keyframe_interval_points_;
@@ -135,7 +153,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 	}
 }
 
-void FullTrajectory::updateTrajectoryFromKeyframes()
+void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end)
 {
 	if (num_keyframe_interval_points_ <= 1)
 		return;
@@ -149,7 +167,7 @@ void FullTrajectory::updateTrajectoryFromKeyframes()
 	{
 		// skip the initial position
 		double trajectory_index = keyframe_start_index_ + 1;
-		for (int k = 0; k < num_keyframes_ - 1; ++k)
+		for (int k = keyframe_begin; k < keyframe_end - 1; ++k)
 		{
 			ecl::CubicPolynomial poly;
 			int cur_keyframe_index = keyframe_start_index_

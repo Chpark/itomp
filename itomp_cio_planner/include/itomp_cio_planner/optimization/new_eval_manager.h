@@ -2,11 +2,9 @@
 #define NEW_EVALUATION_MANAGER_H_
 
 #include <itomp_cio_planner/common.h>
-#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
-#include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
-#include <itomp_cio_planner/cost/smoothness_cost.h>
-#include <itomp_cio_planner/cost/trajectory_cost_accumulator.h>
+#include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
@@ -14,51 +12,65 @@
 
 namespace itomp_cio_planner
 {
-class ItompPlanningGroup;
+ITOMP_FORWARD_DECL(NewEvalManager)
 class NewEvalManager
 {
 public:
-  NewEvalManager();
-  virtual ~NewEvalManager();
+	NewEvalManager();
+	virtual ~NewEvalManager();
 
-  void initialize(const ItompCIOTrajectoryPtr& full_trajectory, const ItompRobotModelConstPtr& robot_model,
-      const ItompPlanningGroupConstPtr& planning_group, double planning_start_time, double trajectory_start_time,
-      const moveit_msgs::Constraints& path_constraints);
+	void initialize(const FullTrajectoryPtr& full_trajectory,
+			const ItompRobotModelConstPtr& robot_model,
+			const ItompPlanningGroupConstPtr& planning_group,
+			double planning_start_time, double trajectory_start_time,
+			const moveit_msgs::Constraints& path_constraints);
 
-  void setTrajectory(const Eigen::MatrixXd& parameters);
-  const ItompCIOTrajectoryConstPtr& getFullTrajectory();
+	const FullTrajectoryConstPtr& getFullTrajectory() const;
+	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
 
-  double evaluate();
-  double evaluateRange(int start, int end);
+	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
+	void setParameters(const std::vector<Eigen::MatrixXd>& parameters,
+			bool joint_limit_check = true);
 
-  bool isLastTrajectoryFeasible() const;
-  double getTrajectoryCost(bool verbose = false);
+	double evaluate();
+	void evaluateParameterPoint(int point, int element,
+			Eigen::MatrixXd& cost_matrix, int& begin, int& end);
 
-  void render();
+	bool isLastTrajectoryFeasible() const;
+	double getTrajectoryCost();
+	void printTrajectoryCost(int iteration);
+
+	void render();
+
+	NewEvalManagerPtr createClone() const;
 
 private:
-  void handleJointLimits();
-  void updateFullTrajectory();
+	void performForwardKinematics(int begin, int end);
+	void performInverseDynamics(int begin, int end);
 
-  void performForwardKinematics();
-  void performInverseDynamics();
+	void setParameterModified(bool needs_joint_limit_check = true);
 
-  ItompCIOTrajectoryPtr full_trajectory_;
-  ItompCIOTrajectoryPtr group_trajectory_;
+	bool evaluateRange(int begin, int end, Eigen::MatrixXd& cost_matrix);
 
-  ItompRobotModelConstPtr robot_model_;
-  ItompPlanningGroupConstPtr planning_group_;
+	FullTrajectoryPtr full_trajectory_;
+	ParameterTrajectoryPtr parameter_trajectory_;
 
-  double planning_start_time_;
-  double trajectory_start_time_;
+	ItompRobotModelConstPtr robot_model_;
+	ItompPlanningGroupConstPtr planning_group_;
 
-  bool last_trajectory_feasible_;
+	double planning_start_time_;
+	double trajectory_start_time_;
 
-  std::vector<RigidBodyDynamics::Model> rbdl_models_;
+	bool last_trajectory_feasible_;
 
-  TrajectoryCostAccumulator cost_acccumulator_;
-  Eigen::MatrixXd evaluation_cost_matrix_;
-  Eigen::MatrixXd derivative_cost_matrix_;
+	std::vector<RigidBodyDynamics::Model> rbdl_models_;
+
+	Eigen::MatrixXd evaluation_cost_matrix_;
+
+	bool parameter_modified_;
+	bool check_joint_limits_;
+
+	bool best_cost_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
@@ -66,7 +78,18 @@ ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
 inline bool NewEvalManager::isLastTrajectoryFeasible() const
 {
-  return last_trajectory_feasible_;
+	return last_trajectory_feasible_;
+}
+
+inline void NewEvalManager::setParameterModified(bool needs_joint_limit_check)
+{
+	parameter_modified_ = true;
+	check_joint_limits_ = needs_joint_limit_check;
+}
+
+inline double NewEvalManager::getTrajectoryCost()
+{
+	return evaluation_cost_matrix_.sum();
 }
 
 }

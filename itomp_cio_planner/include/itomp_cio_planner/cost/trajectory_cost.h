@@ -1,255 +1,76 @@
-/*
- * trajectoryCost.h
- *
- *  Created on: Oct 23, 2013
- *      Author: cheonhyeonpark
- */
+#ifndef TRAJECTORY_COST_H_
+#define TRAJECTORY_COST_H_
 
-#ifndef TRAJECTORYCOST_H_
-#define TRAJECTORYCOST_H_
 #include <itomp_cio_planner/common.h>
+#include <itomp_cio_planner/optimization/new_eval_manager.h>
+#include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/cost/trajectory_cost_helper.h>
 
 namespace itomp_cio_planner
 {
-class EvaluationData;
+
 class TrajectoryCost
 {
 public:
-  enum COST_TYPE
-  {
-    COST_SMOOTHNESS = 0,
-    COST_COLLISION,
-    COST_VALIDITY,
-    COST_CONTACT_INVARIANT,
-    COST_PHYSICS_VIOLATION,
-    COST_GOAL_POSE,
-    COST_COM,
-    COST_ENDEFFECTOR_VELOCITY,
-    COST_TORQUE,
-    COST_RVO,
-    COST_FTR,
-    COST_CARTESIAN_TRAJECTORY,
-    COST_SINGULARITY,
-    COST_TYPES_NUM,
-    COST_TYPE_INVALID = COST_TYPES_NUM,
-  };
+	TrajectoryCost(int index, std::string name, double weight);
+	virtual ~TrajectoryCost();
 
-  TrajectoryCost(COST_TYPE type) :
-      isHardConstraint_(false), type_(type)
-  {
-  }
-  virtual ~TrajectoryCost()
-  {
-  }
+	virtual bool evaluate(const NewEvalManager* evaluation_manager,
+			const FullTrajectoryConstPtr& trajectory, int point, double& cost) const;
 
-  virtual void init(const EvaluationData* data);
-
-  void compute(const EvaluationData* data, Eigen::VectorXd& costData, double& sum);
-  virtual double getWaypointCost(int waypoint, const Eigen::VectorXd& costData) const
-  {
-    return costData(waypoint);
-  }
-  bool getIsHardConstraint() const
-  {
-    return isHardConstraint_;
-  }
-  COST_TYPE getType() const
-  {
-    return type_;
-  }
-
-  virtual double getWeight() const
-  {
-    return 0.0;
-  }
-
-  static boost::shared_ptr<TrajectoryCost> CreateTrajectoryCost(COST_TYPE type);
+	int getIndex() const;
+	const std::string& getName() const;
+	double getWeight() const;
 
 protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData) = 0;
-  void computeCostSum(const EvaluationData* data, Eigen::VectorXd& costData, double& sum);
-
-  bool isHardConstraint_;
-  COST_TYPE type_;
+	int index_;
+	std::string name_;
+	double weight_;
 
 };
 ITOMP_DEFINE_SHARED_POINTERS(TrajectoryCost);
 
-class TrajectorySmoothnessCost: public TrajectoryCost
+inline TrajectoryCost::TrajectoryCost(int index, std::string name,
+		double weight) :
+		index_(index), name_(name), weight_(weight)
 {
-public:
-  TrajectorySmoothnessCost() :
-      TrajectoryCost(COST_SMOOTHNESS)
-  {
-  }
-  virtual ~TrajectorySmoothnessCost()
-  {
-  }
-
-  virtual double getWaypointCost(int waypoint, const Eigen::VectorXd& costData) const
-  {
-    return 0.0;
-  }
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryCollisionCost: public TrajectoryCost
-{
-public:
-  TrajectoryCollisionCost() :
-      TrajectoryCost(COST_COLLISION)
-  {
-  }
-  virtual ~TrajectoryCollisionCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryValidityCost: public TrajectoryCost
-{
-public:
-  TrajectoryValidityCost() :
-      TrajectoryCost(COST_VALIDITY)
-  {
-  }
-  virtual ~TrajectoryValidityCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryContactInvariantCost: public TrajectoryCost
-{
-public:
-  TrajectoryContactInvariantCost() :
-      TrajectoryCost(COST_CONTACT_INVARIANT)
-  {
-  }
-  virtual ~TrajectoryContactInvariantCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryPhysicsViolationCost: public TrajectoryCost
-{
-public:
-  TrajectoryPhysicsViolationCost() :
-      TrajectoryCost(COST_PHYSICS_VIOLATION)
-  {
-  }
-  virtual ~TrajectoryPhysicsViolationCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryGoalPoseCost: public TrajectoryCost
-{
-public:
-  TrajectoryGoalPoseCost() :
-      TrajectoryCost(COST_GOAL_POSE)
-  {
-  }
-  virtual ~TrajectoryGoalPoseCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryCoMCost: public TrajectoryCost
-{
-public:
-  TrajectoryCoMCost() :
-      TrajectoryCost(COST_COM)
-  {
-  }
-  virtual ~TrajectoryCoMCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryFTRCost: public TrajectoryCost
-{
-public:
-  TrajectoryFTRCost() :
-      TrajectoryCost(COST_FTR)
-  {
-  }
-  virtual ~TrajectoryFTRCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectoryCartesianCost: public TrajectoryCost
-{
-public:
-  TrajectoryCartesianCost() :
-      TrajectoryCost(COST_CARTESIAN_TRAJECTORY)
-  {
-  }
-  virtual ~TrajectoryCartesianCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
-
-class TrajectorySingularityCost: public TrajectoryCost
-{
-public:
-  TrajectorySingularityCost() :
-      TrajectoryCost(COST_SINGULARITY)
-  {
-  }
-  virtual ~TrajectorySingularityCost()
-  {
-  }
-
-  virtual double getWeight() const;
-
-protected:
-  virtual void doCompute(const EvaluationData* data, Eigen::VectorXd& costData);
-};
 
 }
-;
 
-#endif /* TRAJECTORYCOST_H_ */
+inline TrajectoryCost::~TrajectoryCost()
+{
+
+}
+
+inline int TrajectoryCost::getIndex() const
+{
+	return index_;
+}
+
+inline const std::string& TrajectoryCost::getName() const
+{
+	return name_;
+}
+
+inline double TrajectoryCost::getWeight() const
+{
+	return weight_;
+}
+
+ITOMP_TRAJECTORY_COST_DECL(Smoothness)
+ITOMP_TRAJECTORY_COST_DECL(Collision)
+ITOMP_TRAJECTORY_COST_DECL(Validity)
+ITOMP_TRAJECTORY_COST_DECL(ContactInvariant)
+ITOMP_TRAJECTORY_COST_DECL(PhysicsViolation)
+ITOMP_TRAJECTORY_COST_DECL(GoalPose)
+ITOMP_TRAJECTORY_COST_DECL(COM)
+ITOMP_TRAJECTORY_COST_DECL(EndeffectorVelocity)
+ITOMP_TRAJECTORY_COST_DECL(Torque)
+ITOMP_TRAJECTORY_COST_DECL(RVO)
+ITOMP_TRAJECTORY_COST_DECL(FTR)
+ITOMP_TRAJECTORY_COST_DECL(CartesianTrajectory)
+ITOMP_TRAJECTORY_COST_DECL(Singularity)
+
+}
+
+#endif /* TRAJECTORY_COST_H_ */

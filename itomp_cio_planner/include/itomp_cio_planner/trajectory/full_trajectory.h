@@ -9,6 +9,7 @@
 namespace itomp_cio_planner
 {
 ITOMP_FORWARD_DECL(ParameterTrajectory);
+ITOMP_FORWARD_DECL(FullTrajectory)
 
 class FullTrajectory: public Trajectory
 {
@@ -32,6 +33,10 @@ public:
 
 	void updateFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory);
+	void updateFromParameterTrajectory(
+			const ParameterTrajectoryConstPtr& parameter_trajectory,
+			int parameter_begin_point, int parameter_end_point,
+			int& full_begin_point, int& full_end_point);
 
 	Eigen::Block<Eigen::MatrixXd> getComponentTrajectory(
 			TRAJECTORY_COMPONENT component, TRAJECTORY_TYPE type =
@@ -53,10 +58,13 @@ public:
 			const moveit_msgs::Constraints& path_constraints,
 			bool fill_trajectory_min_jerk);
 
+	FullTrajectoryPtr createClone() const;
+
 protected:
 	void copyFromParameterTrajectory(
-			const ParameterTrajectoryConstPtr& parameter_trajectory);
-	void updateTrajectoryFromKeyframes();
+			const ParameterTrajectoryConstPtr& parameter_trajectory,
+			int parameter_begin_point, int parameter_end_point);
+	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end);
 
 	/**
 	 * \brief Generates a minimum jerk trajectory from the start index to end index
@@ -110,6 +118,12 @@ inline int FullTrajectory::getComponentSize(
 {
 	return component_start_indices_[component + 1]
 			- component_start_indices_[component];
+}
+
+inline FullTrajectoryPtr FullTrajectory::createClone() const
+{
+	FullTrajectoryPtr new_trajectory(new FullTrajectory(*this));
+	return new_trajectory;
 }
 
 }

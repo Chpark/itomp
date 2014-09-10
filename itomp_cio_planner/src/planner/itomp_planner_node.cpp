@@ -2,6 +2,7 @@
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/util/joint_state_util.h>
 #include <itomp_cio_planner/visualization/visualization_manager.h>
 #include <kdl/jntarray.hpp>
 #include <angles/angles.h>

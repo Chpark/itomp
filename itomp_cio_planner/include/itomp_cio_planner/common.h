@@ -23,6 +23,7 @@
 #define ITOMP_DEFINE_SHARED_POINTERS(C) \
     typedef boost::shared_ptr<C> C##Ptr; \
     typedef boost::shared_ptr<const C> C##ConstPtr;
+
 #define ITOMP_FORWARD_DECL(C) \
     class C; \
     ITOMP_DEFINE_SHARED_POINTERS(C)

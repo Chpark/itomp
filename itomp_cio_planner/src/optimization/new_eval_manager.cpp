@@ -2,6 +2,8 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit_msgs/PlanningScene.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
+#include <itomp_cio_planner/trajectory/trajectory_factory.h>
+#include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/visualization_manager.h>
@@ -18,8 +20,9 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
-NewEvalManager::NewEvalManager()
-: last_trajectory_feasible_(false)
+NewEvalManager::NewEvalManager() :
+		last_trajectory_feasible_(false), parameter_modified_(true), check_joint_limits_(
+				true), best_cost_(std::numeric_limits<double>::max())
 {
 
 }
@@ -29,107 +32,164 @@ NewEvalManager::~NewEvalManager()
 
 }
 
-void NewEvalManager::initialize(const ItompCIOTrajectoryPtr& full_trajectory,
-    const ItompRobotModelConstPtr& robot_model, const ItompPlanningGroupConstPtr& planning_group,
-    double planning_start_time, double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
+void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
+		const ItompRobotModelConstPtr& robot_model,
+		const ItompPlanningGroupConstPtr& planning_group,
+		double planning_start_time, double trajectory_start_time,
+		const moveit_msgs::Constraints& path_constraints)
 {
-  full_trajectory_ = full_trajectory;
-  group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, 0);
-  //group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, DIFF_RULE_LENGTH);
+	full_trajectory_ = full_trajectory;
+	parameter_trajectory_ =
+			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
+					full_trajectory_, planning_group);
 
-  robot_model_ = robot_model;
-  planning_group_ = planning_group;
+	robot_model_ = robot_model;
+	planning_group_ = planning_group;
 
-  planning_start_time_ = planning_start_time;
-  trajectory_start_time_ = trajectory_start_time;
+	planning_start_time_ = planning_start_time;
+	trajectory_start_time_ = trajectory_start_time;
 
-  // TODO : rbdl models
+	evaluation_cost_matrix_ = Eigen::MatrixXd(full_trajectory_->getNumPoints(),
+			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
 
-  // TODO : cost manager
+	// TODO : rbdl models
 
-  // TODO : path_constraints
+	// TODO : path_constraints
+}
+
+NewEvalManagerPtr NewEvalManager::createClone() const
+{
+	// swallow copy
+	NewEvalManagerPtr new_manager(new NewEvalManager(*this));
+
+	// create new trajectories
+	new_manager->full_trajectory_ = full_trajectory_->createClone();
+	new_manager->parameter_trajectory_ =
+			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
+					new_manager->full_trajectory_, planning_group_);
+
+	return new_manager;
 }
 
 double NewEvalManager::evaluate()
 {
-  performForwardKinematics();
-  performInverseDynamics();
+	if (parameter_modified_)
+	{
+		if (check_joint_limits_)
+		{
+			parameter_trajectory_->handleJointLimits(planning_group_, 0,
+					parameter_trajectory_->getNumElements());
+			check_joint_limits_ = false;
+		}
+		full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_);
+		parameter_modified_ = false;
+	}
 
-  // TODO: compute different costs
+	performForwardKinematics(0, full_trajectory_->getNumPoints());
+	performInverseDynamics(0, full_trajectory_->getNumPoints());
 
-  last_trajectory_feasible_ = cost_acccumulator_.isFeasible();
-  return cost_acccumulator_.getTrajectoryCost();
+	last_trajectory_feasible_ = evaluateRange(0,
+			full_trajectory_->getNumPoints(), evaluation_cost_matrix_);
+
+	return getTrajectoryCost();
 }
 
-double NewEvalManager::evaluateRange(int start, int end)
+void NewEvalManager::evaluateParameterPoint(int point, int element,
+		Eigen::MatrixXd& cost_matrix, int& begin, int& end)
 {
-  for (int i = start; i < end; ++i)
-  {
+	ROS_ASSERT(parameter_modified_ == false);
 
-  }
+	parameter_trajectory_->handleJointLimits(planning_group_, point, point + 1);
+
+	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
+			point, point + 1, begin, end);
+
+	performForwardKinematics(begin, end);
+	performInverseDynamics(begin, end);
+
+	evaluateRange(begin, end, cost_matrix);
 }
 
-void NewEvalManager::setTrajectory(const Eigen::MatrixXd& parameters)
+bool NewEvalManager::evaluateRange(int begin, int end,
+		Eigen::MatrixXd& cost_matrix)
 {
-  // TODO
+	bool is_feasible = true;
 
-  // respect joint limits:
-  handleJointLimits();
+	const std::vector<TrajectoryCostConstPtr>& cost_functions =
+			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
-  // copy to full traj:
-  updateFullTrajectory();
+	for (int i = begin; i < end; ++i)
+	{
+		for (int c = 0; c < cost_functions.size(); ++c)
+		{
+			double cost = 0.0;
+			is_feasible &= cost_functions[c]->evaluate(this, full_trajectory_,
+					i, cost);
+
+			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
+		}
+	}
+	return is_feasible;
 }
 
 void NewEvalManager::render()
 {
 }
 
-void NewEvalManager::handleJointLimits()
+void NewEvalManager::performForwardKinematics(int begin, int end)
 {
-  for (int joint = 0; joint < num_joints_; joint++)
-  {
-    if (!planning_group_->group_joints_[joint].has_joint_limits_)
-      continue;
-
-    double joint_max = planning_group_->group_joints_[joint].joint_limit_max_;
-    double joint_min = planning_group_->group_joints_[joint].joint_limit_min_;
-
-    int count = 0;
-
-    for (int i = 1; i < num_points_ - 2; i++)
-    {
-      if ((*getGroupTrajectory())(i, joint) > joint_max)
-      {
-        (*getGroupTrajectory())(i, joint) = joint_max;
-      }
-      else if ((*getGroupTrajectory())(i, joint) < joint_min)
-      {
-        (*getGroupTrajectory())(i, joint) = joint_min;
-      }
-    }
-  }
+	// TODO
 }
 
-void NewEvalManager::updateFullTrajectory()
+void NewEvalManager::performInverseDynamics(int begin, int end)
 {
-  full_trajectory_->copyFromGroupTrajectory(group_trajectory_);
+	// TODO
 }
 
-void NewEvalManager::performForwardKinematics()
+void NewEvalManager::getParameters(
+		std::vector<Eigen::MatrixXd>& parameters) const
 {
+	parameters[Trajectory::TRAJECTORY_TYPE_POSITION] =
+			parameter_trajectory_->getTrajectory(
+					Trajectory::TRAJECTORY_TYPE_POSITION);
+
+	if (parameter_trajectory_->hasVelocity())
+		parameters[Trajectory::TRAJECTORY_TYPE_VELOCITY] =
+				parameter_trajectory_->getTrajectory(
+						Trajectory::TRAJECTORY_TYPE_VELOCITY);
 }
 
-void NewEvalManager::performInverseDynamics()
+void NewEvalManager::setParameters(
+		const std::vector<Eigen::MatrixXd>& parameters, bool joint_limit_check)
 {
+	parameter_trajectory_->getTrajectory(Trajectory::TRAJECTORY_TYPE_POSITION) =
+			parameters[Trajectory::TRAJECTORY_TYPE_POSITION];
+
+	if (parameter_trajectory_->hasVelocity())
+		parameter_trajectory_->getTrajectory(
+				Trajectory::TRAJECTORY_TYPE_VELOCITY) =
+				parameters[Trajectory::TRAJECTORY_TYPE_VELOCITY];
+
+	setParameterModified(joint_limit_check);
 }
 
-double NewEvalManager::getTrajectoryCost(bool verbose)
+void NewEvalManager::printTrajectoryCost(int iteration)
 {
-  if (verbose)
-    data_->costAccumulator_.print(*iteration_);
-  return data_->costAccumulator_.getTrajectoryCost();
-}
+	double cost = evaluation_cost_matrix_.sum();
+	if (cost < best_cost_)
+		best_cost_ = cost;
+	printf("[%d] Trajectory cost : %f/%f (", iteration, cost, best_cost_);
 
+	const std::vector<TrajectoryCostConstPtr>& cost_functions =
+			TrajectoryCostManager::getInstance()->getCostFunctionVector();
+	for (int c = 0; c < cost_functions.size(); ++c)
+	{
+		double sub_cost = evaluation_cost_matrix_.col(c).sum();
+		printf("%c=%f, ", cost_functions[c]->getName().at(0), sub_cost);
+	}
+
+	printf(")\n");
+}
 
 }
 

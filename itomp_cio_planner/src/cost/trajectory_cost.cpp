@@ -1,289 +1,162 @@
-/*
- * trajectoryCost.cpp
- *
- *  Created on: Oct 23, 2013
- *      Author: cheonhyeonpark
- */
-
-#include <itomp_cio_planner/optimization/evaluation_data.h>
 #include <itomp_cio_planner/cost/trajectory_cost.h>
-#include <itomp_cio_planner/util/planning_parameters.h>
-
-using namespace std;
 
 namespace itomp_cio_planner
 {
-//static int LeftLegStart = 0;
 
-TrajectoryCostPtr TrajectoryCost::CreateTrajectoryCost(COST_TYPE type)
+bool TrajectoryCostSmoothness::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  TrajectoryCostPtr new_cost;
-  switch (type)
-  {
-  case COST_SMOOTHNESS:
-    new_cost = boost::make_shared<TrajectorySmoothnessCost>();
-    break;
+	bool is_feasible = true;
+	cost = 0;
 
-  case COST_COLLISION:
-    new_cost = boost::make_shared<TrajectoryCollisionCost>();
-    break;
+	// implement
 
-  case COST_VALIDITY:
-    new_cost = boost::make_shared<TrajectoryValidityCost>();
-    break;
-
-  case COST_CONTACT_INVARIANT:
-    new_cost = boost::make_shared<TrajectoryContactInvariantCost>();
-    break;
-
-  case COST_PHYSICS_VIOLATION:
-    new_cost = boost::make_shared<TrajectoryPhysicsViolationCost>();
-    break;
-
-  case COST_GOAL_POSE:
-    new_cost = boost::make_shared<TrajectoryGoalPoseCost>();
-    break;
-
-  case COST_COM:
-    new_cost = boost::make_shared<TrajectoryCoMCost>();
-    break;
-
-  case COST_FTR:
-    new_cost = boost::make_shared<TrajectoryFTRCost>();
-    break;
-
-  case COST_CARTESIAN_TRAJECTORY:
-    new_cost = boost::make_shared<TrajectoryCartesianCost>();
-    break;
-
-  case COST_SINGULARITY:
-    new_cost = boost::make_shared<TrajectorySingularityCost>();
-    break;
-
-  case COST_ENDEFFECTOR_VELOCITY:
-  case COST_TORQUE:
-  case COST_RVO:
-  default:
-    assert(false);
-    break;
-  }
-
-  return new_cost;
+	return is_feasible;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-
-void TrajectoryCost::init(const EvaluationData* data)
+bool TrajectoryCostCollision::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
+	bool is_feasible = true;
+	cost = 0;
 
+	// implement
+
+	return is_feasible;
 }
 
-void TrajectoryCost::computeCostSum(const EvaluationData* data, Eigen::VectorXd& costData, double& sum)
+bool TrajectoryCostValidity::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  sum = 0.0;
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    sum += costData(i);
-  }
+	bool is_feasible = true;
+	cost = 0;
+
+	// implement
+
+	return is_feasible;
 }
 
-void TrajectoryCost::compute(const EvaluationData* data, Eigen::VectorXd& costData, double& sum)
+bool TrajectoryCostContactInvariant::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  doCompute(data, costData);
-  computeCostSum(data, costData, sum);
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectorySmoothnessCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  double smoothness_cost = 0.0;
-  // joint costs:
-  for (int i = 0; i < data->getNumJoints(); i++)
-    smoothness_cost += data->joint_costs_[i].getCost(data->getGroupTrajectory()->getJointTrajectory(i));
+	// implement
 
-  costData(1) = smoothness_cost;
+	return is_feasible;
 }
 
-double TrajectorySmoothnessCost::getWeight() const
+bool TrajectoryCostPhysicsViolation::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getSmoothnessCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryCollisionCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    costData(i) = data->stateCollisionCost_[i];
-  }
+	// implement
+
+	return is_feasible;
 }
 
-double TrajectoryCollisionCost::getWeight() const
+bool TrajectoryCostGoalPose::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getObstacleCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryValidityCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    double state_validity_cost = 0.0;
-    if (!data->state_validity_[i])
-      state_validity_cost = 1.0;
+	// implement
 
-    costData(i) = state_validity_cost;
-  }
+	return is_feasible;
 }
 
-double TrajectoryValidityCost::getWeight() const
+bool TrajectoryCostCOM::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getStateValidityCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryContactInvariantCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    costData(i) = data->stateContactInvariantCost_[i];
-  }
+	// implement
+
+	return is_feasible;
 }
 
-double TrajectoryContactInvariantCost::getWeight() const
+bool TrajectoryCostEndeffectorVelocity::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getContactInvariantCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryPhysicsViolationCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    costData(i) = data->statePhysicsViolationCost_[i];
-  }
+	// implement
+
+	return is_feasible;
 }
 
-double TrajectoryPhysicsViolationCost::getWeight() const
+bool TrajectoryCostTorque::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getPhysicsViolationCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryGoalPoseCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  /*
-   double goal_pose_cost = 0.0;
-   if (evaluator->planning_group_->name_ == "lower_body" || evaluator->planning_group_->name_ == "whole_body")
-   {
-   goal_pose_cost += (evaluator->getSegmentPosition(evaluator->free_vars_end_,
-   PlanningParameters::getInstance()->getLowerBodyRoot()) - evaluator->getSegmentPosition(
-   evaluator->free_vars_end_ + 1, PlanningParameters::getInstance()->getLowerBodyRoot())).Norm();
-   goal_pose_cost += (evaluator->getSegmentPosition(evaluator->free_vars_end_, "left_foot_endeffector_link")
-   - evaluator->getSegmentPosition(evaluator->free_vars_end_ + 1, "left_foot_endeffector_link")).Norm();
+	// implement
 
-   KDL::Vector rightFoot =
-   (evaluator->getSegmentPosition(evaluator->free_vars_end_, "right_foot_endeffector_link")
-   - evaluator->getSegmentPosition(evaluator->free_vars_end_ + 1, "right_foot_endeffector_link"));
-   goal_pose_cost += rightFoot.Norm();
-   }
-
-   for (int i = 0; i < evaluator->num_points_ - 2; i++)
-   {
-   costs_(i) = goal_pose_cost / evaluator->num_points_ - 2;
-   }
-   */
+	return is_feasible;
 }
 
-double TrajectoryGoalPoseCost::getWeight() const
+bool TrajectoryCostRVO::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getGoalPoseCostWeight();
-}
-////////////////////////////////////////////////////////////////////////////////
+	bool is_feasible = true;
+	cost = 0;
 
-void TrajectoryCoMCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  /*
-   for (int i = evaluator->free_vars_start_; i <= evaluator->free_vars_end_; i++)
-   {
-   double state_CoM_cost = 0.0;
-   if (evaluator->planning_group_->name_ == "lower_body" || evaluator->planning_group_->name_ == "whole_body")
-   {
-   state_CoM_cost += evaluator->CoMAccelerations_[i].Norm();
-   if (evaluator->CoMVelocities_[i].x() < 0.0)
-   state_CoM_cost += -evaluator->CoMVelocities_[i].x()
-   * PlanningParameters::getInstance()->getTemporaryVariable(0);
+	// implement
 
-   // check CoM is in two legs
-   const string contact_foot = (evaluator->group_trajectory_->getContactPhase(i)/2
-   + LeftLegStart) % 2 == 0 ? "left_foot_endeffector_link"
-   : "right_foot_endeffector_link";
-   const string other_foot = (evaluator->group_trajectory_->getContactPhase(i)/2
-   + LeftLegStart) % 2 == 1 ? "left_foot_endeffector_link"
-   : "right_foot_endeffector_link";
-   int ef_sn = evaluator->robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(contact_foot);
-   int of_sn = evaluator->robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(other_foot);
-   KDL::Vector ef = evaluator->segment_frames_[i][ef_sn].p;
-   KDL::Vector of = evaluator->segment_frames_[i][of_sn].p;
-   double maxX = max(ef.x(), of.x()) - 0.028;
-   double minX = min(ef.x(), of.x()) - 0.028;
-   double centerX = (ef.x() + of.x()) * 0.5f - 0.028;
-   state_CoM_cost += abs(evaluator->CoMPositions_[i].x() - centerX)
-   * PlanningParameters::getInstance()->getTemporaryVariable(1);
-
-   state_CoM_cost /= (evaluator->free_vars_end_ - evaluator->free_vars_start_ + 1);
-   }
-
-   costs_(i - evaluator->free_vars_start_) = state_CoM_cost;
-   }
-   */
+	return is_feasible;
 }
 
-double TrajectoryCoMCost::getWeight() const
+bool TrajectoryCostFTR::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getCoMCostWeight();
+	bool is_feasible = true;
+	cost = 0;
+
+	// implement
+
+	return is_feasible;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-void TrajectoryFTRCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
+bool TrajectoryCostCartesianTrajectory::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  for (int i = 1; i <= data->getNumPoints() - 2; i++)
-  {
-    costData(i) = data->stateFTRCost_[i];
-  }
+	bool is_feasible = true;
+	cost = 0;
+
+	// implement
+
+	return is_feasible;
 }
 
-double TrajectoryFTRCost::getWeight() const
+bool TrajectoryCostSingularity::evaluate(
+		const NewEvalManager* evaluation_manager,
+		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
-  return PlanningParameters::getInstance()->getFTRCostWeight();
-}
+	bool is_feasible = true;
+	cost = 0;
 
-////////////////////////////////////////////////////////////////////////////////
-void TrajectoryCartesianCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 0; i < data->getNumPoints(); i++)
-  {
-    costData(i) = data->stateCartesianTrajectoryCost_[i];
-  }
-}
+	// implement
 
-double TrajectoryCartesianCost::getWeight() const
-{
-  return PlanningParameters::getInstance()->getCartesianTrajectoryCostWeight();
-}
-
-////////////////////////////////////////////////////////////////////////////////
-void TrajectorySingularityCost::doCompute(const EvaluationData* data, Eigen::VectorXd& costData)
-{
-  for (int i = 0; i < data->getNumPoints(); i++)
-  {
-    costData(i) = data->stateSingularityCost_[i];
-  }
-}
-
-double TrajectorySingularityCost::getWeight() const
-{
-  return PlanningParameters::getInstance()->getSingularityCostWeight();
+	return is_feasible;
 }
 
 }

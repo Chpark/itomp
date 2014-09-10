@@ -3,8 +3,7 @@
 
 #include <itomp_cio_planner/optimization/improvement_manager.h>
 #include <itomp_cio_planner/common.h>
-#include <itomp_cio_planner/optimization/evaluation_manager.h>
-#include <itomp_cio_planner/optimization/evaluation_data.h>
+#include <itomp_cio_planner/optimization/new_eval_manager.h>
 #include "dlib/optimization.h"
 
 namespace itomp_cio_planner
@@ -18,13 +17,13 @@ public:
   ImprovementManagerNLP();
   virtual ~ImprovementManagerNLP();
 
-  virtual void initialize(const EvaluationManagerPtr& evaluation_manager);
+  virtual void initialize(const NewEvalManagerPtr& evaluation_manager);
   virtual bool updatePlanningParameters();
   virtual void runSingleIteration(int iteration);
 
 protected:
-  void setVariableVector(column_vector& variables);
-  void getVariableVector(const column_vector& variables, int index = 0);
+  void writeToOptimizationVariables(column_vector& variables, const std::vector<Eigen::MatrixXd>& evaluation_parameter);
+  void readFromOptimizationVariables(const column_vector& variables, std::vector<Eigen::MatrixXd>& evaluation_parameter);
   void addNoiseToVariables(column_vector& variables);
 
   double evaluate(const column_vector& variables);
@@ -33,29 +32,20 @@ protected:
 
   void optimize(int iteration, column_vector& variables);
 
-  int num_dimensions_;
-  int num_contact_dimensions_;
-  int num_points_;
-  int num_contact_phases_;
-
-  int num_contact_vars_free_;
-  int num_pos_variables_;
-  int num_vel_variables_;
-  int num_variables_;
-
-  std::vector<Eigen::MatrixXd> parameters_;
-  std::vector<Eigen::MatrixXd> vel_parameters_;
-  std::vector<Eigen::MatrixXd> contact_parameters_;
-  Eigen::VectorXd derivatives_;
-
   int num_threads_;
-  std::vector<EvaluationManagerPtr> derivatives_evaluation_manager_;
-  std::vector<EvaluationDataPtr> derivatives_evaluation_data_;
+  std::vector<NewEvalManagerPtr> derivatives_evaluation_manager_;
+
+  std::vector<std::vector<Eigen::MatrixXd> > evaluation_parameters_;
+  std::vector<Eigen::MatrixXd> evaluation_cost_matrices_;
 
   double eps_;
 
   ros::Time start_time_;
   int evaluation_count_;
+
+  int num_parameter_types_;
+  int num_parameter_points_;
+  int num_parameter_elements_;
 };
 
 }

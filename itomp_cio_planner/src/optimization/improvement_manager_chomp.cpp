@@ -24,6 +24,8 @@ bool ImprovementManagerChomp::updatePlanningParameters()
   if (!ImprovementManager::updatePlanningParameters())
     return false;
 
+  TrajectoryCostManager::getInstance()->buildActiveCostFunctions();
+
   const ItompCIOTrajectory* group_trajectory = evaluation_manager_->getGroupTrajectoryConst();
 
   num_time_steps_ = PlanningParameters::getInstance()->getNumTimeSteps();
