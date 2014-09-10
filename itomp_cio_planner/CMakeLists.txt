@@ -34,7 +34,10 @@ src/planner/planning_info_manager.cpp
 src/model/itomp_robot_model.cpp
 src/model/treefksolverjointposaxis.cpp
 src/model/treefksolverjointposaxis_partial.cpp
-src/trajectory/itomp_cio_trajectory.cpp
+src/trajectory/trajectory.cpp
+src/trajectory/full_trajectory.cpp
+src/trajectory/parameter_trajectory.cpp
+src/trajectory/trajectory_factory.cpp
 src/cost/smoothness_cost.cpp
 src/cost/trajectory_cost_accumulator.cpp
 src/cost/trajectory_cost.cpp

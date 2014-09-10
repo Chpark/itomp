@@ -3,6 +3,7 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
+#include <moveit/planning_interface/planning_request.h>
 
 namespace itomp_cio_planner
 {
@@ -32,7 +33,7 @@ sensor_msgs::JointState getGoalStateFromGoalConstraints(const ItompRobotModelCon
   for (unsigned int i = 0; i < goal_constraints_joint_state.name.size(); ++i)
   {
     std::string name = goal_constraints_joint_state.name[i];
-    int kdl_number = itomp_robot_model->urdfNameToKdlNumber(name);
+    int kdl_number = itomp_robot_model->jointNameToRbdlNumber(name);
     if (kdl_number >= 0)
     {
       goal_state.name[kdl_number] = name;
@@ -46,16 +47,16 @@ void jointStateToArray(const ItompRobotModelConstPtr& itomp_robot_model, const s
     Eigen::MatrixXd::RowXpr joint_pos_array, Eigen::MatrixXd::RowXpr joint_vel_array,
     Eigen::MatrixXd::RowXpr joint_acc_array)
 {
-  ROS_INFO("Initial Joint States");
+  ROS_INFO("Set joint states");
   for (unsigned int i = 0; i < joint_state.name.size(); i++)
   {
     std::string name = joint_state.name[i];
-    int kdl_number = itomp_robot_model->urdfNameToKdlNumber(name);
-    if (kdl_number >= 0)
+    int rbdl_number = itomp_robot_model->jointNameToRbdlNumber(name);
+    if (rbdl_number >= 0)
     {
-      joint_pos_array(kdl_number) = joint_state.position[i];
-      joint_vel_array(kdl_number) = joint_state.velocity[i];
-      joint_acc_array(kdl_number) = joint_state.effort[i];
+      joint_pos_array(rbdl_number) = joint_state.position[i];
+      joint_vel_array(rbdl_number) = joint_state.velocity[i];
+      joint_acc_array(rbdl_number) = joint_state.effort[i];
       ROS_INFO("%s : %f %f %f", name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
     }
   }

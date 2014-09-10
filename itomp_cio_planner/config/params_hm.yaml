@@ -36,7 +36,7 @@ animate_endeffector_segment:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 5.0
 trajectory_discretization: 0.05
-phase_duration: 0.5
+keyframe_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0

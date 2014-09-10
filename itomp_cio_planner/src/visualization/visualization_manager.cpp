@@ -550,7 +550,7 @@ void VisualizationManager::initialize(const ItompRobotModelConstPtr& robot_model
 }
 
 void VisualizationManager::setPlanningGroup(const ItompRobotModelConstPtr& robot_model,
-    const std::string& groupName)
+    const std::string& group_name)
 {
   const multimap<string, string>& endeffectorSegments =
       PlanningParameters::getInstance()->getAnimateEndeffectorSegment();
@@ -558,7 +558,7 @@ void VisualizationManager::setPlanningGroup(const ItompRobotModelConstPtr& robot
   multimap<string, string>::const_iterator it;
   for (it = endeffectorSegments.begin(); it != endeffectorSegments.end(); ++it)
   {
-    if (it->first == groupName)
+    if (it->first == group_name)
     {
       int segmentIndex = robot_model->getForwardKinematicsSolver()->segmentNameToIndex(it->second);
       if (segmentIndex == -1)

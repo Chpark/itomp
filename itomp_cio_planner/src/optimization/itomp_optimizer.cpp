@@ -11,18 +11,18 @@ using namespace std;
 namespace itomp_cio_planner
 {
 
-ItompOptimizer::ItompOptimizer(int trajectory_index, const ItompCIOTrajectoryPtr& trajectory, const ItompRobotModelConstPtr& robot_model,
-    const ItompPlanningGroupConstPtr& planning_group, double planning_start_time, double trajectory_start_time,
-    const moveit_msgs::Constraints& path_constraints) :
+ItompOptimizer::ItompOptimizer(int trajectory_index, const ItompCIOTrajectoryPtr& trajectory,
+    const ItompRobotModelConstPtr& robot_model, const ItompPlanningGroupConstPtr& planning_group,
+    double planning_start_time, double trajectory_start_time, const moveit_msgs::Constraints& path_constraints) :
     trajectory_index_(trajectory_index), planning_start_time_(planning_start_time), iteration_(-1), full_trajectory_(
-        trajectory), is_best_group_trajectory_feasible_(false), best_group_trajectory_iteration_(
-        -1)
+        trajectory), is_best_group_trajectory_feasible_(false), best_group_trajectory_iteration_(-1)
 {
   initialize(robot_model, planning_group, trajectory_start_time, path_constraints);
 }
 
-void ItompOptimizer::initialize(const ItompRobotModelConstPtr& robot_model, const ItompPlanningGroupConstPtr& planning_group,
-    double trajectory_start_time, const moveit_msgs::Constraints& path_constraints)
+void ItompOptimizer::initialize(const ItompRobotModelConstPtr& robot_model,
+    const ItompPlanningGroupConstPtr& planning_group, double trajectory_start_time,
+    const moveit_msgs::Constraints& path_constraints)
 {
   evaluation_manager_ = boost::make_shared<EvaluationManager>(&iteration_);
 
@@ -30,6 +30,9 @@ void ItompOptimizer::initialize(const ItompRobotModelConstPtr& robot_model, cons
   group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, 0);
   //improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
   //group_trajectory_ = boost::make_shared<ItompCIOTrajectory>(full_trajectory_, planning_group, DIFF_RULE_LENGTH);
+
+  VisualizationManager::getInstance()->setPlanningGroup(robot_model, planning_group->name_);
+  GroundManager::getInstance().init();
 
   best_group_trajectory_ = group_trajectory_->getTrajectory(ItompCIOTrajectory::TRAJECTORY_POSITION);
 

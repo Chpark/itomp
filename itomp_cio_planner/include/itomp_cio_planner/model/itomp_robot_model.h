@@ -54,14 +54,14 @@ public:
 	 *
 	 * \return -1 if the joint name is not found
 	 */
-	int urdfNameToKdlNumber(const std::string& urdf_name) const;
+	int jointNameToRbdlNumber(const std::string& joint_name) const;
 
 	/**
 	 * \brief Gets the URDF joint name from the KDL joint number
 	 *
 	 * \return "" if the number does not have a name
 	 */
-	const std::string kdlNumberToUrdfName(int kdl_number) const;
+	const std::string rbdlNumberToJointName(int rbdl_number) const;
 
 	const KDL::TreeFkSolverJointPosAxis* getForwardKinematicsSolver() const;
 
@@ -76,6 +76,8 @@ public:
 	robot_model::RobotModelConstPtr getMoveitRobotModel() const;
 
 	const RigidBodyDynamics::Model& getRBDLRobotModel() const;
+
+	const std::set<std::string>& getContactPointNames() const;
 
 private:
 	robot_model::RobotModelConstPtr moveit_robot_model_;
@@ -95,6 +97,8 @@ private:
 	std::map<std::string, ItompPlanningGroupConstPtr> planning_groups_; /**< Planning group information */
 	std::vector<std::string> rbdl_number_to_joint_name_; /**< Mapping from RBDL joint number (1-base) to URDF joint name */
 	std::map<std::string, int> joint_name_to_rbdl_number_; /**< Mapping from URDF joint name to RBDL joint number (1-base) */
+
+	std::set<std::string> contact_points_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(ItompRobotModel);
 
@@ -128,21 +132,21 @@ inline KDL::Tree* ItompRobotModel::getKDLTree()
 	return &kdl_tree_;
 }
 
-inline int ItompRobotModel::urdfNameToKdlNumber(const std::string& urdf_name) const
+inline int ItompRobotModel::jointNameToRbdlNumber(const std::string& joint_name) const
 {
-	std::map<std::string, int>::const_iterator it = urdf_name_to_kdl_number_.find(urdf_name);
-	if (it != urdf_name_to_kdl_number_.end())
+	std::map<std::string, int>::const_iterator it = joint_name_to_rbdl_number_.find(joint_name);
+	if (it != joint_name_to_rbdl_number_.end())
 		return it->second;
 	else
 		return -1;
 }
 
-inline const std::string ItompRobotModel::kdlNumberToUrdfName(int kdl_number) const
+inline const std::string ItompRobotModel::rbdlNumberToJointName(int rbdl_number) const
 {
-	if (kdl_number < 0 || kdl_number >= num_kdl_joints_)
+	if (rbdl_number < 0 || rbdl_number >= num_rbdl_joints_)
 		return std::string("");
 	else
-		return kdl_number_to_urdf_name_[kdl_number];
+		return rbdl_number_to_joint_name_[rbdl_number];
 }
 
 inline const KDL::TreeFkSolverJointPosAxis* ItompRobotModel::getForwardKinematicsSolver() const
@@ -160,7 +164,7 @@ inline void ItompRobotModel::jointStateToArray(const sensor_msgs::JointState &jo
 	for (unsigned int i = 0; i < joint_state.name.size(); i++)
 	{
 		std::string name = joint_state.name[i];
-		int kdl_number = urdfNameToKdlNumber(name);
+		int kdl_number = jointNameToRbdlNumber(name);
 		if (kdl_number >= 0)
 			joint_array(kdl_number) = joint_state.position[i];
 	}
@@ -184,6 +188,11 @@ inline robot_model::RobotModelConstPtr ItompRobotModel::getMoveitRobotModel() co
 inline const RigidBodyDynamics::Model& ItompRobotModel::getRBDLRobotModel() const
 {
   return rbdl_robot_model_;
+}
+
+inline const std::set<std::string>& ItompRobotModel::getContactPointNames() const
+{
+	return contact_points_;
 }
 
 

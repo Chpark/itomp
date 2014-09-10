@@ -27,4 +27,9 @@
     class C; \
     ITOMP_DEFINE_SHARED_POINTERS(C)
 
+inline int safeDoubleToInt(double a)
+{
+  return (int) (a + 1E-7);
+}
+
 #endif
