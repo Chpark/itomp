@@ -104,8 +104,8 @@
     <parent link="base_prismatic_dummy2"/>
     <child link="base_prismatic_dummy3"/>
   </joint>
-  <joint name="base_revolute_joint_z" type="continuous">
-    <axis xyz="0 0 1"/>
+  <joint name="base_revolute_joint_x" type="continuous">
+    <axis xyz="1 0 0"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_prismatic_dummy3"/>
     <child link="base_revolute_dummy1"/>
@@ -117,8 +117,8 @@
     <parent link="base_revolute_dummy1"/>
     <child link="base_revolute_dummy2"/>
   </joint>
-  <joint name="base_revolute_joint_x" type="revolute">
-    <axis xyz="1 0 0"/>
+  <joint name="base_revolute_joint_z" type="revolute">
+    <axis xyz="0 0 1"/>
     <limit effort="15" lower="0.0" upper="0.0" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_revolute_dummy2"/>
