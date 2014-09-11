@@ -737,8 +737,6 @@
     <end_effector name="left_eef" parent_link="left_hand_x_link" group="left_gripper" parent_group="left_arm" />
     <end_effector name="right_foot_ee" parent_link="right_foot_z_link" group="right_foot" parent_group="right_leg" />
     <end_effector name="left_foot_ee" parent_link="left_foot_z_link" group="left_foot" parent_group="left_leg" />
-    <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
-    <virtual_joint name="virtual_joint" type="floating" parent_frame="odom_combined" child_link="root_link" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_prismatic_dummy1" link2="base_prismatic_dummy2" reason="Adjacent" />
     <disable_collisions link1="base_prismatic_dummy1" link2="base_prismatic_dummy3" reason="Default" />
