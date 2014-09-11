@@ -29,6 +29,8 @@ void ImprovementManagerNLP::initialize(
 	ImprovementManager::initialize(evaluation_manager);
 
 	num_threads_ = omp_get_max_threads();
+	// TODO: change num_threads_
+	num_threads_ = 1;
 	omp_set_num_threads(num_threads_);
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");

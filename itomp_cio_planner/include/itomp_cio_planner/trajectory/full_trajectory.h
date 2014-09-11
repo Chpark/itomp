@@ -94,14 +94,14 @@ ITOMP_DEFINE_SHARED_POINTERS(FullTrajectory);
 inline Eigen::Block<Eigen::MatrixXd> FullTrajectory::getComponentTrajectory(
 		TRAJECTORY_COMPONENT component, TRAJECTORY_TYPE type)
 {
-	return trajectory_[type].block(1, component_start_indices_[component],
+	return trajectory_[type].block(0, component_start_indices_[component],
 			trajectory_[type].rows(), getComponentSize(component));
 }
 
 inline Eigen::MatrixXd FullTrajectory::getComponentTrajectory(
 		TRAJECTORY_COMPONENT component, TRAJECTORY_TYPE type) const
 {
-	return trajectory_[type].block(1, component_start_indices_[component],
+	return trajectory_[type].block(0, component_start_indices_[component],
 			trajectory_[type].rows(), getComponentSize(component));
 }
 
@@ -109,7 +109,7 @@ inline void FullTrajectory::setComponentTrajectory(
 		const Eigen::MatrixXd& trajectory, TRAJECTORY_COMPONENT component,
 		TRAJECTORY_TYPE type)
 {
-	trajectory_[type].block(1, component_start_indices_[component],
+	trajectory_[type].block(0, component_start_indices_[component],
 			trajectory_[type].rows(), getComponentSize(component)) = trajectory;
 }
 

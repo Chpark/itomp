@@ -49,7 +49,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
 	rbdl_number_to_joint_name_.resize(rbdl_robot_model_.mJoints.size());
 
-	// TODO: handle root transform
+	// TODO: handle root transform values : trans_z(1.12)
 	const string ROOT_TRANSFORM_LINK_NAMES[] =
 	{ "base_prismatic_dummy1", "base_prismatic_dummy2", "base_prismatic_dummy3",
 			"base_revolute_dummy1", "base_revolute_dummy2", "pelvis_link" };
