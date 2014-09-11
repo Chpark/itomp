@@ -20,7 +20,7 @@ void TrajectoryCostManager::buildActiveCostFunctions()
 	int index = 0;
 
 	ITOMP_TRAJECTORY_COST_ADD(Smoothness)
-	ITOMP_TRAJECTORY_COST_ADD(Collision)
+	ITOMP_TRAJECTORY_COST_ADD(Obstacle)
 	ITOMP_TRAJECTORY_COST_ADD(Validity)
 	ITOMP_TRAJECTORY_COST_ADD(ContactInvariant)
 	ITOMP_TRAJECTORY_COST_ADD(PhysicsViolation)

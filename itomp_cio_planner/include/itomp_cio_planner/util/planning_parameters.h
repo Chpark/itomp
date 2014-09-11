@@ -31,7 +31,7 @@ public:
 	int getMaxIterations() const;
 	int getMaxIterationsAfterCollisionFree() const;
 	double getSmoothnessCostWeight() const;
-	double getCollisionCostWeight() const;
+	double getObstacleCostWeight() const;
 	double getValidityCostWeight() const;
 	double getEndeffectorVelocityCostWeight() const;
 	double getTorqueCostWeight() const;
@@ -211,7 +211,7 @@ inline double PlanningParameters::getSmoothnessCostWeight() const
 	return smoothness_cost_weight_;
 }
 
-inline double PlanningParameters::getCollisionCostWeight() const
+inline double PlanningParameters::getObstacleCostWeight() const
 {
 	return obstacle_cost_weight_;
 }

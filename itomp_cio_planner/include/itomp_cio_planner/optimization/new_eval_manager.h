@@ -72,7 +72,7 @@ private:
 	bool parameter_modified_;
 	bool check_joint_limits_;
 
-	bool best_cost_;
+	double best_cost_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 

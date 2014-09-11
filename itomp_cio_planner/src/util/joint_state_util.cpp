@@ -51,7 +51,6 @@ void jointStateToArray(const ItompRobotModelConstPtr& itomp_robot_model,
 		Eigen::MatrixXd::RowXpr joint_vel_array,
 		Eigen::MatrixXd::RowXpr joint_acc_array)
 {
-	ROS_INFO("Set joint states");
 	for (unsigned int i = 0; i < joint_state.name.size(); i++)
 	{
 		std::string name = joint_state.name[i];
@@ -61,8 +60,6 @@ void jointStateToArray(const ItompRobotModelConstPtr& itomp_robot_model,
 			joint_pos_array(rbdl_number) = joint_state.position[i];
 			joint_vel_array(rbdl_number) = joint_state.velocity[i];
 			joint_acc_array(rbdl_number) = joint_state.effort[i];
-			ROS_INFO(
-					"%s : %f %f %f", name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
 		}
 	}
 }

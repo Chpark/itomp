@@ -27,7 +27,7 @@ bool TrajectoryCostSmoothness::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostCollision::evaluate(
+bool TrajectoryCostObstacle::evaluate(
 		const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {

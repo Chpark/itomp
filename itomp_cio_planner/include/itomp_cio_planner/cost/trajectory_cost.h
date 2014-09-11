@@ -46,7 +46,7 @@ inline double TrajectoryCost::getWeight() const
 }
 
 ITOMP_TRAJECTORY_COST_DECL(Smoothness)
-ITOMP_TRAJECTORY_COST_DECL(Collision)
+ITOMP_TRAJECTORY_COST_DECL(Obstacle)
 ITOMP_TRAJECTORY_COST_DECL(Validity)
 ITOMP_TRAJECTORY_COST_DECL(ContactInvariant)
 ITOMP_TRAJECTORY_COST_DECL(PhysicsViolation)

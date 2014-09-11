@@ -38,11 +38,12 @@ bool ItompPlannerNode::init()
 	TrajectoryFactory::getInstance()->initialize(
 			TrajectoryFactory::TRAJECTORY_CIO);
 
-	trajectory_.reset(TrajectoryFactory::getInstance()->CreateFullTrajectory(
-			itomp_robot_model_,
-			PlanningParameters::getInstance()->getTrajectoryDuration(),
-			PlanningParameters::getInstance()->getTrajectoryDiscretization(),
-			PlanningParameters::getInstance()->getPhaseDuration()));
+	trajectory_.reset(
+			TrajectoryFactory::getInstance()->CreateFullTrajectory(
+					itomp_robot_model_,
+					PlanningParameters::getInstance()->getTrajectoryDuration(),
+					PlanningParameters::getInstance()->getTrajectoryDiscretization(),
+					PlanningParameters::getInstance()->getPhaseDuration()));
 
 	ROS_INFO("Initialized ITOMP planning service...");
 
@@ -75,10 +76,10 @@ bool ItompPlannerNode::planTrajectory(
 	{
 		double planning_start_time = ros::Time::now().toSec();
 
-		ROS_INFO("Trial [%d]", c);
+		ROS_INFO("Planning Trial [%d]", c);
 
 		// initialize trajectory with start state
-		trajectory_->setStartJointState(req.start_state.joint_state,
+		trajectory_->setStartState(req.start_state.joint_state,
 				itomp_robot_model_, true);
 
 		// for each planning group
@@ -93,7 +94,8 @@ bool ItompPlannerNode::planTrajectory(
 			/// optimize
 			trajectory_->setGroupGoalState(
 					getGoalStateFromGoalConstraints(itomp_robot_model_, req),
-					planning_group, itomp_robot_model_, req.path_constraints, true);
+					planning_group, itomp_robot_model_, req.path_constraints,
+					true);
 
 			optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_,
 					itomp_robot_model_, planning_group, planning_start_time,
@@ -118,12 +120,13 @@ bool ItompPlannerNode::planTrajectory(
 bool ItompPlannerNode::validateRequest(
 		const planning_interface::MotionPlanRequest &req)
 {
-	ROS_INFO("Received planning request...");
+	ROS_INFO(
+			"Received planning request ... planning group : %s", req.group_name.c_str());
 	ROS_INFO(
 			"Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
 
 	// check goal constraint
-	ROS_INFO("goal");
+	ROS_INFO("Validate planning request goal state ...");
 	sensor_msgs::JointState goal_joint_state = jointConstraintsToJointState(
 			req.goal_constraints);
 	if (goal_joint_state.name.size() != goal_joint_state.position.size())
@@ -131,14 +134,14 @@ bool ItompPlannerNode::validateRequest(
 		ROS_ERROR("Invalid goal");
 		return false;
 	}
+	ROS_INFO(
+			"Goal constraint has %d/%d joints", goal_joint_state.name.size(), req.start_state.joint_state.name.size());
+
 	for (unsigned int i = 0; i < goal_joint_state.name.size(); i++)
 	{
 		ROS_INFO(
-				"%s %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
+				"%s : %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
 	}
-
-	ROS_INFO_STREAM(
-			"Joint state has " << req.start_state.joint_state.name.size() << " joints");
 
 	return true;
 }
@@ -170,11 +173,10 @@ void ItompPlannerNode::fillInResult(
 {
 	int num_all_joints = robot_state->getVariableCount();
 
+	ROS_ASSERT(num_all_joints == trajectory_->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+
 	res.trajectory_ = boost::make_shared<robot_trajectory::RobotTrajectory>(
 			itomp_robot_model_->getMoveitRobotModel(), "");
-
-	std::vector<double> velocity_limits(num_all_joints,
-			std::numeric_limits<double>::max());
 
 	robot_state::RobotState ks = *robot_state;
 	std::vector<double> positions(num_all_joints);

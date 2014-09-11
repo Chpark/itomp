@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/planner/planning_info_manager.h>
+#include <ros/ros.h>
 
 namespace itomp_cio_planner
 {
@@ -50,30 +51,30 @@ void PlanningInfoManager::printSummary() const
     }
   }
 
-  printf("%d Trials, %d components\n", num_plannings, num_components);
-  printf("Component Iterations Time Smoothness SuccessRate\n");
+  ROS_INFO("\nPlannings info");
+
+  ROS_INFO("%d Trials, %d components", num_plannings, num_components);
+  ROS_INFO("Component #Iter Time Cost S-Rate");
   for (int j = 0; j < num_components; ++j)
   {
-    printf("%d %f %f %f %f\n", j, ((double) summary[j].iterations) / num_plannings,
+    ROS_INFO("%d %f %f %f %f", j, ((double) summary[j].iterations) / num_plannings,
         ((double) summary[j].time) / num_plannings, ((double) summary[j].cost) / num_plannings,
         ((double) summary[j].success) / num_plannings);
   }
-  printf("Sum %f %f %f %f\n", ((double) sum_of_sum.iterations) / num_plannings, ((double) sum_of_sum.time) / num_plannings,
+  ROS_INFO("Sum %f %f %f %f", ((double) sum_of_sum.iterations) / num_plannings, ((double) sum_of_sum.time) / num_plannings,
       ((double) sum_of_sum.cost) / num_plannings, ((double) num_success) / num_plannings);
-  printf("\n");
 
-  printf("plannings info\n");
-  printf("Component Iterations Time Smoothness SuccessRate\n");
+  ROS_INFO("Component #Iter Time Cost");
   for (int i = 0; i < num_plannings; ++i)
   {
-    double iterationsSum = 0, timeSum = 0, costSum = 0;
+    double iterations_sum = 0, time_sum = 0, cost_sum = 0;
     for (int j = 0; j < num_components; ++j)
     {
-      iterationsSum += planning_info_[i][j].iterations;
-      timeSum += planning_info_[i][j].time;
-      costSum += planning_info_[i][j].cost;
+      iterations_sum += planning_info_[i][j].iterations;
+      time_sum += planning_info_[i][j].time;
+      cost_sum += planning_info_[i][j].cost;
     }
-    printf("[%d] %f %f %f \n", i, iterationsSum, timeSum, costSum);
+    ROS_INFO("[%d] %f %f %f ", i, iterations_sum, time_sum, cost_sum);
   }
 }
 

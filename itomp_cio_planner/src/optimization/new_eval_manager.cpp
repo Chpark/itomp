@@ -95,7 +95,8 @@ double NewEvalManager::evaluate()
 }
 
 void NewEvalManager::evaluateParameterPoint(int point, int element,
-		Eigen::MatrixXd& cost_matrix, int& full_point_begin, int& full_point_end)
+		Eigen::MatrixXd& cost_matrix, int& full_point_begin,
+		int& full_point_end)
 {
 	ROS_ASSERT(parameter_modified_ == false);
 
@@ -117,6 +118,10 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
+
+	// cost weight changed
+	if (cost_functions.size() != cost_matrix.cols())
+		cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(), cost_functions.size());
 
 	for (int i = point_begin; i < point_end; ++i)
 	{

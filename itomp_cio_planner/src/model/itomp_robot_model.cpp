@@ -22,6 +22,12 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	moveit_robot_model_ = robot_model;
 	reference_frame_ = moveit_robot_model_->getModelFrame();
 
+	// print robot_model joints
+	ROS_INFO("Initialize ItompRobotModel");
+	const std::vector<const robot_model::JointModel*>& urdf_joints = robot_model->getJointModels();
+	for (int i = 0; i < urdf_joints.size(); ++i)
+		ROS_INFO("[%d] %s", urdf_joints[i]->getFirstVariableIndex(), urdf_joints[i]->getName().c_str());
+
 	// get the urdf as a string:
 	string urdf_string;
 	ros::NodeHandle node_handle("~");
@@ -167,6 +173,11 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 		planning_groups_.insert(make_pair(group->name_, group));
 	}
+
+	ROS_INFO("RBDL Model Initialized");
+	for (int i = 0; i < rbdl_number_to_joint_name_.size(); ++i)
+		ROS_INFO("[%d] %s", i, rbdl_number_to_joint_name_[i].c_str());
+
 	// TODO:
 	planning_groups_.clear();
 

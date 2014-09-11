@@ -73,7 +73,8 @@ void FullTrajectory::allocate()
 void FullTrajectory::updateFromParameterTrajectory(
 		const ParameterTrajectoryConstPtr& parameter_trajectory)
 {
-	copyFromParameterTrajectory(parameter_trajectory, 0, parameter_trajectory->getNumPoints());
+	copyFromParameterTrajectory(parameter_trajectory, 0,
+			parameter_trajectory->getNumPoints());
 	updateTrajectoryFromKeyframes(0, num_keyframes_);
 }
 
@@ -90,8 +91,10 @@ void FullTrajectory::updateFromParameterTrajectory(
 
 	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end);
 
-	full_begin_point = keyframe_start_index_ + keyframe_begin * num_keyframe_interval_points_;
-	full_end_point = keyframe_start_index_ + keyframe_end * num_keyframe_interval_points_;
+	full_begin_point = keyframe_start_index_
+			+ keyframe_begin * num_keyframe_interval_points_;
+	full_end_point = keyframe_start_index_
+			+ keyframe_end * num_keyframe_interval_points_;
 }
 
 void FullTrajectory::copyFromParameterTrajectory(
@@ -153,7 +156,8 @@ void FullTrajectory::copyFromParameterTrajectory(
 	}
 }
 
-void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end)
+void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
+		int keyframe_end)
 {
 	if (num_keyframe_interval_points_ <= 1)
 		return;
@@ -202,14 +206,31 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin, int keyfr
 	}
 }
 
-void FullTrajectory::setStartJointState(
-		const sensor_msgs::JointState &joint_state,
+void FullTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
 		const ItompRobotModelConstPtr& robot_model, bool fill_trajectory)
 {
+	ROS_INFO("Set the full trajectory start state");
 	jointStateToArray(robot_model, joint_state,
 			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_POSITION),
 			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_VELOCITY),
 			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_ACCELERATION));
+
+	for (unsigned int i = 0; i < joint_state.name.size(); i++)
+	{
+		std::string name = joint_state.name[i];
+		int rbdl_number = robot_model->jointNameToRbdlNumber(name);
+		if (rbdl_number >= 0)
+		{
+			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_POSITION)(
+					rbdl_number) = joint_state.position[i];
+			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_VELOCITY)(
+					rbdl_number) = joint_state.velocity[i];
+			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_ACCELERATION)(
+					rbdl_number) = joint_state.effort[i];
+			ROS_INFO(
+					"[%d] %s : %f %f %f", rbdl_number, name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
+		}
+	}
 
 	if (fill_trajectory)
 	{
@@ -227,34 +248,55 @@ void FullTrajectory::setGroupGoalState(
 		const moveit_msgs::Constraints& path_constraints,
 		bool fill_trajectory_min_jerk)
 {
+	ROS_INFO(
+			"Set the initial trajectory for planning group : %s", planning_group->name_.c_str());
+
 	// set trajectory goal point
 	int goal_index = getNumPoints() - 1;
 	Eigen::MatrixXd::RowXpr goalPoint = getTrajectoryPoint(goal_index);
 	for (int i = 0; i < planning_group->num_joints_; ++i)
 	{
 		std::string joint_name = planning_group->group_joints_[i].joint_name_;
-		int kdl_number = robot_model->jointNameToRbdlNumber(joint_name);
-		if (kdl_number >= 0)
+		int rbdl_number = robot_model->jointNameToRbdlNumber(joint_name);
+		if (rbdl_number >= 0)
 		{
-			goalPoint(kdl_number) = joint_goal_state.position[kdl_number];
+			goalPoint(rbdl_number) = joint_goal_state.position[rbdl_number];
 		}
 	}
 
 	// interpolate trajectory
-	std::set<int> group_to_full_joint_indices;
+	std::set<int> group_rbdl_joint_indices;
 	for (int i = 0; i < planning_group->num_joints_; ++i)
 	{
-		group_to_full_joint_indices.insert(
+		group_rbdl_joint_indices.insert(
 				planning_group->group_joints_[i].rbdl_joint_index_);
 	}
 	if (path_constraints.position_constraints.size() == 0)
 	{
-		fillInMinJerk(group_to_full_joint_indices);
+		fillInMinJerk(group_rbdl_joint_indices);
 	}
 	else
 	{
 		fillInMinJerkCartesianTrajectory(robot_model, planning_group,
 				path_constraints);
+	}
+
+	// print
+	for (unsigned int i = 0; i < joint_goal_state.name.size(); i++)
+	{
+		std::string joint_name = joint_goal_state.name[i];
+		int rbdl_number = robot_model->jointNameToRbdlNumber(joint_name);
+		if (rbdl_number >= 0 && group_rbdl_joint_indices.find(rbdl_number) != group_rbdl_joint_indices.end())
+		{
+			ROS_INFO(
+					"[%d] %s : (%f %f %f) -> (%f %f %f)", rbdl_number, joint_name.c_str(),
+					trajectory_[TRAJECTORY_TYPE_POSITION](0, rbdl_number),
+					trajectory_[TRAJECTORY_TYPE_VELOCITY](0, rbdl_number),
+					trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, rbdl_number),
+					trajectory_[TRAJECTORY_TYPE_POSITION](goal_index, rbdl_number),
+					trajectory_[TRAJECTORY_TYPE_VELOCITY](goal_index, rbdl_number),
+					trajectory_[TRAJECTORY_TYPE_ACCELERATION](goal_index, rbdl_number));
+		}
 	}
 }
 
@@ -274,9 +316,6 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices)
 				j);
 		double v1 = 0.0;
 		double a1 = 0.0;
-
-		ROS_INFO(
-				"Joint %d from %f(%f %f) to %f(%f %f)", j, x0, v0, a0, x1, v1, a1);
 
 		ecl::QuinticPolynomial poly;
 		poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
@@ -338,7 +377,7 @@ void FullTrajectory::fillInMinJerkCartesianTrajectory(
 	double v0 = 0.0, v1 = 0.0;
 	double a0 = 0.0, a1 = 0.0;
 	ROS_INFO(
-			"CartesianPos from (%f, %f, %f)(%f %f) to (%f, %f, %f)(%f %f)", x0[0], x0[1], x0[2], v0, a0, x1[0], x1[1], x1[2], v1, a1);
+			"Interpolate the initial trajectory with CartesianPos from (%f, %f, %f)(%f %f) to (%f, %f, %f)(%f %f)", x0[0], x0[1], x0[2], v0, a0, x1[0], x1[1], x1[2], v1, a1);
 
 	for (int i = 0; i < getNumPoints(); ++i)
 	{

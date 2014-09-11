@@ -50,7 +50,7 @@ public:
 
 	int getComponentSize(TRAJECTORY_COMPONENT component) const;
 
-	void setStartJointState(const sensor_msgs::JointState& joint_state,
+	void setStartState(const sensor_msgs::JointState& joint_state,
 			const ItompRobotModelConstPtr& robot_model, bool fill_trajectory);
 	void setGroupGoalState(const sensor_msgs::JointState& joint_goal_state,
 			const ItompPlanningGroupConstPtr& planning_group,
