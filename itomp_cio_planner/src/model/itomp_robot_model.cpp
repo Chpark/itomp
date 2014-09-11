@@ -49,14 +49,16 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
 	rbdl_number_to_joint_name_.resize(rbdl_robot_model_.mJoints.size());
 
-	// TODO: handle root transform values : trans_z(1.12)
 	const string ROOT_TRANSFORM_LINK_NAMES[] =
 	{ "base_prismatic_dummy1", "base_prismatic_dummy2", "base_prismatic_dummy3",
 			"base_revolute_dummy1", "base_revolute_dummy2", "pelvis_link" };
 	const string ROOT_TRANSFORM_JOINT_NAMES[] =
 	{ "base_prismatic_joint_x", "base_prismatic_joint_x",
-			"base_prismatic_joint_x", "base_revolute_joint_z",
-			"base_revolute_joint_y", "base_revolute_joint_x" };
+			"base_prismatic_joint_x", "base_revolute_joint_x",
+			"base_revolute_joint_y", "base_revolute_joint_z" };
+
+	// TODO: handle root transform values : trans_z(1.12)
+	rbdl_robot_model_.X_T[1].r(2) += 1.12;
 
 	// initialize the planning groups
 	const std::vector<const robot_model::JointModelGroup*>& jointModelGroups =
