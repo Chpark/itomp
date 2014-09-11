@@ -16,7 +16,7 @@ public:
 	virtual ~TrajectoryCost();
 
 	virtual bool evaluate(const NewEvalManager* evaluation_manager,
-			const FullTrajectoryConstPtr& trajectory, int point, double& cost) const;
+			const FullTrajectoryConstPtr& trajectory, int point, double& cost) const = 0;
 
 	int getIndex() const;
 	const std::string& getName() const;
@@ -29,18 +29,6 @@ protected:
 
 };
 ITOMP_DEFINE_SHARED_POINTERS(TrajectoryCost);
-
-inline TrajectoryCost::TrajectoryCost(int index, std::string name,
-		double weight) :
-		index_(index), name_(name), weight_(weight)
-{
-
-}
-
-inline TrajectoryCost::~TrajectoryCost()
-{
-
-}
 
 inline int TrajectoryCost::getIndex() const
 {

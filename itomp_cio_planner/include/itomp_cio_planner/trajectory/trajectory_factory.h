@@ -25,10 +25,10 @@ public:
 
 	void initialize(TRAJECTORY_FACTORY_TYPE type);
 
-	FullTrajectoryPtr CreateFullTrajectory(
+	FullTrajectory* CreateFullTrajectory(
 			const ItompRobotModelConstPtr& robot_model, double duration,
 			double discretization, double keyframe_interval);
-	ParameterTrajectoryPtr CreateParameterTrajectory(
+	ParameterTrajectory* CreateParameterTrajectory(
 			const FullTrajectoryConstPtr& full_trajectory,
 			const ItompPlanningGroupConstPtr& planning_group);
 

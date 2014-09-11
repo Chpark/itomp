@@ -34,7 +34,7 @@ public:
 
 	double evaluate();
 	void evaluateParameterPoint(int point, int element,
-			Eigen::MatrixXd& cost_matrix, int& begin, int& end);
+			Eigen::MatrixXd& cost_matrix, int& full_point_begin, int& full_point_end);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost();
@@ -42,18 +42,20 @@ public:
 
 	void render();
 
-	NewEvalManagerPtr createClone() const;
+	NewEvalManager* createClone() const;
 
 private:
-	void performForwardKinematics(int begin, int end);
-	void performInverseDynamics(int begin, int end);
+	void performForwardKinematics(int point_begin, int point_end);
+	void performInverseDynamics(int point_begin, int point_end);
 
 	void setParameterModified(bool needs_joint_limit_check = true);
 
-	bool evaluateRange(int begin, int end, Eigen::MatrixXd& cost_matrix);
+	bool evaluatePointRange(int point_begin, int point_end, Eigen::MatrixXd& cost_matrix);
 
 	FullTrajectoryPtr full_trajectory_;
 	ParameterTrajectoryPtr parameter_trajectory_;
+	mutable FullTrajectoryConstPtr full_trajectory_const_;
+	mutable ParameterTrajectoryConstPtr parameter_trajectory_const_;
 
 	ItompRobotModelConstPtr robot_model_;
 	ItompPlanningGroupConstPtr planning_group_;
@@ -75,6 +77,18 @@ private:
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
 ////////////////////////////////////////////////////////////////////////////////
+
+inline const FullTrajectoryConstPtr& NewEvalManager::getFullTrajectory() const
+{
+	full_trajectory_const_ = full_trajectory_;
+	return full_trajectory_const_;
+}
+
+inline const ParameterTrajectoryConstPtr& NewEvalManager::getParameterTrajectory() const
+{
+	parameter_trajectory_const_ = parameter_trajectory_;
+	return parameter_trajectory_const_;
+}
 
 inline bool NewEvalManager::isLastTrajectoryFeasible() const
 {

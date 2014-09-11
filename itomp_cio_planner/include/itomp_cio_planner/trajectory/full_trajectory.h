@@ -58,7 +58,7 @@ public:
 			const moveit_msgs::Constraints& path_constraints,
 			bool fill_trajectory_min_jerk);
 
-	FullTrajectoryPtr createClone() const;
+	FullTrajectory* createClone() const;
 
 protected:
 	void copyFromParameterTrajectory(
@@ -83,7 +83,7 @@ protected:
 	double keyframe_interval_;
 	int num_keyframes_;
 
-	int component_start_indices_[TRAJECTORY_COMPONENT_NUM];
+	int component_start_indices_[TRAJECTORY_COMPONENT_NUM + 1];
 
 	friend class TrajectoryFactory;
 	friend class ParameterTrajectory;
@@ -120,9 +120,9 @@ inline int FullTrajectory::getComponentSize(
 			- component_start_indices_[component];
 }
 
-inline FullTrajectoryPtr FullTrajectory::createClone() const
+inline FullTrajectory* FullTrajectory::createClone() const
 {
-	FullTrajectoryPtr new_trajectory(new FullTrajectory(*this));
+	FullTrajectory* new_trajectory = new FullTrajectory(*this);
 	return new_trajectory;
 }
 

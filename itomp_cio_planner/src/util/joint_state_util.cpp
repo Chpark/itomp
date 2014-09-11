@@ -29,6 +29,8 @@ sensor_msgs::JointState getGoalStateFromGoalConstraints(
 	sensor_msgs::JointState goal_state;
 	sensor_msgs::JointState goal_constraints_joint_state =
 			jointConstraintsToJointState(req.goal_constraints);
+	goal_state.name.resize(req.start_state.joint_state.name.size());
+	goal_state.position.resize(req.start_state.joint_state.position.size());
 	for (unsigned int i = 0; i < goal_constraints_joint_state.name.size(); ++i)
 	{
 		std::string name = goal_constraints_joint_state.name[i];

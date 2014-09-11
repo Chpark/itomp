@@ -39,9 +39,9 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 		const moveit_msgs::Constraints& path_constraints)
 {
 	full_trajectory_ = full_trajectory;
-	parameter_trajectory_ =
+	parameter_trajectory_.reset(
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
-					full_trajectory_, planning_group);
+					full_trajectory_, planning_group));
 
 	robot_model_ = robot_model;
 	planning_group_ = planning_group;
@@ -57,16 +57,16 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	// TODO : path_constraints
 }
 
-NewEvalManagerPtr NewEvalManager::createClone() const
+NewEvalManager* NewEvalManager::createClone() const
 {
 	// swallow copy
-	NewEvalManagerPtr new_manager(new NewEvalManager(*this));
+	NewEvalManager* new_manager = new NewEvalManager(*this);
 
 	// create new trajectories
-	new_manager->full_trajectory_ = full_trajectory_->createClone();
-	new_manager->parameter_trajectory_ =
+	new_manager->full_trajectory_.reset(full_trajectory_->createClone());
+	new_manager->parameter_trajectory_.reset(
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
-					new_manager->full_trajectory_, planning_group_);
+					new_manager->full_trajectory_, planning_group_));
 
 	return new_manager;
 }
@@ -78,7 +78,7 @@ double NewEvalManager::evaluate()
 		if (check_joint_limits_)
 		{
 			parameter_trajectory_->handleJointLimits(planning_group_, 0,
-					parameter_trajectory_->getNumElements());
+					parameter_trajectory_->getNumPoints());
 			check_joint_limits_ = false;
 		}
 		full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_);
@@ -88,29 +88,29 @@ double NewEvalManager::evaluate()
 	performForwardKinematics(0, full_trajectory_->getNumPoints());
 	performInverseDynamics(0, full_trajectory_->getNumPoints());
 
-	last_trajectory_feasible_ = evaluateRange(0,
+	last_trajectory_feasible_ = evaluatePointRange(0,
 			full_trajectory_->getNumPoints(), evaluation_cost_matrix_);
 
 	return getTrajectoryCost();
 }
 
 void NewEvalManager::evaluateParameterPoint(int point, int element,
-		Eigen::MatrixXd& cost_matrix, int& begin, int& end)
+		Eigen::MatrixXd& cost_matrix, int& full_point_begin, int& full_point_end)
 {
 	ROS_ASSERT(parameter_modified_ == false);
 
 	parameter_trajectory_->handleJointLimits(planning_group_, point, point + 1);
 
 	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
-			point, point + 1, begin, end);
+			point, point + 1, full_point_begin, full_point_end);
 
-	performForwardKinematics(begin, end);
-	performInverseDynamics(begin, end);
+	performForwardKinematics(full_point_begin, full_point_end);
+	performInverseDynamics(full_point_begin, full_point_end);
 
-	evaluateRange(begin, end, cost_matrix);
+	evaluatePointRange(full_point_begin, full_point_end, cost_matrix);
 }
 
-bool NewEvalManager::evaluateRange(int begin, int end,
+bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		Eigen::MatrixXd& cost_matrix)
 {
 	bool is_feasible = true;
@@ -118,7 +118,7 @@ bool NewEvalManager::evaluateRange(int begin, int end,
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
-	for (int i = begin; i < end; ++i)
+	for (int i = point_begin; i < point_end; ++i)
 	{
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{

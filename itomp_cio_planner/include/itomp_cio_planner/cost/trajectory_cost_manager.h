@@ -16,7 +16,7 @@ public:
 	void buildActiveCostFunctions();
 
 	const std::vector<TrajectoryCostConstPtr>& getCostFunctionVector() const;
-	int getNumActiveCostFunctions() const;
+	int getNumActiveCostFunctions();
 
 protected:
 	std::vector<TrajectoryCostConstPtr> cost_function_vector_;
@@ -27,8 +27,11 @@ inline const std::vector<TrajectoryCostConstPtr>& TrajectoryCostManager::getCost
 	return cost_function_vector_;
 }
 
-inline int TrajectoryCostManager::getNumActiveCostFunctions() const
+inline int TrajectoryCostManager::getNumActiveCostFunctions()
 {
+	if (cost_function_vector_.size() == 0)
+		buildActiveCostFunctions();
+
 	return cost_function_vector_.size();
 }
 

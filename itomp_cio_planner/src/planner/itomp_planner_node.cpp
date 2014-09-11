@@ -38,11 +38,11 @@ bool ItompPlannerNode::init()
 	TrajectoryFactory::getInstance()->initialize(
 			TrajectoryFactory::TRAJECTORY_CIO);
 
-	trajectory_ = TrajectoryFactory::getInstance()->CreateFullTrajectory(
+	trajectory_.reset(TrajectoryFactory::getInstance()->CreateFullTrajectory(
 			itomp_robot_model_,
 			PlanningParameters::getInstance()->getTrajectoryDuration(),
 			PlanningParameters::getInstance()->getTrajectoryDiscretization(),
-			PlanningParameters::getInstance()->getPhaseDuration());
+			PlanningParameters::getInstance()->getPhaseDuration()));
 
 	ROS_INFO("Initialized ITOMP planning service...");
 

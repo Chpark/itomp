@@ -3,6 +3,18 @@
 namespace itomp_cio_planner
 {
 
+TrajectoryCost::TrajectoryCost(int index, std::string name,
+		double weight) :
+		index_(index), name_(name), weight_(weight)
+{
+
+}
+
+TrajectoryCost::~TrajectoryCost()
+{
+
+}
+
 bool TrajectoryCostSmoothness::evaluate(
 		const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const

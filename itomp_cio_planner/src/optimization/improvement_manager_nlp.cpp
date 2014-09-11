@@ -27,7 +27,6 @@ void ImprovementManagerNLP::initialize(
 	start_time_ = ros::Time::now();
 
 	ImprovementManager::initialize(evaluation_manager);
-	TrajectoryCostManager::getInstance()->buildActiveCostFunctions();
 
 	num_threads_ = omp_get_max_threads();
 	omp_set_num_threads(num_threads_);
@@ -40,15 +39,16 @@ void ImprovementManagerNLP::initialize(
 	num_parameter_points_ = parameter_trajectory->getNumPoints();
 	num_parameter_elements_ = parameter_trajectory->getNumElements();
 
-	int num_costs = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+	int num_costs =
+			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	derivatives_evaluation_manager_.resize(num_threads_);
 	evaluation_parameters_.resize(num_threads_);
 	evaluation_cost_matrices_.resize(num_threads_);
 	for (int i = 0; i < num_threads_; ++i)
 	{
-		derivatives_evaluation_manager_[i] = boost::make_shared<NewEvalManager>(
-				*evaluation_manager);
+		derivatives_evaluation_manager_[i].reset(
+				evaluation_manager->createClone());
 
 		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
 				Eigen::MatrixXd(num_parameter_points_,
@@ -203,8 +203,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 					+ j * num_parameter_elements_;
 			for (int i = 0; i < num_parameter_elements_; ++i)
 			{
-				const double old_val = evaluation_parameters_[thread_index][k](j,
-						i);
+				const double old_val = evaluation_parameters_[thread_index][k](
+						j, i);
 				int begin, end;
 
 				evaluation_parameters_[thread_index][k](j, i) += eps_;

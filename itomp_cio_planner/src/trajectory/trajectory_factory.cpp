@@ -18,23 +18,23 @@ void TrajectoryFactory::initialize(TRAJECTORY_FACTORY_TYPE type)
 	type_ = type;
 }
 
-FullTrajectoryPtr TrajectoryFactory::CreateFullTrajectory(
+FullTrajectory* TrajectoryFactory::CreateFullTrajectory(
 		const ItompRobotModelConstPtr& robot_model, double duration,
 		double discretization, double keyframe_interval)
 {
-	FullTrajectoryPtr full_trajectory;
+	FullTrajectory* full_trajectory = NULL;
 
 	// create
 	switch (type_)
 	{
 	case TRAJECTORY_CIO:
-		full_trajectory = boost::make_shared<FullTrajectory>(robot_model,
+		full_trajectory = new FullTrajectory(robot_model,
 				duration, discretization, keyframe_interval, true, true,
 				robot_model->getContactPointNames().size());
 		break;
 
 	case TRAJECTORY_STOMP:
-		full_trajectory = boost::make_shared<FullTrajectory>(robot_model,
+		full_trajectory = new FullTrajectory(robot_model,
 				duration, discretization, keyframe_interval, false, false, 0);
 		ROS_ERROR("Trajectory for STOMP is not implemented");
 		break;
@@ -50,13 +50,12 @@ FullTrajectoryPtr TrajectoryFactory::CreateFullTrajectory(
 	return full_trajectory;
 }
 
-ParameterTrajectoryPtr TrajectoryFactory::CreateParameterTrajectory(
+ParameterTrajectory* TrajectoryFactory::CreateParameterTrajectory(
 		const FullTrajectoryConstPtr& full_trajectory,
 		const ItompPlanningGroupConstPtr& planning_group)
 {
 	// create
-	ParameterTrajectoryPtr parameter_trajectory = boost::make_shared<
-			ParameterTrajectory>(full_trajectory, planning_group);
+	ParameterTrajectory* parameter_trajectory = new ParameterTrajectory(full_trajectory, planning_group);
 
 	// allocate
 	parameter_trajectory->allocate();

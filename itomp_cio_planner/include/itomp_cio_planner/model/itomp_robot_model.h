@@ -35,7 +35,7 @@ public:
 	/**
 	 * \brief Gets the planning group corresponding to the group name
 	 */
-	const ItompPlanningGroupConstPtr getPlanningGroup(const std::string& group_name) const;
+	const ItompPlanningGroupConstPtr& getPlanningGroup(const std::string& group_name) const;
 
 	/**
 	 * \brief Gets the number of total joints
@@ -73,7 +73,7 @@ public:
 
 	const std::string& getRobotName() const;
 
-	robot_model::RobotModelConstPtr getMoveitRobotModel() const;
+	const robot_model::RobotModelConstPtr& getMoveitRobotModel() const;
 
 	const RigidBodyDynamics::Model& getRBDLRobotModel() const;
 
@@ -104,7 +104,7 @@ ITOMP_DEFINE_SHARED_POINTERS(ItompRobotModel);
 
 /////////////////////////////// inline functions follow ///////////////////////////////////
 
-inline const ItompPlanningGroupConstPtr ItompRobotModel::getPlanningGroup(const std::string& group_name) const
+inline const ItompPlanningGroupConstPtr& ItompRobotModel::getPlanningGroup(const std::string& group_name) const
 {
 	std::map<std::string, ItompPlanningGroupConstPtr>::const_iterator it = planning_groups_.find(group_name);
 	if (it == planning_groups_.end())
@@ -180,7 +180,7 @@ inline const std::string& ItompRobotModel::getRobotName() const
 	return moveit_robot_model_->getName();
 }
 
-inline robot_model::RobotModelConstPtr ItompRobotModel::getMoveitRobotModel() const
+inline const robot_model::RobotModelConstPtr& ItompRobotModel::getMoveitRobotModel() const
 {
 	return moveit_robot_model_;
 }

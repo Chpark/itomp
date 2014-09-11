@@ -248,7 +248,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 			{
 				ItompRobotJoint joint;
 				joint.group_joint_index_ = group->num_joints_;
-				joint.kdl_joint_index_ =
+				joint.kdl_joint_index_ = joint.rbdl_joint_index_ =
 						kdl_tree_.getSegment(link_name)->second.q_nr;
 				joint.link_name_ = link_name;
 				joint.joint_name_ = segment_joint_mapping_[link_name];
