@@ -89,6 +89,9 @@
         <group name="left_leg" />
         <group name="right_leg" />
     </group>
+    <group name="head_top">
+        <link name="head_endeffector_link" />
+    </group>
     <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
     <group_state name="pressup" group="whole_body">
         <joint name="base_prismatic_joint_x" value="0" />
@@ -737,6 +740,7 @@
     <end_effector name="left_eef" parent_link="left_hand_x_link" group="left_gripper" parent_group="left_arm" />
     <end_effector name="right_foot_ee" parent_link="right_foot_z_link" group="right_foot" parent_group="right_leg" />
     <end_effector name="left_foot_ee" parent_link="left_foot_z_link" group="left_foot" parent_group="left_leg" />
+    <end_effector name="head_eef" parent_link="head_x_link" group="head_top" parent_group="head" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_prismatic_dummy1" link2="base_prismatic_dummy2" reason="Adjacent" />
     <disable_collisions link1="base_prismatic_dummy1" link2="base_prismatic_dummy3" reason="Default" />

@@ -208,3 +208,16 @@ whole_body:
     - PRMstarkConfigDefault
   projection_evaluator: joints(base_prismatic_joint_x,base_prismatic_joint_y)
   longest_valid_segment_fraction: 0.05
+head_top:
+  planner_configs:
+    - SBLkConfigDefault
+    - ESTkConfigDefault
+    - LBKPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - KPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+    - TRRTkConfigDefault
+    - PRMkConfigDefault
+    - PRMstarkConfigDefault

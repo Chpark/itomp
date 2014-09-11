@@ -129,3 +129,6 @@ controller_list:
       - right_foot_x_joint
       - right_foot_y_joint
       - right_foot_z_joint
+  - name: fake_head_top_controller
+    joints:
+      - head_endeffector_joint
