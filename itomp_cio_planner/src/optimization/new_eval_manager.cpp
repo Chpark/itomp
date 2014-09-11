@@ -149,113 +149,111 @@ void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 	int num_joints = full_trajectory_->getComponentSize(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
+	printf("name ");
+	for (int j = 0; j < num_joints; ++j)
+		printf("%s ", robot_model_->rbdlNumberToJointName(j).c_str());
+	printf("\n");
+
+	printf("KDL result\n");
 	for (int point = point_begin; point < point_end; ++point)
 	{
-		if (point == 0)
+		KDL::JntArray q_in;
+		std::vector<KDL::Vector> joint_pos;
+		std::vector<KDL::Vector> joint_axis;
+		std::vector<KDL::Frame> segment_frames;
+		q_in.data = full_trajectory_->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+		planning_group_->fk_solver_->JntToCartFull(q_in, joint_pos, joint_axis,
+				segment_frames);
+
+		printf("%d x ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", segment_frames[j + 1].p.x());
+		printf("\n");
+
+		printf("%d y ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", segment_frames[j + 1].p.y());
+		printf("\n");
+
+		printf("%d z ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", segment_frames[j + 1].p.z());
+		printf("\n");
+
+		std::vector<Eigen::Quaterniond> rots;
+		rots.resize(num_joints);
+		for (int j = 0; j < num_joints; ++j)
 		{
-
-			printf("name ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%s ", robot_model_->rbdlNumberToJointName(j).c_str());
-			printf("\n");
-
-			printf("KDL result\n");
-
-			KDL::JntArray q_in;
-			std::vector<KDL::Vector> joint_pos;
-			std::vector<KDL::Vector> joint_axis;
-			std::vector<KDL::Frame> segment_frames;
-			q_in.data = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-			planning_group_->fk_solver_->JntToCartFull(q_in, joint_pos,
-					joint_axis, segment_frames);
-
-			printf("x ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", segment_frames[j + 1].p.x());
-			printf("\n");
-
-			printf("y ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", segment_frames[j + 1].p.y());
-			printf("\n");
-
-			printf("z ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", segment_frames[j + 1].p.z());
-			printf("\n");
-
-			std::vector<Eigen::Quaterniond> rots;
-			rots.resize(num_joints);
-			for (int j = 0; j < num_joints; ++j)
-			{
-				//rots[j] = Eigen::Quaterniond(segment_frames[j + 1].M);
-				segment_frames[j + 1].M.GetQuaternion(rots[j].x(), rots[j].y(),
-						rots[j].z(), rots[j].w());
-			}
-			printf("rx ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].x());
-			printf("\n");
-			printf("ry ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].y());
-			printf("\n");
-			printf("rz ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].z());
-			printf("\n");
-			printf("rw ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].w());
-			printf("\n");
-
-			///
-
-			printf("RBDL result\n");
-
-			Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-			RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point], &q,
-					NULL, NULL);
-
-			printf("x ", point);
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rbdl_models_[point].X_base[j + 1].r(0));
-			printf("\n");
-
-			printf("y ", point);
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rbdl_models_[point].X_base[j + 1].r(1));
-			printf("\n");
-
-			printf("z ", point);
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rbdl_models_[point].X_base[j + 1].r(2));
-			printf("\n");
-
-			for (int j = 0; j < num_joints; ++j)
-			{
-				rots[j] = Eigen::Quaterniond(
-						rbdl_models_[point].X_base[j + 1].E);
-			}
-			printf("rx ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].x());
-			printf("\n");
-			printf("ry ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].y());
-			printf("\n");
-			printf("rz ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].z());
-			printf("\n");
-			printf("rw ");
-			for (int j = 0; j < num_joints; ++j)
-				printf("%f ", rots[j].w());
-			printf("\n");
+			//rots[j] = Eigen::Quaterniond(segment_frames[j + 1].M);
+			segment_frames[j + 1].M.GetQuaternion(rots[j].x(), rots[j].y(),
+					rots[j].z(), rots[j].w());
 		}
+		printf("%d rx ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].x());
+		printf("\n");
+		printf("%d ry ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].y());
+		printf("\n");
+		printf("%d rz ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].z());
+		printf("\n");
+		printf("%d rw ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].w());
+		printf("\n");
+	}
+
+	///
+
+	printf("RBDL result\n");
+	for (int point = point_begin; point < point_end; ++point)
+	{
+		Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+		RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point], &q, NULL,
+				NULL);
+
+		printf("%d x ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rbdl_models_[point].X_base[j + 1].r(0));
+		printf("\n");
+
+		printf("%d y ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rbdl_models_[point].X_base[j + 1].r(1));
+		printf("\n");
+
+		printf("%d z ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rbdl_models_[point].X_base[j + 1].r(2));
+		printf("\n");
+
+		std::vector<Eigen::Quaterniond> rots;
+		rots.resize(num_joints);
+		for (int j = 0; j < num_joints; ++j)
+		{
+			rots[j] = Eigen::Quaterniond(rbdl_models_[point].X_base[j + 1].E);
+		}
+		printf("%d rx ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].x());
+		printf("\n");
+		printf("%d ry ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].y());
+		printf("\n");
+		printf("%d rz ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].z());
+		printf("\n");
+		printf("%d rw ", point);
+		for (int j = 0; j < num_joints; ++j)
+			printf("%f ", rots[j].w());
+		printf("\n");
 	}
 }
 

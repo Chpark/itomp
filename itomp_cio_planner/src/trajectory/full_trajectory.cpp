@@ -286,16 +286,12 @@ void FullTrajectory::setGroupGoalState(
 	{
 		std::string joint_name = joint_goal_state.name[i];
 		int rbdl_number = robot_model->jointNameToRbdlNumber(joint_name);
-		if (rbdl_number >= 0 && group_rbdl_joint_indices.find(rbdl_number) != group_rbdl_joint_indices.end())
+		if (rbdl_number >= 0
+				&& group_rbdl_joint_indices.find(rbdl_number)
+						!= group_rbdl_joint_indices.end())
 		{
 			ROS_INFO(
-					"[%d] %s : (%f %f %f) -> (%f %f %f)", rbdl_number, joint_name.c_str(),
-					trajectory_[TRAJECTORY_TYPE_POSITION](0, rbdl_number),
-					trajectory_[TRAJECTORY_TYPE_VELOCITY](0, rbdl_number),
-					trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, rbdl_number),
-					trajectory_[TRAJECTORY_TYPE_POSITION](goal_index, rbdl_number),
-					trajectory_[TRAJECTORY_TYPE_VELOCITY](goal_index, rbdl_number),
-					trajectory_[TRAJECTORY_TYPE_ACCELERATION](goal_index, rbdl_number));
+					"[%d] %s : (%f %f %f) -> (%f %f %f)", rbdl_number, joint_name.c_str(), trajectory_[TRAJECTORY_TYPE_POSITION](0, rbdl_number), trajectory_[TRAJECTORY_TYPE_VELOCITY](0, rbdl_number), trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, rbdl_number), trajectory_[TRAJECTORY_TYPE_POSITION](goal_index, rbdl_number), trajectory_[TRAJECTORY_TYPE_VELOCITY](goal_index, rbdl_number), trajectory_[TRAJECTORY_TYPE_ACCELERATION](goal_index, rbdl_number));
 		}
 	}
 }
@@ -308,9 +304,8 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices)
 		int j = *it;
 
 		double x0 = trajectory_[TRAJECTORY_TYPE_POSITION](0, j);
-		double v0 = (j < 6) ? trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j) : 0.0;
-		double a0 =
-				(j < 6) ? trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j) : 0.0;
+		double v0 = trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j);
+		double a0 = trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j);
 
 		double x1 = trajectory_[TRAJECTORY_TYPE_POSITION](getNumPoints() - 1,
 				j);
