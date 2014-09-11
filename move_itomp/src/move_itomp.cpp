@@ -643,9 +643,6 @@ int main(int argc, char **argv)
 
 	int state_index = 0;
 
-	// walk
-	motion = 4;
-
 	switch (motion)
 	{
 	case 0:

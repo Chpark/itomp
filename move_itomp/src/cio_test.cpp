@@ -530,8 +530,8 @@ int main(int argc, char **argv)
   color.g = 1.0;
   color.b = 1.0;
   renderEnvironment("package://move_itomp/meshes/drawer2.dae", robot_model, "drawer", color);
-  renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae", robot_model, "drawer_opened", color);
-  renderEnvironment("package://move_itomp/meshes/door.dae", robot_model, "door", color);
+  //renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae", robot_model, "drawer_opened", color);
+  //renderEnvironment("package://move_itomp/meshes/door.dae", robot_model, "door", color);
   renderEnvironment("package://move_itomp/meshes/door_opened.dae", robot_model, "door_opened", color);
 
   // We will now create a motion plan request
