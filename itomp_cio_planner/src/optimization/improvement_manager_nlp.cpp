@@ -31,7 +31,7 @@ void ImprovementManagerNLP::initialize(
 
 	num_threads_ = omp_get_max_threads();
 	// TODO: change num_threads_
-	num_threads_ = 4;
+
 	omp_set_num_threads(num_threads_);
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
@@ -221,7 +221,6 @@ column_vector ImprovementManagerNLP::derivative_ref(
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
 	column_vector der_ref = derivative_ref(variables);
-	double max_diff = 0;
 
 	// assume evaluate was called before
 
@@ -236,10 +235,10 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	int parameter_index = 0;
 	for (int k = 0; k < num_parameter_types_; ++k)
 	{
-//#pragma omp parallel for
+#pragma omp parallel for
 		for (int j = 0; j < num_parameter_points_; ++j)
 		{
-			int thread_index = 3; //omp_get_thread_num();
+			int thread_index = omp_get_thread_num();
 			int thread_variable_index = parameter_index
 					+ j * num_parameter_elements_;
 			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
@@ -249,6 +248,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
 	}
 
+	double max_diff = 0;
+	double max_v = 0;
 	for (int i = 0; i < variables.size(); ++i)
 	{
 		double v = der(i);
@@ -258,6 +259,11 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 		{
 			printf("[%d]diff : %.14f\n", i, diff);
 			max_diff = diff;
+		}
+		if (std::abs(v) > max_v)
+		{
+			max_v = std::abs(v);
+			printf("[%d]max : %.14f\n", i, max_v);
 		}
 	}
 
