@@ -10,16 +10,19 @@ namespace itomp_cio_planner
 class ImprovementManager
 {
 public:
-  ImprovementManager();
-  virtual ~ImprovementManager();
+	ImprovementManager();
+	virtual ~ImprovementManager();
 
-  virtual void initialize(const NewEvalManagerPtr& evaluation_manager);
-  virtual bool updatePlanningParameters();
-  virtual void runSingleIteration(int iteration) = 0;
+	virtual void initialize(const NewEvalManagerPtr& evaluation_manager,
+			const ItompPlanningGroupConstPtr& planning_group);
+	virtual bool updatePlanningParameters();
+	virtual void runSingleIteration(int iteration) = 0;
 
 protected:
-  NewEvalManagerPtr evaluation_manager_;
-  int last_planning_parameter_index_;
+	NewEvalManagerPtr evaluation_manager_;
+	ItompPlanningGroupConstPtr planning_group_;
+
+	int last_planning_parameter_index_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(ImprovementManager);
 

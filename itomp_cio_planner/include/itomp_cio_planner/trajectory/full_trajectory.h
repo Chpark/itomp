@@ -25,7 +25,7 @@ public:
 	// Construct a full-DOF state trajectory
 	FullTrajectory(const ItompRobotModelConstPtr& robot_model, double duration,
 			double discretization, double keyframe_interval = 0.0,
-			bool has_velocity_and_acceleration = false, bool free_end_point =
+			bool has_velocity_and_acceleration = false, bool free_point_end =
 					false, int num_contacts = 0);
 	virtual ~FullTrajectory();
 
@@ -34,11 +34,10 @@ public:
 	void updateFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
 			const ItompPlanningGroupConstPtr& planning_group);
-	void updateFromParameterTrajectory(
-			const ParameterTrajectoryConstPtr& parameter_trajectory,
-			const ItompPlanningGroupConstPtr& planning_group,
-			int parameter_begin_point, int parameter_end_point,
-			int& full_begin_point, int& full_end_point);
+	void directChangeForDerivatives(double value,
+			const ItompPlanningGroupConstPtr& planning_group, int type, int point,
+			int element, int& full_point_begin, int& full_point_end,
+			bool backup = true);
 
 	Eigen::Block<Eigen::MatrixXd> getComponentTrajectory(
 			TRAJECTORY_COMPONENT component, TRAJECTORY_TYPE type =
@@ -62,12 +61,17 @@ public:
 
 	FullTrajectory* createClone() const;
 
+	void backupTrajectories(int point_begin, int point_end, int element);
+	void restoreBackupTrajectories();
+
 protected:
 	void copyFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
 			const ItompPlanningGroupConstPtr& planning_group,
-			int parameter_begin_point, int parameter_end_point);
+			int parameter_point_begin, int parameter_point_end);
+
 	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end);
+	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end, int element);
 
 	/**
 	 * \brief Generates a minimum jerk trajectory from the start index to end index
@@ -87,6 +91,11 @@ protected:
 	int num_keyframes_;
 
 	int component_start_indices_[TRAJECTORY_COMPONENT_NUM + 1];
+
+	int backup_point_begin_;
+	int backup_point_end_;
+	int backup_element_;
+	Eigen::MatrixXd backup_trajectory_[TRAJECTORY_TYPE_NUM];
 
 	friend class TrajectoryFactory;
 	friend class ParameterTrajectory;

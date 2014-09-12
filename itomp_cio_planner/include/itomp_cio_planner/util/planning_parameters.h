@@ -70,7 +70,7 @@ public:
 
 	double getPhaseDuration() const
 	{
-		return phase_duration_;
+		return keyframe_duration_;
 	}
 	double getFrictionCoefficient() const
 	{
@@ -134,7 +134,7 @@ private:
 
 	std::map<std::string, double> joint_velocity_limits_;
 
-	double phase_duration_;
+	double keyframe_duration_;
 	double friction_coefficient_;
 	std::string lower_body_root_;
 

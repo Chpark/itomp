@@ -3,8 +3,7 @@
 namespace itomp_cio_planner
 {
 
-TrajectoryCost::TrajectoryCost(int index, std::string name,
-		double weight) :
+TrajectoryCost::TrajectoryCost(int index, std::string name, double weight) :
 		index_(index), name_(name), weight_(weight)
 {
 
@@ -20,15 +19,16 @@ bool TrajectoryCostSmoothness::evaluate(
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
-	cost = 0;
 
-	// implement
+	cost = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point).array().abs().sum();
+
+	// normalize cost (independent to # of joints)
+	cost /= trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
 	return is_feasible;
 }
 
-bool TrajectoryCostObstacle::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -39,8 +39,7 @@ bool TrajectoryCostObstacle::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostValidity::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -75,8 +74,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostGoalPose::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -87,8 +85,7 @@ bool TrajectoryCostGoalPose::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostCOM::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -111,8 +108,7 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostTorque::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -123,8 +119,7 @@ bool TrajectoryCostTorque::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostRVO::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;
@@ -135,8 +130,7 @@ bool TrajectoryCostRVO::evaluate(
 	return is_feasible;
 }
 
-bool TrajectoryCostFTR::evaluate(
-		const NewEvalManager* evaluation_manager,
+bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
 	bool is_feasible = true;

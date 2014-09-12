@@ -5,7 +5,7 @@ namespace itomp_cio_planner
 {
 
 ImprovementManager::ImprovementManager() :
-    last_planning_parameter_index_(-1)
+		last_planning_parameter_index_(-1)
 {
 
 }
@@ -15,17 +15,21 @@ ImprovementManager::~ImprovementManager()
 
 }
 
-void ImprovementManager::initialize(const NewEvalManagerPtr& evaluation_manager)
+void ImprovementManager::initialize(const NewEvalManagerPtr& evaluation_manager,
+		const ItompPlanningGroupConstPtr& planning_group)
 {
-  evaluation_manager_ = evaluation_manager;
+	evaluation_manager_ = evaluation_manager;
+	planning_group_ = planning_group;
 }
 
 bool ImprovementManager::updatePlanningParameters()
 {
-  if (last_planning_parameter_index_ == PlanningParameters::getInstance()->getUpdateIndex())
-    return false;
-  last_planning_parameter_index_ = PlanningParameters::getInstance()->getUpdateIndex();
-  return true;
+	if (last_planning_parameter_index_
+			== PlanningParameters::getInstance()->getUpdateIndex())
+		return false;
+	last_planning_parameter_index_ =
+			PlanningParameters::getInstance()->getUpdateIndex();
+	return true;
 }
 
 }

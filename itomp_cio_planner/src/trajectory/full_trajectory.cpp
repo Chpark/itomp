@@ -8,11 +8,11 @@ namespace itomp_cio_planner
 
 FullTrajectory::FullTrajectory(const ItompRobotModelConstPtr& robot_model,
 		double duration, double discretization, double keyframe_interval,
-		bool has_velocity_and_acceleration, bool free_end_point,
+		bool has_velocity_and_acceleration, bool free_point_end,
 		int num_contacts) :
 		Trajectory(discretization, has_velocity_and_acceleration,
 				has_velocity_and_acceleration), has_free_end_point_(
-				free_end_point)
+				free_point_end)
 {
 	// set num_elements & component_start_indices
 	component_start_indices_[TRAJECTORY_COMPONENT_JOINT] = 0;
@@ -68,6 +68,15 @@ void FullTrajectory::allocate()
 	if (!has_acceleration_)
 		trajectory_[TRAJECTORY_TYPE_ACCELERATION] = Eigen::MatrixXd(1,
 				num_elements_);
+
+	backup_trajectory_[TRAJECTORY_TYPE_POSITION] = Eigen::MatrixXd(
+			getNumPoints(), getNumElements());
+	if (has_velocity_)
+		backup_trajectory_[TRAJECTORY_TYPE_VELOCITY] = Eigen::MatrixXd(
+				getNumPoints(), getNumElements());
+	if (has_acceleration_)
+		backup_trajectory_[TRAJECTORY_TYPE_ACCELERATION] = Eigen::MatrixXd(
+				getNumPoints(), getNumElements());
 }
 
 void FullTrajectory::updateFromParameterTrajectory(
@@ -76,34 +85,47 @@ void FullTrajectory::updateFromParameterTrajectory(
 {
 	copyFromParameterTrajectory(parameter_trajectory, planning_group, 0,
 			parameter_trajectory->getNumPoints());
-	updateTrajectoryFromKeyframes(0, num_keyframes_);
+	updateTrajectoryFromKeyframes(0, num_keyframes_ - 1);
 }
 
-void FullTrajectory::updateFromParameterTrajectory(
-		const ParameterTrajectoryConstPtr& parameter_trajectory,
-		const ItompPlanningGroupConstPtr& planning_group,
-		int parameter_begin_point, int parameter_end_point,
-		int& full_begin_point, int& full_end_point)
+void FullTrajectory::directChangeForDerivatives(double value,
+		const ItompPlanningGroupConstPtr& planning_group, int type, int point,
+		int element, int& full_point_begin, int& full_point_end, bool backup)
 {
-	copyFromParameterTrajectory(parameter_trajectory, planning_group,
-			parameter_begin_point, parameter_end_point);
+	int keyframe_begin = std::max((point + 1) - 1, 0);
+	// keyframe_end is included in the range
+	int keyframe_end = std::min((point + 1) + 1, num_keyframes_ - 1);
 
-	int keyframe_begin = std::max((parameter_begin_point + 1) - 1, 0);
-	int keyframe_end = std::min((parameter_end_point + 1), num_keyframes_);
-
-	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end);
-
-	full_begin_point = keyframe_start_index_
+	full_point_begin = keyframe_start_index_
 			+ keyframe_begin * num_keyframe_interval_points_;
-	full_end_point = std::min(num_points_,
-			keyframe_start_index_
-					+ keyframe_end * num_keyframe_interval_points_);
+	full_point_end = std::min(num_points_,
+			keyframe_start_index_ + keyframe_end * num_keyframe_interval_points_
+					+ 1);
+
+	int full_element = -1;
+	int num_full_joints = getComponentSize(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	int num_parameter_joints = planning_group->num_joints_;
+	if (element < num_parameter_joints)
+		full_element = planning_group->group_joints_[element].kdl_joint_index_;
+	else
+		full_element = element + (num_full_joints - num_parameter_joints);
+
+	if (backup)
+		backupTrajectories(full_point_begin, full_point_end, full_element);
+
+	// set value
+	int keyframe_index = keyframe_start_index_
+			+ (point + 1) * num_keyframe_interval_points_;
+	trajectory_[type](keyframe_index, full_element) = value;
+
+	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end, full_element);
 }
 
 void FullTrajectory::copyFromParameterTrajectory(
 		const ParameterTrajectoryConstPtr& parameter_trajectory,
 		const ItompPlanningGroupConstPtr& planning_group,
-		int parameter_begin_point, int parameter_end_point)
+		int parameter_point_begin, int parameter_point_end)
 {
 	int num_full_joints = getComponentSize(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
@@ -124,7 +146,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 
 		int full_joint_index =
 				parameter_trajectory->group_to_full_joint_indices[i];
-		for (int j = parameter_begin_point; j < parameter_end_point; ++j)
+		for (int j = parameter_point_begin; j < parameter_point_end; ++j)
 		{
 			int keyframe_index = keyframe_start_index_
 					+ (j + 1) * num_keyframe_interval_points_;
@@ -169,7 +191,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 			- num_parameter_joints;
 	if (copy_size > 0)
 	{
-		for (int j = parameter_begin_point; j < parameter_end_point; ++j)
+		for (int j = parameter_point_begin; j < parameter_point_end; ++j)
 		{
 			int keyframe_index = keyframe_start_index_
 					+ (j + 1) * num_keyframe_interval_points_;
@@ -204,8 +226,9 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 	for (int j = 0; j < num_elements_; ++j)
 	{
 		// skip the initial position
-		int trajectory_index = keyframe_start_index_ + 1;
-		for (int k = keyframe_begin; k < keyframe_end - 1; ++k)
+		int trajectory_index = keyframe_start_index_
+				+ keyframe_begin * num_keyframe_interval_points_ + 1;
+		for (int k = keyframe_begin; k < keyframe_end; ++k)
 		{
 			ecl::CubicPolynomial poly;
 			int cur_keyframe_index = keyframe_start_index_
@@ -235,6 +258,54 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 
 				++trajectory_index;
 			}
+		}
+	}
+}
+
+void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
+		int keyframe_end, int element)
+{
+	if (num_keyframe_interval_points_ <= 1)
+		return;
+
+	ROS_ASSERT(has_velocity_ && has_acceleration_);
+
+	// cubic interpolation of pos, vel, acc
+	// update trajectory between (k, k+1]
+	// acc is discontinuous at each keyframe
+
+	// skip the initial position
+	int trajectory_index = keyframe_start_index_
+			+ keyframe_begin * num_keyframe_interval_points_ + 1;
+	for (int k = keyframe_begin; k < keyframe_end; ++k)
+	{
+		ecl::CubicPolynomial poly;
+		int cur_keyframe_index = keyframe_start_index_
+				+ k * num_keyframe_interval_points_;
+		int next_keyframe_index = cur_keyframe_index
+				+ num_keyframe_interval_points_;
+
+		poly = ecl::CubicPolynomial::DerivativeInterpolation(0.0,
+				trajectory_[TRAJECTORY_TYPE_POSITION](cur_keyframe_index,
+						element),
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](cur_keyframe_index,
+						element), keyframe_interval_,
+				trajectory_[TRAJECTORY_TYPE_POSITION](next_keyframe_index,
+						element),
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](next_keyframe_index,
+						element));
+
+		for (int i = 1; i <= num_keyframe_interval_points_; ++i)
+		{
+			double t = i * discretization_;
+			trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, element) =
+					poly(t);
+			trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, element) =
+					poly.derivative(t);
+			trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index, element) =
+					poly.dderivative(t);
+
+			++trajectory_index;
 		}
 	}
 }
@@ -472,6 +543,54 @@ void FullTrajectory::fillInMinJerkCartesianTrajectory(
 			ROS_INFO("Could not find IK solution for waypoint %d", i);
 		}
 	}
+}
+
+void FullTrajectory::backupTrajectories(int point_begin, int point_end,
+		int element)
+{
+	backup_point_begin_ = point_begin;
+	backup_point_end_ = point_end;
+	backup_element_ = element;
+	int point_length = backup_point_end_ - backup_point_begin_;
+
+	backup_trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(
+			backup_point_begin_, backup_element_, point_length, 1) =
+			trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(
+					backup_point_begin_, backup_element_, point_length, 1);
+
+	if (has_velocity_)
+		backup_trajectory_[Trajectory::TRAJECTORY_TYPE_VELOCITY].block(
+				backup_point_begin_, backup_element_, point_length, 1) =
+				trajectory_[Trajectory::TRAJECTORY_TYPE_VELOCITY].block(
+						backup_point_begin_, backup_element_, point_length, 1);
+
+	if (has_acceleration_)
+		backup_trajectory_[Trajectory::TRAJECTORY_TYPE_ACCELERATION].block(
+				backup_point_begin_, backup_element_, point_length, 1) =
+				trajectory_[Trajectory::TRAJECTORY_TYPE_ACCELERATION].block(
+						backup_point_begin_, backup_element_, point_length, 1);
+}
+
+void FullTrajectory::restoreBackupTrajectories()
+{
+	int point_length = backup_point_end_ - backup_point_begin_;
+
+	trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(backup_point_begin_,
+			backup_element_, point_length, 1) =
+			backup_trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(
+					backup_point_begin_, backup_element_, point_length, 1);
+
+	if (has_velocity_)
+		trajectory_[Trajectory::TRAJECTORY_TYPE_VELOCITY].block(
+				backup_point_begin_, backup_element_, point_length, 1) =
+				backup_trajectory_[Trajectory::TRAJECTORY_TYPE_VELOCITY].block(
+						backup_point_begin_, backup_element_, point_length, 1);
+
+	if (has_acceleration_)
+		trajectory_[Trajectory::TRAJECTORY_TYPE_ACCELERATION].block(
+				backup_point_begin_, backup_element_, point_length, 1) =
+				backup_trajectory_[Trajectory::TRAJECTORY_TYPE_ACCELERATION].block(
+						backup_point_begin_, backup_element_, point_length, 1);
 }
 
 }

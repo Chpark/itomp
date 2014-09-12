@@ -106,7 +106,7 @@ void PlanningParameters::initFromNodeHandle()
 		}
 	}
 
-	node_handle.param("phase_duration", phase_duration_, 0.25);
+	node_handle.param("keyframe_duration", keyframe_duration_, 0.5);
 	node_handle.param("friction_coefficient", friction_coefficient_, 2.0);
 	node_handle.param<std::string>("lower_body_root", lower_body_root_,
 			"pelvis_link");

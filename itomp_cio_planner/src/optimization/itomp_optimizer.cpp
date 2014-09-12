@@ -44,7 +44,7 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 	evaluation_manager_->initialize(full_trajectory, robot_model,
 			planning_group, planning_start_time_, trajectory_start_time,
 			path_constraints);
-	improvement_manager_->initialize(evaluation_manager_);
+	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
 	best_parameter_trajectory_.resize(Trajectory::TRAJECTORY_TYPE_NUM);
 }

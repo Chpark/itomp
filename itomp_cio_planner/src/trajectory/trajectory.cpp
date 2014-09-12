@@ -57,7 +57,7 @@ void Trajectory::printTrajectory(bool position, bool velocity,
 			printf("%d : ", i);
 			for (int j = 0; j < num_elements_; ++j)
 			{
-				printf("%f ", trajectory_[TRAJECTORY_TYPE_POSITION](i, j));
+				printf("%.10f ", trajectory_[TRAJECTORY_TYPE_POSITION](i, j));
 			}
 			printf("\n");
 		}
@@ -71,7 +71,7 @@ void Trajectory::printTrajectory(bool position, bool velocity,
 			printf("%d : ", i);
 			for (int j = 0; j < num_elements_; ++j)
 			{
-				printf("%f ", trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j));
+				printf("%.10f ", trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j));
 			}
 			printf("\n");
 		}
@@ -84,7 +84,7 @@ void Trajectory::printTrajectory(bool position, bool velocity,
 			printf("%d : ", i);
 			for (int j = 0; j < num_elements_; ++j)
 			{
-				printf("%f ", trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j));
+				printf("%.10f ", trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j));
 			}
 			printf("\n");
 		}
