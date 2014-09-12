@@ -318,6 +318,17 @@ void setWalkingStates(robot_state::RobotState& start_state, robot_state::RobotSt
   jointValue = end_rot;
   goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
+  // test
+  //double temp[] = {0.1,0.2,0.3,0.4,0.5,0.6};
+  double temp[] = {0,0,0,0,0,3.14};
+  start_state.setJointPositions("base_prismatic_joint_x", &temp[0]);
+  start_state.setJointPositions("base_prismatic_joint_y", &temp[1]);
+  start_state.setJointPositions("base_prismatic_joint_z", &temp[2]);
+  start_state.setJointPositions("base_revolute_joint_x", &temp[3]);
+  start_state.setJointPositions("base_revolute_joint_y", &temp[4]);
+  start_state.setJointPositions("base_revolute_joint_z", &temp[5]);
+  temp[5] = -3.14;
+  goal_state.setJointPositions("base_revolute_joint_z", &temp[5]);
 }
 
 void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
