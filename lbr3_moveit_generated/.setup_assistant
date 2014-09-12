@@ -1,0 +1,8 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: lbr3_model
+    relative_path: lbr_gripper_pinch.urdf
+  SRDF:
+    relative_path: config/lbr3.srdf
+  CONFIG:
+    generated_timestamp: 1410520619

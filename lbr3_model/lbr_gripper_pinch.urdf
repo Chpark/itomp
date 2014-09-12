@@ -1,0 +1,586 @@
+<?xml version="1.0"?>
+<robot name="lbr3">
+
+ <link name="link_kinect">
+    <visual>
+      <geometry>
+       <box size = "0.06 0.28 .04"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+ </link>
+
+ <link name="segment_0">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_0.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+	<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_0_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+	</collision>
+  </link>
+
+ <link name="segment_1">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_1.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+	<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_1_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision> 
+  </link>
+
+ <link name="segment_2">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_2.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+	<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_2_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision>
+  </link>
+
+ <link name="segment_3">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_3.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_3_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision> 
+  </link>
+
+ <link name="segment_4">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_4.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_4_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision> -->
+  </link>
+
+ <link name="segment_5">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_5.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_5_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision> 
+  </link>
+
+  <link name="segment_6">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_6.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_6_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision>
+  </link>
+
+  <link name="segment_7">
+    <visual>
+      <geometry>
+        <mesh filename="package://lbr3_model/cad/segment_7.dae" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </visual>
+		<collision>
+			<geometry>
+				<mesh filename="package://lbr3_model/cad/segment_7_collision.dae" scale="0.001 0.001 0.001"/>
+			</geometry>
+		</collision>
+  </link>
+
+  <link name="finger_1_link_0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.020 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_0.STL"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_0.STL"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0 1 1 1"/>
+      </material>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.01" ixy="-0.00002" ixz="0.00001" iyy="0.0008" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+  <link name="finger_1_link_1">
+    <visual>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_1.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_1.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_1_link_2">
+    <!--
+			NOTE: This link has an offset in the z-direction based on the models that were
+			used to generate grap-it poses.  With the offset below the model appears visually
+			correct, but it is suspect. -->
+			
+    <visual>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_2.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_2.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_1_link_3">
+    <visual>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_3.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_3.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632"/>
+    </inertial>
+  </link>
+ 
+  <link name="finger_2_link_0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.020 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_0.STL"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_0.STL"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0 1 1 1"/>
+      </material>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.01" ixy="-0.00002" ixz="0.00001" iyy="0.0008" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+  <link name="finger_2_link_1">
+    <visual>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_1.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_1.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_2_link_2">
+    <!--
+			NOTE: This link has an offset in the z-direction based on the models that were
+			used to generate grap-it poses.  With the offset below the model appears visually
+			correct, but it is suspect. -->
+			
+    <visual>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_2.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_2.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_2_link_3">
+    <visual>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_3.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_3.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632"/>
+    </inertial>
+  </link>
+  <link name="finger_middle_link_0">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.020 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_0.STL"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 3.1416 -1.57" xyz="-0.0455 0.0414 0.036"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_0.STL"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0 1 1 1"/>
+      </material>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.01" ixy="-0.00002" ixz="0.00001" iyy="0.0008" iyz="0" izz="0.001"/>
+    </inertial>
+  </link>
+  <link name="finger_middle_link_1">
+    <visual>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_1.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_1.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_middle_link_2">
+    <!--
+			NOTE: This link has an offset in the z-direction based on the models that were
+			used to generate grap-it poses.  With the offset below the model appears visually
+			correct, but it is suspect. -->
+			
+    <visual>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_2.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_2.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.15"/>
+      <inertia ixx="0.001859" ixy="-0.000376" ixz="0.000028" iyy="0.012756" iyz="0" izz="0.0024"/>
+    </inertial>
+  </link>
+  <link name="finger_middle_link_3">
+    <visual>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/link_3.STL"/>
+      </geometry>
+      <material name="green"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0.52" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/link_3.STL"/>
+      </geometry>
+      <material name="yellow"/>
+    </collision>
+    <inertial>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.001239" ixy="-0.000251" ixz="0.000019" iyy="0.00085" iyz="0" izz="0.001632"/>
+    </inertial>
+  </link>
+
+  <link name="palm">
+    <visual>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/visual/palm.STL"/>
+      </geometry>
+      <material name="green">
+        <color rgba="0 1 0 1"/>
+      </material>
+    </visual>
+    <collision>
+      <geometry>
+        <mesh filename="package://robotiq_s_model_visualization/meshes/s-model_articulated/collision/palm.STL"/>
+      </geometry>
+      <material name="yellow">
+        <color rgba="0 1 1 1"/>
+      </material>
+    </collision>
+  <inertial>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <mass value="1.3"/>
+    <inertia ixx="0.006012" ixy="0.000079" ixz="-0.00024" iyy="0.012892" iyz="0" izz="0.002435"/>
+  </inertial>
+  </link>
+
+  <!-- ################################### JOINTS ############################### -->
+  <joint name="kinect_depth_joint" type="fixed">
+     <!--<origin xyz="0.495 0.92 1.455" rpy="0 0.9 -1.57"/> -->
+     <origin xyz="0.515 0.96 1.455" rpy="0 0.87 -1.57"/>
+     <parent link="segment_0"/>
+     <child link="link_kinect"/>
+  </joint>
+
+  <joint name="joint_0" type="revolute">
+    <limit lower="-2.96705972839031" upper="2.96705972839031" effort="176" velocity="1.31" />
+    <parent link="segment_0"/> 
+    <child link="segment_1"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 .1105"/>
+  </joint>
+
+  <joint name="joint_1" type="revolute">
+    <limit lower="-2.094395102393187" upper="2.0943951023931335" effort="176" velocity="1.31" />
+    <parent link="segment_1"/>
+    <child link="segment_2"/>
+    <axis xyz="0 1 0"/>
+    <origin xyz="0 0 .2"/>
+  </joint>
+
+  <joint name="joint_2" type="revolute">
+    <limit lower="-2.96705972839031" upper="2.96705972839031" effort="110" velocity="1.57" />
+    <parent link="segment_2"/>
+    <child link="segment_3"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 .2"/>
+  </joint>
+
+  <joint name="joint_3" type="revolute">
+    <limit lower="-2.09439510239316" upper="2.09439510239316" effort="110" velocity="1.57" />
+    <parent link="segment_3"/>
+    <child link="segment_4"/>
+    <axis xyz="0 -1 0"/>
+    <origin xyz="0 0 .2"/>
+  </joint>
+
+  <joint name="joint_4" type="revolute">
+    <limit lower="-2.96705972839031" upper="2.96705972839031" effort="110" velocity="2.51" />
+    <parent link="segment_4"/>
+    <child link="segment_5"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 .2"/>
+  </joint>
+
+  <joint name="joint_5" type="revolute">
+    <limit lower="-2.09439510239316" upper="2.09439510239316" effort="40" velocity="2.36" />
+    <parent link="segment_5"/>
+    <child link="segment_6"/>
+    <axis xyz="0 1 0"/>
+    <origin xyz="0 0 0.1885"/>
+  </joint>
+
+  <joint name="joint_6" type="revolute">
+    <limit lower="-2.96705972839031" upper="2.96705972839031" effort="40" velocity="2.36" />
+    <parent link="segment_6"/>
+    <child link="segment_7"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0 0 .0795"/>
+  </joint>
+
+<!-- ###################### GRIPPER JOINTS #################### -->
+
+  <joint name="finger_middle_joint_1" type="revolute">
+    <parent link="finger_middle_link_0"/>
+    <child link="finger_middle_link_1"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 0" xyz="0.020 0 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_middle_joint_2" type="fixed">
+    <parent link="finger_middle_link_1"/>
+    <child link="finger_middle_link_2"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_middle_joint_3" type="fixed">
+    <parent link="finger_middle_link_2"/>
+    <child link="finger_middle_link_3"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.5579" xyz="0.039 0 0"/>
+    <limit effort="100" lower="-1.0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="palm_finger_1_joint" type="fixed">
+    <parent link="palm"/>
+    <child link="finger_1_link_0"/>
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 2.9816 -1.57" xyz="-0.0455 0.0214 0.036"/>
+    <limit effort="100" lower="-0.16" upper="0.25" velocity="100"/>
+  </joint>
+  <joint name="palm_finger_2_joint" type="fixed">
+    <parent link="palm"/>
+    <child link="finger_2_link_0"/>
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 3.3016 -1.57" xyz="-0.0455 0.0214 -0.036"/>
+    <limit effort="100" lower="-0.25" upper="0.16" velocity="100"/>
+  </joint>
+  <joint name="palm_finger_middle_joint" type="fixed">
+    <parent link="palm"/>
+    <child link="finger_middle_link_0"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 1.57" xyz="0.0455 0.0214 0"/>
+  </joint>
+
+ <joint name="finger_2_joint_1" type="revolute">
+    <mimic joint="finger_middle_joint_1" multiplier="1" />
+    <parent link="finger_2_link_0"/>
+    <child link="finger_2_link_1"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 0" xyz="0.020 0 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_2_joint_2" type="fixed">
+    <parent link="finger_2_link_1"/>
+    <child link="finger_2_link_2"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_2_joint_3" type="fixed">
+    <parent link="finger_2_link_2"/>
+    <child link="finger_2_link_3"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.61" xyz="0.039 0 0"/>
+    <limit effort="100" lower="-1.0" upper="3.1416" velocity="100"/>
+  </joint>
+
+ <joint name="finger_1_joint_1" type="revolute">
+    <mimic joint="finger_middle_joint_1" multiplier="1" />
+    <parent link="finger_1_link_0"/>
+    <child link="finger_1_link_1"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 0" xyz="0.020 0 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_1_joint_2" type="fixed">
+    <parent link="finger_1_link_1"/>
+    <child link="finger_1_link_2"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.52" xyz="0.050 -.028 0"/>
+    <limit effort="100" lower="0" upper="3.1416" velocity="100"/>
+  </joint>
+  <joint name="finger_1_joint_3" type="fixed">
+    <parent link="finger_1_link_2"/>
+    <child link="finger_1_link_3"/>
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 -0.61" xyz="0.039 0 0"/>
+    <limit effort="100" lower="-1.0" upper="3.1416" velocity="100"/>
+  </joint>
+
+
+  <joint name="wrist" type="fixed">
+     <parent link="segment_7" />
+     <child  link="palm" />
+     <axis xyz="0 0 1" />
+     <origin rpy="1.57 0 2.9" xyz = "0 0 0.05" />
+  </joint>
+
+-->
+</robot>
+
