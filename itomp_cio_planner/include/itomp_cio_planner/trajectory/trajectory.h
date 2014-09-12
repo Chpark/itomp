@@ -60,7 +60,7 @@ public:
 	void setTrajectory(const Eigen::MatrixXd& trajectory, TRAJECTORY_TYPE type =
 			TRAJECTORY_TYPE_POSITION);
 
-	void printTrajectory() const;
+	void printTrajectory(bool position = true, bool velocity = true, bool acceleration = true) const;
 
 protected:
 	virtual void allocate(); /**< \brief Allocates memory for the trajectory */

@@ -88,7 +88,7 @@ bool ItompOptimizer::optimize()
 			// is_cost_reduced : allow moving to non-feasible low-cost solutions
 			// is_updated : only moves in feasible solutions
 			if (!is_updated)
-				evaluation_manager_->setParameters(best_parameter_trajectory_, false);
+				evaluation_manager_->setParameters(best_parameter_trajectory_);
 
 			++iteration_;
 
@@ -97,7 +97,7 @@ bool ItompOptimizer::optimize()
 				break;
 		}
 	}
-	evaluation_manager_->setParameters(best_parameter_trajectory_, false);
+	evaluation_manager_->setParameters(best_parameter_trajectory_);
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(iteration_);
 

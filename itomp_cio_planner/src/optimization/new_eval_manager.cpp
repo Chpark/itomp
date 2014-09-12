@@ -21,8 +21,8 @@ namespace itomp_cio_planner
 {
 
 NewEvalManager::NewEvalManager() :
-		last_trajectory_feasible_(false), parameter_modified_(true), check_joint_limits_(
-				true), best_cost_(std::numeric_limits<double>::max())
+		last_trajectory_feasible_(false), parameter_modified_(true), best_cost_(
+				std::numeric_limits<double>::max())
 {
 
 }
@@ -76,13 +76,8 @@ double NewEvalManager::evaluate()
 {
 	if (parameter_modified_)
 	{
-		if (check_joint_limits_)
-		{
-			parameter_trajectory_->handleJointLimits(planning_group_, 0,
-					parameter_trajectory_->getNumPoints());
-			check_joint_limits_ = false;
-		}
-		full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_);
+		full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
+				planning_group_);
 		parameter_modified_ = false;
 	}
 
@@ -101,10 +96,9 @@ void NewEvalManager::evaluateParameterPoint(int point, int element,
 {
 	ROS_ASSERT(parameter_modified_ == false);
 
-	parameter_trajectory_->handleJointLimits(planning_group_, point, point + 1);
-
 	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
-			point, point + 1, full_point_begin, full_point_end);
+			planning_group_, point, point + 1, full_point_begin,
+			full_point_end);
 
 	performForwardKinematics(full_point_begin, full_point_end);
 	performInverseDynamics(full_point_begin, full_point_end);
@@ -255,6 +249,26 @@ void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 			printf("%f ", rots[j].w());
 		printf("\n");
 	}
+
+	// trajectory
+	printf("Trajectory\n");
+	for (int point = point_begin; point < point_end; ++point)
+	{
+		printf("[%d] ", point);
+		for (int joint = 0;
+				joint
+						< full_trajectory_->getComponentSize(
+								FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+				++joint)
+		{
+			printf("%f ",
+					full_trajectory_->getTrajectory(
+							Trajectory::TRAJECTORY_TYPE_POSITION)(point,
+							joint));
+		}
+		printf("\n");
+	}
+
 }
 
 void NewEvalManager::performInverseDynamics(int point_begin, int point_end)
@@ -276,7 +290,7 @@ void NewEvalManager::getParameters(
 }
 
 void NewEvalManager::setParameters(
-		const std::vector<Eigen::MatrixXd>& parameters, bool joint_limit_check)
+		const std::vector<Eigen::MatrixXd>& parameters)
 {
 	parameter_trajectory_->getTrajectory(Trajectory::TRAJECTORY_TYPE_POSITION) =
 			parameters[Trajectory::TRAJECTORY_TYPE_POSITION];
@@ -286,7 +300,7 @@ void NewEvalManager::setParameters(
 				Trajectory::TRAJECTORY_TYPE_VELOCITY) =
 				parameters[Trajectory::TRAJECTORY_TYPE_VELOCITY];
 
-	setParameterModified(joint_limit_check);
+	setParameterModified();
 }
 
 void NewEvalManager::printTrajectoryCost(int iteration)

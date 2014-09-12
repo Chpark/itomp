@@ -32,9 +32,11 @@ public:
 	virtual void allocate();
 
 	void updateFromParameterTrajectory(
-			const ParameterTrajectoryConstPtr& parameter_trajectory);
+			const ParameterTrajectoryConstPtr& parameter_trajectory,
+			const ItompPlanningGroupConstPtr& planning_group);
 	void updateFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
+			const ItompPlanningGroupConstPtr& planning_group,
 			int parameter_begin_point, int parameter_end_point,
 			int& full_begin_point, int& full_end_point);
 
@@ -63,6 +65,7 @@ public:
 protected:
 	void copyFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
+			const ItompPlanningGroupConstPtr& planning_group,
 			int parameter_begin_point, int parameter_end_point);
 	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end);
 

@@ -29,12 +29,12 @@ public:
 	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
 
 	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
-	void setParameters(const std::vector<Eigen::MatrixXd>& parameters,
-			bool joint_limit_check = true);
+	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
 
 	double evaluate();
 	void evaluateParameterPoint(int point, int element,
-			Eigen::MatrixXd& cost_matrix, int& full_point_begin, int& full_point_end);
+			Eigen::MatrixXd& cost_matrix, int& full_point_begin,
+			int& full_point_end);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost();
@@ -48,9 +48,10 @@ private:
 	void performForwardKinematics(int point_begin, int point_end);
 	void performInverseDynamics(int point_begin, int point_end);
 
-	void setParameterModified(bool needs_joint_limit_check = true);
+	void setParameterModified();
 
-	bool evaluatePointRange(int point_begin, int point_end, Eigen::MatrixXd& cost_matrix);
+	bool evaluatePointRange(int point_begin, int point_end,
+			Eigen::MatrixXd& cost_matrix);
 
 	FullTrajectoryPtr full_trajectory_;
 	ParameterTrajectoryPtr parameter_trajectory_;
@@ -70,7 +71,6 @@ private:
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
 	bool parameter_modified_;
-	bool check_joint_limits_;
 
 	double best_cost_;
 };
@@ -95,10 +95,9 @@ inline bool NewEvalManager::isLastTrajectoryFeasible() const
 	return last_trajectory_feasible_;
 }
 
-inline void NewEvalManager::setParameterModified(bool needs_joint_limit_check)
+inline void NewEvalManager::setParameterModified()
 {
 	parameter_modified_ = true;
-	check_joint_limits_ = needs_joint_limit_check;
 }
 
 inline double NewEvalManager::getTrajectoryCost()

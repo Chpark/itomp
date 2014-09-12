@@ -22,11 +22,14 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 }
 
 void ImprovementManagerNLP::initialize(
-		const NewEvalManagerPtr& evaluation_manager)
+		const NewEvalManagerPtr& evaluation_manager,
+		const ItompPlanningGroupConstPtr& planning_group)
 {
 	start_time_ = ros::Time::now();
 
 	ImprovementManager::initialize(evaluation_manager);
+
+	planning_group_ = planning_group;
 
 	num_threads_ = omp_get_max_threads();
 	// TODO: change num_threads_
@@ -114,6 +117,7 @@ void ImprovementManagerNLP::readFromOptimizationVariables(
 {
 	int read_index = 0;
 
+	double value;
 	for (int k = 0; k < num_parameter_types_; ++k)
 	{
 		for (int j = 0; j < num_parameter_points_; ++j)

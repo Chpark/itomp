@@ -71,20 +71,22 @@ void FullTrajectory::allocate()
 }
 
 void FullTrajectory::updateFromParameterTrajectory(
-		const ParameterTrajectoryConstPtr& parameter_trajectory)
+		const ParameterTrajectoryConstPtr& parameter_trajectory,
+		const ItompPlanningGroupConstPtr& planning_group)
 {
-	copyFromParameterTrajectory(parameter_trajectory, 0,
+	copyFromParameterTrajectory(parameter_trajectory, planning_group, 0,
 			parameter_trajectory->getNumPoints());
 	updateTrajectoryFromKeyframes(0, num_keyframes_);
 }
 
 void FullTrajectory::updateFromParameterTrajectory(
 		const ParameterTrajectoryConstPtr& parameter_trajectory,
+		const ItompPlanningGroupConstPtr& planning_group,
 		int parameter_begin_point, int parameter_end_point,
 		int& full_begin_point, int& full_end_point)
 {
-	copyFromParameterTrajectory(parameter_trajectory, parameter_begin_point,
-			parameter_end_point);
+	copyFromParameterTrajectory(parameter_trajectory, planning_group,
+			parameter_begin_point, parameter_end_point);
 
 	int keyframe_begin = std::max((parameter_begin_point + 1) - 1, 0);
 	int keyframe_end = std::min((parameter_end_point + 1) + 1, num_keyframes_);
@@ -99,6 +101,7 @@ void FullTrajectory::updateFromParameterTrajectory(
 
 void FullTrajectory::copyFromParameterTrajectory(
 		const ParameterTrajectoryConstPtr& parameter_trajectory,
+		const ItompPlanningGroupConstPtr& planning_group,
 		int parameter_begin_point, int parameter_end_point)
 {
 	int num_full_joints = getComponentSize(
@@ -108,6 +111,16 @@ void FullTrajectory::copyFromParameterTrajectory(
 	// copy joint parameters from parameter to full trajectory
 	for (int i = 0; i < num_parameter_joints; ++i)
 	{
+		const ItompRobotJoint& joint = planning_group->group_joints_[i];
+		bool has_joint_limits = joint.has_joint_limits_;
+		bool wrap_around = joint.wrap_around_;
+		double limit_min, limit_max;
+		if (has_joint_limits)
+		{
+			limit_min = joint.joint_limit_min_;
+			limit_max = joint.joint_limit_max_;
+		}
+
 		int full_joint_index =
 				parameter_trajectory->group_to_full_joint_indices[i];
 		for (int j = parameter_begin_point; j < parameter_end_point; ++j)
@@ -115,10 +128,28 @@ void FullTrajectory::copyFromParameterTrajectory(
 			int keyframe_index = keyframe_start_index_
 					+ (j + 1) * num_keyframe_interval_points_;
 
-			trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](keyframe_index,
-					full_joint_index) =
+			double value =
 					parameter_trajectory->trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](
 							j, i);
+
+			if (has_joint_limits)
+			{
+				value = std::max(value, limit_min);
+				value = std::min(value, limit_max);
+			}
+			if (wrap_around)
+			{
+				int prev_keyframe_index = keyframe_index - num_keyframe_interval_points_;
+				double prev_key = trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](prev_keyframe_index,
+						full_joint_index);
+				while (value - prev_key > M_PI)
+					value -= 2 * M_PI;
+				while (value - prev_key < -M_PI)
+					value += 2 * M_PI;
+			}
+
+			trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](keyframe_index,
+					full_joint_index) = value;
 
 			if (parameter_trajectory->has_velocity_)
 			{
@@ -260,7 +291,17 @@ void FullTrajectory::setGroupGoalState(
 		int rbdl_number = robot_model->jointNameToRbdlNumber(joint_name);
 		if (rbdl_number >= 0)
 		{
-			goalPoint(rbdl_number) = joint_goal_state.position[rbdl_number];
+			double pos = joint_goal_state.position[rbdl_number];
+			// wrap around
+			if (planning_group->group_joints_[i].wrap_around_)
+			{
+				double start_pos = getTrajectoryPoint(0)(rbdl_number);
+				while (pos - start_pos > M_PI)
+					pos -= 2 * M_PI;
+				while (pos - start_pos < -M_PI)
+					pos += 2 * M_PI;
+			}
+			goalPoint(rbdl_number) = pos;
 		}
 	}
 

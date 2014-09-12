@@ -16,8 +16,6 @@ public:
 			const ItompPlanningGroupConstPtr& planning_group);
 	virtual ~ParameterTrajectory();
 
-	void handleJointLimits(const ItompPlanningGroupConstPtr& planning_group, int begin, int end);
-
 protected:
 	int num_joints_;
 	std::vector<int> group_to_full_joint_indices;

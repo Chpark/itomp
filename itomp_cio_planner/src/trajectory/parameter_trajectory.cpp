@@ -32,33 +32,5 @@ ParameterTrajectory::~ParameterTrajectory()
 
 }
 
-void ParameterTrajectory::handleJointLimits(
-		const ItompPlanningGroupConstPtr& planning_group, int point_begin, int point_end)
-{
-	for (int joint = 0; joint < num_joints_; ++joint)
-	{
-		if (!planning_group->group_joints_[joint].has_joint_limits_)
-			continue;
-
-		double joint_max = planning_group->group_joints_[joint].joint_limit_max_;
-		double joint_min = planning_group->group_joints_[joint].joint_limit_min_;
-
-		int count = 0;
-
-		for (int point = point_begin; point < point_end; ++point)
-		{
-			if (trajectory_[TRAJECTORY_TYPE_POSITION](point, joint) > joint_max)
-			{
-				trajectory_[TRAJECTORY_TYPE_POSITION](point, joint) = joint_max;
-			}
-			else if (trajectory_[TRAJECTORY_TYPE_POSITION](point, joint)
-					< joint_min)
-			{
-				trajectory_[TRAJECTORY_TYPE_POSITION](point, joint) = joint_min;
-			}
-		}
-	}
-}
-
 }
 
