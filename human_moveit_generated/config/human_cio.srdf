@@ -782,44 +782,39 @@
     <disable_collisions link1="base_prismatic_dummy2" link2="right_foot_z_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy2" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy2" link2="right_hand_x_link" reason="Never" />
+    <disable_collisions link1="base_prismatic_dummy2" link2="torso_x_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy2" link2="upper_left_arm_x_link" reason="Never" />
-    <disable_collisions link1="base_prismatic_dummy2" link2="upper_left_leg_x_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy2" link2="upper_right_arm_x_link" reason="Never" />
-    <disable_collisions link1="base_prismatic_dummy2" link2="upper_right_leg_x_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="base_revolute_dummy1" reason="Adjacent" />
     <disable_collisions link1="base_prismatic_dummy3" link2="base_revolute_dummy2" reason="Default" />
     <disable_collisions link1="base_prismatic_dummy3" link2="head_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_prismatic_dummy3" link2="head_x_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="left_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="left_hand_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_prismatic_dummy3" link2="left_hand_x_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="pelvis_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="base_prismatic_dummy3" link2="right_hand_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="base_revolute_dummy2" reason="Adjacent" />
     <disable_collisions link1="base_revolute_dummy1" link2="head_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_revolute_dummy1" link2="head_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="left_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="left_hand_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_revolute_dummy1" link2="left_hand_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="pelvis_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy1" link2="right_hand_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="head_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_revolute_dummy2" link2="head_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="left_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="left_hand_endeffector_link" reason="Never" />
-    <disable_collisions link1="base_revolute_dummy2" link2="left_hand_x_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="pelvis_link" reason="Adjacent" />
     <disable_collisions link1="base_revolute_dummy2" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="base_revolute_dummy2" link2="right_hand_x_link" reason="Never" />
     <disable_collisions link1="head_endeffector_link" link2="head_x_link" reason="Adjacent" />
     <disable_collisions link1="head_endeffector_link" link2="left_foot_endeffector_link" reason="Never" />
+    <disable_collisions link1="head_endeffector_link" link2="left_foot_z_link" reason="Never" />
     <disable_collisions link1="head_endeffector_link" link2="left_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="head_endeffector_link" link2="right_foot_endeffector_link" reason="Never" />
+    <disable_collisions link1="head_endeffector_link" link2="right_foot_z_link" reason="Never" />
     <disable_collisions link1="head_endeffector_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="head_endeffector_link" link2="right_hand_x_link" reason="Never" />
     <disable_collisions link1="head_x_link" link2="right_foot_endeffector_link" reason="Never" />
@@ -827,22 +822,22 @@
     <disable_collisions link1="left_foot_endeffector_link" link2="left_foot_z_link" reason="Adjacent" />
     <disable_collisions link1="left_foot_endeffector_link" link2="left_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="left_foot_endeffector_link" link2="left_hand_x_link" reason="Never" />
+    <disable_collisions link1="left_foot_endeffector_link" link2="lower_left_arm_link" reason="Never" />
     <disable_collisions link1="left_foot_endeffector_link" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="left_foot_endeffector_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="left_foot_endeffector_link" link2="right_hand_x_link" reason="Never" />
-    <disable_collisions link1="left_foot_endeffector_link" link2="upper_left_arm_x_link" reason="Never" />
-    <disable_collisions link1="left_foot_endeffector_link" link2="upper_right_arm_x_link" reason="Never" />
-    <disable_collisions link1="left_foot_z_link" link2="left_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="left_foot_z_link" link2="lower_left_leg_link" reason="Adjacent" />
     <disable_collisions link1="left_foot_z_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="left_hand_endeffector_link" link2="left_hand_x_link" reason="Adjacent" />
     <disable_collisions link1="left_hand_endeffector_link" link2="lower_left_arm_link" reason="Never" />
     <disable_collisions link1="left_hand_endeffector_link" link2="right_foot_endeffector_link" reason="Never" />
-    <disable_collisions link1="left_hand_endeffector_link" link2="right_foot_z_link" reason="Never" />
     <disable_collisions link1="left_hand_endeffector_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="left_hand_x_link" link2="lower_left_arm_link" reason="Adjacent" />
+    <disable_collisions link1="left_hand_x_link" link2="right_foot_endeffector_link" reason="Never" />
+    <disable_collisions link1="lower_left_arm_link" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="lower_left_arm_link" link2="upper_left_arm_x_link" reason="Adjacent" />
     <disable_collisions link1="lower_left_leg_link" link2="upper_left_leg_x_link" reason="Adjacent" />
+    <disable_collisions link1="lower_right_arm_link" link2="right_foot_endeffector_link" reason="Never" />
     <disable_collisions link1="lower_right_arm_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="lower_right_arm_link" link2="right_hand_x_link" reason="Adjacent" />
     <disable_collisions link1="lower_right_arm_link" link2="upper_right_arm_x_link" reason="Adjacent" />
@@ -853,7 +848,6 @@
     <disable_collisions link1="pelvis_link" link2="upper_right_leg_x_link" reason="Adjacent" />
     <disable_collisions link1="right_foot_endeffector_link" link2="right_foot_z_link" reason="Adjacent" />
     <disable_collisions link1="right_foot_endeffector_link" link2="right_hand_endeffector_link" reason="Never" />
-    <disable_collisions link1="right_foot_endeffector_link" link2="right_hand_x_link" reason="Never" />
     <disable_collisions link1="right_foot_z_link" link2="right_hand_endeffector_link" reason="Never" />
     <disable_collisions link1="right_hand_endeffector_link" link2="right_hand_x_link" reason="Adjacent" />
     <disable_collisions link1="torso_x_link" link2="upper_left_arm_x_link" reason="Adjacent" />
