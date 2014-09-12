@@ -89,14 +89,15 @@ void FullTrajectory::updateFromParameterTrajectory(
 			parameter_begin_point, parameter_end_point);
 
 	int keyframe_begin = std::max((parameter_begin_point + 1) - 1, 0);
-	int keyframe_end = std::min((parameter_end_point + 1) + 1, num_keyframes_);
+	int keyframe_end = std::min((parameter_end_point + 1), num_keyframes_);
 
 	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end);
 
 	full_begin_point = keyframe_start_index_
 			+ keyframe_begin * num_keyframe_interval_points_;
-	full_end_point = keyframe_start_index_
-			+ keyframe_end * num_keyframe_interval_points_;
+	full_end_point = std::min(num_points_,
+			keyframe_start_index_
+					+ keyframe_end * num_keyframe_interval_points_);
 }
 
 void FullTrajectory::copyFromParameterTrajectory(
@@ -139,9 +140,11 @@ void FullTrajectory::copyFromParameterTrajectory(
 			}
 			if (wrap_around)
 			{
-				int prev_keyframe_index = keyframe_index - num_keyframe_interval_points_;
-				double prev_key = trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](prev_keyframe_index,
-						full_joint_index);
+				int prev_keyframe_index = keyframe_index
+						- num_keyframe_interval_points_;
+				double prev_key =
+						trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](
+								prev_keyframe_index, full_joint_index);
 				while (value - prev_key > M_PI)
 					value -= 2 * M_PI;
 				while (value - prev_key < -M_PI)
@@ -201,7 +204,7 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 	for (int j = 0; j < num_elements_; ++j)
 	{
 		// skip the initial position
-		double trajectory_index = keyframe_start_index_ + 1;
+		int trajectory_index = keyframe_start_index_ + 1;
 		for (int k = keyframe_begin; k < keyframe_end - 1; ++k)
 		{
 			ecl::CubicPolynomial poly;
@@ -214,9 +217,7 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 					trajectory_[TRAJECTORY_TYPE_POSITION](cur_keyframe_index,
 							j),
 					trajectory_[TRAJECTORY_TYPE_VELOCITY](cur_keyframe_index,
-							j),
-
-					keyframe_interval_,
+							j), keyframe_interval_,
 					trajectory_[TRAJECTORY_TYPE_POSITION](next_keyframe_index,
 							j),
 					trajectory_[TRAJECTORY_TYPE_VELOCITY](next_keyframe_index,
@@ -224,12 +225,13 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 
 			for (int i = 1; i <= num_keyframe_interval_points_; ++i)
 			{
+				double t = i * discretization_;
 				trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, j) =
-						poly(discretization_ * i);
+						poly(t);
 				trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, j) =
-						poly.derivative(discretization_ * i);
+						poly.derivative(t);
 				trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index, j) =
-						poly.dderivative(discretization_ * i);
+						poly.dderivative(t);
 
 				++trajectory_index;
 			}
