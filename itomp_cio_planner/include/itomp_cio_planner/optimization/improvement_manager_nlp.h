@@ -17,7 +17,7 @@ public:
   ImprovementManagerNLP();
   virtual ~ImprovementManagerNLP();
 
-  void initialize(const NewEvalManagerPtr& evaluation_manager, const ItompPlanningGroupConstPtr& planning_group);
+  virtual void initialize(const NewEvalManagerPtr& evaluation_manager, const ItompPlanningGroupConstPtr& planning_group);
   virtual bool updatePlanningParameters();
   virtual void runSingleIteration(int iteration);
 
@@ -46,8 +46,6 @@ protected:
   int num_parameter_types_;
   int num_parameter_points_;
   int num_parameter_elements_;
-
-  ItompPlanningGroupConstPtr planning_group_;
 };
 
 }

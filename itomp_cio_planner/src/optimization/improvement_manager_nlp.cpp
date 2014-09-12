@@ -27,13 +27,11 @@ void ImprovementManagerNLP::initialize(
 {
 	start_time_ = ros::Time::now();
 
-	ImprovementManager::initialize(evaluation_manager);
-
-	planning_group_ = planning_group;
+	ImprovementManager::initialize(evaluation_manager, planning_group);
 
 	num_threads_ = omp_get_max_threads();
 	// TODO: change num_threads_
-	num_threads_ = 1;
+	num_threads_ = 4;
 	omp_set_num_threads(num_threads_);
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
@@ -43,6 +41,7 @@ void ImprovementManagerNLP::initialize(
 	num_parameter_types_ = parameter_trajectory->hasVelocity() ? 2 : 1;
 	num_parameter_points_ = parameter_trajectory->getNumPoints();
 	num_parameter_elements_ = parameter_trajectory->getNumElements();
+	int num_points = evaluation_manager_->getFullTrajectory()->getNumPoints();
 
 	int num_costs =
 			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
@@ -58,8 +57,7 @@ void ImprovementManagerNLP::initialize(
 		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
 				Eigen::MatrixXd(num_parameter_points_,
 						num_parameter_elements_));
-		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_parameter_points_,
-				num_costs);
+		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_points, num_costs);
 	}
 }
 
@@ -176,12 +174,43 @@ column_vector ImprovementManagerNLP::derivative_ref(
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
 		const double delta_plus = evaluation_manager_->evaluate();
 
+		/*
+		// j = 1
+		if (i == evaluation_parameters_[0][0].cols())
+		{
+			ROS_INFO("evaluation matrix plus");
+			std::cout << std::setprecision(10)
+					<< evaluation_manager_->evaluation_cost_matrix_
+					<< std::endl;
+			evaluation_manager_->getFullTrajectory()->printTrajectory();
+		}
+		*/
+
 		e(i) = old_val - eps_;
 		readFromOptimizationVariables(e, evaluation_parameters_[0]);
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
 		double delta_minus = evaluation_manager_->evaluate();
 
+		/*
+		if (i == evaluation_parameters_[0][0].cols())
+		{
+			ROS_INFO("evaluation matrix minus");
+			std::cout << std::setprecision(10)
+					<< evaluation_manager_->evaluation_cost_matrix_
+					<< std::endl;
+			evaluation_manager_->getFullTrajectory()->printTrajectory();
+		}
+		*/
+
 		der(i) = (delta_plus - delta_minus) / (2 * eps_);
+
+		/*
+		if (i == evaluation_parameters_[0][0].cols())
+		{
+			printf("%.14f = %.14f-%.14f(%.14f) / %.14f\n", der(i), delta_plus,
+					delta_minus, (delta_plus - delta_minus), 2 * eps_);
+		}
+		*/
 
 		e(i) = old_val;
 	}
@@ -191,7 +220,13 @@ column_vector ImprovementManagerNLP::derivative_ref(
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
+	column_vector der_ref = derivative_ref(variables);
+	double max_diff = 0;
+
 	// assume evaluate was called before
+
+	int num_cost_functions =
+			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	column_vector der(variables.size());
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
@@ -201,41 +236,29 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	int parameter_index = 0;
 	for (int k = 0; k < num_parameter_types_; ++k)
 	{
-#pragma omp parallel for
+//#pragma omp parallel for
 		for (int j = 0; j < num_parameter_points_; ++j)
 		{
-			int thread_index = omp_get_thread_num();
+			int thread_index = 3; //omp_get_thread_num();
 			int thread_variable_index = parameter_index
 					+ j * num_parameter_elements_;
-			for (int i = 0; i < num_parameter_elements_; ++i)
-			{
-				const double old_val = evaluation_parameters_[thread_index][k](
-						j, i);
-				int begin, end;
-
-				evaluation_parameters_[thread_index][k](j, i) += eps_;
-				derivatives_evaluation_manager_[thread_index]->evaluateParameterPoint(
-						j, i, evaluation_cost_matrices_[thread_index], begin,
-						end);
-				const double delta_plus =
-						evaluation_cost_matrices_[thread_index].block(begin, 1,
-								end - begin, num_parameter_elements_).sum();
-
-				evaluation_parameters_[thread_index][k](j, i) = old_val - eps_;
-				derivatives_evaluation_manager_[thread_index]->evaluateParameterPoint(
-						j, i, evaluation_cost_matrices_[thread_index], begin,
-						end);
-				const double delta_minus =
-						evaluation_cost_matrices_[thread_index].block(begin, 1,
-								end - begin, num_parameter_elements_).sum();
-
-				evaluation_parameters_[thread_index][k](j, i) = old_val;
-
-				der(thread_variable_index++) = (delta_plus - delta_minus)
-						/ (2 * eps_);
-			}
+			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
+					evaluation_parameters_[thread_index], k, j,
+					der.begin() + thread_variable_index, eps_);
 		}
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
+	}
+
+	for (int i = 0; i < variables.size(); ++i)
+	{
+		double v = der(i);
+		double v_ref = der_ref(i);
+		double diff = std::abs(v - v_ref);
+		if (diff > max_diff)
+		{
+			printf("[%d]diff : %.14f\n", i, diff);
+			max_diff = diff;
+		}
 	}
 
 	return der;

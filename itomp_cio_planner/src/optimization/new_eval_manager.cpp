@@ -68,6 +68,7 @@ NewEvalManager* NewEvalManager::createClone() const
 	new_manager->parameter_trajectory_.reset(
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
 					new_manager->full_trajectory_, planning_group_));
+	new_manager->parameter_modified_ = false;
 
 	return new_manager;
 }
@@ -90,20 +91,75 @@ double NewEvalManager::evaluate()
 	return getTrajectoryCost();
 }
 
-void NewEvalManager::evaluateParameterPoint(int point, int element,
-		Eigen::MatrixXd& cost_matrix, int& full_point_begin,
-		int& full_point_end)
+void NewEvalManager::computeDerivatives(
+		const std::vector<Eigen::MatrixXd>& parameters, int type, int point,
+		double* out, double eps)
 {
-	ROS_ASSERT(parameter_modified_ == false);
-
+	setParameters(parameters);
 	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
-			planning_group_, point, point + 1, full_point_begin,
-			full_point_end);
+			planning_group_);
+	parameter_modified_ = false;
+
+	int num_cost_functions =
+			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+
+	for (int i = 0; i < parameter_trajectory_->getNumElements(); ++i)
+	{
+		const double value = parameters[type](point, i);
+		int begin, end;
+
+		evaluateParameterPoint(value + eps, type, point, i, begin, end, true);
+		const double delta_plus = evaluation_cost_matrix_.block(begin, 0,
+				end - begin, num_cost_functions).sum();
+
+		/*
+		if (type == 0 && point == 1 && i == 0)
+		{
+			getFullTrajectory()->printTrajectory();
+			std::cout << std::setprecision(10) << evaluation_cost_matrix_
+					<< std::endl;
+		}
+		*/
+
+		evaluateParameterPoint(value - eps, type, point, i, begin, end, false);
+
+		const double delta_minus = evaluation_cost_matrix_.block(begin, 0,
+				end - begin, num_cost_functions).sum();
+
+		/*
+		if (type == 0 && point == 1 && i == 0)
+		{
+			getFullTrajectory()->printTrajectory();
+			std::cout << std::setprecision(10) << evaluation_cost_matrix_
+					<< std::endl;
+		}
+		*/
+
+		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
+
+		/*
+		if (type == 0 && point == 1 && i == 0)
+		{
+			printf("%.14f = %.14f-%.14f(%.14f) / %.14f\n", *(out + i), delta_plus,
+					delta_minus, (delta_plus - delta_minus), 2 * eps);
+		}
+		*/
+
+		full_trajectory_->restoreBackupTrajectories();
+	}
+}
+
+void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
+		int element, int& full_point_begin, int& full_point_end, bool first)
+{
+	full_trajectory_->directChangeForDerivatives(value, planning_group_, type,
+			point, element, full_point_begin, full_point_end, first);
 
 	performForwardKinematics(full_point_begin, full_point_end);
 	performInverseDynamics(full_point_begin, full_point_end);
 
-	evaluatePointRange(full_point_begin, full_point_end, cost_matrix);
+	evaluatePointRange(full_point_begin, full_point_end,
+			evaluation_cost_matrix_);
 }
 
 bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
@@ -130,6 +186,7 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
 		}
 	}
+	is_feasible = false;
 	return is_feasible;
 }
 
@@ -139,136 +196,157 @@ void NewEvalManager::render()
 
 void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 {
-
-	int num_joints = full_trajectory_->getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-
-	printf("name ");
-	for (int j = 0; j < num_joints; ++j)
-		printf("%s ", robot_model_->rbdlNumberToJointName(j).c_str());
-	printf("\n");
-
-	printf("KDL result\n");
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		KDL::JntArray q_in;
-		std::vector<KDL::Vector> joint_pos;
-		std::vector<KDL::Vector> joint_axis;
-		std::vector<KDL::Frame> segment_frames;
-		q_in.data = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-		planning_group_->fk_solver_->JntToCartFull(q_in, joint_pos, joint_axis,
-				segment_frames);
-
-		printf("%d x ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", segment_frames[j + 1].p.x());
-		printf("\n");
-
-		printf("%d y ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", segment_frames[j + 1].p.y());
-		printf("\n");
-
-		printf("%d z ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", segment_frames[j + 1].p.z());
-		printf("\n");
-
-		std::vector<Eigen::Quaterniond> rots;
-		rots.resize(num_joints);
-		for (int j = 0; j < num_joints; ++j)
-		{
-			//rots[j] = Eigen::Quaterniond(segment_frames[j + 1].M);
-			segment_frames[j + 1].M.GetQuaternion(rots[j].x(), rots[j].y(),
-					rots[j].z(), rots[j].w());
-		}
-		printf("%d rx ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].x());
-		printf("\n");
-		printf("%d ry ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].y());
-		printf("\n");
-		printf("%d rz ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].z());
-		printf("\n");
-		printf("%d rw ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].w());
-		printf("\n");
-	}
-
-	///
-
-	printf("RBDL result\n");
 	for (int point = point_begin; point < point_end; ++point)
 	{
 		Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-		RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point], &q, NULL,
-				NULL);
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 
-		printf("%d x ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rbdl_models_[point].X_base[j + 1].r(0));
-		printf("\n");
-
-		printf("%d y ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rbdl_models_[point].X_base[j + 1].r(1));
-		printf("\n");
-
-		printf("%d z ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rbdl_models_[point].X_base[j + 1].r(2));
-		printf("\n");
-
-		std::vector<Eigen::Quaterniond> rots;
-		rots.resize(num_joints);
-		for (int j = 0; j < num_joints; ++j)
+		if (full_trajectory_->hasVelocity()
+				&& full_trajectory_->hasAcceleration())
 		{
-			rots[j] = Eigen::Quaterniond(rbdl_models_[point].X_base[j + 1].E);
-		}
-		printf("%d rx ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].x());
-		printf("\n");
-		printf("%d ry ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].y());
-		printf("\n");
-		printf("%d rz ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].z());
-		printf("\n");
-		printf("%d rw ", point);
-		for (int j = 0; j < num_joints; ++j)
-			printf("%f ", rots[j].w());
-		printf("\n");
-	}
+			Eigen::VectorXd q_dot = full_trajectory_->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+					Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
+			Eigen::VectorXd q_ddot = full_trajectory_->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+					Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
 
-	// trajectory
-	printf("Trajectory\n");
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		printf("[%d] ", point);
-		for (int joint = 0;
-				joint
-						< full_trajectory_->getComponentSize(
-								FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-				++joint)
+			RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q, q_dot,
+					q_ddot);
+		}
+		else
 		{
-			printf("%f ",
-					full_trajectory_->getTrajectory(
-							Trajectory::TRAJECTORY_TYPE_POSITION)(point,
-							joint));
+			RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point], &q,
+					NULL, NULL);
 		}
-		printf("\n");
 	}
+	/*
+	 int num_joints = full_trajectory_->getComponentSize(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
+	 printf("name ");
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%s ", robot_model_->rbdlNumberToJointName(j).c_str());
+	 printf("\n");
+
+	 // KDL forward kinematics for validation
+	 printf("KDL result\n");
+	 for (int point = point_begin; point < point_end; ++point)
+	 {
+	 KDL::JntArray q_in;
+	 std::vector<KDL::Vector> joint_pos;
+	 std::vector<KDL::Vector> joint_axis;
+	 std::vector<KDL::Frame> segment_frames;
+	 q_in.data = full_trajectory_->getComponentTrajectory(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+	 planning_group_->fk_solver_->JntToCartFull(q_in, joint_pos, joint_axis,
+	 segment_frames);
+
+	 printf("%d x ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", segment_frames[j + 1].p.x());
+	 printf("\n");
+
+	 printf("%d y ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", segment_frames[j + 1].p.y());
+	 printf("\n");
+
+	 printf("%d z ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", segment_frames[j + 1].p.z());
+	 printf("\n");
+
+	 std::vector<Eigen::Quaterniond> rots;
+	 rots.resize(num_joints);
+	 for (int j = 0; j < num_joints; ++j)
+	 {
+	 //rots[j] = Eigen::Quaterniond(segment_frames[j + 1].M);
+	 segment_frames[j + 1].M.GetQuaternion(rots[j].x(), rots[j].y(),
+	 rots[j].z(), rots[j].w());
+	 }
+	 printf("%d rx ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].x());
+	 printf("\n");
+	 printf("%d ry ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].y());
+	 printf("\n");
+	 printf("%d rz ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].z());
+	 printf("\n");
+	 printf("%d rw ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].w());
+	 printf("\n");
+	 }
+
+	 ///
+
+	 printf("RBDL result\n");
+	 for (int point = point_begin; point < point_end; ++point)
+	 {
+	 printf("%d x ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rbdl_models_[point].X_base[j + 1].r(0));
+	 printf("\n");
+
+	 printf("%d y ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rbdl_models_[point].X_base[j + 1].r(1));
+	 printf("\n");
+
+	 printf("%d z ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rbdl_models_[point].X_base[j + 1].r(2));
+	 printf("\n");
+
+	 std::vector<Eigen::Quaterniond> rots;
+	 rots.resize(num_joints);
+	 for (int j = 0; j < num_joints; ++j)
+	 {
+	 rots[j] = Eigen::Quaterniond(rbdl_models_[point].X_base[j + 1].E);
+	 }
+	 printf("%d rx ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].x());
+	 printf("\n");
+	 printf("%d ry ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].y());
+	 printf("\n");
+	 printf("%d rz ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].z());
+	 printf("\n");
+	 printf("%d rw ", point);
+	 for (int j = 0; j < num_joints; ++j)
+	 printf("%f ", rots[j].w());
+	 printf("\n");
+	 }
+
+	 // trajectory
+	 printf("Trajectory\n");
+	 for (int point = point_begin; point < point_end; ++point)
+	 {
+	 printf("[%d] ", point);
+	 for (int joint = 0;
+	 joint
+	 < full_trajectory_->getComponentSize(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	 ++joint)
+	 {
+	 printf("%f ",
+	 full_trajectory_->getTrajectory(
+	 Trajectory::TRAJECTORY_TYPE_POSITION)(point,
+	 joint));
+	 }
+	 printf("\n");
+	 }
+	 */
 }
 
 void NewEvalManager::performInverseDynamics(int point_begin, int point_end)

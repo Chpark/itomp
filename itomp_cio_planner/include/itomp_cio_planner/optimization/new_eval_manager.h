@@ -32,9 +32,11 @@ public:
 	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
 
 	double evaluate();
-	void evaluateParameterPoint(int point, int element,
-			Eigen::MatrixXd& cost_matrix, int& full_point_begin,
-			int& full_point_end);
+	void evaluateParameterPoint(double value, int type, int point, int element,
+			int& full_point_begin, int& full_point_end, bool first);
+
+	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
+			int type, int point, double* out, double eps);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost();
@@ -68,6 +70,7 @@ private:
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
 
+public:
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
 	bool parameter_modified_;
