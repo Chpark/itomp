@@ -23,7 +23,7 @@ ridge_factor: 0.0
 
 temp: [1000.0, 1000.0, 0.0]
 
-print_planning_info: false
+print_planning_info: true
 
 animate_path: true
 animate_endeffector: true

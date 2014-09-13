@@ -6,7 +6,6 @@ Panels:
       Expanded:
         - /MotionPlanning1
         - /MotionPlanning1/Planned Path1
-        - /RobotState1
         - /MarkerArray1
         - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.465479
@@ -978,20 +977,18 @@ Visualization Manager:
       Marker Topic: /pomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        door: true
         door_opened: true
         drawer: true
-        drawer_opened: true
         environment: true
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
-      Enabled: false
+      Enabled: true
       Length: 1
       Name: Axes
       Radius: 0.1
       Reference Frame: <Fixed Frame>
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /amc_viewer/visualization_marker_array
@@ -1001,13 +998,15 @@ Visualization Manager:
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
-      Enabled: false
+      Enabled: true
       Marker Topic: /pomp_planner/visualization_marker
       Name: Marker
       Namespaces:
-        {}
+        door_opened: true
+        drawer: true
+        environment: true
       Queue Size: 100
-      Value: false
+      Value: true
     - Class: rviz/MarkerArray
       Enabled: true
       Marker Topic: /move_itomp/pomp_planner/trajectory
@@ -1031,7 +1030,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 6.40191
+      Distance: 14.1556
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -1043,10 +1042,10 @@ Visualization Manager:
         Z: 6.23132e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.394796
+      Pitch: 0.564795
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 0.538371
+      Yaw: 0.878365
     Saved: ~
 Window Geometry:
   Displays:
@@ -1062,5 +1061,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1855
-  X: 1985
-  Y: 24
+  X: 1978
+  Y: 23

@@ -149,11 +149,10 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 	double cost = evaluation_manager_->evaluate();
 
-	if (++evaluation_count_ % 100 == 0)
+	//if (++evaluation_count_ % 100 == 0)
 	{
-		evaluation_manager_->printTrajectoryCost(evaluation_count_);
-
-		printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
+		printf("Elapsed (in eval) : %f\n", (ros::Time::now() - start_time_).toSec());
 	}
 
 	return cost;
@@ -174,43 +173,12 @@ column_vector ImprovementManagerNLP::derivative_ref(
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
 		const double delta_plus = evaluation_manager_->evaluate();
 
-		/*
-		// j = 1
-		if (i == evaluation_parameters_[0][0].cols())
-		{
-			ROS_INFO("evaluation matrix plus");
-			std::cout << std::setprecision(10)
-					<< evaluation_manager_->evaluation_cost_matrix_
-					<< std::endl;
-			evaluation_manager_->getFullTrajectory()->printTrajectory();
-		}
-		*/
-
 		e(i) = old_val - eps_;
 		readFromOptimizationVariables(e, evaluation_parameters_[0]);
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
 		double delta_minus = evaluation_manager_->evaluate();
 
-		/*
-		if (i == evaluation_parameters_[0][0].cols())
-		{
-			ROS_INFO("evaluation matrix minus");
-			std::cout << std::setprecision(10)
-					<< evaluation_manager_->evaluation_cost_matrix_
-					<< std::endl;
-			evaluation_manager_->getFullTrajectory()->printTrajectory();
-		}
-		*/
-
 		der(i) = (delta_plus - delta_minus) / (2 * eps_);
-
-		/*
-		if (i == evaluation_parameters_[0][0].cols())
-		{
-			printf("%.14f = %.14f-%.14f(%.14f) / %.14f\n", der(i), delta_plus,
-					delta_minus, (delta_plus - delta_minus), 2 * eps_);
-		}
-		*/
 
 		e(i) = old_val;
 	}
@@ -220,7 +188,7 @@ column_vector ImprovementManagerNLP::derivative_ref(
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
-	column_vector der_ref = derivative_ref(variables);
+	//column_vector der_ref = derivative_ref(variables);
 
 	// assume evaluate was called before
 
@@ -248,6 +216,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
 	}
 
+	/*
 	double max_diff = 0;
 	double max_v = 0;
 	for (int i = 0; i < variables.size(); ++i)
@@ -266,6 +235,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 			printf("[%d]max : %.14f\n", i, max_v);
 		}
 	}
+	*/
 
 	return der;
 }

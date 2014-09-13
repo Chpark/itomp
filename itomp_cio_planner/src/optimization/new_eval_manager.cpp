@@ -186,7 +186,6 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
 		}
 	}
-	is_feasible = false;
 	return is_feasible;
 }
 
