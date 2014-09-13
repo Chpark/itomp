@@ -3,7 +3,7 @@
 
 int main(int argc, char** argv)
 {
-	ros::init(argc, argv, "pomp_planner_node");
+	ros::init(argc, argv, "itomp_planner_node");
 
 	/*
 	itomp_cio_planner::ItompPlannerNode itomp_planner_node;

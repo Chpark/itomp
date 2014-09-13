@@ -3,7 +3,7 @@
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
-#include <itomp_cio_planner/visualization/visualization_manager.h>
+#include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <kdl/jntarray.hpp>
 #include <angles/angles.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -33,7 +33,7 @@ bool ItompPlannerNode::init()
 	if (!itomp_robot_model_->init(robot_model_))
 		return false;
 
-	VisualizationManager::getInstance()->initialize(itomp_robot_model_);
+	NewVizManager::getInstance()->initialize(itomp_robot_model_);
 
 	TrajectoryFactory::getInstance()->initialize(
 			TrajectoryFactory::TRAJECTORY_CIO);

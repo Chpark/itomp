@@ -56,7 +56,7 @@ void renderHierarchicalTrajectory(
 		ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model)
 {
 	static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
-			visualization_msgs::MarkerArray>("pomp_planner/trajectory", 10);
+			visualization_msgs::MarkerArray>("itomp_planner/trajectory", 10);
 	visualization_msgs::MarkerArray ma;
 	std::vector<std::string> link_names = robot_model->getLinkModelNames();
 	std_msgs::ColorRGBA color;
@@ -156,7 +156,7 @@ void renderEnvironment(const std::string& environment_file,
 	ros::NodeHandle node_handle;
 	ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
 			visualization_msgs::MarkerArray>(
-			"pomp_planner/visualization_marker_array", 10);
+			"itomp_planner/visualization_marker_array", 10);
 	visualization_msgs::MarkerArray ma;
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = robot_model->getModelFrame();

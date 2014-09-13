@@ -29,7 +29,7 @@ FullTrajectory* TrajectoryFactory::CreateFullTrajectory(
 	{
 	case TRAJECTORY_CIO:
 		full_trajectory = new FullTrajectory(robot_model,
-				duration, discretization, keyframe_interval, true, true,
+				duration, discretization, keyframe_interval, true, false,
 				robot_model->getContactPointNames().size());
 		break;
 

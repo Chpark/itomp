@@ -45,7 +45,7 @@ src/cost/trajectory_cost_manager.cpp
 src/contact/contact_point.cpp
 src/contact/ground_manager.cpp
 src/contact/contact_force_solver.cpp
-src/visualization/visualization_manager.cpp
+src/visualization/new_viz_manager.cpp
 src/util/min_jerk_trajectory.cpp
 src/util/planning_parameters.cpp
 src/util/point_to_triangle_projection.cpp

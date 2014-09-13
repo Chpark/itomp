@@ -158,6 +158,8 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 	double cost = evaluation_manager_->evaluate();
 
+	evaluation_manager_->render();
+
 	//if (++evaluation_count_ % 100 == 0)
 	{
 		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
@@ -256,7 +258,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_).be_verbose(),
+			dlib::objective_delta_stop_strategy(eps_),//.be_verbose(),
 			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 			variables, 0.0);

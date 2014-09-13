@@ -35,8 +35,8 @@ public:
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
 			const ItompPlanningGroupConstPtr& planning_group);
 	void directChangeForDerivatives(double value,
-			const ItompPlanningGroupConstPtr& planning_group, int type, int point,
-			int element, int& full_point_begin, int& full_point_end,
+			const ItompPlanningGroupConstPtr& planning_group, int type,
+			int point, int element, int& full_point_begin, int& full_point_end,
 			bool backup = true);
 
 	Eigen::Block<Eigen::MatrixXd> getComponentTrajectory(
@@ -64,6 +64,10 @@ public:
 	void backupTrajectories(int point_begin, int point_end, int element);
 	void restoreBackupTrajectories();
 
+	int getKeyframeStartIndex() const;
+	int getNumKeyframeIntervalPoints() const;
+	int getNumKeyframes() const;
+
 protected:
 	void copyFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
@@ -71,7 +75,8 @@ protected:
 			int parameter_point_begin, int parameter_point_end);
 
 	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end);
-	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end, int element);
+	void updateTrajectoryFromKeyframes(int keyframe_begin, int keyframe_end,
+			int element);
 
 	/**
 	 * \brief Generates a minimum jerk trajectory from the start index to end index
@@ -136,6 +141,21 @@ inline FullTrajectory* FullTrajectory::createClone() const
 {
 	FullTrajectory* new_trajectory = new FullTrajectory(*this);
 	return new_trajectory;
+}
+
+inline int FullTrajectory::getKeyframeStartIndex() const
+{
+	return keyframe_start_index_;
+}
+
+inline int FullTrajectory::getNumKeyframeIntervalPoints() const
+{
+	return num_keyframe_interval_points_;
+}
+
+inline int FullTrajectory::getNumKeyframes() const
+{
+	return num_keyframes_;
 }
 
 }

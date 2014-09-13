@@ -6,7 +6,7 @@
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
-#include <itomp_cio_planner/visualization/visualization_manager.h>
+#include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/contact/contact_force_solver.h>
 #include <itomp_cio_planner/util/min_jerk_trajectory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
@@ -194,6 +194,10 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 void NewEvalManager::render()
 {
+	if (PlanningParameters::getInstance()->getAnimateEndeffector())
+		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_, rbdl_models_);
+
+	// TODO: animate contact pos, force
 }
 
 void NewEvalManager::performForwardKinematics(int point_begin, int point_end)

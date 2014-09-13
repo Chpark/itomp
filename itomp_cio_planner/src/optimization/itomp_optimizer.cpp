@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
-#include <itomp_cio_planner/visualization/visualization_manager.h>
+#include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
 //#include <itomp_cio_planner/optimization/improvement_manager_chomp.h>
@@ -35,9 +35,7 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 	improvement_manager_ = boost::make_shared<ImprovementManagerNLP>();
 	//improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
 
-	VisualizationManager::getInstance()->setPlanningGroup(robot_model,
-			planning_group->name_);
-	VisualizationManager::getInstance()->clearAnimations();
+	NewVizManager::getInstance()->setPlanningGroup(planning_group);
 	GroundManager::getInstance().init();
 
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();
@@ -63,9 +61,11 @@ bool ItompOptimizer::optimize()
 
 	improvement_manager_->updatePlanningParameters();
 
-	VisualizationManager::getInstance()->render();
+	NewVizManager::getInstance()->renderOneTime();
 
 	evaluation_manager_->evaluate();
+
+	evaluation_manager_->render();
 	updateBestTrajectory();
 	++iteration_;
 
