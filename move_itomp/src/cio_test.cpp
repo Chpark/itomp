@@ -318,6 +318,7 @@ void setWalkingStates(robot_state::RobotState& start_state, robot_state::RobotSt
   jointValue = end_rot;
   goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
+  /*
   // test
   //double temp[] = {0.1,0.2,0.3,0.4,0.5,0.6};
   double temp[] = {0,0,0,0,0,3.14};
@@ -329,6 +330,7 @@ void setWalkingStates(robot_state::RobotState& start_state, robot_state::RobotSt
   start_state.setJointPositions("base_revolute_joint_z", &temp[5]);
   temp[5] = -3.14;
   goal_state.setJointPositions("base_revolute_joint_z", &temp[5]);
+  */
 }
 
 void setDoorOpeningStates(robot_state::RobotState& pre_state, robot_state::RobotState& start_state,
@@ -554,7 +556,7 @@ int main(int argc, char **argv)
 
   int state_index = 0;
 
-  motion = 4;
+  motion = 9;
   switch (motion)
   {
   case 0:
@@ -741,6 +743,20 @@ int main(int argc, char **argv)
         planner_instance);
   }
     break;
+
+    // test state
+  case 9: // walking
+   {
+	   robot_states.push_back(planning_scene->getCurrentStateNonConst());
+	   robot_states.push_back(robot_states.back());
+	   Eigen::Vector3d start_trans(3.0, 4.0, 0);
+	   Eigen::Vector3d goal_trans(3.0, 9.0, 0);
+	   setWalkingStates(robot_states[state_index], robot_states[state_index + 1], start_trans, goal_trans);
+	   doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
+		   planner_instance);
+	   renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+   }
+     break;
   }
 
   displayStates(robot_states[state_index], robot_states[state_index + 1], node_handle, robot_model);
