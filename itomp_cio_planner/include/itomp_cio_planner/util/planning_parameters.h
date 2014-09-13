@@ -8,8 +8,7 @@
 #ifndef PLANNINGPARAMETERS_H_
 #define PLANNINGPARAMETERS_H_
 
-//#include <ros/ros.h>
-#include <itomp_cio_planner/util/singleton.h>
+#include <itomp_cio_planner/common.h>
 
 namespace itomp_cio_planner
 {

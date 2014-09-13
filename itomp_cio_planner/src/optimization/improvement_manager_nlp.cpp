@@ -7,6 +7,11 @@
 
 using namespace Eigen;
 
+double getROSWallTime()
+{
+	return ros::WallTime::now().toSec();
+}
+
 namespace itomp_cio_planner
 {
 
@@ -35,6 +40,9 @@ void ImprovementManagerNLP::initialize(
 	omp_set_num_threads(num_threads_);
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
+
+	TIME_PROFILER_INIT(getROSWallTime);
+	TIME_PROFILER_ADD_ENTRY(FK);
 
 	const ParameterTrajectoryConstPtr& parameter_trajectory =
 			evaluation_manager_->getParameterTrajectory();
@@ -192,6 +200,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 	// assume evaluate was called before
 
+	TIME_PROFILER_START_ITERATION;
+
 	int num_cost_functions =
 			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
@@ -236,6 +246,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 		}
 	}
 	*/
+
+	TIME_PROFILER_PRINT_ITERATION_TIME();
 
 	return der;
 }

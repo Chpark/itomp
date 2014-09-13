@@ -13,9 +13,12 @@ class TrajectoryCost##C : public TrajectoryCost \
 
 #define ITOMP_TRAJECTORY_COST_ADD(C) \
 if (PlanningParameters::getInstance()->get##C##CostWeight() > 0.0) \
+{ \
 		cost_function_vector_.push_back( \
 				boost::make_shared<TrajectoryCost##C >(index++, #C, \
 						PlanningParameters::getInstance()->get##C##CostWeight())); \
+		TIME_PROFILER_ADD_ENTRY(C) \
+}
 
 
 #endif /* TRAJECTORY_COST_HELPER_H_ */

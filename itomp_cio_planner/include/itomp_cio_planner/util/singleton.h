@@ -8,8 +8,6 @@
 #ifndef SINGLETON_H_
 #define SINGLETON_H_
 
-#include <itomp_cio_planner/common.h>
-
 namespace itomp_cio_planner
 {
 

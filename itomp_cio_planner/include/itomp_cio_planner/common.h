@@ -10,7 +10,7 @@
 #include <iostream>
 #include <sstream>
 #include <stddef.h>
-#include <math.h>
+#include <math.h> // TODO : cmath
 
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -18,6 +18,7 @@
 
 #include <Eigen/Core>
 
+#include <itomp_cio_planner/util/singleton.h>
 #include <itomp_cio_planner/util/itomp_debug.h>
 
 #define ITOMP_DEFINE_SHARED_POINTERS(C) \

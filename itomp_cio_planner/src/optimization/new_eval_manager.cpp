@@ -186,6 +186,7 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
 		}
 	}
+	is_feasible = false;
 	return is_feasible;
 }
 
@@ -195,6 +196,8 @@ void NewEvalManager::render()
 
 void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 {
+	TIME_PROFILER_START_TIMER(FK);
+
 	for (int point = point_begin; point < point_end; ++point)
 	{
 		Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
@@ -346,6 +349,8 @@ void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 	 printf("\n");
 	 }
 	 */
+
+	TIME_PROFILER_END_TIMER(FK);
 }
 
 void NewEvalManager::performInverseDynamics(int point_begin, int point_end)

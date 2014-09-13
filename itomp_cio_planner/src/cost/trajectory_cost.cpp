@@ -18,9 +18,10 @@ bool TrajectoryCostSmoothness::evaluate(
 		const NewEvalManager* evaluation_manager,
 		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
 {
+	TIME_PROFILER_START_TIMER(Smoothness);
+
 	ROS_ASSERT(trajectory->hasAcceleration());
 
-	//cost = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point).array().abs().sum();
 	cost = 0;
 	double value;
 	const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_ACCELERATION);
@@ -32,6 +33,8 @@ bool TrajectoryCostSmoothness::evaluate(
 
 	// normalize cost (independent to # of joints)
 	cost /= trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+
+	TIME_PROFILER_END_TIMER(Smoothness);
 
 	return true;
 }
