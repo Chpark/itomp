@@ -226,6 +226,7 @@ bool isCollide(robot_state::RobotState& ik_state, planning_scene::PlanningSceneP
 
   collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
   acm.setEntry("environment", "segment_0", true);
+  acm.setEntry("environment", "segment_1", true);
 
   planning_scene->checkCollisionUnpadded(collision_request, collision_result, ik_state, acm);
   return collision_result.collision;
@@ -259,6 +260,9 @@ void computeIKState(robot_state::RobotState& ik_state, planning_scene::PlanningS
     double dist = log(-3 + 0.001 * i) / log(10);
 
     ik_state.setToRandomPositionsNearBy(joint_model_group, org_start, dist);
+
+    if (i==50)
+    	break;
   }
 
   if (found_ik)
@@ -383,8 +387,8 @@ int main(int argc, char **argv)
   moveit_msgs::DisplayTrajectory display_trajectory;
   moveit_msgs::MotionPlanResponse response;
 
-  loadStaticScene(node_handle, planning_scene, robot_model);
 
+  loadStaticScene(node_handle, planning_scene, robot_model);
   /* Sleep a little to allow time to startup rviz, etc. */
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
@@ -452,7 +456,7 @@ int main(int argc, char **argv)
   robot_state::RobotState to_state(start_state);
 
   isCollide(from_state, planning_scene);
-  for (int i = 0; i < 6; ++i)
+  for (int i = 0; i < 3; ++i)
   {
     ROS_INFO("*** Planning Sequence %d ***", i);
 
