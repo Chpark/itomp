@@ -34,6 +34,7 @@ NewEvalManager::~NewEvalManager()
 
 void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 		const ItompRobotModelConstPtr& robot_model,
+		const planning_scene::PlanningSceneConstPtr& planning_scene,
 		const ItompPlanningGroupConstPtr& planning_group,
 		double planning_start_time, double trajectory_start_time,
 		const moveit_msgs::Constraints& path_constraints)
@@ -44,6 +45,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 					full_trajectory_, planning_group));
 
 	robot_model_ = robot_model;
+	planning_scene_ = planning_scene;
 	planning_group_ = planning_group;
 
 	planning_start_time_ = planning_start_time;
@@ -54,6 +56,9 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 
 	rbdl_models_.resize(full_trajectory_->getNumPoints(),
 			robot_model_->getRBDLRobotModel());
+
+	kinematic_state_.reset(
+			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
 	// TODO : path_constraints
 }
@@ -69,6 +74,8 @@ NewEvalManager* NewEvalManager::createClone() const
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
 					new_manager->full_trajectory_, planning_group_));
 	new_manager->parameter_modified_ = false;
+	new_manager->kinematic_state_.reset(
+			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
 	return new_manager;
 }
@@ -113,13 +120,13 @@ void NewEvalManager::computeDerivatives(
 				end - begin, num_cost_functions).sum();
 
 		/*
-		if (type == 0 && point == 1 && i == 0)
-		{
-			getFullTrajectory()->printTrajectory();
-			std::cout << std::setprecision(10) << evaluation_cost_matrix_
-					<< std::endl;
-		}
-		*/
+		 if (type == 0 && point == 1 && i == 0)
+		 {
+		 getFullTrajectory()->printTrajectory();
+		 std::cout << std::setprecision(10) << evaluation_cost_matrix_
+		 << std::endl;
+		 }
+		 */
 
 		evaluateParameterPoint(value - eps, type, point, i, begin, end, false);
 
@@ -127,23 +134,23 @@ void NewEvalManager::computeDerivatives(
 				end - begin, num_cost_functions).sum();
 
 		/*
-		if (type == 0 && point == 1 && i == 0)
-		{
-			getFullTrajectory()->printTrajectory();
-			std::cout << std::setprecision(10) << evaluation_cost_matrix_
-					<< std::endl;
-		}
-		*/
+		 if (type == 0 && point == 1 && i == 0)
+		 {
+		 getFullTrajectory()->printTrajectory();
+		 std::cout << std::setprecision(10) << evaluation_cost_matrix_
+		 << std::endl;
+		 }
+		 */
 
 		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
 
 		/*
-		if (type == 0 && point == 1 && i == 0)
-		{
-			printf("%.14f = %.14f-%.14f(%.14f) / %.14f\n", *(out + i), delta_plus,
-					delta_minus, (delta_plus - delta_minus), 2 * eps);
-		}
-		*/
+		 if (type == 0 && point == 1 && i == 0)
+		 {
+		 printf("%.14f = %.14f-%.14f(%.14f) / %.14f\n", *(out + i), delta_plus,
+		 delta_minus, (delta_plus - delta_minus), 2 * eps);
+		 }
+		 */
 
 		full_trajectory_->restoreBackupTrajectories();
 	}
@@ -182,8 +189,7 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
 			double cost = 0.0;
-			is_feasible &= cost_functions[c]->evaluate(this, full_trajectory_,
-					i, cost);
+			is_feasible &= cost_functions[c]->evaluate(this, i, cost);
 
 			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
 		}
@@ -195,7 +201,8 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 void NewEvalManager::render()
 {
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
-		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_, rbdl_models_);
+		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_,
+				rbdl_models_);
 
 	// TODO: animate contact pos, force
 }

@@ -11,9 +11,71 @@
 #include <moveit_msgs/PlanningScene.h>
 #include <map>
 #include <cmath>
+#include <boost/variant/get.hpp>
+#include <geometric_shapes/mesh_operations.h>
+#include <geometric_shapes/shape_operations.h>
+#include <geometric_shapes/shapes.h>
 
 const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / std::sqrt((long double)2.0);
+
+
+void loadStaticScene(ros::NodeHandle& node_handle, planning_scene::PlanningScenePtr& planning_scene,
+    robot_model::RobotModelPtr& robot_model)
+{
+  std::string environment_file;
+  std::vector<double> environment_position;
+
+  node_handle.param<std::string>("/itomp_planner/environment_model", environment_file, "");
+
+  if (!environment_file.empty())
+  {
+    double scale;
+    node_handle.param("/itomp_planner/environment_model_scale", scale, 1.0);
+    environment_position.resize(3, 0);
+    if (node_handle.hasParam("/itomp_planner/environment_model_position"))
+    {
+      XmlRpc::XmlRpcValue segment;
+      node_handle.getParam("/itomp_planner/environment_model_position", segment);
+      if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+      {
+        int size = segment.size();
+        for (int i = 0; i < size; ++i)
+        {
+          double value = segment[i];
+          environment_position.push_back(value);
+        }
+      }
+    }
+
+    // Collision object
+    moveit_msgs::CollisionObject collision_object;
+    collision_object.header.frame_id = robot_model->getModelFrame();
+    collision_object.id = "environment";
+    geometry_msgs::Pose pose;
+    pose.position.x = environment_position[0];
+    pose.position.y = environment_position[1];
+    pose.position.z = environment_position[2];
+    pose.orientation.x = 0.0;
+    pose.orientation.y = 0.0;
+    pose.orientation.z = 0.0;
+    pose.orientation.w = 1.0;
+
+    shapes::Mesh* shape = shapes::createMeshFromResource(environment_file);
+    shapes::ShapeMsg mesh_msg;
+    shapes::constructMsgFromShape(shape, mesh_msg);
+    shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
+
+    collision_object.meshes.push_back(mesh);
+    collision_object.mesh_poses.push_back(pose);
+
+    collision_object.operation = collision_object.ADD;
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    planning_scene_msg.is_diff = true;
+    planning_scene->setPlanningSceneDiffMsg(planning_scene_msg);
+  }
+}
 
 void renderHierarchicalTrajectory(robot_trajectory::RobotTrajectoryPtr& robot_trajectory, ros::NodeHandle& node_handle,
     robot_model::RobotModelPtr& robot_model)
@@ -529,6 +591,8 @@ int main(int argc, char **argv)
         "Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
   }
 
+  loadStaticScene(node_handle, planning_scene, robot_model);
+
   /* Sleep a little to allow time to startup rviz, etc. */
   ros::WallDuration sleep_time(1.0);
   sleep_time.sleep();
@@ -749,8 +813,8 @@ int main(int argc, char **argv)
    {
 	   robot_states.push_back(planning_scene->getCurrentStateNonConst());
 	   robot_states.push_back(robot_states.back());
-	   Eigen::Vector3d start_trans(3.0, 4.0, 0);
-	   Eigen::Vector3d goal_trans(3.0, 9.0, 0);
+	   Eigen::Vector3d start_trans(-4.0, 3.0, 0);
+	   Eigen::Vector3d goal_trans(-4.0, 9.0, 0);
 	   setWalkingStates(robot_states[state_index], robot_states[state_index + 1], start_trans, goal_trans);
 	   doPlan("lower_body", req, res, robot_states[state_index], robot_states[state_index + 1], planning_scene,
 		   planner_instance);

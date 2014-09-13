@@ -8,7 +8,7 @@ class TrajectoryCost##C : public TrajectoryCost \
 		TrajectoryCost##C(int index, std::string name, double weight) : TrajectoryCost(index, name, weight) {} \
 		virtual ~TrajectoryCost##C() {} \
 		virtual bool evaluate(const NewEvalManager* evaluation_manager, \
-								const FullTrajectoryConstPtr& trajectory, int point, double& cost) const;\
+								int point, double& cost) const;\
 };
 
 #define ITOMP_TRAJECTORY_COST_ADD(C) \

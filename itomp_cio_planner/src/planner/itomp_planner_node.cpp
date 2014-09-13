@@ -98,7 +98,7 @@ bool ItompPlannerNode::planTrajectory(
 					true);
 
 			optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_,
-					itomp_robot_model_, planning_group, planning_start_time,
+					itomp_robot_model_, planning_scene, planning_group, planning_start_time,
 					trajectory_start_time, req.path_constraints);
 
 			optimizer_->optimize();

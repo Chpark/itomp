@@ -15,8 +15,8 @@ public:
 	TrajectoryCost(int index, std::string name, double weight);
 	virtual ~TrajectoryCost();
 
-	virtual bool evaluate(const NewEvalManager* evaluation_manager,
-			const FullTrajectoryConstPtr& trajectory, int point, double& cost) const = 0;
+	virtual bool evaluate(const NewEvalManager* evaluation_manager, int point,
+			double& cost) const = 0;
 
 	int getIndex() const;
 	const std::string& getName() const;

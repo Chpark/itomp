@@ -15,16 +15,18 @@ TrajectoryCost::~TrajectoryCost()
 }
 
 bool TrajectoryCostSmoothness::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(Smoothness);
 
+	const FullTrajectoryConstPtr trajectory =
+			evaluation_manager->getFullTrajectory();
 	ROS_ASSERT(trajectory->hasAcceleration());
 
 	cost = 0;
 	double value;
-	const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_ACCELERATION);
+	const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(
+			Trajectory::TRAJECTORY_TYPE_ACCELERATION);
 	for (int i = 0; i < mat_acc.cols(); ++i)
 	{
 		value = std::abs(mat_acc(point, i));
@@ -32,7 +34,8 @@ bool TrajectoryCostSmoothness::evaluate(
 	}
 
 	// normalize cost (independent to # of joints)
-	cost /= trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	cost /= trajectory->getComponentSize(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
 	TIME_PROFILER_END_TIMER(Smoothness);
 
@@ -40,18 +43,55 @@ bool TrajectoryCostSmoothness::evaluate(
 }
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
+	TIME_PROFILER_START_TIMER(Obstacle);
+
 	bool is_feasible = true;
 	cost = 0;
 
-	// implement
+	const FullTrajectoryConstPtr trajectory =
+			evaluation_manager->getFullTrajectory();
+	robot_state::RobotStatePtr kinematic_state =
+			evaluation_manager->kinematic_state_;
+	const planning_scene::PlanningSceneConstPtr planning_scene =
+			evaluation_manager->getPlanningScene();
+
+	ROS_ASSERT(
+			kinematic_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+
+	collision_detection::CollisionRequest collision_request;
+	collision_detection::CollisionResult collision_result;
+	collision_request.verbose = false;
+	collision_request.contacts = true;
+	collision_request.max_contacts = 1000;
+
+	const Eigen::MatrixXd mat = trajectory->getTrajectory(
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+	kinematic_state->setVariablePositions(mat.data());
+
+	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
+			*kinematic_state);
+
+	const collision_detection::CollisionResult::ContactMap& contact_map =
+			collision_result.contacts;
+	for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+			contact_map.begin(); it != contact_map.end(); ++it)
+	{
+		const collision_detection::Contact& contact = it->second[0];
+		cost += contact.depth;
+	}
+	collision_result.clear();
+
+	is_feasible = (cost == 0.0);
+
+	TIME_PROFILER_END_TIMER(Obstacle);
 
 	return is_feasible;
 }
 
 bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -62,8 +102,7 @@ bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostContactInvariant::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -74,8 +113,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 }
 
 bool TrajectoryCostPhysicsViolation::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -86,7 +124,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 }
 
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -97,7 +135,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -108,8 +146,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostEndeffectorVelocity::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -120,7 +157,7 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 }
 
 bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -131,7 +168,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -142,7 +179,7 @@ bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -153,8 +190,7 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 }
 
 bool TrajectoryCostCartesianTrajectory::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -165,8 +201,7 @@ bool TrajectoryCostCartesianTrajectory::evaluate(
 }
 
 bool TrajectoryCostSingularity::evaluate(
-		const NewEvalManager* evaluation_manager,
-		const FullTrajectoryConstPtr& trajectory, int point, double& cost) const
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;

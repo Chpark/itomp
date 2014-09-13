@@ -9,6 +9,7 @@
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
 #include <moveit/planning_scene/planning_scene.h>
+#include <moveit/robot_state/robot_state.h>
 
 namespace itomp_cio_planner
 {
@@ -21,6 +22,7 @@ public:
 
 	void initialize(const FullTrajectoryPtr& full_trajectory,
 			const ItompRobotModelConstPtr& robot_model,
+			const planning_scene::PlanningSceneConstPtr& planning_scene,
 			const ItompPlanningGroupConstPtr& planning_group,
 			double planning_start_time, double trajectory_start_time,
 			const moveit_msgs::Constraints& path_constraints);
@@ -46,6 +48,8 @@ public:
 
 	NewEvalManager* createClone() const;
 
+	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;
+
 private:
 	void performForwardKinematics(int point_begin, int point_end);
 	void performInverseDynamics(int point_begin, int point_end);
@@ -61,7 +65,9 @@ private:
 	mutable ParameterTrajectoryConstPtr parameter_trajectory_const_;
 
 	ItompRobotModelConstPtr robot_model_;
+	planning_scene::PlanningSceneConstPtr planning_scene_;
 	ItompPlanningGroupConstPtr planning_group_;
+	robot_state::RobotStatePtr kinematic_state_;
 
 	double planning_start_time_;
 	double trajectory_start_time_;
@@ -70,12 +76,13 @@ private:
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
 
-public:
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
 	bool parameter_modified_;
 
 	double best_cost_;
+
+	friend class TrajectoryCostObstacle;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
@@ -106,6 +113,11 @@ inline void NewEvalManager::setParameterModified()
 inline double NewEvalManager::getTrajectoryCost()
 {
 	return evaluation_cost_matrix_.sum();
+}
+
+inline const planning_scene::PlanningSceneConstPtr& NewEvalManager::getPlanningScene() const
+{
+	return planning_scene_;
 }
 
 }
