@@ -38,10 +38,11 @@ void ImprovementManagerNLP::initialize(
 	// TODO: change num_threads_
 
 	omp_set_num_threads(num_threads_);
+
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
 
-	TIME_PROFILER_INIT(getROSWallTime);
+	TIME_PROFILER_INIT(getROSWallTime, num_threads_);
 	TIME_PROFILER_ADD_ENTRY(FK);
 
 	const ParameterTrajectoryConstPtr& parameter_trajectory =

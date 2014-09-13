@@ -155,6 +155,8 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 	full_trajectory_->directChangeForDerivatives(value, planning_group_, type,
 			point, element, full_point_begin, full_point_end, first);
 
+	// TODO: contact pos/force don't need FK
+	// TODO: partial FK
 	performForwardKinematics(full_point_begin, full_point_end);
 	performInverseDynamics(full_point_begin, full_point_end);
 

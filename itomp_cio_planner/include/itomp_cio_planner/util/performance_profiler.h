@@ -17,7 +17,7 @@ public:
 	}
 
 	// non thread-safe functions. should be called after omp_set_num_threads()
-	void initialize(double (*get_time_func)());
+	void initialize(double (*get_time_func)(), int num_threads);
 	void addEntry(const char* entry_name);
 
 	// clear last iteration
@@ -57,11 +57,12 @@ protected:
 	double (*get_time_func_)();
 };
 
-inline void PerformanceProfiler::initialize(double (*get_time_func)())
+inline void PerformanceProfiler::initialize(double (*get_time_func)(), int num_threads)
 {
 	get_time_func_ = get_time_func;
 
-	num_threads_ = omp_get_num_threads();
+	// omp_get_num_threads doesn't work
+	num_threads_ = num_threads;//omp_get_num_threads();
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 		it->second.initialize(num_threads_);
