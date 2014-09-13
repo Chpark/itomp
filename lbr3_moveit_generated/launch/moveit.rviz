@@ -648,7 +648,7 @@ Visualization Manager:
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
-    Fixed Frame: /segment_0
+    Fixed Frame: /kuka_root
   Name: root
   Tools:
     - Class: rviz/Interact
@@ -667,7 +667,7 @@ Visualization Manager:
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 0.509797
-      Target Frame: /segment_0
+      Target Frame: /kuka_root
       Value: XYOrbit (rviz)
       Yaw: 5.65995
     Saved: ~
