@@ -87,7 +87,6 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 			cost += self_collision_scale * contact.depth;
 		else
 			cost += contact.depth;
-
 	}
 	collision_result.clear();
 

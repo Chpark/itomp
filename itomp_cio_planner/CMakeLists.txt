@@ -32,6 +32,7 @@ rosbuild_add_library(itomp
 src/planner/itomp_planner_node.cpp
 src/planner/planning_info_manager.cpp
 src/model/itomp_robot_model.cpp
+src/model/rbdl_model_util.cpp
 src/model/treefksolverjointposaxis.cpp
 src/model/treefksolverjointposaxis_partial.cpp
 src/trajectory/trajectory.cpp

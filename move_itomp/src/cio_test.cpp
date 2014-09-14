@@ -31,8 +31,6 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 
 	if (!environment_file.empty())
 	{
-		double scale;
-		node_handle.param("/itomp_planner/environment_model_scale", scale, 1.0);
 		environment_position.resize(3, 0);
 		if (node_handle.hasParam("/itomp_planner/environment_model_position"))
 		{
@@ -45,7 +43,7 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 				for (int i = 0; i < size; ++i)
 				{
 					double value = segment[i];
-					environment_position.push_back(value);
+					environment_position[i] = value;
 				}
 			}
 		}
@@ -58,6 +56,7 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		pose.position.x = environment_position[0];
 		pose.position.y = environment_position[1];
 		pose.position.z = environment_position[2];
+		ROS_INFO("Env col pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
 		pose.orientation.x = 0.0;
 		pose.orientation.y = 0.0;
 		pose.orientation.z = 0.0;
@@ -68,18 +67,18 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		shapes::constructMsgFromShape(shape, mesh_msg);
 		shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
 
-		//collision_object.meshes.push_back(mesh);
-		//collision_object.mesh_poses.push_back(pose);
+		collision_object.meshes.push_back(mesh);
+		collision_object.mesh_poses.push_back(pose);
 
 		shape_msgs::SolidPrimitive primitive;
 		primitive.type = primitive.BOX;
 		primitive.dimensions.resize(3);
 		primitive.dimensions[0] = 2.0;
-		primitive.dimensions[1] = 2.0;
-		primitive.dimensions[2] = 2.0;
+		primitive.dimensions[1] = 1.0;
+		primitive.dimensions[2] = 1.0;
 		pose.position.x = 0;
 		pose.position.y = 6.0;
-		pose.position.z = 0;
+		pose.position.z = -0.45;
 		collision_object.primitive_poses.push_back(pose);
 		collision_object.primitives.push_back(primitive);
 
@@ -108,8 +107,6 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 
 	if (!environment_file.empty())
 	{
-		double scale;
-		node_handle.param("/itomp_planner/environment_model_scale", scale, 1.0);
 		environment_position.resize(3, 0);
 		if (node_handle.hasParam("/itomp_planner/environment_model_position"))
 		{
@@ -122,7 +119,7 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 				for (int i = 0; i < size; ++i)
 				{
 					double value = segment[i];
-					environment_position.push_back(value);
+					environment_position[i] = value;
 				}
 			}
 		}
@@ -134,13 +131,14 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		msg.ns = "environment";
 		msg.type = visualization_msgs::Marker::MESH_RESOURCE;
 		msg.action = visualization_msgs::Marker::ADD;
-		msg.scale.x = scale;
-		msg.scale.y = scale;
-		msg.scale.z = scale;
+		msg.scale.x = 1.0;
+		msg.scale.y = 1.0;
+		msg.scale.z = 1.0;
 		msg.id = 0;
 		msg.pose.position.x = environment_position[0];
 		msg.pose.position.y = environment_position[1];
 		msg.pose.position.z = environment_position[2];
+		ROS_INFO("Env render pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
 		msg.pose.orientation.x = 0.0;
 		msg.pose.orientation.y = 0.0;
 		msg.pose.orientation.z = 0.0;
@@ -150,17 +148,17 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		msg.color.g = 0.5;
 		msg.color.b = 0.5;
 		msg.mesh_resource = environment_file;
-		//ma.markers.push_back(msg);
+		ma.markers.push_back(msg);
 
 		msg.ns = "environment2";
 		msg.type = visualization_msgs::Marker::CUBE;
 		msg.id = 0;
 		msg.pose.position.x = 0;
 		msg.pose.position.y = 6.0;
-		msg.pose.position.z = 0;
+		msg.pose.position.z = -0.45;
 		msg.scale.x = 2.0;
-		msg.scale.x = 2.0;
-		msg.scale.x = 2.0;
+		msg.scale.y = 1.0;
+		msg.scale.z = 1.0;
 		ma.markers.push_back(msg);
 
 		ros::WallDuration(1.0).sleep();

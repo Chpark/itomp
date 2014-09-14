@@ -53,7 +53,7 @@ public:
 
 private:
 	void performForwardKinematics(int point_begin, int point_end);
-	void performPartialForwardKinematics(int point_begin, int point_end, int joint_index);
+	void performPartialForwardKinematics(int point_begin, int point_end, int parameter_element);
 	void performInverseDynamics(int point_begin, int point_end);
 
 	void setParameterModified();

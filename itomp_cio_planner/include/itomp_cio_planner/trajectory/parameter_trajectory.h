@@ -16,6 +16,7 @@ public:
 			const ItompPlanningGroupConstPtr& planning_group);
 	virtual ~ParameterTrajectory();
 
+	int getNumJoints() const;
 protected:
 	int num_joints_;
 	std::vector<int> group_to_full_joint_indices;
@@ -26,6 +27,11 @@ protected:
 ITOMP_DEFINE_SHARED_POINTERS(ParameterTrajectory);
 
 ///////////////////////// inline functions follow //////////////////////
+
+inline int ParameterTrajectory::getNumJoints() const
+{
+	return num_joints_;
+}
 
 }
 

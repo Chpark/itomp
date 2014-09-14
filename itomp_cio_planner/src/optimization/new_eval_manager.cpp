@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
+#include <itomp_cio_planner/model/rbdl_model_util.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/contact/contact_force_solver.h>
@@ -166,8 +167,9 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 			point, element, full_point_begin, full_point_end, first);
 
 	// TODO: partial FK
-	int full_element_index = planning_group_->group_joints_[element].rbdl_joint_index_;
-	performPartialForwardKinematics(full_point_begin, full_point_end, full_element_index);
+	int full_element_index =
+			planning_group_->group_joints_[element].rbdl_joint_index_;
+	performPartialForwardKinematics(full_point_begin, full_point_end, element);
 
 	performInverseDynamics(full_point_begin, full_point_end);
 
@@ -250,13 +252,16 @@ void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 }
 
 void NewEvalManager::performPartialForwardKinematics(int point_begin,
-		int point_end, int joint_index)
+		int point_end, int parameter_element)
 {
 	TIME_PROFILER_START_TIMER(FK);
 
-	if (joint_index
-			< full_trajectory_->getComponentSize(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT))
+	for (int point = point_begin; point < point_end; ++point)
+	{
+		rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
+	}
+
+	if (parameter_element < parameter_trajectory_->getNumJoints())
 	{
 		for (int point = point_begin; point < point_end; ++point)
 		{
@@ -278,21 +283,54 @@ void NewEvalManager::performPartialForwardKinematics(int point_begin,
 								Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(
 								point);
 
-				RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q,
-						q_dot, q_ddot);
+				/*
+				 RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q,
+				 q_dot, q_ddot);
+
+
+				 RigidBodyDynamics::Model ref_model = rbdl_models_[point];
+
+				 rbdl_models_[point] =
+				 ref_evaluation_manager_->rbdl_models_[point];
+				 */
+				UpdatePartialKinematics(rbdl_models_[point], q, q_dot, q_ddot,
+						planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
+				/*
+				 // TODO: validate
+				 for (int i = 0; i < ref_model.mJoints.size(); ++i)
+				 {
+				 if (ref_model.X_T[i].E != rbdl_models_[point].X_T[i].E)
+				 {
+				 printf("FK E not equal [%d] joint %d\n", point, i);
+				 cout << ref_model.X_T[i].E << endl
+				 << rbdl_models_[point].X_T[i].E << endl;
+				 }
+				 if (ref_model.X_T[i].r != rbdl_models_[point].X_T[i].r)
+				 {
+				 printf("FK r not equal [%d] joint %d\n", point, i);
+				 cout << ref_model.X_T[i].r << endl
+				 << rbdl_models_[point].X_T[i].r << endl;
+				 }
+				 }
+				 */
 			}
 			else
 			{
+				// TODO:
 				RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point],
 						&q, NULL, NULL);
 			}
 		}
 	}
 	else
-		for (int point = point_begin; point < point_end; ++point)
-		{
-			rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
-		}
+	{
+		/*
+		 for (int point = point_begin; point < point_end; ++point)
+		 {
+		 rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
+		 }
+		 */
+	}
 
 	TIME_PROFILER_END_TIMER(FK);
 }

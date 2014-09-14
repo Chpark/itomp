@@ -19,7 +19,8 @@ public:
 	double joint_limit_min_; /**< Minimum joint angle value */
 	double joint_limit_max_; /**< Maximum joint angle value */
 
-	unsigned int rbdl_joint_index_;
+	unsigned int rbdl_joint_index_; // q
+	std::vector<unsigned int> rbdl_affected_body_ids_; // used in partial FK
 };
 }
 #endif

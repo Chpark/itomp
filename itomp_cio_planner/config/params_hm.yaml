@@ -4,7 +4,7 @@ max_iterations: 1
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
-smoothness_cost_weight: 0.0000
+smoothness_cost_weight: 0.00001
 obstacle_cost_weight: 20.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
@@ -74,7 +74,7 @@ contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
 environment_model: package://move_itomp/meshes/merged_empty.dae
-environment_model_position: [0.0, 0.0, 0.0]
+environment_model_position: [0.0, 0.0, -0.05]
 environment_model_scale: 1.0
 
 
