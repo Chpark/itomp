@@ -150,7 +150,7 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		msg.color.g = 0.5;
 		msg.color.b = 0.5;
 		msg.mesh_resource = environment_file;
-		ma.markers.push_back(msg);
+		//ma.markers.push_back(msg);
 
 		msg.ns = "environment2";
 		msg.type = visualization_msgs::Marker::CUBE;
