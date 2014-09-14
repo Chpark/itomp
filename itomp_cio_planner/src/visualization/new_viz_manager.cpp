@@ -114,7 +114,7 @@ void NewVizManager::animateEndeffectors(
 {
 	const double scale_keyframe = 0.05;
 	const double scale_line = 0.01;
-	visualization_msgs::Marker::_color_type BLUE, GREEN, VIOLET, YELLOW;
+	visualization_msgs::Marker::_color_type BLUE, GREEN, MAGENTA, YELLOW;
 	BLUE.a = 1.0;
 	BLUE.r = 0.0;
 	BLUE.g = 0.0;
@@ -123,10 +123,10 @@ void NewVizManager::animateEndeffectors(
 	GREEN.r = 0.0;
 	GREEN.g = 1.0;
 	GREEN.b = 0.0;
-	VIOLET.a = 1.0;
-	VIOLET.r = 1.0;
-	VIOLET.g = 0.0;
-	VIOLET.b = 1.0;
+	MAGENTA.a = 1.0;
+	MAGENTA.r = 1.0;
+	MAGENTA.g = 0.0;
+	MAGENTA.b = 1.0;
 	YELLOW.a = 1.0;
 	YELLOW.r = 1.0;
 	YELLOW.g = 1.0;
@@ -147,7 +147,7 @@ void NewVizManager::animateEndeffectors(
 	msg.scale.z = scale_keyframe;
 	msg.points.resize(0);
 
-	msg.color = is_best ? VIOLET : BLUE;
+	msg.color = is_best ? MAGENTA : BLUE;
 
 	msg.id = 0;
 	for (int i = full_trajectory->getKeyframeStartIndex();
@@ -225,6 +225,69 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 		robot_state->getRobotMarkers(ma, link_names, color, ns, dur);
 		vis_marker_array_publisher_.publish(ma);
 	}
+}
+
+void NewVizManager::animateContactForces(
+		const FullTrajectoryConstPtr& full_trajectory, bool is_best)
+{
+	if (!is_best)
+		return;
+
+	const double scale_line = 0.01;
+	visualization_msgs::Marker::_color_type MAGENTA;
+	MAGENTA.a = 1.0;
+	MAGENTA.r = 1.0;
+	MAGENTA.g = 0.0;
+	MAGENTA.b = 1.0;
+	geometry_msgs::Point point_from, point_to;
+
+	const Eigen::MatrixXd& contact_positions =
+			full_trajectory->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION);
+	const Eigen::MatrixXd& contact_forces =
+			full_trajectory->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE);
+
+	int num_contacts = contact_positions.cols() / 3;
+
+	visualization_msgs::Marker msg;
+	msg.header.frame_id = reference_frame_;
+	msg.header.stamp = ros::Time::now();
+	msg.ns = "itomp_best_cf";
+	msg.action = visualization_msgs::Marker::ADD;
+	msg.pose.orientation.w = 1.0;
+
+	msg.type = visualization_msgs::Marker::LINE_LIST;
+	msg.scale.x = scale_line;
+	msg.scale.y = scale_line;
+	msg.scale.z = scale_line;
+	msg.color = MAGENTA;
+
+	msg.id = 0;
+	msg.points.resize(0);
+
+	for (int point = full_trajectory->getKeyframeStartIndex();
+			point < full_trajectory->getNumPoints();
+			point += full_trajectory->getNumKeyframeIntervalPoints())
+	{
+		for (int contact_index = 0; contact_index < num_contacts * 3;
+				contact_index += 3)
+		{
+			point_from.x = contact_positions(point, contact_index);
+			point_from.y = contact_positions(point, contact_index + 1);
+			point_from.z = contact_positions(point, contact_index + 2);
+
+			point_to.x = contact_forces(point, contact_index) + point_from.x;
+			point_to.y = contact_forces(point, contact_index + 1)
+					+ point_from.y;
+			point_to.z = contact_forces(point, contact_index + 2)
+					+ point_from.z;
+
+			msg.points.push_back(point_from);
+			msg.points.push_back(point_to);
+		}
+	}
+	vis_marker_publisher_.publish(msg);
 }
 
 }

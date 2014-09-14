@@ -212,10 +212,11 @@ void NewEvalManager::render()
 				robot_state_, is_best);
 
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
+	{
 		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_,
 				rbdl_models_, is_best);
-
-	// TODO: animate contact pos, force
+		NewVizManager::getInstance()->animateContactForces(full_trajectory_, is_best);
+	}
 }
 
 void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
