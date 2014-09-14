@@ -21,7 +21,9 @@ public:
 	void renderOneTime();
 
 	void animateEndeffectors(const FullTrajectoryConstPtr& full_trajectory,
-			const std::vector<RigidBodyDynamics::Model>& models);
+			const std::vector<RigidBodyDynamics::Model>& models, bool is_best);
+	void animatePath(const FullTrajectoryConstPtr& full_trajectory,
+			robot_state::RobotStatePtr& robot_state, bool is_best);
 
 	ros::Publisher& getVisualizationMarkerPublisher();
 	ros::Publisher& getVisualizationMarkerArrayPublisher();

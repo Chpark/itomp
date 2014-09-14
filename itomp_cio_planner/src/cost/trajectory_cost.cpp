@@ -52,13 +52,12 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 	const FullTrajectoryConstPtr trajectory =
 			evaluation_manager->getFullTrajectory();
-	robot_state::RobotStatePtr kinematic_state =
-			evaluation_manager->kinematic_state_;
+	robot_state::RobotStatePtr robot_state = evaluation_manager->robot_state_;
 	const planning_scene::PlanningSceneConstPtr planning_scene =
 			evaluation_manager->getPlanningScene();
 
 	ROS_ASSERT(
-			kinematic_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+			robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
 
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
@@ -68,10 +67,12 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 	const Eigen::MatrixXd mat = trajectory->getTrajectory(
 			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-	kinematic_state->setVariablePositions(mat.data());
+	robot_state->setVariablePositions(mat.data());
+
+	const double self_collision_scale = 0.1;
 
 	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
-			*kinematic_state);
+			*robot_state);
 
 	const collision_detection::CollisionResult::ContactMap& contact_map =
 			collision_result.contacts;
@@ -79,7 +80,14 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 			contact_map.begin(); it != contact_map.end(); ++it)
 	{
 		const collision_detection::Contact& contact = it->second[0];
-		cost += contact.depth;
+
+		if (contact.body_type_1 != collision_detection::BodyTypes::WORLD_OBJECT
+				&& contact.body_type_2
+						!= collision_detection::BodyTypes::WORLD_OBJECT)
+			cost += self_collision_scale * contact.depth;
+		else
+			cost += contact.depth;
+
 	}
 	collision_result.clear();
 

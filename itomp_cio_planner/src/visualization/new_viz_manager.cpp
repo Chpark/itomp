@@ -2,6 +2,7 @@
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <ros/node_handle.h>
+#include <boost/lexical_cast.hpp>
 
 using namespace std;
 
@@ -54,7 +55,7 @@ void NewVizManager::setPlanningGroup(
 void NewVizManager::renderOneTime()
 {
 	//renderGround();
-	renderEnvironment();
+	//renderEnvironment(); // rendered in move_itomp
 }
 
 void NewVizManager::renderEnvironment()
@@ -109,11 +110,11 @@ void NewVizManager::renderGround()
 
 void NewVizManager::animateEndeffectors(
 		const FullTrajectoryConstPtr& full_trajectory,
-		const std::vector<RigidBodyDynamics::Model>& models)
+		const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
 {
 	const double scale_keyframe = 0.05;
 	const double scale_line = 0.01;
-	visualization_msgs::Marker::_color_type BLUE, GREEN;
+	visualization_msgs::Marker::_color_type BLUE, GREEN, VIOLET, YELLOW;
 	BLUE.a = 1.0;
 	BLUE.r = 0.0;
 	BLUE.g = 0.0;
@@ -122,12 +123,20 @@ void NewVizManager::animateEndeffectors(
 	GREEN.r = 0.0;
 	GREEN.g = 1.0;
 	GREEN.b = 0.0;
+	VIOLET.a = 1.0;
+	VIOLET.r = 1.0;
+	VIOLET.g = 0.0;
+	VIOLET.b = 1.0;
+	YELLOW.a = 1.0;
+	YELLOW.r = 1.0;
+	YELLOW.g = 1.0;
+	YELLOW.b = 0.0;
 	geometry_msgs::Point point;
 
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = reference_frame_;
 	msg.header.stamp = ros::Time::now();
-	msg.ns = "itomp_endeffector";
+	msg.ns = is_best ? "itomp_best_ee" : "itomp_ee";
 	msg.action = visualization_msgs::Marker::ADD;
 	msg.pose.orientation.w = 1.0;
 
@@ -137,7 +146,8 @@ void NewVizManager::animateEndeffectors(
 	msg.scale.y = scale_keyframe;
 	msg.scale.z = scale_keyframe;
 	msg.points.resize(0);
-	msg.color = BLUE;
+
+	msg.color = is_best ? VIOLET : BLUE;
 
 	msg.id = 0;
 	for (int i = full_trajectory->getKeyframeStartIndex();
@@ -162,7 +172,7 @@ void NewVizManager::animateEndeffectors(
 	msg.scale.x = scale_line;
 	msg.scale.y = scale_line;
 	msg.scale.z = scale_line;
-	msg.color = GREEN;
+	msg.color = is_best ? YELLOW : GREEN;
 
 	for (int j = 0; j < endeffector_rbdl_indices_.size(); ++j)
 	{
@@ -180,6 +190,40 @@ void NewVizManager::animateEndeffectors(
 		}
 
 		vis_marker_publisher_.publish(msg);
+	}
+}
+
+void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
+		robot_state::RobotStatePtr& robot_state, bool is_best)
+{
+	if (!is_best)
+		return;
+
+	visualization_msgs::Marker::_color_type WHITE;
+	WHITE.a = 0.1;
+	WHITE.r = 1.0;
+	WHITE.g = 1.0;
+	WHITE.b = 1.0;
+
+	geometry_msgs::Point point;
+
+	visualization_msgs::MarkerArray ma;
+	std::vector<std::string> link_names =
+			robot_model_->getMoveitRobotModel()->getLinkModelNames();
+	std_msgs::ColorRGBA color = WHITE;
+	ros::Duration dur(100.0);
+
+	for (int point = full_trajectory->getKeyframeStartIndex();
+			point < full_trajectory->getNumPoints();
+			point += full_trajectory->getNumKeyframeIntervalPoints())
+	{
+		ma.markers.clear();
+		const Eigen::MatrixXd mat = full_trajectory->getTrajectory(
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+		robot_state->setVariablePositions(mat.data());
+		std::string ns = "kf_" + boost::lexical_cast<std::string>(point);
+		robot_state->getRobotMarkers(ma, link_names, color, ns, dur);
+		vis_marker_array_publisher_.publish(ma);
 	}
 }
 

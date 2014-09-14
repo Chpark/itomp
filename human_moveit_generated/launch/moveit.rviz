@@ -7,11 +7,10 @@ Panels:
         - /MotionPlanning1
         - /MotionPlanning1/Planned Path1
         - /MarkerArray1
-        - /MarkerArray1/Namespaces1
-        - /MarkerArray2
         - /Marker1
         - /Marker1/Namespaces1
-        - /MarkerArray3
+        - /MarkerArray2
+        - /MarkerArray2/Namespaces1
       Splitter Ratio: 0.465479
     Tree Height: 837
   - Class: rviz/Help
@@ -976,16 +975,6 @@ Visualization Manager:
       Show Highlights: true
       Value: false
       Visual Enabled: true
-    - Class: rviz/MarkerArray
-      Enabled: true
-      Marker Topic: /itomp_planner/visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        door_opened: true
-        drawer: true
-        environment: true
-      Queue Size: 100
-      Value: true
     - Class: rviz/Axes
       Enabled: false
       Length: 1
@@ -995,10 +984,18 @@ Visualization Manager:
       Value: false
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /amc_viewer/visualization_marker_array
+      Marker Topic: /itomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        kf_0: true
+        kf_10: true
+        kf_20: true
+        kf_30: true
+        kf_40: true
+        kf_50: true
+        kf_60: true
+        kf_70: true
+        kf_80: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -1006,18 +1003,26 @@ Visualization Manager:
       Marker Topic: /itomp_planner/visualization_marker
       Name: Marker
       Namespaces:
-        door_opened: true
-        drawer: true
-        environment: true
-        itomp_endeffector: true
+        itomp_best_ee: true
+        itomp_ee: true
+        kf_0: true
+        kf_10: true
+        kf_20: true
+        kf_30: true
+        kf_40: true
+        kf_50: true
+        kf_60: true
+        kf_70: true
+        kf_80: true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /move_itomp/itomp_planner/trajectory
+      Marker Topic: /move_itomp/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        {}
+        environment: true
+        environment2: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -1035,22 +1040,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 3.72613
+      Distance: 6.91545
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.31813
-        Y: 2.57376
-        Z: 6.23132e-07
+        X: 0.870731
+        Y: 6.25177
+        Z: 1.46295e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.504797
+      Pitch: 0.404798
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 0.63836
+      Yaw: 0.188339
     Saved: ~
 Window Geometry:
   Displays:
@@ -1067,4 +1072,4 @@ Window Geometry:
     collapsed: false
   Width: 1855
   X: 1978
-  Y: 23
+  Y: 24

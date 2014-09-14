@@ -22,7 +22,8 @@ namespace itomp_cio_planner
 
 NewEvalManager::NewEvalManager() :
 		last_trajectory_feasible_(false), parameter_modified_(true), best_cost_(
-				std::numeric_limits<double>::max())
+				std::numeric_limits<double>::max()), ref_evaluation_manager_(
+				NULL)
 {
 
 }
@@ -57,7 +58,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	rbdl_models_.resize(full_trajectory_->getNumPoints(),
 			robot_model_->getRBDLRobotModel());
 
-	kinematic_state_.reset(
+	robot_state_.reset(
 			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
 	// TODO : path_constraints
@@ -74,8 +75,10 @@ NewEvalManager* NewEvalManager::createClone() const
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
 					new_manager->full_trajectory_, planning_group_));
 	new_manager->parameter_modified_ = false;
-	new_manager->kinematic_state_.reset(
+	new_manager->robot_state_.reset(
 			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
+
+	new_manager->ref_evaluation_manager_ = this;
 
 	return new_manager;
 }
@@ -162,9 +165,10 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 	full_trajectory_->directChangeForDerivatives(value, planning_group_, type,
 			point, element, full_point_begin, full_point_end, first);
 
-	// TODO: contact pos/force don't need FK
 	// TODO: partial FK
-	performForwardKinematics(full_point_begin, full_point_end);
+	int full_element_index = planning_group_->group_joints_[element].rbdl_joint_index_;
+	performPartialForwardKinematics(full_point_begin, full_point_end, full_element_index);
+
 	performInverseDynamics(full_point_begin, full_point_end);
 
 	evaluatePointRange(full_point_begin, full_point_end,
@@ -200,9 +204,14 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 void NewEvalManager::render()
 {
+	bool is_best = (getTrajectoryCost() <= best_cost_);
+	if (PlanningParameters::getInstance()->getAnimatePath())
+		NewVizManager::getInstance()->animatePath(full_trajectory_,
+				robot_state_, is_best);
+
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_,
-				rbdl_models_);
+				rbdl_models_, is_best);
 
 	// TODO: animate contact pos, force
 }
@@ -236,6 +245,54 @@ void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
 					NULL, NULL);
 		}
 	}
+
+	TIME_PROFILER_END_TIMER(FK);
+}
+
+void NewEvalManager::performPartialForwardKinematics(int point_begin,
+		int point_end, int joint_index)
+{
+	TIME_PROFILER_START_TIMER(FK);
+
+	if (joint_index
+			< full_trajectory_->getComponentSize(
+					FullTrajectory::TRAJECTORY_COMPONENT_JOINT))
+	{
+		for (int point = point_begin; point < point_end; ++point)
+		{
+			Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+					Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+			if (full_trajectory_->hasVelocity()
+					&& full_trajectory_->hasAcceleration())
+			{
+				Eigen::VectorXd q_dot =
+						full_trajectory_->getComponentTrajectory(
+								FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+								Trajectory::TRAJECTORY_TYPE_VELOCITY).row(
+								point);
+				Eigen::VectorXd q_ddot =
+						full_trajectory_->getComponentTrajectory(
+								FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+								Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(
+								point);
+
+				RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q,
+						q_dot, q_ddot);
+			}
+			else
+			{
+				RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point],
+						&q, NULL, NULL);
+			}
+		}
+	}
+	else
+		for (int point = point_begin; point < point_end; ++point)
+		{
+			rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
+		}
 
 	TIME_PROFILER_END_TIMER(FK);
 }
@@ -277,14 +334,14 @@ void NewEvalManager::printTrajectoryCost(int iteration)
 	double cost = evaluation_cost_matrix_.sum();
 	if (cost < best_cost_)
 		best_cost_ = cost;
-	printf("[%d] Trajectory cost : %f/%f (", iteration, cost, best_cost_);
+	printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost, best_cost_);
 
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 	for (int c = 0; c < cost_functions.size(); ++c)
 	{
 		double sub_cost = evaluation_cost_matrix_.col(c).sum();
-		printf("%c=%f, ", cost_functions[c]->getName().at(0), sub_cost);
+		printf("%c=%.7f, ", cost_functions[c]->getName().at(0), sub_cost);
 	}
 
 	printf(")\n");

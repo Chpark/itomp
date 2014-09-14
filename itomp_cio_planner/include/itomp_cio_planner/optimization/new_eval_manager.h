@@ -41,7 +41,7 @@ public:
 			int type, int point, double* out, double eps);
 
 	bool isLastTrajectoryFeasible() const;
-	double getTrajectoryCost();
+	double getTrajectoryCost() const;
 	void printTrajectoryCost(int iteration);
 
 	void render();
@@ -49,15 +49,19 @@ public:
 	NewEvalManager* createClone() const;
 
 	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;
+	const RigidBodyDynamics::Model& getRBDLModel(int point) const;
 
 private:
 	void performForwardKinematics(int point_begin, int point_end);
+	void performPartialForwardKinematics(int point_begin, int point_end, int joint_index);
 	void performInverseDynamics(int point_begin, int point_end);
 
 	void setParameterModified();
 
 	bool evaluatePointRange(int point_begin, int point_end,
 			Eigen::MatrixXd& cost_matrix);
+
+	bool isDerivative() const;
 
 	FullTrajectoryPtr full_trajectory_;
 	ParameterTrajectoryPtr parameter_trajectory_;
@@ -67,7 +71,7 @@ private:
 	ItompRobotModelConstPtr robot_model_;
 	planning_scene::PlanningSceneConstPtr planning_scene_;
 	ItompPlanningGroupConstPtr planning_group_;
-	robot_state::RobotStatePtr kinematic_state_;
+	robot_state::RobotStatePtr robot_state_;
 
 	double planning_start_time_;
 	double trajectory_start_time_;
@@ -81,6 +85,8 @@ private:
 	bool parameter_modified_;
 
 	double best_cost_;
+
+	const NewEvalManager* ref_evaluation_manager_;
 
 	friend class TrajectoryCostObstacle;
 };
@@ -110,7 +116,7 @@ inline void NewEvalManager::setParameterModified()
 	parameter_modified_ = true;
 }
 
-inline double NewEvalManager::getTrajectoryCost()
+inline double NewEvalManager::getTrajectoryCost() const
 {
 	return evaluation_cost_matrix_.sum();
 }
@@ -118,6 +124,11 @@ inline double NewEvalManager::getTrajectoryCost()
 inline const planning_scene::PlanningSceneConstPtr& NewEvalManager::getPlanningScene() const
 {
 	return planning_scene_;
+}
+
+inline bool NewEvalManager::isDerivative() const
+{
+	return ref_evaluation_manager_ != NULL;
 }
 
 }
