@@ -1,6 +1,7 @@
 #ifndef COMMON_H_
 #define COMMON_H_
 
+#include <Eigen/Core>
 #include <Eigen/Dense>
 #include <Eigen/StdVector>
 #include <map>
@@ -15,8 +16,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 #include <boost/make_shared.hpp>
-
-#include <Eigen/Core>
 
 #include <itomp_cio_planner/util/singleton.h>
 #include <itomp_cio_planner/util/itomp_debug.h>

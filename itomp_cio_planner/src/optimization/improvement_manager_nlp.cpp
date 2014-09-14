@@ -44,6 +44,7 @@ void ImprovementManagerNLP::initialize(
 
 	TIME_PROFILER_INIT(getROSWallTime, num_threads_);
 	TIME_PROFILER_ADD_ENTRY(FK);
+	TIME_PROFILER_ADD_ENTRY(ID);
 
 	const ParameterTrajectoryConstPtr& parameter_trajectory =
 			evaluation_manager_->getParameterTrajectory();
