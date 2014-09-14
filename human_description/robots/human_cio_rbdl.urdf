@@ -51,8 +51,8 @@
     </collision>
     <inertial>
       <mass value="24.9873014159"/>
-      <inertia ixx="0.219399825" ixy="0.000000009184695" ixz="0.000000062599005" iyy="0.21939959375" iyz="-0.000000006475555" izz="0.22992248625"/>
-      <origin xyz="0 -0.00000001 0.0983925"/>
+      <inertia ixx="0.219399825" ixy="0.0" ixz="0.0" iyy="0.21939959375" iyz="0.0" izz="0.22992248625"/>
+      <origin xyz="0 0 0.0983925"/>
     </inertial>
   </link>
   <joint name="torso_z_joint" type="continuous">
@@ -76,8 +76,20 @@
     <parent link="torso_y_link"/>
     <child link="torso_x_link"/>
   </joint>
-  <link name="torso_z_link"/>
-  <link name="torso_y_link"/>
+  <link name="torso_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="torso_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="torso_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -94,8 +106,8 @@
     </collision>
     <inertial>
       <mass value="54.1902903318"/>
-      <inertia ixx="1.0895931125" ixy="0.000001152997515" ixz="-0.000000460619845" iyy="1.4490895525" iyz="0.000000968452985" izz="0.679463005"/>
-      <origin xyz="0 -0.00000025 0.22608234"/>
+      <inertia ixx="1.0895931125" ixy="0.0" ixz="0" iyy="1.4490895525" iyz="0.0" izz="0.679463005"/>
+      <origin xyz="0 0 0.22608234"/>
     </inertial>
   </link>
   <joint name="head_z_joint" type="continuous">
@@ -119,8 +131,20 @@
     <parent link="head_y_link"/>
     <child link="head_x_link"/>
   </joint>
-  <link name="head_z_link"/>
-  <link name="head_y_link"/>
+  <link name="head_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="head_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="head_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -137,8 +161,8 @@
     </collision>
     <inertial>
       <mass value="16.0164526852"/>
-      <inertia ixx="0.194835825625" ixy="-0.00000000913641" ixz="0.00000000531468" iyy="0.194835733125" iyz="-0.000000020301345" izz="0.06426014890625"/>
-      <origin xyz="0.0 0.00000001 0.18566523"/>
+      <inertia ixx="0.194835825625" ixy="0" ixz="0" iyy="0.194835733125" iyz="0" izz="0.06426014890625"/>
+      <origin xyz="0.0 0.0 0.18566523"/>
     </inertial>
   </link>
   <joint name="head_endeffector_joint" type="continuous">
@@ -188,8 +212,20 @@
     <parent link="upper_left_leg_y_link"/>
     <child link="upper_left_leg_x_link"/>
   </joint>
-  <link name="upper_left_leg_z_link"/>
-  <link name="upper_left_leg_y_link"/>
+  <link name="upper_left_leg_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="upper_left_leg_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="upper_left_leg_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -206,8 +242,8 @@
     </collision>
     <inertial>
       <mass value="11.28066677275"/>
-      <inertia ixx="0.258606759375" ixy="0.000002463301455" ixz="0.00032211891975" iyy="0.258311314375" iyz="-0.000065609605275" izz="0.021073428046875"/>
-      <origin xyz="-0.00364974 -0.00003172 -0.19576731"/>
+      <inertia ixx="0.258606759375" ixy="0.0" ixz="0.0" iyy="0.258311314375" iyz="0" izz="0.021073428046875"/>
+      <origin xyz="0 0 -0.19"/>
     </inertial>
   </link>
   <joint name="lower_left_leg_joint" type="continuous">
@@ -233,8 +269,8 @@
     </collision>
     <inertial>
       <mass value="8.394054321"/>
-      <inertia ixx="0.1879741409375" ixy="0.000000001719205" ixz="-0.00000000509231" iyy="0.1879741525" iyz="-0.00000001780773" izz="0.01166299402353"/>
-      <origin xyz="0.0 -0.00029422 -0.20195734"/>
+      <inertia ixx="0.1879741409375" ixy="0.0" ixz="0" iyy="0.1879741525" iyz="0" izz="0.01166299402353"/>
+      <origin xyz="0.0 0 -0.20"/>
     </inertial>
   </link>
   <joint name="left_foot_x_joint" type="continuous">
@@ -261,8 +297,20 @@
     <parent link="left_foot_y_link"/>
     <child link="left_foot_z_link"/>
   </joint>
-  <link name="left_foot_x_link"/>
-  <link name="left_foot_y_link"/>
+  <link name="left_foot_x_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="left_foot_z_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -279,8 +327,8 @@
     </collision>
     <inertial>
       <mass value="2.24629475115"/>
-      <inertia ixx="0.00997119431636" ixy="-0.00032381616821" ixz="0.00003556416949" iyy="0.00325251065432" iyz="0.00137797584221" izz="0.01040399675772"/>
-      <origin xyz="-0.00160579 0.04884521 -0.0783361"/>
+      <inertia ixx="0.00997119431636" ixy="0" ixz="0.0" iyy="0.00325251065432" iyz="0.00" izz="0.01040399675772"/>
+      <origin xyz="0 0 0"/>
     </inertial>
   </link>
   <joint name="left_foot_endeffector_joint" type="continuous">
@@ -298,6 +346,11 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
   </link>
   <joint name="upper_right_leg_z_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -324,8 +377,20 @@
     <parent link="upper_right_leg_y_link"/>
     <child link="upper_right_leg_x_link"/>
   </joint>
-  <link name="upper_right_leg_z_link"/>
-  <link name="upper_right_leg_y_link"/>
+  <link name="upper_right_leg_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="upper_right_leg_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="upper_right_leg_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -342,8 +407,8 @@
     </collision>
     <inertial>
       <mass value="11.28066677275"/>
-      <inertia ixx="0.258606759375" ixy="-0.000002463410605" ixz="-0.000322118806715" iyy="0.258311360625" iyz="-0.000065609865015" izz="0.021073428046875"/>
-      <origin xyz="0.00364974 -0.00003172 -0.19576731"/>
+      <inertia ixx="0.258606759375" ixy="0" ixz="0" iyy="0.258311314375" iyz="0" izz="0.021073428046875"/>
+      <origin xyz="0 0 -0.19"/>
     </inertial>
   </link>
   <joint name="lower_right_leg_joint" type="continuous">
@@ -369,8 +434,8 @@
     </collision>
     <inertial>
       <mass value="8.394054321"/>
-      <inertia ixx="0.1879741409375" ixy="0.000000001719205" ixz="-0.00000000509231" iyy="0.1879741525" iyz="-0.00000001780773" izz="0.01166299402353"/>
-      <origin xyz="0.0 -0.00029422 -0.20195734"/>
+      <inertia ixx="0.1879741409375" ixy="0" ixz="0" iyy="0.1879741525" iyz="0" izz="0.01166299402353"/>
+      <origin xyz="0.0 0 -0.20"/>
     </inertial>
   </link>
   <joint name="right_foot_x_joint" type="continuous">
@@ -397,8 +462,20 @@
     <parent link="right_foot_y_link"/>
     <child link="right_foot_z_link"/>
   </joint>
-  <link name="right_foot_x_link"/>
-  <link name="right_foot_y_link"/>
+  <link name="right_foot_x_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="right_foot_z_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -415,8 +492,8 @@
     </collision>
     <inertial>
       <mass value="2.24629475115"/>
-      <inertia ixx="0.00997119287114" ixy="0.00032381614564" ixz="-0.0000355639042" iyy="0.003252511015625" iyz="0.00137797638426" izz="0.01040399675772"/>
-      <origin xyz="0.00160579 0.04884521 -0.0783361"/>
+      <inertia ixx="0.00997119287114" ixy="0" ixz="0" iyy="0.00325251065432" iyz="0.0" izz="0.01040399675772"/>
+      <origin xyz="0 0 0"/>
     </inertial>
   </link>
   <joint name="right_foot_endeffector_joint" type="continuous">
@@ -434,6 +511,11 @@
       </geometry>
       <material name="Blue"/>
     </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
   </link>
   <joint name="upper_left_arm_z_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -456,8 +538,20 @@
     <parent link="upper_left_arm_y_link"/>
     <child link="upper_left_arm_x_link"/>
   </joint>
-  <link name="upper_left_arm_z_link"/>
-  <link name="upper_left_arm_y_link"/>
+  <link name="upper_left_arm_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="upper_left_arm_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="upper_left_arm_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -474,8 +568,8 @@
     </collision>
     <inertial>
       <mass value="5.0428574576"/>
-      <inertia ixx="0.05868383265625" ixy="-0.0000000925777" ixz="-0.00160419461921" iyy="0.05870381265625" iyz="-0.000002301658445" izz="0.006071859706985"/>
-      <origin xyz="-0.00338773 -0.00000063 -0.17172602"/>
+      <inertia ixx="0.05868383265625" ixy="0" ixz="0" iyy="0.05870381265625" iyz="0" izz="0.006071859706985"/>
+      <origin xyz="0 0 -0.17"/>
     </inertial>
   </link>
   <joint name="lower_left_arm_joint" type="continuous">
@@ -501,8 +595,8 @@
     </collision>
     <inertial>
       <mass value="4.1174112191"/>
-      <inertia ixx="0.046870596953125" ixy="-0.000000000013135" ixz="0.00000000291116" iyy="0.0468705940625" iyz="-0.00000000721685" izz="0.00412573450193"/>
-      <origin xyz="0.0 0.00000002 -0.14231966"/>
+      <inertia ixx="0.046870596953125" ixy="0" ixz="0" iyy="0.0468705940625" iyz="0" izz="0.00412573450193"/>
+      <origin xyz="0.0 0.0 -0.14"/>
     </inertial>
   </link>
   <joint name="left_hand_z_joint" type="continuous">
@@ -526,8 +620,20 @@
     <parent link="left_hand_y_link"/>
     <child link="left_hand_x_link"/>
   </joint>
-  <link name="left_hand_z_link"/>
-  <link name="left_hand_y_link"/>
+  <link name="left_hand_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_hand_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="left_hand_x_link">
     <visual>
       <!--      <origin rpy="0 1.57 -1.57" xyz="0 0 0"/>-->
@@ -546,8 +652,8 @@
     </collision>
     <inertial>
       <mass value="0.5669499677"/>
-      <inertia ixx="0.00201160057137" ixy="-0.000016142435665" ixz="-0.00000510135428" iyy="0.00161538206057" iyz="0.00004737239241" izz="0.00044905660648"/>
-      <origin xyz="-0.00417106 0.0042704 -0.05959476"/>
+      <inertia ixx="0.00201160057137" ixy="0" ixz="0" iyy="0.00161538206057" iyz="0.0" izz="0.00044905660648"/>
+      <origin xyz="0 0 0"/>
     </inertial>
   </link>
   <joint name="left_hand_endeffector_joint" type="continuous">
@@ -571,6 +677,11 @@
         <box size="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
   </link>
   <joint name="upper_right_arm_z_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -593,8 +704,20 @@
     <parent link="upper_right_arm_y_link"/>
     <child link="upper_right_arm_x_link"/>
   </joint>
-  <link name="upper_right_arm_z_link"/>
-  <link name="upper_right_arm_y_link"/>
+  <link name="upper_right_arm_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="upper_right_arm_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="upper_right_arm_x_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -611,8 +734,8 @@
     </collision>
     <inertial>
       <mass value="5.0428574576"/>
-      <inertia ixx="0.05868383265625" ixy="0.00000009260175" ixz="0.00160419479977" iyy="0.05870381265625" iyz="-0.000002301500825" izz="0.006071859706985"/>
-      <origin xyz="0.00338773 -0.00000063 -0.17172602"/>
+      <inertia ixx="0.05868383265625" ixy="0.0" ixz="0.0" iyy="0.05870381265625" iyz="0" izz="0.006071859706985"/>
+      <origin xyz="0 0 -0.17"/>
     </inertial>
   </link>
   <joint name="lower_right_arm_joint" type="continuous">
@@ -638,8 +761,8 @@
     </collision>
     <inertial>
       <mass value="4.1174112191"/>
-      <inertia ixx="0.046870596953125" ixy="-0.000000000013135" ixz="0.00000000291116" iyy="0.0468705940625" iyz="-0.00000000721685" izz="0.00412573450193"/>
-      <origin xyz="0.0 0.00000002 -0.14231966"/>
+      <inertia ixx="0.046870596953125" ixy="0" ixz="0" iyy="0.0468705940625" iyz="0" izz="0.00412573450193"/>
+      <origin xyz="0.0 0.0 -0.14"/>
     </inertial>
   </link>
   <joint name="right_hand_z_joint" type="continuous">
@@ -663,8 +786,20 @@
     <parent link="right_hand_y_link"/>
     <child link="right_hand_x_link"/>
   </joint>
-  <link name="right_hand_z_link"/>
-  <link name="right_hand_y_link"/>
+  <link name="right_hand_z_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_hand_y_link">
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
   <link name="right_hand_x_link">
     <visual>
       <!--      <origin rpy="0 -1.57 1.57" xyz="0 0 0"/>-->
@@ -683,8 +818,8 @@
     </collision>
     <inertial>
       <mass value="0.5669499677"/>
-      <inertia ixx="0.00201160057137" ixy="0.000016142435665" ixz="0.00000510133208" iyy="0.00161538206057" iyz="0.00004737239241" izz="0.00044905660648"/>
-      <origin xyz="0.00417106 0.0042704 -0.05959476"/>
+      <inertia ixx="0.00201160057137" ixy="0.0" ixz="0.0" iyy="0.00161538206057" iyz="0.0" izz="0.00044905660648"/>
+      <origin xyz="0 0 0"/>
     </inertial>
   </link>
   <joint name="right_hand_endeffector_joint" type="continuous">
@@ -708,6 +843,11 @@
         <box size="0.001 0.001 0.001"/>
       </geometry>
     </collision>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
   </link>
   <!--
   <link name="right_hand_object_link">
