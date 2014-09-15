@@ -617,7 +617,7 @@ void NewEvalManager::initializeContactVariables()
 		int num_contacts = planning_group_->getNumContacts();
 
 		// stand pose only
-		ROS_ASSERT(num_contacts == 2);
+		//ROS_ASSERT(num_contacts == 2);
 
 		std::vector<Eigen::MatrixXd> jacobians(num_contacts,
 				Eigen::MatrixXd(6, q.rows()));

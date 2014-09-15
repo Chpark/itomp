@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
+#include <itomp_cio_planner/util/planning_parameters.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -42,13 +43,14 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	}
 
 	// RBDL
-	std::vector<std::vector<unsigned int> > rbdl_affected_body_ids_vector(urdf_joints.size() + 1);
+	std::vector<std::vector<unsigned int> > rbdl_affected_body_ids_vector(
+			urdf_joints.size() + 1);
 	////////////////////////////////////////////////////////////////////////////
 	{
 		RigidBodyDynamics::Addons::read_urdf_model(
 				"/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio_rbdl.urdf",
 				&rbdl_robot_model_);
-		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, -9.81);
+		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, 0.01 * -9.81);
 
 		// rbdl_robot_model_.mJoints[0] is not used
 		num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
@@ -298,7 +300,9 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 					joint.joint_name_ = segment_joint_mapping_[link_name];
 
 					// TODO:
-					joint.rbdl_affected_body_ids_ = rbdl_affected_body_ids_vector[joint.rbdl_joint_index_ + 1];
+					joint.rbdl_affected_body_ids_ =
+							rbdl_affected_body_ids_vector[joint.rbdl_joint_index_
+									+ 1];
 
 					const robot_model::JointModel * kin_model_joint =
 							moveit_robot_model_->getJointModel(
@@ -360,33 +364,56 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 	// add rbdl partial fk ids
 
+	/*
 	// TODO: add contact points to lower body
 	if (robot_model->hasLinkModel("left_foot_endeffector_link"))
 	{
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["lower_body"])->contact_points_.push_back(
-				ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["lower_body"])->contact_points_.push_back(
-				ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
 
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contact_points_.push_back(
-				ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contact_points_.push_back(
-				ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contact_points_.push_back(
-				ContactPoint("left_hand_endeffector_link", rbdl_robot_model_.GetBodyId("left_hand_endeffector_link")));
-		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contact_points_.push_back(
-				ContactPoint("right_hand_endeffector_link", rbdl_robot_model_.GetBodyId("right_hand_endeffector_link")));
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["lower_body"])->contact_points_.push_back(
+		 ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["lower_body"])->contact_points_.push_back(
+		 ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
 
-		contact_points_.insert("left_foot_endeffector_link");
-		contact_points_.insert("right_foot_endeffector_link");
-		//contact_points_.insert("left_hand_endeffector_link");
-		//contact_points_.insert("right_hand_endeffector_link");
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["whole_body"])->contact_points_.push_back(
+		 ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["whole_body"])->contact_points_.push_back(
+		 ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["whole_body"])->contact_points_.push_back(
+		 ContactPoint("left_hand_endeffector_link", rbdl_robot_model_.GetBodyId("left_hand_endeffector_link")));
+		 boost::const_pointer_cast<ItompPlanningGroup>(
+		 planning_groups_["whole_body"])->contact_points_.push_back(
+		 ContactPoint("right_hand_endeffector_link", rbdl_robot_model_.GetBodyId("right_hand_endeffector_link")));
+	}
+	*/
+
+	const std::vector<const robot_model::JointModelGroup*>& jointModelGroups =
+			moveit_robot_model_->getJointModelGroups();
+	for (std::vector<const robot_model::JointModelGroup*>::const_iterator it =
+			jointModelGroups.begin(); it != jointModelGroups.end(); ++it)
+	{
+		std::string group_name = (*it)->getName();
+		ItompPlanningGroupPtr planning_group = boost::const_pointer_cast<
+				ItompPlanningGroup>(planning_groups_[group_name]);
+
+		const multimap<string, string>& endeffector_names =
+				PlanningParameters::getInstance()->getAnimateEndeffectorSegment();
+
+		std::pair<multimap<string, string>::const_iterator,
+				multimap<string, string>::const_iterator> ret =
+				endeffector_names.equal_range(group_name);
+
+		for (multimap<string, string>::const_iterator it = ret.first;
+				it != ret.second; ++it)
+		{
+			planning_group->contact_points_.push_back(
+					ContactPoint(it->second,
+							rbdl_robot_model_.GetBodyId(it->second.c_str())));
+		}
 	}
 
 	ROS_INFO(

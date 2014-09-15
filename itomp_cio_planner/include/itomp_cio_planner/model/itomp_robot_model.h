@@ -97,8 +97,6 @@ private:
 	std::map<std::string, ItompPlanningGroupConstPtr> planning_groups_; /**< Planning group information */
 	std::vector<std::string> rbdl_number_to_joint_name_; /**< Mapping from RBDL joint number (1-base) to URDF joint name */
 	std::map<std::string, int> joint_name_to_rbdl_number_; /**< Mapping from URDF joint name to RBDL joint number (1-base) */
-
-	std::set<std::string> contact_points_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(ItompRobotModel);
 
@@ -189,12 +187,6 @@ inline const RigidBodyDynamics::Model& ItompRobotModel::getRBDLRobotModel() cons
 {
   return rbdl_robot_model_;
 }
-
-inline const std::set<std::string>& ItompRobotModel::getContactPointNames() const
-{
-	return contact_points_;
-}
-
 
 }
 #endif

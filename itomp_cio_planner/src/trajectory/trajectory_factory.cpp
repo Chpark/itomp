@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
+#include <itomp_cio_planner/util/planning_parameters.h>
 
 namespace itomp_cio_planner
 {
@@ -28,14 +29,14 @@ FullTrajectory* TrajectoryFactory::CreateFullTrajectory(
 	switch (type_)
 	{
 	case TRAJECTORY_CIO:
-		full_trajectory = new FullTrajectory(robot_model,
-				duration, discretization, keyframe_interval, true, false,
-				robot_model->getContactPointNames().size());
+		full_trajectory = new FullTrajectory(robot_model, duration,
+				discretization, keyframe_interval, true, false,
+				PlanningParameters::getInstance()->getNumContacts());
 		break;
 
 	case TRAJECTORY_STOMP:
-		full_trajectory = new FullTrajectory(robot_model,
-				duration, discretization, keyframe_interval, false, false, 0);
+		full_trajectory = new FullTrajectory(robot_model, duration,
+				discretization, keyframe_interval, false, false, 0);
 		ROS_ERROR("Trajectory for STOMP is not implemented");
 		break;
 
@@ -55,7 +56,8 @@ ParameterTrajectory* TrajectoryFactory::CreateParameterTrajectory(
 		const ItompPlanningGroupConstPtr& planning_group)
 {
 	// create
-	ParameterTrajectory* parameter_trajectory = new ParameterTrajectory(full_trajectory, planning_group);
+	ParameterTrajectory* parameter_trajectory = new ParameterTrajectory(
+			full_trajectory, planning_group);
 
 	// allocate
 	parameter_trajectory->allocate();

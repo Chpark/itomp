@@ -846,5 +846,173 @@
     <child link="drawer_dummy"/>
   </joint>
 -->
+  <link name="left_foot_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="left_foot_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="left_foot_z_link"/>
+    <child link="left_foot_cp_1_link"/>
+  </joint>
+  <joint name="left_foot_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="left_foot_z_link"/>
+    <child link="left_foot_cp_2_link"/>
+  </joint>
+  <joint name="left_foot_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="left_foot_z_link"/>
+    <child link="left_foot_cp_3_link"/>
+  </joint>
+  <joint name="left_foot_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="left_foot_z_link"/>
+    <child link="left_foot_cp_4_link"/>
+  </joint>
+  <link name="right_foot_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="right_foot_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="right_foot_z_link"/>
+    <child link="right_foot_cp_1_link"/>
+  </joint>
+  <joint name="right_foot_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="right_foot_z_link"/>
+    <child link="right_foot_cp_2_link"/>
+  </joint>
+  <joint name="right_foot_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="right_foot_z_link"/>
+    <child link="right_foot_cp_3_link"/>
+  </joint>
+  <joint name="right_foot_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="right_foot_z_link"/>
+    <child link="right_foot_cp_4_link"/>
+  </joint>
 </robot>
 

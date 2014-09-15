@@ -10,7 +10,7 @@ torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
 contact_invariant_cost_weight: 10.0
-physics_violation_cost_weight: 0.00000
+physics_violation_cost_weight: 0.1
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
@@ -28,13 +28,13 @@ print_planning_info: false
 animate_path: true
 animate_endeffector: true
 animate_endeffector_segment:
-  lower_body: [left_foot_endeffector_link, right_foot_endeffector_link]
+  lower_body: [left_foot_cp_1_link, left_foot_cp_2_link, left_foot_cp_3_link, left_foot_cp_4_link, right_foot_cp_1_link, right_foot_cp_2_link, right_foot_cp_3_link, right_foot_cp_4_link]
   torso: torso_x_link
   head: head_endeffector_link
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 4.0
+trajectory_duration: 3.0
 trajectory_discretization: 0.05
 keyframe_duration: 0.5
 friction_coefficient: 2.0
@@ -69,7 +69,7 @@ num_reused_rollouts: 5
 noise_stddev: 2.0
 noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
 
-num_contacts: 2
+num_contacts: 8
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 

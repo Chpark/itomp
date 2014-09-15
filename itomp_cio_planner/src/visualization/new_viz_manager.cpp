@@ -280,6 +280,7 @@ void NewVizManager::animateContactForces(
 			msg.points.push_back(point_to);
 
 			msg2.points.push_back(point_from);
+
 		}
 	}
 	vis_marker_publisher_.publish(msg);
