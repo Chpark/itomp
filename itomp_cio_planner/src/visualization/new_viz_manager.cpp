@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/contact/ground_manager.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <ros/node_handle.h>
 #include <boost/lexical_cast.hpp>
@@ -28,6 +29,15 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 
 	robot_model_ = robot_model;
 	reference_frame_ = robot_model->getReferenceFrame();
+
+	colors_.resize(8);
+	for (int i = 0; i < 8; ++i)
+	{
+		colors_[i].a = 1.0;
+		colors_[i].b = (i % 2 == 0) ? 0.0 : 1.0;
+		colors_[i].g = ((i / 2) % 2 == 0) ? 0.0 : 1.0;
+		colors_[i].r = ((i / 4) % 2 == 0) ? 0.0 : 1.0;
+	}
 }
 
 void NewVizManager::setPlanningGroup(
@@ -114,23 +124,6 @@ void NewVizManager::animateEndeffectors(
 {
 	const double scale_keyframe = 0.03;
 	const double scale_line = 0.01;
-	visualization_msgs::Marker::_color_type BLUE, GREEN, MAGENTA, YELLOW;
-	BLUE.a = 1.0;
-	BLUE.r = 0.0;
-	BLUE.g = 0.0;
-	BLUE.b = 1.0;
-	GREEN.a = 1.0;
-	GREEN.r = 0.0;
-	GREEN.g = 1.0;
-	GREEN.b = 0.0;
-	MAGENTA.a = 1.0;
-	MAGENTA.r = 1.0;
-	MAGENTA.g = 0.0;
-	MAGENTA.b = 1.0;
-	YELLOW.a = 1.0;
-	YELLOW.r = 1.0;
-	YELLOW.g = 1.0;
-	YELLOW.b = 0.0;
 	geometry_msgs::Point point;
 
 	visualization_msgs::Marker msg;
@@ -147,7 +140,7 @@ void NewVizManager::animateEndeffectors(
 	msg.scale.z = scale_keyframe;
 	msg.points.resize(0);
 
-	msg.color = is_best ? MAGENTA : BLUE;
+	msg.color = is_best ? colors_[GREEN] : colors_[BLUE];
 
 	msg.id = 0;
 	for (int i = full_trajectory->getKeyframeStartIndex();
@@ -172,7 +165,7 @@ void NewVizManager::animateEndeffectors(
 	msg.scale.x = scale_line;
 	msg.scale.y = scale_line;
 	msg.scale.z = scale_line;
-	msg.color = is_best ? YELLOW : GREEN;
+	msg.color = is_best ? colors_[GREEN] : colors_[BLUE];
 
 	for (int j = 0; j < endeffector_rbdl_indices_.size(); ++j)
 	{
@@ -199,18 +192,13 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 	if (!is_best)
 		return;
 
-	visualization_msgs::Marker::_color_type WHITE;
-	WHITE.a = 0.1;
-	WHITE.r = 1.0;
-	WHITE.g = 1.0;
-	WHITE.b = 1.0;
-
 	geometry_msgs::Point point;
 
 	visualization_msgs::MarkerArray ma;
 	std::vector<std::string> link_names =
 			robot_model_->getMoveitRobotModel()->getLinkModelNames();
-	std_msgs::ColorRGBA color = WHITE;
+	std_msgs::ColorRGBA color = colors_[WHITE];
+	color.a = 0.1;
 	ros::Duration dur(100.0);
 
 	for (int point = full_trajectory->getKeyframeStartIndex();
@@ -232,15 +220,6 @@ void NewVizManager::animateContactForces(
 {
 	const double scale_line = 0.01;
 	const double scale_keyframe = 0.03;
-	visualization_msgs::Marker::_color_type MAGENTA, BLUE;
-	MAGENTA.a = 1.0;
-	MAGENTA.r = 1.0;
-	MAGENTA.g = 0.0;
-	MAGENTA.b = 1.0;
-	BLUE.a = 1.0;
-	BLUE.r = 0.0;
-	BLUE.g = 0.0;
-	BLUE.b = 1.0;
 	geometry_msgs::Point point_from, point_to;
 
 	const Eigen::MatrixXd& contact_positions =
@@ -263,7 +242,7 @@ void NewVizManager::animateContactForces(
 	msg.scale.x = scale_line;
 	msg.scale.y = scale_line;
 	msg.scale.z = scale_line;
-	msg.color = is_best ? MAGENTA : BLUE;
+	msg.color = is_best ? colors_[YELLOW] : colors_[MAGENTA];
 
 	msg.id = 0;
 	msg.points.resize(0);
@@ -282,9 +261,14 @@ void NewVizManager::animateContactForces(
 		for (int contact_index = 0; contact_index < num_contacts * 3;
 				contact_index += 3)
 		{
-			point_from.x = contact_positions(point, contact_index);
-			point_from.y = contact_positions(point, contact_index + 1);
-			point_from.z = contact_positions(point, contact_index + 2);
+			Eigen::Vector3d p = contact_positions.block(point, contact_index, 1,
+					3).transpose();
+			Eigen::Vector3d contact_pos, contact_normal;
+			GroundManager::getInstance()->getNearestGroundPosition(p,
+					contact_pos, contact_normal);
+			point_from.x = contact_pos(0);
+			point_from.y = contact_pos(1);
+			point_from.z = contact_pos(2);
 
 			point_to.x = contact_forces(point, contact_index) * 0.001
 					+ point_from.x;

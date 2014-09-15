@@ -12,6 +12,17 @@ namespace itomp_cio_planner
 class NewVizManager: public Singleton<NewVizManager>
 {
 public:
+	enum Colors
+	{
+		BLACK = 0,
+		BLUE,
+		GREEN,
+		CYAN,
+		RED,
+		MAGENTA,
+		YELLOW,
+		WHITE,
+	};
 	NewVizManager();
 	virtual ~NewVizManager();
 
@@ -41,6 +52,7 @@ private:
 
 	std::string reference_frame_;
 	std::vector<unsigned int> endeffector_rbdl_indices_;
+	std::vector<visualization_msgs::Marker::_color_type> colors_;
 };
 
 inline ros::Publisher& NewVizManager::getVisualizationMarkerPublisher()
