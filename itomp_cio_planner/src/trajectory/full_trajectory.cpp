@@ -114,9 +114,6 @@ void FullTrajectory::directChangeForDerivatives(double value,
 	if (backup)
 		backupTrajectories(full_point_begin, full_point_end, full_element);
 
-	if (element < num_parameter_joints)
-		return;
-
 	// set value
 	int keyframe_index = keyframe_start_index_
 			+ (point + 1) * num_keyframe_interval_points_;
@@ -135,7 +132,6 @@ void FullTrajectory::copyFromParameterTrajectory(
 	int num_parameter_joints = parameter_trajectory->num_joints_;
 
 	// copy joint parameters from parameter to full trajectory
-	/*
 	for (int i = 0; i < num_parameter_joints; ++i)
 	{
 		const ItompRobotJoint& joint = planning_group->group_joints_[i];
@@ -189,7 +185,6 @@ void FullTrajectory::copyFromParameterTrajectory(
 			}
 		}
 	}
-	*/
 
 	// copy other parameters from parameter to full trajectory
 	int copy_size = parameter_trajectory->getNumElements()
@@ -230,9 +225,6 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 	// acc is discontinuous at each keyframe
 	for (int j = 0; j < num_elements_; ++j)
 	{
-		if (j < getComponentSize(TRAJECTORY_COMPONENT_JOINT))
-			continue;
-
 		// skip the initial position
 		int trajectory_index = keyframe_start_index_
 				+ keyframe_begin * num_keyframe_interval_points_ + 1;

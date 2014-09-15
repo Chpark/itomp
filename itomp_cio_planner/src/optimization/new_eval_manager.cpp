@@ -671,7 +671,7 @@ void NewEvalManager::initializeContactVariables()
 		full_trajectory_->setContactVariables(point, contact_position,
 				contact_force);
 	}
-	//full_trajectory_->interpolateContactVariables();
+	full_trajectory_->interpolateContactVariables();
 
 	//full_trajectory_->printTrajectory();
 }
