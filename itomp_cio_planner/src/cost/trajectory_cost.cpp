@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/cost/trajectory_cost.h>
+#include <itomp_cio_planner/contact/ground_manager.h>
 
 namespace itomp_cio_planner
 {
@@ -111,10 +112,55 @@ bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 bool TrajectoryCostContactInvariant::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+	TIME_PROFILER_START_TIMER(ContactInvariant);
+
 	bool is_feasible = true;
 	cost = 0;
 
-	// implement
+	const FullTrajectoryConstPtr full_trajectory =
+			evaluation_manager->getFullTrajectory();
+	const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+
+	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+	int num_contacts = r.rows() / 3;
+
+	for (int i = 0; i < num_contacts; ++i)
+	{
+		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
+		RigidBodyDynamics::Math::SpatialTransform contact_body_transform = model.X_base[rbdl_body_id];
+
+		Eigen::Vector3d contact_position;
+		Eigen::Vector3d contact_normal;
+		GroundManager::getInstance()->getNearestGroundPosition(
+				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
+		Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+		//Eigen::Vector3d contact_torque = contact_position.cross(contact_force);
+
+		Eigen::Vector3d body_contact_position = contact_body_transform.r;
+
+		Eigen::Vector3d position_diff = body_contact_position - contact_position;
+		double position_diff_cost = position_diff.squaredNorm();
+
+		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
+
+		const double k1 = 10.0;
+		const double k2 = 3.0;
+		contact_force.normalize();
+		const double force_normal = std::max(0.0, contact_normal.dot(contact_force));
+		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
+
+		cost += contact_variable * (position_diff_cost + contact_body_velocity_cost);
+	}
+
+	TIME_PROFILER_END_TIMER(ContactInvariant);
 
 	return is_feasible;
 }

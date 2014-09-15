@@ -2,6 +2,7 @@
 #include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
 #include <ecl/geometry/polynomial.hpp>
+#include <moveit/robot_state/robot_state.h>
 
 namespace itomp_cio_planner
 {

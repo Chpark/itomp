@@ -891,7 +891,7 @@ void EvaluationManager::computeWrenchSum(int begin, int end)
 
   for (int i = 0; i < planning_group_->getNumContacts(); ++i)
   {
-    planning_group_->contactPoints_[i].updateContactViolationVector(safe_begin, safe_end - 1,
+    planning_group_->contact_points_[i].updateContactViolationVector(safe_begin, safe_end - 1,
         getGroupTrajectory()->getDiscretization(), data_->contactViolationVector_[i], data_->contactPointVelVector_[i],
         data_->segment_frames_, data_->planning_scene_);
 
@@ -933,13 +933,13 @@ void EvaluationManager::computeStabilityCosts(int begin, int end)
     for (int i = 0; i < num_contacts; ++i)
     {
       KDL::SegmentMap::const_iterator it_segment_link = robot_model_->getKDLTree()->getSegment(
-          planning_group_->contactPoints_[i].getLinkName());
+          planning_group_->contact_points_[i].getLinkName());
       it_segment_link = it_segment_link->second.parent;
       string parent_segment_name = it_segment_link->first;
       int segment_number = robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(parent_segment_name);
       contact_parent_frames[i] = data_->segment_frames_[point][segment_number];
 
-      planning_group_->contactPoints_[i].getPosition(point, contact_positions[i], data_->segment_frames_);
+      planning_group_->contact_points_[i].getPosition(point, contact_positions[i], data_->segment_frames_);
     }
 
     int phase = getGroupTrajectory()->getContactPhase(point);
@@ -1141,7 +1141,7 @@ std::vector<double> computeFTR(const std::string& group_name, int contact_point_
       direction.normalize();
       double ftr = 1 / std::sqrt(direction.transpose() * (jacobian * jacobian_transpose) * direction);
       KDL::Vector position, unused, normal;
-      planning_group->contactPoints_[contact_point_index].getPosition(i, position, data->segment_frames_);
+      planning_group->contact_points_[contact_point_index].getPosition(i, position, data->segment_frames_);
       GroundManager::getInstance().getNearestGroundPosition(position, unused, normal, data->planning_scene_); // TODO get more accurate normal
       Eigen::Vector3d normalEigen(normal.x(), normal.y(), normal.z());
       double contact_variable = data->getGroupTrajectory()->getContactTrajectory()(
@@ -1317,7 +1317,7 @@ void EvaluationManager::postprocess_ik()
       KDL::Frame contact_frame;
       if (ik_ref_point[i] != -1)
       {
-        planning_group_->contactPoints_[j].getFrame(ik_ref_point[i] * getGroupTrajectory()->getContactPhaseStride(),
+        planning_group_->contact_points_[j].getFrame(ik_ref_point[i] * getGroupTrajectory()->getContactPhaseStride(),
             contact_frame, data_->segment_frames_);
 
         // set kinematic_state to current joint values
@@ -1344,7 +1344,7 @@ void EvaluationManager::postprocess_ik()
 
         {
           KDL::Frame current_frame;
-          planning_group_->contactPoints_[j].getFrame(i * getGroupTrajectory()->getContactPhaseStride(), current_frame,
+          planning_group_->contact_points_[j].getFrame(i * getGroupTrajectory()->getContactPhaseStride(), current_frame,
               data_->segment_frames_);
           ROS_INFO(
               "[%d] IK from (%f %f %f) to [%d](%f %f %f", i, current_frame.p.x(), current_frame.p.y(), current_frame.p.z(), ik_ref_point[i], contact_frame.p.x(), contact_frame.p.y(), contact_frame.p.z());

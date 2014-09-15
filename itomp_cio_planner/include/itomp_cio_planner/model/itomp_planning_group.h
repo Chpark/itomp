@@ -18,7 +18,7 @@ public:
 	int num_joints_; /**< Number of joints used in planning */
 	std::vector<ItompRobotJoint> group_joints_; /**< Joints used in planning */
 	boost::shared_ptr<KDL::TreeFkSolverJointPosAxisPartial> fk_solver_; /**< Forward kinematics solver for the group */
-	std::vector<ContactPoint> contactPoints_;
+	std::vector<ContactPoint> contact_points_;
 	std::map<int, int> kdl_to_group_joint_;
 	std::map<int, int> rbdl_to_group_joint_;
 
@@ -30,7 +30,7 @@ ITOMP_DEFINE_SHARED_POINTERS(ItompPlanningGroup);
 
 inline int ItompPlanningGroup::getNumContacts() const
 {
-	return contactPoints_.size();
+	return contact_points_.size();
 }
 
 }

@@ -4,13 +4,13 @@ max_iterations: 1
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
-smoothness_cost_weight: 0.00001
-obstacle_cost_weight: 20.0
+smoothness_cost_weight: 0.0000
+obstacle_cost_weight: 0.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
-contact_invariant_cost_weight: 1.0
-physics_violation_cost_weight: 0.000001
+contact_invariant_cost_weight: 10.0
+physics_violation_cost_weight: 0.00000
 goal_pose_cost_weight: 0.0
 CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0

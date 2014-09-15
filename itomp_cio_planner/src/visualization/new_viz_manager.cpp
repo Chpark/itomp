@@ -1,7 +1,6 @@
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
-#include <visualization_msgs/MarkerArray.h>
 #include <ros/node_handle.h>
 #include <boost/lexical_cast.hpp>
 

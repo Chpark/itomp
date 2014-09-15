@@ -5,6 +5,8 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <moveit/robot_state/robot_state.h>
+#include <visualization_msgs/MarkerArray.h>
 #include <ros/publisher.h>
 
 namespace itomp_cio_planner

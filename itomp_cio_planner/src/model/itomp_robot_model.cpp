@@ -364,24 +364,24 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	if (robot_model->hasLinkModel("left_foot_endeffector_link"))
 	{
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["lower_body"])->contactPoints_.push_back(
-				ContactPoint("left_foot_endeffector_link", this));
+				planning_groups_["lower_body"])->contact_points_.push_back(
+				ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["lower_body"])->contactPoints_.push_back(
-				ContactPoint("right_foot_endeffector_link", this));
+				planning_groups_["lower_body"])->contact_points_.push_back(
+				ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
 
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contactPoints_.push_back(
-				ContactPoint("left_foot_endeffector_link", this));
+				planning_groups_["whole_body"])->contact_points_.push_back(
+				ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contactPoints_.push_back(
-				ContactPoint("right_foot_endeffector_link", this));
+				planning_groups_["whole_body"])->contact_points_.push_back(
+				ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contactPoints_.push_back(
-				ContactPoint("left_hand_endeffector_link", this));
+				planning_groups_["whole_body"])->contact_points_.push_back(
+				ContactPoint("left_hand_endeffector_link", rbdl_robot_model_.GetBodyId("left_hand_endeffector_link")));
 		boost::const_pointer_cast<ItompPlanningGroup>(
-				planning_groups_["whole_body"])->contactPoints_.push_back(
-				ContactPoint("right_hand_endeffector_link", this));
+				planning_groups_["whole_body"])->contact_points_.push_back(
+				ContactPoint("right_hand_endeffector_link", rbdl_robot_model_.GetBodyId("right_hand_endeffector_link")));
 
 		contact_points_.insert("left_foot_endeffector_link");
 		contact_points_.insert("right_foot_endeffector_link");

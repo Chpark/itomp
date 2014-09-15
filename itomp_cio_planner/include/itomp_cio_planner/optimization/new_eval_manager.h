@@ -50,6 +50,7 @@ public:
 
 	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;
 	const RigidBodyDynamics::Model& getRBDLModel(int point) const;
+	const ItompPlanningGroupConstPtr& getPlanningGroup() const;
 
 private:
 	void initializeContactVariables();
@@ -137,6 +138,16 @@ inline const planning_scene::PlanningSceneConstPtr& NewEvalManager::getPlanningS
 inline bool NewEvalManager::isDerivative() const
 {
 	return ref_evaluation_manager_ != NULL;
+}
+
+inline const ItompPlanningGroupConstPtr& NewEvalManager::getPlanningGroup() const
+{
+	return planning_group_;
+}
+
+inline const RigidBodyDynamics::Model& NewEvalManager::getRBDLModel(int point) const
+{
+	return rbdl_models_[point];
 }
 
 }
