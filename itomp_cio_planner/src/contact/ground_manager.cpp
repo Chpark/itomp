@@ -27,6 +27,10 @@ void GroundManager::initialize()
 void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& in, Eigen::Vector3d& out, Eigen::Vector3d& normal) const
 {
 	out = Eigen::Vector3d(in(0), in(1), 0);
+
+	if (in(1) > 5.5 && in(1) < 6.5)
+		out(2) = 0.05;
+
 	normal = Eigen::Vector3d(1, 0, 0);
 }
 

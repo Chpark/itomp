@@ -54,6 +54,9 @@ public:
 private:
 	void initializeContactVariables();
 
+	void performFullForwardKinematicsAndDynamics(int point_begin, int point_end);
+	void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element);
+
 	void performForwardKinematics(int point_begin, int point_end);
 	void performPartialForwardKinematics(int point_begin, int point_end, int parameter_element);
 	void performInverseDynamics(int point_begin, int point_end);
@@ -81,7 +84,8 @@ private:
 	bool last_trajectory_feasible_;
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
-	std::vector<Eigen::VectorXd> tau_; // acturator forces from inverse dynamics
+	std::vector<Eigen::VectorXd> tau_; // joint forces from inverse dynamics
+	std::vector<std::vector<RigidBodyDynamics::Math::SpatialVector> > external_forces_;
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
@@ -92,6 +96,7 @@ private:
 	const NewEvalManager* ref_evaluation_manager_;
 
 	friend class TrajectoryCostObstacle;
+	friend class TrajectoryCostPhysicsViolation;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 

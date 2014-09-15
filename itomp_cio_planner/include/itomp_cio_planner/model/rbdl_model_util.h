@@ -6,6 +6,28 @@
 
 namespace itomp_cio_planner
 {
+void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
+		const RigidBodyDynamics::Math::VectorNd &Q,
+		const RigidBodyDynamics::Math::VectorNd &QDot,
+		const RigidBodyDynamics::Math::VectorNd &QDDot,
+		RigidBodyDynamics::Math::VectorNd &Tau,
+		std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext);
+
+void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
+		const RigidBodyDynamics::Math::VectorNd &Q,
+		const RigidBodyDynamics::Math::VectorNd &QDot,
+		const RigidBodyDynamics::Math::VectorNd &QDDot,
+		RigidBodyDynamics::Math::VectorNd &Tau,
+		std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+		const std::vector<unsigned int>& body_ids);
+
+void updatePartialDynamics(RigidBodyDynamics::Model &model,
+		const RigidBodyDynamics::Math::VectorNd &Q,
+		const RigidBodyDynamics::Math::VectorNd &QDot,
+		const RigidBodyDynamics::Math::VectorNd &QDDot,
+		RigidBodyDynamics::Math::VectorNd &Tau,
+		std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext);
+
 void UpdatePartialKinematics(RigidBodyDynamics::Model & model,
 		const RigidBodyDynamics::Math::VectorNd& Q,
 		const RigidBodyDynamics::Math::VectorNd& QDot,

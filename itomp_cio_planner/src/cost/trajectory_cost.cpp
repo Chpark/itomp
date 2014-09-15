@@ -125,7 +125,17 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-	// implement
+	TIME_PROFILER_START_TIMER(PhysicsViolation);
+
+	for (int i = 0; i < 6; ++i)
+	{
+		// non-actuated root joints
+		double joint_torque = evaluation_manager->tau_[point](i);
+		cost += joint_torque * joint_torque;
+	}
+	cost /= 6.0;
+
+	TIME_PROFILER_END_TIMER(PhysicsViolation);
 
 	return is_feasible;
 }
