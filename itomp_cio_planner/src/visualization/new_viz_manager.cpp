@@ -112,7 +112,7 @@ void NewVizManager::animateEndeffectors(
 		const FullTrajectoryConstPtr& full_trajectory,
 		const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
 {
-	const double scale_keyframe = 0.05;
+	const double scale_keyframe = 0.03;
 	const double scale_line = 0.01;
 	visualization_msgs::Marker::_color_type BLUE, GREEN, MAGENTA, YELLOW;
 	BLUE.a = 1.0;
@@ -230,15 +230,17 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 void NewVizManager::animateContactForces(
 		const FullTrajectoryConstPtr& full_trajectory, bool is_best)
 {
-	if (!is_best)
-		return;
-
 	const double scale_line = 0.01;
-	visualization_msgs::Marker::_color_type MAGENTA;
+	const double scale_keyframe = 0.03;
+	visualization_msgs::Marker::_color_type MAGENTA, BLUE;
 	MAGENTA.a = 1.0;
 	MAGENTA.r = 1.0;
 	MAGENTA.g = 0.0;
 	MAGENTA.b = 1.0;
+	BLUE.a = 1.0;
+	BLUE.r = 0.0;
+	BLUE.g = 0.0;
+	BLUE.b = 1.0;
 	geometry_msgs::Point point_from, point_to;
 
 	const Eigen::MatrixXd& contact_positions =
@@ -250,10 +252,10 @@ void NewVizManager::animateContactForces(
 
 	int num_contacts = contact_positions.cols() / 3;
 
-	visualization_msgs::Marker msg;
+	visualization_msgs::Marker msg, msg2;
 	msg.header.frame_id = reference_frame_;
 	msg.header.stamp = ros::Time::now();
-	msg.ns = "itomp_best_cf";
+	msg.ns = is_best ? "itomp_best_cf" : "itomp_cf";
 	msg.action = visualization_msgs::Marker::ADD;
 	msg.pose.orientation.w = 1.0;
 
@@ -261,10 +263,17 @@ void NewVizManager::animateContactForces(
 	msg.scale.x = scale_line;
 	msg.scale.y = scale_line;
 	msg.scale.z = scale_line;
-	msg.color = MAGENTA;
+	msg.color = is_best ? MAGENTA : BLUE;
 
 	msg.id = 0;
 	msg.points.resize(0);
+
+	msg2 = msg;
+	msg2.ns = is_best ? "itomp_best_cp" : "itomp_cp";
+	msg2.type = visualization_msgs::Marker::SPHERE_LIST;
+	msg2.scale.x = scale_keyframe;
+	msg2.scale.y = scale_keyframe;
+	msg2.scale.z = scale_keyframe;
 
 	for (int point = full_trajectory->getKeyframeStartIndex();
 			point < full_trajectory->getNumPoints();
@@ -277,7 +286,8 @@ void NewVizManager::animateContactForces(
 			point_from.y = contact_positions(point, contact_index + 1);
 			point_from.z = contact_positions(point, contact_index + 2);
 
-			point_to.x = contact_forces(point, contact_index) * 0.001 + point_from.x;
+			point_to.x = contact_forces(point, contact_index) * 0.001
+					+ point_from.x;
 			point_to.y = contact_forces(point, contact_index + 1) * 0.001
 					+ point_from.y;
 			point_to.z = contact_forces(point, contact_index + 2) * 0.001
@@ -285,9 +295,12 @@ void NewVizManager::animateContactForces(
 
 			msg.points.push_back(point_from);
 			msg.points.push_back(point_to);
+
+			msg2.points.push_back(point_from);
 		}
 	}
 	vis_marker_publisher_.publish(msg);
+	vis_marker_publisher_.publish(msg2);
 }
 
 }
