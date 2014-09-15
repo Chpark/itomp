@@ -1,32 +1,26 @@
-/*
- * groundManager.h
- *
- *  Created on: Sep 11, 2013
- *      Author: chpark
- */
-
 #ifndef GROUNDMANAGER_H_
 #define GROUNDMANAGER_H_
 
+#include <itomp_cio_planner/common.h>
 #include <kdl/frames.hpp>
 #include <moveit/planning_scene/planning_scene.h>
 
 namespace itomp_cio_planner
 {
-class GroundManager
+class GroundManager : public Singleton<GroundManager>
 {
 public:
+	GroundManager();
 	virtual ~GroundManager();
-	void init();
+	void initialize();
 
-	static GroundManager& getInstance() { return instance_; }
+	void getNearestGroundPosition(const Eigen::Vector3d& in, Eigen::Vector3d& out, Eigen::Vector3d& normal) const;
+
     void getNearestGroundPosition(const KDL::Vector& in, KDL::Vector& out, KDL::Vector& normal, const planning_scene::PlanningScenePtr& planning_scene) const;
 	void getSafeGroundPosition(const KDL::Vector& in, KDL::Vector& out) const;
 
 private:
-	GroundManager();
 
-	static GroundManager instance_;
 };
 
 };

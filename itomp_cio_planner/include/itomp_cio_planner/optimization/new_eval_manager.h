@@ -81,6 +81,7 @@ private:
 	bool last_trajectory_feasible_;
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
+	std::vector<Eigen::VectorXd> tau_; // acturator forces from inverse dynamics
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
 

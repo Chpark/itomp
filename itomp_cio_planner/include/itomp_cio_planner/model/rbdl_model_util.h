@@ -17,6 +17,11 @@ void CalcFullJacobian(RigidBodyDynamics::Model & model,
 		const RigidBodyDynamics::Math::Vector3d & point_position,
 		RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics = true);
 
+void CalcFullJacobianBasePosition(RigidBodyDynamics::Model & model,
+		const RigidBodyDynamics::Math::VectorNd & Q, unsigned int body_id,
+		const RigidBodyDynamics::Math::Vector3d & point_base_pos,
+		RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics = true);
+
 void InverseDynamics2(RigidBodyDynamics::Model &model,
 		const RigidBodyDynamics::Math::VectorNd &Q,
 		const RigidBodyDynamics::Math::VectorNd &QDot,

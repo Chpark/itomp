@@ -12,8 +12,6 @@
 namespace itomp_cio_planner
 {
 
-GroundManager GroundManager::instance_;
-
 GroundManager::GroundManager()
 {
 }
@@ -22,8 +20,14 @@ GroundManager::~GroundManager()
 {
 }
 
-void GroundManager::init()
+void GroundManager::initialize()
 {
+}
+
+void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& in, Eigen::Vector3d& out, Eigen::Vector3d& normal) const
+{
+	out = Eigen::Vector3d(in(0), in(1), 0);
+	normal = Eigen::Vector3d(1, 0, 0);
 }
 
 double interpolateSqrt(double x, double x1, double x2, double y1, double y2)

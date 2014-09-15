@@ -51,7 +51,7 @@ void ContactPoint::updateContactViolationVector(int start, int end, double discr
 
     KDL::Vector groundPosition;
     KDL::Vector groundNormal;
-    GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
+   // GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
 
     KDL::Vector diff = position - groundPosition;
     double angle = acos(KDL::dot(normal, groundNormal));
@@ -81,7 +81,7 @@ double ContactPoint::getDistanceToGround(int point, const std::vector<std::vecto
 
   KDL::Vector groundPosition;
   KDL::Vector groundNormal;
-  GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
+  //GroundManager::getInstance().getNearestGroundPosition(position, groundPosition, groundNormal, planning_scene);
 
   KDL::Vector diff = position - groundPosition;
   if (diff.z() < 0.0)
