@@ -52,6 +52,8 @@ public:
 	const RigidBodyDynamics::Model& getRBDLModel(int point) const;
 
 private:
+	void initializeContactVariables();
+
 	void performForwardKinematics(int point_begin, int point_end);
 	void performPartialForwardKinematics(int point_begin, int point_end, int parameter_element);
 	void performInverseDynamics(int point_begin, int point_end);

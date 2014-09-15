@@ -593,5 +593,71 @@ void FullTrajectory::restoreBackupTrajectories()
 						backup_point_begin_, backup_element_, point_length, 1);
 }
 
+void FullTrajectory::setContactVariables(int point,
+		const std::vector<Eigen::Vector3d>& contact_positions,
+		const std::vector<Eigen::Vector3d>& contact_forces)
+{
+	int num_contacts = getComponentSize(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION) / 3;
+
+	Eigen::MatrixXd::RowXpr row = getTrajectoryPoint(point);
+	int position_start =
+			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+	int force_start =
+			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
+	for (int i = 0; i < num_contacts; ++i)
+	{
+		row(position_start + i * 3) = contact_positions[i](0);
+		row(position_start + i * 3 + 1) = contact_positions[i](1);
+		row(position_start + i * 3 + 2) = contact_positions[i](2);
+
+		row(force_start + i * 3) = contact_forces[i](0);
+		row(force_start + i * 3 + 1) = contact_forces[i](1);
+		row(force_start + i * 3 + 2) = contact_forces[i](2);
+	}
+}
+void FullTrajectory::interpolateContactVariables()
+{
+	int start =
+			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+	int end = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_NUM];
+	for (int j = start; j < end; ++j)
+	{
+		double x0 = trajectory_[TRAJECTORY_TYPE_POSITION](0, j);
+		double v0 = trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j);
+		double a0 = trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j);
+
+		double x1 = trajectory_[TRAJECTORY_TYPE_POSITION](getNumPoints() - 1,
+				j);
+		double v1 =
+				has_velocity_ ?
+						trajectory_[TRAJECTORY_TYPE_VELOCITY](
+								getNumPoints() - 1, j) :
+						0.0;
+		double a1 =
+				has_acceleration_ ?
+						trajectory_[TRAJECTORY_TYPE_ACCELERATION](
+								getNumPoints() - 1, j) :
+						0.0;
+
+		ecl::QuinticPolynomial poly;
+		poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
+				x1, v1, a1);
+		for (int i = 1; i < getNumPoints() - 1; ++i)
+		{
+			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(
+					i * discretization_);
+			if (has_velocity_)
+			{
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(
+						i * discretization_);
+			}
+			if (has_acceleration_)
+				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
+						poly.dderivative(i * discretization_);
+		}
+	}
+}
+
 }
 

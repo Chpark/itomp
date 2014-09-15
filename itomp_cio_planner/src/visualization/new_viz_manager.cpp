@@ -277,10 +277,10 @@ void NewVizManager::animateContactForces(
 			point_from.y = contact_positions(point, contact_index + 1);
 			point_from.z = contact_positions(point, contact_index + 2);
 
-			point_to.x = contact_forces(point, contact_index) + point_from.x;
-			point_to.y = contact_forces(point, contact_index + 1)
+			point_to.x = contact_forces(point, contact_index) * 0.001 + point_from.x;
+			point_to.y = contact_forces(point, contact_index + 1) * 0.001
 					+ point_from.y;
-			point_to.z = contact_forces(point, contact_index + 2)
+			point_to.z = contact_forces(point, contact_index + 2) * 0.001
 					+ point_from.z;
 
 			msg.points.push_back(point_from);

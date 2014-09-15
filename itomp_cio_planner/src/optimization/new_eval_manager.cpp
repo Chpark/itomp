@@ -42,9 +42,6 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 		const moveit_msgs::Constraints& path_constraints)
 {
 	full_trajectory_ = full_trajectory;
-	parameter_trajectory_.reset(
-			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
-					full_trajectory_, planning_group));
 
 	robot_model_ = robot_model;
 	planning_scene_ = planning_scene;
@@ -61,6 +58,11 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 
 	robot_state_.reset(
 			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
+
+	initializeContactVariables();
+	parameter_trajectory_.reset(
+			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
+					full_trajectory_, planning_group));
 
 	// TODO : path_constraints
 }
@@ -300,129 +302,9 @@ void NewEvalManager::performPartialForwardKinematics(int point_begin,
 	TIME_PROFILER_END_TIMER(FK);
 }
 
-Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& mat)
-{
-	Eigen::MatrixXd ret;
-
-	JacobiSVD<MatrixXd> svd(mat, ComputeThinU | ComputeThinV);
-
-	Eigen::MatrixXd U = svd.matrixU();
-	Eigen::MatrixXd D = svd.singularValues();
-	Eigen::MatrixXd V = svd.matrixU();
-
-	cout << mat << endl << endl;
-	cout << U << endl << endl;
-	cout << (Eigen::MatrixXd) D.asDiagonal() << endl << endl;
-	cout << V.transpose() << endl << endl;
-	cout << U * D.asDiagonal() * V.transpose() << endl;
-
-	for (int i = 0; i < D.rows(); ++i)
-	{
-		if (D(i) < 1e-7)
-			D(i) = 0;
-		else
-			D(i) = 1.0 / D(i);
-	}
-
-	ret = V * D.asDiagonal() * U.transpose();
-
-	// test
-	cout << endl << mat * ret << endl << endl << ret * mat << endl;
-
-	return ret;
-}
-
 void NewEvalManager::performInverseDynamics(int point_begin, int point_end)
 {
 	TIME_PROFILER_START_TIMER(ID);
-
-	if (!full_trajectory_->hasVelocity()
-			|| !full_trajectory_->hasAcceleration())
-		return;
-
-	int point = 0;
-
-	const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-	const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-			Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-	const Eigen::VectorXd& q_ddot = full_trajectory_->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-			Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
-
-	cout << q.transpose() << endl << q_dot.transpose() << endl
-			<< q_ddot.transpose() << endl << endl;
-
-	Eigen::VectorXd tau(q.rows());
-	RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot, q_ddot,
-			tau, NULL);
-	cout << tau << endl;
-
-	unsigned int body_id_1 = rbdl_models_[point].GetBodyId(
-			"left_foot_endeffector_link");
-	unsigned int body_id_2 = rbdl_models_[point].GetBodyId(
-			"right_foot_endeffector_link");
-	Eigen::MatrixXd j_1(6, q.rows());
-	Eigen::MatrixXd j_2(6, q.rows());
-
-	unsigned int l1 = rbdl_models_[point].lambda[body_id_1];
-	unsigned int l2 = rbdl_models_[point].lambda[body_id_1];
-
-	Eigen::Vector3d pt;
-	pt.setZero(3);
-
-	CalcFullJacobian(rbdl_models_[point], q, body_id_1, pt, j_1, true);
-	CalcFullJacobian(rbdl_models_[point], q, body_id_2, pt, j_2, true);
-	cout << j_1 << endl << endl << j_2 << endl << endl;
-
-	Eigen::Vector3d p1, p2;
-	p1 = rbdl_models_[point].X_base[body_id_1].r;
-	p2 = rbdl_models_[point].X_base[body_id_2].r;
-
-	{
-		MatrixXd A(6, 6);
-		MatrixXd map(6, 6);
-		map.setIdentity();
-		map(3, 3) = map(1, 1) = map(2, 2) = -1.0;
-		A = (Eigen::MatrixXd) (j_1.block(0, 0, 6, 6)).transpose()
-				+ (Eigen::MatrixXd) (j_2.block(0, 0, 6, 6)).transpose() * map;
-
-		VectorXd f = A.colPivHouseholderQr().solve(tau.block(0, 0, 6, 1));
-
-		VectorXd force_1 = f;
-		VectorXd force_2 = map * f;
-
-		cout << endl << A << endl << force_1 << endl << endl << force_2 << endl
-				<< endl;
-
-		cout << endl << A * f << endl << endl;
-	}
-
-	Vector3d force_1 = 0.5 * tau.block(0, 0, 3, 1);
-	Vector3d force_2 = force_1;
-	Vector3d torque_1 = p1.cross(force_1);
-	Vector3d torque_2 = p2.cross(force_2);
-
-	std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
-
-	int num_links = rbdl_models_[point].mBodies.size();
-	ext_forces.resize(num_links, RigidBodyDynamics::Math::SpatialVectorZero);
-
-	RigidBodyDynamics::Math::SpatialVector& ext_1 = ext_forces[body_id_1];
-	RigidBodyDynamics::Math::SpatialVector& ext_2 = ext_forces[body_id_2];
-	ext_1.set(torque_1.coeff(0), torque_1.coeff(1), torque_1.coeff(2),
-			force_1.coeff(0), force_1.coeff(1), force_1.coeff(2));
-	ext_2.set(torque_2.coeff(0), torque_2.coeff(1), torque_2.coeff(2),
-			force_2.coeff(0), force_2.coeff(1), force_2.coeff(2));
-
-	cout << ext_forces[body_id_1] << endl << endl << ext_forces[body_id_2]
-			<< endl << endl;
-
-	RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot, q_ddot,
-			tau, &ext_forces);
-	cout << endl << tau << endl;
 
 	TIME_PROFILER_END_TIMER(ID);
 }
@@ -470,6 +352,94 @@ void NewEvalManager::printTrajectoryCost(int iteration)
 	}
 
 	printf(")\n");
+}
+
+void NewEvalManager::initializeContactVariables()
+{
+	if (!full_trajectory_->hasVelocity()
+			|| !full_trajectory_->hasAcceleration())
+		return;
+
+	std::vector<int> init_points;
+	init_points.push_back(0);
+	if (!full_trajectory_->hasFreeEndPoint())
+		init_points.push_back(full_trajectory_->getNumPoints() - 1);
+
+	for (int p = 0; p < init_points.size(); ++p)
+	{
+		int point = init_points[p];
+
+		const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+		const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+				Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
+		const Eigen::VectorXd& q_ddot =
+				full_trajectory_->getComponentTrajectory(
+						FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+						Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
+
+		RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q, q_dot,
+				q_ddot);
+
+		Eigen::VectorXd tau(q.rows());
+		RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot,
+				q_ddot, tau, NULL);
+		//cout << tau << endl;
+
+		int num_contacts = planning_group_->getNumContacts();
+
+		// stand pose only
+		ROS_ASSERT(num_contacts == 2);
+
+		std::vector<unsigned int> body_ids(num_contacts);
+		std::vector<Eigen::MatrixXd> jacobians(num_contacts,
+				Eigen::MatrixXd(6, q.rows()));
+		std::vector<Eigen::Vector3d> contact_position(num_contacts);
+		std::vector<Eigen::Vector3d> contact_force(num_contacts);
+		std::vector<Eigen::Vector3d> contact_torque(num_contacts);
+
+		std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
+		ext_forces.resize(rbdl_models_[point].mBodies.size(),
+				RigidBodyDynamics::Math::SpatialVectorZero);
+
+		for (int i = 0; i < num_contacts; ++i)
+		{
+			body_ids[i] = rbdl_models_[point].GetBodyId(
+					planning_group_->contactPoints_[i].getLinkName().c_str());
+			CalcFullJacobian(rbdl_models_[point], q, body_ids[i],
+					Eigen::Vector3d::Zero(), jacobians[i], false);
+
+			contact_position[i] = rbdl_models_[point].X_base[body_ids[i]].r;
+			contact_force[i] = 1.0 / num_contacts * tau.block(0, 0, 3, 1);
+			contact_torque[i] = contact_position[i].cross(contact_force[i]);
+
+			RigidBodyDynamics::Math::SpatialVector& ext_force =
+					ext_forces[body_ids[i]];
+			ext_force.set(contact_torque[i].coeff(0),
+					contact_torque[i].coeff(1), contact_torque[i].coeff(2),
+					contact_force[i].coeff(0), contact_force[i].coeff(1),
+					contact_force[i].coeff(2));
+
+			/*
+			cout << contact_position[i].transpose() << endl;
+			cout << contact_force[i].transpose() << endl;
+			cout << contact_torque[i].transpose() << endl;
+			cout << ext_force.transpose() << endl << endl;
+			*/
+		}
+
+		RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot,
+				q_ddot, tau, &ext_forces);
+		//cout << endl << tau << endl;
+
+		full_trajectory_->setContactVariables(point, contact_position,
+				contact_force);
+	}
+	full_trajectory_->interpolateContactVariables();
+
+	//full_trajectory_->printTrajectory();
 }
 
 }

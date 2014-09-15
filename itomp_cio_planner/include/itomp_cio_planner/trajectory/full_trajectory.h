@@ -59,6 +59,11 @@ public:
 			const moveit_msgs::Constraints& path_constraints,
 			bool fill_trajectory_min_jerk);
 
+	void setContactVariables(int point,
+			const std::vector<Eigen::Vector3d>& contact_positions,
+			const std::vector<Eigen::Vector3d>& contact_forces);
+	void interpolateContactVariables();
+
 	FullTrajectory* createClone() const;
 
 	void backupTrajectories(int point_begin, int point_end, int element);
@@ -67,6 +72,7 @@ public:
 	int getKeyframeStartIndex() const;
 	int getNumKeyframeIntervalPoints() const;
 	int getNumKeyframes() const;
+	bool hasFreeEndPoint() const;
 
 protected:
 	void copyFromParameterTrajectory(
@@ -156,6 +162,11 @@ inline int FullTrajectory::getNumKeyframeIntervalPoints() const
 inline int FullTrajectory::getNumKeyframes() const
 {
 	return num_keyframes_;
+}
+
+inline bool FullTrajectory::hasFreeEndPoint() const
+{
+	return has_free_end_point_;
 }
 
 }
