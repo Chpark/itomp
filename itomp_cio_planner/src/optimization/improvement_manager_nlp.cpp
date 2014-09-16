@@ -243,6 +243,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 	TIME_PROFILER_PRINT_ITERATION_TIME();
 
+//#define VALIDATE_DERIVATIVE
 #ifdef VALIDATE_DERIVATIVE
 	// validate
 	printf("Var : ");
@@ -261,7 +262,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%.14f ", delta_minus_vec(i));
 	printf("\n");
-	column_vector der_ref = derivative_ref(variables);
+	//column_vector der_ref = derivative_ref(variables);
 #endif
 
 	return der;
@@ -287,7 +288,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)
 	{
-		variables(i) += 1e-7 * noise(i);
+		variables(i) += 1e-4 * noise(i);
 	}
 }
 
