@@ -51,6 +51,7 @@ src/util/min_jerk_trajectory.cpp
 src/util/planning_parameters.cpp
 src/util/point_to_triangle_projection.cpp
 src/util/joint_state_util.cpp
+src/util/exponential_map.cpp
 src/optimization/itomp_optimizer.cpp
 src/optimization/new_eval_manager.cpp
 src/optimization/improvement_manager.cpp
