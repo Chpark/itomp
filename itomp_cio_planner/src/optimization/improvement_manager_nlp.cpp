@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
+#include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <omp.h>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -138,20 +139,6 @@ void ImprovementManagerNLP::readFromOptimizationVariables(
 	}
 }
 
-void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
-{
-	/*
-	 MultivariateGaussian noise_generator(VectorXd::Zero (num_variables_),
-	 MatrixXd::Identity(num_variables_, num_variables_));
-	 VectorXd noise = VectorXd::Zero(num_variables_);
-	 noise_generator.sample(noise);
-	 for (int i = 0; i < num_variables_; ++i)
-	 {
-	 variables(i) += 0.001 * noise(i);
-	 }
-	 */
-}
-
 double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
@@ -161,10 +148,11 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 	evaluation_manager_->render();
 
-	//if (++evaluation_count_ % 100 == 0)
+	//if (evaluation_count_ % 100 == 0)
 	{
 		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
-		printf("Elapsed (in eval) : %f\n", (ros::Time::now() - start_time_).toSec());
+		printf("Elapsed (in eval) : %f\n",
+				(ros::Time::now() - start_time_).toSec());
 	}
 
 	return cost;
@@ -175,6 +163,9 @@ column_vector ImprovementManagerNLP::derivative_ref(
 {
 	column_vector der(variables.size());
 	column_vector e = variables;
+
+	column_vector delta_plus_vec(variables.size());
+	column_vector delta_minus_vec(variables.size());
 
 	for (long i = 0; i < variables.size(); ++i)
 	{
@@ -193,14 +184,32 @@ column_vector ImprovementManagerNLP::derivative_ref(
 		der(i) = (delta_plus - delta_minus) / (2 * eps_);
 
 		e(i) = old_val;
+
+		delta_plus_vec(i) = delta_plus;
+		delta_minus_vec(i) = delta_minus;
 	}
+
+	printf("Der_ref : ");
+	for (long i = 0; i < variables.size(); ++i)
+		printf("%f ", der(i));
+	printf("\n");
+	printf("Der_ref_p : ");
+	for (long i = 0; i < variables.size(); ++i)
+		printf("%.14f ", delta_plus_vec(i));
+	printf("\n");
+	printf("Der_ref_m : ");
+	for (long i = 0; i < variables.size(); ++i)
+		printf("%.14f ", delta_minus_vec(i));
+	printf("\n");
 
 	return der;
 }
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
-	//column_vector der_ref = derivative_ref(variables);
+	column_vector delta_plus_vec(variables.size());
+	column_vector delta_minus_vec(variables.size());
+	double d_p, d_m;
 
 	// assume evaluate was called before
 
@@ -225,44 +234,61 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 					+ j * num_parameter_elements_;
 			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
 					evaluation_parameters_[thread_index], k, j,
-					der.begin() + thread_variable_index, eps_);
+					der.begin() + thread_variable_index, eps_,
+					delta_plus_vec.begin() + thread_variable_index,
+					delta_minus_vec.begin() + thread_variable_index);
 		}
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
 	}
 
-	/*
-	double max_diff = 0;
-	double max_v = 0;
-	for (int i = 0; i < variables.size(); ++i)
-	{
-		double v = der(i);
-		double v_ref = der_ref(i);
-		double diff = std::abs(v - v_ref);
-		if (diff > max_diff)
-		{
-			printf("[%d]diff : %.14f\n", i, diff);
-			max_diff = diff;
-		}
-		if (std::abs(v) > max_v)
-		{
-			max_v = std::abs(v);
-			printf("[%d]max : %.14f\n", i, max_v);
-		}
-	}
-	*/
-
 	TIME_PROFILER_PRINT_ITERATION_TIME();
+
+#ifdef VALIDATE_DERIVATIVE
+	// validate
+	printf("Var : ");
+	for (long i = 0; i < variables.size(); ++i)
+	printf("%f ", variables(i));
+	printf("\n");
+	printf("Der : ");
+	for (long i = 0; i < variables.size(); ++i)
+	printf("%f ", der(i));
+	printf("\n");
+	printf("Der_p : ");
+	for (long i = 0; i < variables.size(); ++i)
+	printf("%.14f ", delta_plus_vec(i));
+	printf("\n");
+	printf("Der_m : ");
+	for (long i = 0; i < variables.size(); ++i)
+	printf("%.14f ", delta_minus_vec(i));
+	printf("\n");
+	column_vector der_ref = derivative_ref(variables);
+#endif
 
 	return der;
 }
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-	dlib::find_min(dlib::bfgs_search_strategy(),//dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_),//.be_verbose(),
+	addNoiseToVariables(variables);
+
+	dlib::find_min(dlib::lbfgs_search_strategy(10),
+			dlib::objective_delta_stop_strategy(eps_), //.be_verbose(),
 			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 			variables, 0.0);
+}
+
+void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
+{
+	int num_variables = variables.size();
+	MultivariateGaussian noise_generator(VectorXd::Zero (num_variables),
+			MatrixXd::Identity(num_variables, num_variables));
+	VectorXd noise = VectorXd::Zero(num_variables);
+	noise_generator.sample(noise);
+	for (int i = 0; i < num_variables; ++i)
+	{
+		variables(i) += 1e-7 * noise(i);
+	}
 }
 
 }
