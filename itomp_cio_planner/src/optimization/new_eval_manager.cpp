@@ -429,22 +429,49 @@ void NewEvalManager::setParameters(
 	setParameterModified();
 }
 
-void NewEvalManager::printTrajectoryCost(int iteration)
+void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();
 	if (cost < best_cost_)
 		best_cost_ = cost;
-	printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost, best_cost_);
+
 
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
-	for (int c = 0; c < cost_functions.size(); ++c)
+
+	if (!details)
 	{
-		double sub_cost = evaluation_cost_matrix_.col(c).sum();
-		printf("%c=%.7f, ", cost_functions[c]->getName().at(0), sub_cost);
+		printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost, best_cost_);
+		for (int c = 0; c < cost_functions.size(); ++c)
+		{
+			double sub_cost = evaluation_cost_matrix_.col(c).sum();
+			printf("%c=%.7f, ", cost_functions[c]->getName().at(0), sub_cost);
+		}
+		printf(")\n");
+	}
+	else
+	{
+		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost, best_cost_);
+		printf("point ");
+		for (int c = 0; c < cost_functions.size(); ++c)
+		{
+			printf("%s ", cost_functions[c]->getName().c_str());
+		}
+		printf("\n");
+
+		for (int i = 0; i < evaluation_cost_matrix_.rows(); ++i)
+		{
+			printf("[%d] ", i);
+			for (int c = 0; c < cost_functions.size(); ++c)
+			{
+				double sub_cost = evaluation_cost_matrix_(i, c);
+				printf("%.7f", sub_cost);
+			}
+			printf("\n");
+		}
 	}
 
-	printf(")\n");
+
 }
 
 void NewEvalManager::initializeContactVariables()
@@ -479,10 +506,10 @@ void NewEvalManager::initializeContactVariables()
 				tau, NULL);
 
 		/*
-		for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
-			cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
-		cout << tau.transpose() << endl;
-		*/
+		 for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
+		 cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
+		 cout << tau.transpose() << endl;
+		 */
 
 		int num_contacts = planning_group_->getNumContacts();
 
@@ -525,10 +552,10 @@ void NewEvalManager::initializeContactVariables()
 				q_ddot, tau, &ext_forces);
 
 		/*
-		for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
-			cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
-		cout << tau.transpose() << endl;
-		*/
+		 for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
+		 cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
+		 cout << tau.transpose() << endl;
+		 */
 
 		full_trajectory_->setContactVariables(point, contact_position,
 				contact_force);
