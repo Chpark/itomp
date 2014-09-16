@@ -221,15 +221,6 @@ void NewVizManager::animateContactForces(
 	const double scale_keyframe = 0.03;
 	geometry_msgs::Point point_from, point_to;
 
-	const Eigen::MatrixXd& contact_positions =
-			full_trajectory->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION);
-	const Eigen::MatrixXd& contact_forces =
-			full_trajectory->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE);
-
-	int num_contacts = contact_positions.cols() / 3;
-
 	visualization_msgs::Marker msg, msg2;
 	msg.header.frame_id = reference_frame_;
 	msg.header.stamp = ros::Time::now();
@@ -257,24 +248,56 @@ void NewVizManager::animateContactForces(
 			point < full_trajectory->getNumPoints();
 			point += full_trajectory->getNumKeyframeIntervalPoints())
 	{
-		for (int contact_index = 0; contact_index < num_contacts * 3;
-				contact_index += 3)
-		{
-			Eigen::Vector3d p = contact_positions.block(point, contact_index, 1,
-					3).transpose();
-			Eigen::Vector3d contact_pos, contact_normal;
-			GroundManager::getInstance()->getNearestGroundPosition(p,
-					contact_pos, contact_normal);
-			point_from.x = contact_pos(0);
-			point_from.y = contact_pos(1);
-			point_from.z = contact_pos(2);
+		const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 
-			point_to.x = contact_forces(point, contact_index) * 0.001
-					+ point_from.x;
-			point_to.y = contact_forces(point, contact_index + 1) * 0.001
-					+ point_from.y;
-			point_to.z = contact_forces(point, contact_index + 2) * 0.001
-					+ point_from.z;
+		const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+		int num_contacts = r.rows() / 3;
+
+		for (int i = 0; i < num_contacts; ++i)
+		{
+			Eigen::Vector3d contact_position;
+			Eigen::Vector3d contact_normal;
+			GroundManager::getInstance()->getNearestGroundPosition(
+					r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
+			Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+
+			// test
+			int foot_index = i / 4 * 4;
+			int ee_index = i % 4;
+			contact_position = r.block(3 * foot_index, 0, 3, 1);
+			contact_position(2) = 0;
+			switch (ee_index)
+			{
+			case 0:
+				contact_position(0) -= 0.05;
+				contact_position(1) -= 0.05;
+				break;
+			case 1:
+				contact_position(0) += 0.05;
+				contact_position(1) -= 0.05;
+				break;
+			case 2:
+				contact_position(0) += 0.05;
+				contact_position(1) += 0.2;
+				break;
+			case 3:
+				contact_position(0) -= 0.05;
+				contact_position(1) += 0.2;
+				break;
+			}
+
+			point_from.x = contact_position(0);
+			point_from.y = contact_position(1);
+			point_from.z = contact_position(2);
+
+			point_to.x = contact_force(0) * 0.1 + point_from.x;
+			point_to.y = contact_force(1) * 0.1 + point_from.y;
+			point_to.z = contact_force(2) * 0.1 + point_from.z;
 
 			msg.points.push_back(point_from);
 			msg.points.push_back(point_to);
