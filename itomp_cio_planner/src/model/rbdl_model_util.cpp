@@ -119,9 +119,11 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 	// subtract the force of body_ids[0] from parents
 	i = body_ids[0];
 	unsigned int lambda = model.lambda[i];
+	RigidBodyDynamics::Math::SpatialVector propagated_force = model.f[i];
 	while (lambda != 0)
 	{
-		model.f[lambda] -= model.X_lambda[i].applyTranspose(model.f[i]);
+		propagated_force = model.X_lambda[i].applyTranspose(propagated_force);
+		model.f[lambda] -= propagated_force;
 
 		i = lambda;
 		lambda = model.lambda[i];
@@ -186,7 +188,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 			model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
 	}
 
-	for (int id = body_ids.size() - 1; id >= 0; --id)
+	for (int id = body_ids.size() - 1; id > 0; --id)
 	{
 		i = body_ids[id];
 
@@ -205,35 +207,35 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 			Tau[q_index] = model.S[i].dot(model.f[i]);
 		}
 
-		if (i != body_ids[0])
-		{
-			model.f[lambda] = model.f[lambda]
-					+ model.X_lambda[i].applyTranspose(model.f[i]);
-		}
+		model.f[lambda] = model.f[lambda]
+				+ model.X_lambda[i].applyTranspose(model.f[i]);
 	}
 
-	// add the new force of body_ids[0] to parents
 	i = body_ids[0];
 	lambda = model.lambda[i];
-	while (lambda != 0)
-	{
-		model.f[lambda] += model.X_lambda[i].applyTranspose(model.f[i]);
+	propagated_force = model.f[i];
 
-		if (i != body_ids[0])
+	while (i != 0)
+	{
+		unsigned int q_index = model.mJoints[i].q_index;
+
+		if (model.mJoints[i].mDoFCount == 3)
 		{
-			unsigned int q_index = model.mJoints[i].q_index;
-			if (model.mJoints[i].mDoFCount == 3)
-			{
-				Vector3d tau_temp = model.multdof3_S[i].transpose()
-						* model.f[i];
-				Tau[q_index] = tau_temp[0];
-				Tau[q_index + 1] = tau_temp[1];
-				Tau[q_index + 2] = tau_temp[2];
-			}
-			else
-			{
-				Tau[q_index] = model.S[i].dot(model.f[i]);
-			}
+			Vector3d tau_temp = model.multdof3_S[i].transpose() * model.f[i];
+			Tau[q_index] = tau_temp[0];
+			Tau[q_index + 1] = tau_temp[1];
+			Tau[q_index + 2] = tau_temp[2];
+		}
+		else
+		{
+			Tau[q_index] = model.S[i].dot(model.f[i]);
+		}
+
+		if (lambda != 0)
+		{
+			propagated_force = model.X_lambda[i].applyTranspose(
+					propagated_force);
+			model.f[lambda] += propagated_force;
 		}
 
 		i = lambda;
