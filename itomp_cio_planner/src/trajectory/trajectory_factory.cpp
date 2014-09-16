@@ -83,7 +83,7 @@ ParameterTrajectory* TrajectoryFactory::CreateParameterTrajectory(
 		for (int j = 0; j < parameter_trajectory->getNumPoints(); ++j)
 		{
 			int keyframe_index = full_trajectory->keyframe_start_index_
-					+ (j + 1) * full_trajectory->num_keyframe_interval_points_;
+					+ j * full_trajectory->num_keyframe_interval_points_;
 			parameter_trajectory->trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](
 					j, i) =
 					full_trajectory->trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](
@@ -107,7 +107,7 @@ ParameterTrajectory* TrajectoryFactory::CreateParameterTrajectory(
 		for (int j = 0; j < parameter_trajectory->getNumPoints(); ++j)
 		{
 			int keyframe_index = full_trajectory->keyframe_start_index_
-					+ (j + 1) * full_trajectory->num_keyframe_interval_points_;
+					+ j * full_trajectory->num_keyframe_interval_points_;
 
 			parameter_trajectory->trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(
 					j, num_parameter_joints, 1, copy_size) =

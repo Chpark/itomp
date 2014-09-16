@@ -93,9 +93,9 @@ void FullTrajectory::directChangeForDerivatives(double value,
 		const ItompPlanningGroupConstPtr& planning_group, int type, int point,
 		int element, int& full_point_begin, int& full_point_end, bool backup)
 {
-	int keyframe_begin = std::max((point + 1) - 1, 0);
+	int keyframe_begin = std::max(point - 1, 0);
 	// keyframe_end is included in the range
-	int keyframe_end = std::min((point + 1) + 1, num_keyframes_ - 1);
+	int keyframe_end = std::min(point + 1, num_keyframes_ - 1);
 
 	full_point_begin = keyframe_start_index_
 			+ keyframe_begin * num_keyframe_interval_points_;
@@ -115,9 +115,16 @@ void FullTrajectory::directChangeForDerivatives(double value,
 	if (backup)
 		backupTrajectories(full_point_begin, full_point_end, full_element);
 
-	// set value
 	int keyframe_index = keyframe_start_index_
-			+ (point + 1) * num_keyframe_interval_points_;
+			+ point * num_keyframe_interval_points_;
+
+	if (full_element < num_full_joints
+			&& (keyframe_index == 0
+					|| (keyframe_index == getNumPoints() - 1
+							&& !has_free_end_point_)))
+		return;
+
+	// set value
 	trajectory_[type](keyframe_index, full_element) = value;
 
 	updateTrajectoryFromKeyframes(keyframe_begin, keyframe_end, full_element);
@@ -149,8 +156,13 @@ void FullTrajectory::copyFromParameterTrajectory(
 				parameter_trajectory->group_to_full_joint_indices[i];
 		for (int j = parameter_point_begin; j < parameter_point_end; ++j)
 		{
+			// don't copy initial / goal joints
+			if (j == 0
+					|| (j == parameter_point_end - 1 && !has_free_end_point_))
+				continue;
+
 			int keyframe_index = keyframe_start_index_
-					+ (j + 1) * num_keyframe_interval_points_;
+					+ j * num_keyframe_interval_points_;
 
 			double value =
 					parameter_trajectory->trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION](
@@ -195,7 +207,7 @@ void FullTrajectory::copyFromParameterTrajectory(
 		for (int j = parameter_point_begin; j < parameter_point_end; ++j)
 		{
 			int keyframe_index = keyframe_start_index_
-					+ (j + 1) * num_keyframe_interval_points_;
+					+ j * num_keyframe_interval_points_;
 
 			trajectory_[Trajectory::TRAJECTORY_TYPE_POSITION].block(
 					keyframe_index, num_full_joints, 1, copy_size) =

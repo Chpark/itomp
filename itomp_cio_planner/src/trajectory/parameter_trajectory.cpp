@@ -12,8 +12,7 @@ ParameterTrajectory::ParameterTrajectory(
 				full_trajectory->has_velocity_, false)
 {
 	duration_ = full_trajectory->duration_;
-	num_points_ = full_trajectory->num_keyframes_
-			- (full_trajectory->has_free_end_point_ ? 1 : 2);
+	num_points_ = full_trajectory->num_keyframes_;
 	num_joints_ = num_elements_ = planning_group->num_joints_;
 	group_to_full_joint_indices.resize(num_elements_);
 	int i = 0;
