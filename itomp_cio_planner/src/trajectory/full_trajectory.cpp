@@ -249,13 +249,17 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 
 			for (int i = 1; i <= num_keyframe_interval_points_; ++i)
 			{
-				double t = i * discretization_;
-				trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, j) =
-						poly(t);
-				trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, j) =
-						poly.derivative(t);
-				trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index, j) =
-						poly.dderivative(t);
+				if (trajectory_index != getNumPoints() - 1
+						|| has_free_end_point_)
+				{
+					double t = i * discretization_;
+					trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, j) =
+							poly(t);
+					trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, j) =
+							poly.derivative(t);
+					trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index,
+							j) = poly.dderivative(t);
+				}
 
 				++trajectory_index;
 			}
@@ -298,13 +302,16 @@ void FullTrajectory::updateTrajectoryFromKeyframes(int keyframe_begin,
 
 		for (int i = 1; i <= num_keyframe_interval_points_; ++i)
 		{
-			double t = i * discretization_;
-			trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, element) =
-					poly(t);
-			trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, element) =
-					poly.derivative(t);
-			trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index, element) =
-					poly.dderivative(t);
+			if (trajectory_index != getNumPoints() - 1 || has_free_end_point_)
+			{
+				double t = i * discretization_;
+				trajectory_[TRAJECTORY_TYPE_POSITION](trajectory_index, element) =
+						poly(t);
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](trajectory_index, element) =
+						poly.derivative(t);
+				trajectory_[TRAJECTORY_TYPE_ACCELERATION](trajectory_index,
+						element) = poly.dderivative(t);
+			}
 
 			++trajectory_index;
 		}
@@ -644,7 +651,7 @@ void FullTrajectory::interpolateContactVariables()
 		ecl::QuinticPolynomial poly;
 		poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
 				x1, v1, a1);
-		for (int i = 1; i < getNumPoints() - 1; ++i)
+		for (int i = 1; i < getNumPoints() - 2; ++i)
 		{
 			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(
 					i * discretization_);
