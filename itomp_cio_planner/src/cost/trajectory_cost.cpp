@@ -153,7 +153,6 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 		const double k1 = 10.0;
 		const double k2 = 3.0;
-		contact_force.normalize();
 		const double force_normal = std::max(0.0, contact_normal.dot(contact_force));
 		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
 
