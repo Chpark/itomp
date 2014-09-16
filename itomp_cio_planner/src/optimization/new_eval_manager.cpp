@@ -59,7 +59,8 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 			robot_model_->getRBDLRobotModel());
 	tau_.resize(full_trajectory_->getNumPoints(), Eigen::VectorXd(num_joints));
 	external_forces_.resize(full_trajectory_->getNumPoints(),
-			std::vector<RigidBodyDynamics::Math::SpatialVector>(robot_model_->getRBDLRobotModel().mBodies.size(),
+			std::vector<RigidBodyDynamics::Math::SpatialVector>(
+					robot_model_->getRBDLRobotModel().mBodies.size(),
 					RigidBodyDynamics::Math::SpatialVectorZero));
 
 	robot_state_.reset(
@@ -113,7 +114,7 @@ double NewEvalManager::evaluate()
 
 void NewEvalManager::computeDerivatives(
 		const std::vector<Eigen::MatrixXd>& parameters, int type, int point,
-		double* out, double eps)
+		double* out, double eps, double* d_p, double* d_m)
 {
 	setParameters(parameters);
 	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
@@ -138,6 +139,9 @@ void NewEvalManager::computeDerivatives(
 
 		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
 
+		*(d_p + i) = delta_plus;
+		*(d_m + i) = delta_minus;
+
 		full_trajectory_->restoreBackupTrajectories();
 	}
 }
@@ -147,9 +151,6 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 {
 	full_trajectory_->directChangeForDerivatives(value, planning_group_, type,
 			point, element, full_point_begin, full_point_end, first);
-
-	int full_element_index =
-			planning_group_->group_joints_[element].rbdl_joint_index_;
 
 	performPartialForwardKinematicsAndDynamics(full_point_begin, full_point_end,
 			element);
@@ -177,6 +178,7 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
 			double cost = 0.0;
+
 			is_feasible &= cost_functions[c]->evaluate(this, i, cost);
 
 			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
@@ -236,12 +238,39 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 
 		for (int i = 0; i < num_contacts; ++i)
 		{
-			int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+			int rbdl_body_id =
+					planning_group_->contact_points_[i].getRBDLBodyId();
 
 			Eigen::Vector3d contact_position;
 			Eigen::Vector3d contact_normal;
 			GroundManager::getInstance()->getNearestGroundPosition(
 					r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
+
+			// test
+			int foot_index = i / 4 * 4;
+			int ee_index = i % 4;
+			contact_position = r.block(3 * foot_index, 0, 3, 1);
+			contact_position(2) = 0;
+			switch (ee_index)
+			{
+			case 0:
+				contact_position(0) -= 0.05;
+				contact_position(1) -= 0.05;
+				break;
+			case 1:
+				contact_position(0) += 0.05;
+				contact_position(1) -= 0.05;
+				break;
+			case 2:
+				contact_position(0) += 0.05;
+				contact_position(1) += 0.2;
+				break;
+			case 3:
+				contact_position(0) -= 0.05;
+				contact_position(1) += 0.2;
+				break;
+			}
+
 			Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
 			Eigen::Vector3d contact_torque = contact_position.cross(
 					contact_force);
@@ -254,12 +283,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 				ext_force(j + 3) = contact_force(j);
 			}
 
-			// TODO: 6D contact_position ?
-			RigidBodyDynamics::Math::SpatialTransform lambda(
-					RigidBodyDynamics::Math::Matrix3dIdentity,
-					contact_position
-							- rbdl_models_[point].X_base[rbdl_body_id].r);
-			ext_force = lambda.applyTranspose(ext_force);
 		}
 
 		updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot,
@@ -312,32 +335,54 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 		{
 			for (int i = 0; i < num_contacts; ++i)
 			{
-				int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+				int rbdl_body_id =
+						planning_group_->contact_points_[i].getRBDLBodyId();
 
 				Eigen::Vector3d contact_position;
 				Eigen::Vector3d contact_normal;
 				GroundManager::getInstance()->getNearestGroundPosition(
 						r.block(3 * i, 0, 3, 1), contact_position,
 						contact_normal);
+
+				// test
+				int foot_index = i / 4 * 4;
+				int ee_index = i % 4;
+				contact_position = r.block(3 * foot_index, 0, 3, 1);
+				contact_position(2) = 0;
+				switch (ee_index)
+				{
+				case 0:
+					contact_position(0) -= 0.05;
+					contact_position(1) -= 0.05;
+					break;
+				case 1:
+					contact_position(0) += 0.05;
+					contact_position(1) -= 0.05;
+					break;
+				case 2:
+					contact_position(0) += 0.05;
+					contact_position(1) += 0.2;
+					break;
+				case 3:
+					contact_position(0) -= 0.05;
+					contact_position(1) += 0.2;
+					break;
+				}
+
 				Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
 				Eigen::Vector3d contact_torque = contact_position.cross(
 						contact_force);
 
 				RigidBodyDynamics::Math::SpatialVector& ext_force =
 						external_forces_[point][rbdl_body_id];
+
 				for (int j = 0; j < 3; ++j)
 				{
 					ext_force(j) = contact_torque(j);
 					ext_force(j + 3) = contact_force(j);
 				}
-
-				// TODO: 6D contact_position ?
-				RigidBodyDynamics::Math::SpatialTransform lambda(
-						RigidBodyDynamics::Math::Matrix3dIdentity,
-						contact_position
-								- rbdl_models_[point].X_base[rbdl_body_id].r);
-				ext_force = lambda.applyTranspose(ext_force);
 			}
+
 			updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot,
 					tau_[point], &external_forces_[point]);
 		}
@@ -351,188 +396,10 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 					q_ddot, tau_[point], &external_forces_[point],
 					planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
 
-
 		}
 	}
 
 	TIME_PROFILER_END_TIMER(FK);
-}
-
-void NewEvalManager::performForwardKinematics(int point_begin, int point_end)
-{
-	TIME_PROFILER_START_TIMER(FK);
-
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		Eigen::VectorXd q = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		if (full_trajectory_->hasVelocity()
-				&& full_trajectory_->hasAcceleration())
-		{
-			Eigen::VectorXd q_dot = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-					Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-			Eigen::VectorXd q_ddot = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-					Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
-
-			RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q, q_dot,
-					q_ddot);
-		}
-		else
-		{
-			RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point], &q,
-					NULL, NULL);
-		}
-	}
-
-	TIME_PROFILER_END_TIMER(FK);
-}
-
-void NewEvalManager::performPartialForwardKinematics(int point_begin,
-		int point_end, int parameter_element)
-{
-	TIME_PROFILER_START_TIMER(FK);
-
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
-	}
-
-	if (parameter_element < parameter_trajectory_->getNumJoints())
-	{
-		for (int point = point_begin; point < point_end; ++point)
-		{
-			const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-					Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-			if (full_trajectory_->hasVelocity()
-					&& full_trajectory_->hasAcceleration())
-			{
-				const Eigen::VectorXd& q_dot =
-						full_trajectory_->getComponentTrajectory(
-								FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-								Trajectory::TRAJECTORY_TYPE_VELOCITY).row(
-								point);
-				const Eigen::VectorXd& q_ddot =
-						full_trajectory_->getComponentTrajectory(
-								FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-								Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(
-								point);
-
-				UpdatePartialKinematics(rbdl_models_[point], q, q_dot, q_ddot,
-						planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
-			}
-			else
-			{
-				// TODO:
-				RigidBodyDynamics::UpdateKinematicsCustom(rbdl_models_[point],
-						&q, NULL, NULL);
-			}
-		}
-	}
-
-	TIME_PROFILER_END_TIMER(FK);
-}
-
-void NewEvalManager::performInverseDynamics(int point_begin, int point_end)
-{
-	TIME_PROFILER_START_TIMER(ID);
-
-	if (!full_trajectory_->hasVelocity()
-			|| !full_trajectory_->hasAcceleration())
-		return;
-
-	int num_contacts = planning_group_->getNumContacts();
-	// stand pose only
-	ROS_ASSERT(num_contacts == 2);
-
-	int num_joints = full_trajectory_->getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-
-	std::vector<unsigned int> body_ids(num_contacts);
-	std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
-	ext_forces.resize(rbdl_models_[0].mBodies.size(),
-			RigidBodyDynamics::Math::SpatialVectorZero);
-
-	for (int i = 0; i < num_contacts; ++i)
-	{
-		planning_group_->contact_points_[i].getRBDLBodyId();
-		body_ids[i] = rbdl_models_[0].GetBodyId(
-				planning_group_->contact_points_[i].getLinkName().c_str());
-	}
-
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-		const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-				Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-		const Eigen::VectorXd& q_ddot =
-				full_trajectory_->getComponentTrajectory(
-						FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-						Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
-
-		const Eigen::VectorXd& r = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		const Eigen::VectorXd& f = full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		for (int i = 0; i < num_contacts; ++i)
-		{
-			int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
-
-			Eigen::Vector3d contact_position;
-			Eigen::Vector3d contact_normal;
-			GroundManager::getInstance()->getNearestGroundPosition(
-					r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-			Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
-			Eigen::Vector3d contact_torque = contact_position.cross(
-					contact_force);
-
-			RigidBodyDynamics::Math::SpatialVector& ext_force =
-					ext_forces[body_ids[i]];
-			for (int j = 0; j < 3; ++j)
-			{
-				ext_force(j) = contact_torque(j);
-				ext_force(j + 3) = contact_force(j);
-			}
-			/*
-			 cout << contact_position.transpose() << endl;
-			 cout << contact_force.transpose() << endl;
-			 cout << contact_torque.transpose() << endl;
-			 cout << ext_force.transpose() << endl;
-			 */
-
-			// TODO: 6D contact_position ?
-			RigidBodyDynamics::Math::SpatialTransform lambda(
-					RigidBodyDynamics::Math::Matrix3dIdentity,
-					contact_position
-							- rbdl_models_[point].X_base[body_ids[i]].r);
-			ext_force = lambda.applyTranspose(ext_force);
-
-			//cout << lambda << endl;
-			//cout << ext_force.transpose() << endl;
-		}
-
-		RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot,
-				q_ddot, tau_[point], &ext_forces);
-
-		/*
-		 cout << "a[" << point << "] " << tau_[point].transpose() << endl
-		 << endl;
-		 */
-	}
-
-	TIME_PROFILER_END_TIMER(ID);
 }
 
 void NewEvalManager::getParameters(
@@ -606,18 +473,18 @@ void NewEvalManager::initializeContactVariables()
 						FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
 						Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
 
-		RigidBodyDynamics::UpdateKinematics(rbdl_models_[point], q, q_dot,
-				q_ddot);
-
 		Eigen::VectorXd tau(q.rows());
-		RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot,
-				q_ddot, tau, NULL);
-		//cout << tau << endl;
+
+		updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot,
+				tau, NULL);
+
+		/*
+		for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
+			cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
+		cout << tau.transpose() << endl;
+		*/
 
 		int num_contacts = planning_group_->getNumContacts();
-
-		// stand pose only
-		//ROS_ASSERT(num_contacts == 2);
 
 		std::vector<Eigen::MatrixXd> jacobians(num_contacts,
 				Eigen::MatrixXd(6, q.rows()));
@@ -631,7 +498,8 @@ void NewEvalManager::initializeContactVariables()
 
 		for (int i = 0; i < num_contacts; ++i)
 		{
-			int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+			int rbdl_body_id =
+					planning_group_->contact_points_[i].getRBDLBodyId();
 			CalcFullJacobian(rbdl_models_[point], q, rbdl_body_id,
 					Eigen::Vector3d::Zero(), jacobians[i], false);
 
@@ -639,31 +507,33 @@ void NewEvalManager::initializeContactVariables()
 			contact_force[i] = 1.0 / num_contacts * tau.block(0, 0, 3, 1);
 			contact_torque[i] = contact_position[i].cross(contact_force[i]);
 
+			if (i == 0 || i == 4)
+			{
+				contact_position[i](0) += 0.05;
+				contact_position[i](1) += 0.05;
+			}
+
 			RigidBodyDynamics::Math::SpatialVector& ext_force =
 					ext_forces[rbdl_body_id];
 			ext_force.set(contact_torque[i].coeff(0),
 					contact_torque[i].coeff(1), contact_torque[i].coeff(2),
 					contact_force[i].coeff(0), contact_force[i].coeff(1),
 					contact_force[i].coeff(2));
-
-			/*
-			 cout << contact_position[i].transpose() << endl;
-			 cout << contact_force[i].transpose() << endl;
-			 cout << contact_torque[i].transpose() << endl;
-			 cout << ext_force.transpose() << endl << endl;
-			 */
 		}
 
 		RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot,
 				q_ddot, tau, &ext_forces);
-		//cout << tau << endl;
+
+		/*
+		for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
+			cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
+		cout << tau.transpose() << endl;
+		*/
 
 		full_trajectory_->setContactVariables(point, contact_position,
 				contact_force);
 	}
 	full_trajectory_->interpolateContactVariables();
-
-	//full_trajectory_->printTrajectory();
 }
 
 }

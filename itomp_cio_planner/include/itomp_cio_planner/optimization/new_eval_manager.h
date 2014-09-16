@@ -38,7 +38,7 @@ public:
 			int& full_point_begin, int& full_point_end, bool first);
 
 	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
-			int type, int point, double* out, double eps);
+			int type, int point, double* out, double eps, double* d_p, double* d_m);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;
@@ -57,10 +57,6 @@ private:
 
 	void performFullForwardKinematicsAndDynamics(int point_begin, int point_end);
 	void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element);
-
-	void performForwardKinematics(int point_begin, int point_end);
-	void performPartialForwardKinematics(int point_begin, int point_end, int parameter_element);
-	void performInverseDynamics(int point_begin, int point_end);
 
 	void setParameterModified();
 

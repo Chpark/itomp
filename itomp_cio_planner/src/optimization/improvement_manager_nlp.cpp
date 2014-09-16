@@ -39,6 +39,7 @@ void ImprovementManagerNLP::initialize(
 	// TODO: change num_threads_
 
 	omp_set_num_threads(num_threads_);
+	ROS_INFO("Use %d threads", num_threads_);
 
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
