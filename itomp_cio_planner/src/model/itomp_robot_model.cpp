@@ -50,7 +50,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		RigidBodyDynamics::Addons::read_urdf_model(
 				"/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio_rbdl.urdf",
 				&rbdl_robot_model_);
-		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, 0.01 * -9.81);
+		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, -9.81);
 
 		// rbdl_robot_model_.mJoints[0] is not used
 		num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
