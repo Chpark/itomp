@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/cost/trajectory_cost.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
+#include <itomp_cio_planner/util/exponential_map.h>
 
 namespace itomp_cio_planner
 {
@@ -119,8 +120,10 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 	const FullTrajectoryConstPtr full_trajectory =
 			evaluation_manager->getFullTrajectory();
-	const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+	const ItompPlanningGroupConstPtr& planning_group =
+			evaluation_manager->getPlanningGroup();
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
+			point);
 
 	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
 			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
@@ -135,28 +138,60 @@ bool TrajectoryCostContactInvariant::evaluate(
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
-		RigidBodyDynamics::Math::SpatialTransform contact_body_transform = model.X_base[rbdl_body_id];
+		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
+				model.X_base[rbdl_body_id];
 
 		Eigen::Vector3d contact_position;
 		Eigen::Vector3d contact_normal;
 		GroundManager::getInstance()->getNearestGroundPosition(
 				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
 		Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
-		//Eigen::Vector3d contact_torque = contact_position.cross(contact_force);
+
+		// test
+		int foot_index = i / 4 * 4;
+		int ee_index = i % 4;
+		contact_position = r.block(3 * foot_index, 0, 3, 1);
+		contact_position(2) = 0;
+		switch (ee_index)
+		{
+		case 0:
+			contact_position(0) -= 0.05;
+			contact_position(1) -= 0.05;
+			break;
+		case 1:
+			contact_position(0) += 0.05;
+			contact_position(1) -= 0.05;
+			break;
+		case 2:
+			contact_position(0) += 0.05;
+			contact_position(1) += 0.2;
+			break;
+		case 3:
+			contact_position(0) -= 0.05;
+			contact_position(1) += 0.2;
+			break;
+		}
 
 		Eigen::Vector3d body_contact_position = contact_body_transform.r;
 
-		Eigen::Vector3d position_diff = body_contact_position - contact_position;
-		double position_diff_cost = position_diff.squaredNorm();
+		Eigen::Vector3d body_rot = exponential_map::RotationToExponentialMap(contact_body_transform.E);
+		Eigen::Vector3d ground_rot = exponential_map::AngleAxisToExponentialMap(Eigen::AngleAxisd(0.0, contact_normal));
+		Eigen::Vector3d orientation_diff = body_rot - ground_rot;
+
+		Eigen::Vector3d position_diff = body_contact_position
+				- contact_position;
+		double position_diff_cost = position_diff.squaredNorm() + orientation_diff.squaredNorm();
 
 		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
 		const double k1 = 10.0;
 		const double k2 = 3.0;
-		const double force_normal = std::max(0.0, contact_normal.dot(contact_force));
+		const double force_normal = std::max(0.0,
+				contact_normal.dot(contact_force));
 		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
 
-		cost += contact_variable * (position_diff_cost + contact_body_velocity_cost);
+		cost += contact_variable
+				* (position_diff_cost + contact_body_velocity_cost);
 	}
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
