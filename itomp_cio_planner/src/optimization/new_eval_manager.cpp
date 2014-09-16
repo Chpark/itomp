@@ -173,6 +173,11 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),
 				cost_functions.size());
 
+	if (point_begin == 0)
+		++point_begin;
+	if (point_end == full_trajectory_->getNumPoints() && !full_trajectory_->hasFreeEndPoint())
+		--point_end;
+
 	for (int i = point_begin; i < point_end; ++i)
 	{
 		for (int c = 0; c < cost_functions.size(); ++c)

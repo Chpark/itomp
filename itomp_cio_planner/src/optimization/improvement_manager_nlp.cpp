@@ -151,9 +151,11 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 	//if (evaluation_count_ % 100 == 0)
 	{
+
 		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
 		printf("Elapsed (in eval) : %f\n",
 				(ros::Time::now() - start_time_).toSec());
+
 	}
 
 	return cost;
@@ -244,17 +246,18 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 	TIME_PROFILER_PRINT_ITERATION_TIME();
 
-//#define VALIDATE_DERIVATIVE
+#define VALIDATE_DERIVATIVE
 #ifdef VALIDATE_DERIVATIVE
 	// validate
-	printf("Var : ");
+/*	printf("Var : ");
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%f ", variables(i));
-	printf("\n");
-	printf("Der : ");
+	printf("\n");*/
+	printf("[%d] Der : ", evaluation_count_);
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%f ", der(i));
 	printf("\n");
+	/*
 	printf("Der_p : ");
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%.14f ", delta_plus_vec(i));
@@ -262,7 +265,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	printf("Der_m : ");
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%.14f ", delta_minus_vec(i));
-	printf("\n");
+	printf("\n");*/
 	//column_vector der_ref = derivative_ref(variables);
 #endif
 
