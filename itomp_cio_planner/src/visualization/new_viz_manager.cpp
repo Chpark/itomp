@@ -122,7 +122,7 @@ void NewVizManager::animateEndeffectors(
 		const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
 {
 	const double scale_keyframe = 0.03;
-	const double scale_line = 0.01;
+	const double scale_line = 0.005;
 	geometry_msgs::Point point;
 
 	visualization_msgs::Marker msg;
@@ -215,9 +215,10 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 }
 
 void NewVizManager::animateContactForces(
-		const FullTrajectoryConstPtr& full_trajectory, bool is_best)
+		const FullTrajectoryConstPtr& full_trajectory, bool is_best,
+		bool keyframe_only)
 {
-	const double scale_line = 0.01;
+	const double scale_line = 0.005;
 	const double scale_keyframe = 0.03;
 	geometry_msgs::Point point_from, point_to;
 
@@ -254,9 +255,21 @@ void NewVizManager::animateContactForces(
 	msg4.color = is_best ? colors_[RED] : colors_[MAGENTA];
 	msg4.ns = is_best ? "itomp_best_cp_ia" : "itomp_cp_ia";
 
-	for (int point = full_trajectory->getKeyframeStartIndex();
-			point < full_trajectory->getNumPoints();
-			point += full_trajectory->getNumKeyframeIntervalPoints())
+	int begin, end, step;
+	if (keyframe_only)
+	{
+		begin = full_trajectory->getKeyframeStartIndex();
+		end = full_trajectory->getNumPoints();
+		step = full_trajectory->getNumKeyframeIntervalPoints();
+	}
+	else
+	{
+		begin = 0;
+		end = full_trajectory->getNumPoints();
+		step = 1;
+	}
+
+	for (int point = begin; point < end; point += step)
 	{
 		const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
 				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
@@ -274,12 +287,19 @@ void NewVizManager::animateContactForces(
 			Eigen::Vector3d contact_normal;
 			GroundManager::getInstance()->getNearestGroundPosition(
 					r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-			Eigen::Vector3d contact_force = full_trajectory->getContactForce(point, i);
+			Eigen::Vector3d contact_force = full_trajectory->getContactForce(
+					point, i);
 
 			// test
 			int foot_index = i / 4 * 4;
 			int ee_index = i % 4;
 			contact_position = r.block(3 * foot_index, 0, 3, 1);
+
+			double contact_v = contact_position(2);
+			contact_v = 0.5 * tanh(4*contact_v-2) + 0.5;
+
+
+
 			contact_position(2) = 0;
 			switch (ee_index)
 			{
@@ -305,18 +325,17 @@ void NewVizManager::animateContactForces(
 			point_from.y = contact_position(1);
 			point_from.z = contact_position(2);
 
-			point_to.x = contact_force(0) * 0.001 + point_from.x;
-			point_to.y = contact_force(1) * 0.001 + point_from.y;
-			point_to.z = contact_force(2) * 0.001 + point_from.z;
+			point_to.x = contact_force(0) * 0.00001 + point_from.x;
+			point_to.y = contact_force(1) * 0.00001 + point_from.y;
+			point_to.z = contact_force(2) * 0.00001 + point_from.z;
 
-			const double k1 = 10.0;
-			const double k2 = 3.0;
+			const double k1 = 0.01;//10.0;
+					const double k2 = 3;//3.0;
 			const double force_normal = std::max(0.0,
 					contact_normal.dot(contact_force));
-			double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2)
-					+ 0.5;
+			double contact_variable = contact_v;//0.5 * std::tanh(k1 * force_normal - k2)+ 0.5;
 
-			if (contact_variable > 0.5)
+			if (contact_variable > 0.0)
 			{
 				msg.points.push_back(point_from);
 				msg.points.push_back(point_to);

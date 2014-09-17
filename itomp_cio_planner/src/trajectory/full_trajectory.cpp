@@ -372,6 +372,7 @@ void FullTrajectory::setGroupGoalState(
 		const moveit_msgs::Constraints& path_constraints,
 		bool fill_trajectory_min_jerk)
 {
+
 	ROS_INFO(
 			"Set the initial trajectory for planning group : %s", planning_group->name_.c_str());
 
@@ -666,15 +667,72 @@ void FullTrajectory::interpolateContactVariables()
 		for (int i = 1; i < getNumPoints() - 1; ++i)
 		{
 			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(0);
-					//i * discretization_);
+			//i * discretization_);
 			if (has_velocity_)
 			{
-				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(0);
-						//i * discretization_);
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(
+						0);
+				//i * discretization_);
 			}
 			if (has_acceleration_)
 				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
-						poly.dderivative(0);//i * discretization_);
+						poly.dderivative(0); //i * discretization_);
+		}
+	}
+}
+
+void FullTrajectory::printTrajectory(bool position, bool velocity,
+		bool acceleration) const
+{
+	const char* COMPONENT_NAMES[] = {"Joints", "Contact Positions", "Contact Forces"};
+	for (int c = 0; c < TRAJECTORY_COMPONENT_NUM; ++c)
+	{
+		int begin = component_start_indices_[c];
+		int end = component_start_indices_[c + 1];
+		printf("%s\n", COMPONENT_NAMES[c]);
+
+		if (position)
+		{
+			printf("Position Trajectory\n");
+			for (int i = 0; i < num_points_; ++i)
+			{
+				printf("%d : ", i);
+				for (int j = begin; j < end; ++j)
+				{
+					printf("[%d]%.10f ",
+							j, trajectory_[TRAJECTORY_TYPE_POSITION](i, j));
+				}
+				printf("\n");
+			}
+		}
+
+		if (velocity && has_velocity_)
+		{
+			printf("Velocity Trajectory\n");
+			for (int i = 0; i < num_points_; ++i)
+			{
+				printf("%d : ", i);
+				for (int j = begin; j < end; ++j)
+				{
+					printf("[%d]%.10f ",
+							j, trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j));
+				}
+				printf("\n");
+			}
+		}
+		if (acceleration && has_acceleration_)
+		{
+			printf("Acceleration Trajectory\n");
+			for (int i = 0; i < num_points_; ++i)
+			{
+				printf("%d : ", i);
+				for (int j = begin; j < end; ++j)
+				{
+					printf("[%d]%.10f ",
+							j, trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j));
+				}
+				printf("\n");
+			}
 		}
 	}
 }

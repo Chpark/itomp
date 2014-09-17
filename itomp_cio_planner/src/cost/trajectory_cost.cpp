@@ -27,17 +27,32 @@ bool TrajectoryCostSmoothness::evaluate(
 
 	cost = 0;
 	double value;
-	const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(
-			Trajectory::TRAJECTORY_TYPE_ACCELERATION);
-	for (int i = 0; i < mat_acc.cols(); ++i)
+	/*
+	 const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(
+	 Trajectory::TRAJECTORY_TYPE_ACCELERATION);
+	 for (int i = 0; i < mat_acc.cols(); ++i)
+	 {
+	 value = std::abs(mat_acc(point, i));
+	 cost += value * value;
+	 }
+
+	 // normalize cost (independent to # of joints)
+	 cost /= trajectory->getComponentSize(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	 */
+
+	const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+	for (int i = 6; i < pos.rows(); ++i)
 	{
-		value = std::abs(mat_acc(point, i));
+		value = std::abs((double) pos(i));
+		value = std::max(0.0, value - 0.2);
 		cost += value * value;
 	}
 
 	// normalize cost (independent to # of joints)
-	cost /= trajectory->getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	//cost /= trajectory->getComponentSize(
+	//	FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
 	TIME_PROFILER_END_TIMER(Smoothness);
 
@@ -135,6 +150,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 	int num_contacts = r.rows() / 3;
 
+	bool has_positive = false;
+	double negative_cost = 1.0;
+
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
@@ -145,12 +163,21 @@ bool TrajectoryCostContactInvariant::evaluate(
 		Eigen::Vector3d contact_normal;
 		GroundManager::getInstance()->getNearestGroundPosition(
 				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point, i);
+		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
+				i);
 
 		// test
 		int foot_index = i / 4 * 4;
 		int ee_index = i % 4;
 		contact_position = r.block(3 * foot_index, 0, 3, 1);
+
+		double contact_v = contact_position(2);
+		if (contact_v > 0.5)
+			has_positive = true;
+		negative_cost *= contact_v;
+
+		contact_v = 0.5 * tanh(4 * contact_v - 2) + 0.5;
+
 		contact_position(2) = 0;
 		switch (ee_index)
 		{
@@ -185,17 +212,21 @@ bool TrajectoryCostContactInvariant::evaluate(
 		double position_diff_cost = position_diff.squaredNorm()
 				+ orientation_diff.squaredNorm();
 
-		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
+		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm()
+				* 10;
 
-		const double k1 = 10.0;
-		const double k2 = 3.0;
+		const double k1 = 0.01; //10.0;
+		const double k2 = 3; //3.0;
 		const double force_normal = std::max(0.0,
 				contact_normal.dot(contact_force));
-		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
+		double contact_variable = contact_v; //0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
 
 		cost += contact_variable
 				* (position_diff_cost + contact_body_velocity_cost);
 	}
+
+	if (!has_positive)
+		cost += negative_cost;
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
@@ -236,10 +267,13 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
 	// TODO
-	Eigen::Vector3d goal_foot_pos[2];
+	Eigen::Vector3d goal_foot_pos[3];
 	goal_foot_pos[0] = Eigen::Vector3d(-0.1, 2.0, 0.0);
-	goal_foot_pos[1] = Eigen::Vector3d(-0.1, 2.0, 0.0);
+	goal_foot_pos[1] = Eigen::Vector3d(0.1, 2.0, 0.0);
+	goal_foot_pos[2] = Eigen::Vector3d(0.0, 2.0, 1.12);
 
+	Eigen::Vector3d goal_ori = exponential_map::RotationToExponentialMap(
+			Eigen::Matrix3d::Identity());
 
 	bool is_feasible = true;
 	cost = 0;
@@ -248,17 +282,40 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 
 	if (point == evaluation_manager->getFullTrajectory()->getNumPoints() - 1)
 	{
-		Eigen::Vector3d cur_foot_pos[2];
-		unsigned body_ids[2];
+		Eigen::Vector3d cur_foot_pos[3];
+		unsigned body_ids[3];
 
 		// TODO
-		body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId("left_foot_endeffector_link");
-		body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId("right_foot_endeffector_link");
-		cur_foot_pos[0] = evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
-		cur_foot_pos[1] = evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
+		body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId(
+				"left_foot_endeffector_link");
+		body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId(
+				"right_foot_endeffector_link");
+		body_ids[2] = evaluation_manager->getRBDLModel(point).GetBodyId(
+				"pelvis_link");
+		//std::cout << "bodyid2 : " << body_ids[2] << std::endl;
+		body_ids[2] = 6;
+		cur_foot_pos[0] =
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
+		cur_foot_pos[1] =
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
+		cur_foot_pos[2] =
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].r;
 
-		cost += (goal_foot_pos[0]-cur_foot_pos[0]).squaredNorm();
-		cost += (goal_foot_pos[1]-cur_foot_pos[1]).squaredNorm();
+		cost += (goal_foot_pos[0] - cur_foot_pos[0]).squaredNorm();
+		cost += (goal_foot_pos[1] - cur_foot_pos[1]).squaredNorm();
+		cost += (goal_foot_pos[2] - cur_foot_pos[2]).squaredNorm();
+
+		Eigen::Vector3d cur_ori[3];
+		cur_ori[0] = exponential_map::RotationToExponentialMap(
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].E);
+		cur_ori[1] = exponential_map::RotationToExponentialMap(
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].E);
+		cur_ori[2] = exponential_map::RotationToExponentialMap(
+				evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].E);
+
+		cost += (goal_ori - cur_ori[0]).squaredNorm();
+		//cost += (goal_ori - cur_ori[1]).squaredNorm();
+		//cost += (goal_ori - cur_ori[2]).squaredNorm();
 	}
 
 	return is_feasible;
@@ -393,7 +450,15 @@ bool TrajectoryCostFrictionCone::evaluate(
 		Eigen::Vector3d contact_normal;
 		GroundManager::getInstance()->getNearestGroundPosition(
 				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point, i);
+		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
+				i);
+
+		// active contacts only
+		const double k1 = 10.0;
+		const double k2 = 3.0;
+		const double force_normal = std::max(0.0,
+				contact_normal.dot(contact_force));
+		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
 
 		double angle = 0.0;
 		double norm = contact_force.norm();
@@ -405,7 +470,7 @@ bool TrajectoryCostFrictionCone::evaluate(
 			angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
 		}
 
-		cost += angle * angle * norm * norm;
+		cost += contact_variable * angle * angle * norm * norm;
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);

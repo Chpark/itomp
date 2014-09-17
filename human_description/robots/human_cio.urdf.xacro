@@ -279,9 +279,9 @@
     <parent link="upper_left_leg_z_link"/>
     <child link="upper_left_leg_y_link"/>
   </joint>
-  <joint name="upper_left_leg_x_joint" type="continuous">
+  <joint name="upper_left_leg_x_joint" type="revolute">
     <axis xyz="1 0 0"/>
-    <limit effort="15" lower="-1.2" upper="1.57" velocity="5"/>
+    <limit effort="15" lower="-0.6" upper="1.0" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="upper_left_leg_y_link"/>
     <child link="upper_left_leg_x_link"/>
@@ -423,9 +423,9 @@
     <parent link="upper_right_leg_z_link"/>
     <child link="upper_right_leg_y_link"/>
   </joint>
-  <joint name="upper_right_leg_x_joint" type="continuous">
+  <joint name="upper_right_leg_x_joint" type="revolute">
     <axis xyz="1 0 0"/>
-    <limit effort="15" lower="-1.2" upper="1.57" velocity="5"/>
+    <limit effort="15" lower="-0.6" upper="1.0" velocity="5"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="upper_right_leg_y_link"/>
     <child link="upper_right_leg_x_link"/>

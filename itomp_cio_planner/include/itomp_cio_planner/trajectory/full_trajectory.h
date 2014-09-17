@@ -76,6 +76,9 @@ public:
 
 	Eigen::Vector3d getContactForce(int point, int contact_index) const;
 
+	virtual void printTrajectory(bool position = true, bool velocity = true,
+			bool acceleration = true) const;
+
 protected:
 	void copyFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
@@ -175,11 +178,14 @@ inline Eigen::Vector3d FullTrajectory::getContactForce(int point,
 		int contact_index) const
 {
 	// mass * gravity
-	double scale = 150 * 10;
+	double scale = 150 * 100;
 	Eigen::Vector3d force_param = getComponentTrajectory(
 			TRAJECTORY_COMPONENT_CONTACT_FORCE).block(point, contact_index * 3,
 			1, 3).transpose();
 	force_param *= scale;
+
+	if (force_param(2) < 0.0)
+		force_param(2) = -force_param(2);
 	return force_param;
 }
 

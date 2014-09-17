@@ -258,6 +258,10 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			int foot_index = i / 4 * 4;
 			int ee_index = i % 4;
 			contact_position = r.block(3 * foot_index, 0, 3, 1);
+
+			double contact_v = contact_position(2);
+			contact_v = 0.5 * tanh(4 * contact_v - 2) + 0.5;
+
 			contact_position(2) = 0;
 			switch (ee_index)
 			{
@@ -279,9 +283,12 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 				break;
 			}
 
-			Eigen::Vector3d contact_force = full_trajectory_->getContactForce(point, i);
+			Eigen::Vector3d contact_force = full_trajectory_->getContactForce(
+					point, i);
 			if (contact_force(2) < 0.0)
 				contact_force(2) = 0.0;
+
+			contact_force *= contact_v;
 
 			Eigen::Vector3d contact_torque = contact_position.cross(
 					contact_force);
@@ -359,6 +366,10 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 				int foot_index = i / 4 * 4;
 				int ee_index = i % 4;
 				contact_position = r.block(3 * foot_index, 0, 3, 1);
+
+				double contact_v = contact_position(2);
+				contact_v = 0.5 * tanh(4 * contact_v - 2) + 0.5;
+
 				contact_position(2) = 0;
 				switch (ee_index)
 				{
@@ -380,9 +391,10 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 					break;
 				}
 
-				Eigen::Vector3d contact_force = full_trajectory_->getContactForce(point, i);
-				if (contact_force(2) < 0.0)
-					contact_force(2) = 0.0;
+				Eigen::Vector3d contact_force =
+						full_trajectory_->getContactForce(point, i);
+
+				contact_force *= contact_v;
 
 				Eigen::Vector3d contact_torque = contact_position.cross(
 						contact_force);
@@ -446,7 +458,7 @@ void NewEvalManager::setParameters(
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();
-	if (!details && cost >= best_cost_)
+	if (cost >= best_cost_)
 		return;
 
 	if (cost < best_cost_)
@@ -483,6 +495,21 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			{
 				double sub_cost = evaluation_cost_matrix_(i, c);
 				printf("%.7f ", sub_cost);
+			}
+			printf("\n");
+		}
+
+		for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+		{
+			const Eigen::VectorXd& r = full_trajectory_->getComponentTrajectory(
+					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
+					Trajectory::TRAJECTORY_TYPE_POSITION).row(i);
+
+			printf("%d ", i);
+			for (int c = 0; c < 8; c += 4)
+			{
+				printf("%.7f ", r(3 * c + 2));
+
 			}
 			printf("\n");
 		}

@@ -996,8 +996,8 @@ int main(int argc, char **argv)
 	{
 		robot_states.push_back(planning_scene->getCurrentStateNonConst());
 		robot_states.push_back(robot_states.back());
-		Eigen::Vector3d start_trans(0.0, 3.0, 0.0);
-		Eigen::Vector3d goal_trans(0.0, 4.0, 0.0);
+		Eigen::Vector3d start_trans(0.0, 1.0, 0.0);
+		Eigen::Vector3d goal_trans(0.0, 2.5, 0.0);
 		setWalkingStates(robot_states[state_index],
 				robot_states[state_index + 1], start_trans, goal_trans);
 		doPlan("lower_body", req, res, robot_states[state_index],
