@@ -303,9 +303,9 @@ void NewVizManager::animateContactForces(
 			point_from.y = contact_position(1);
 			point_from.z = contact_position(2);
 
-			point_to.x = contact_force(0) * 0.001 + point_from.x;
-			point_to.y = contact_force(1) * 0.001 + point_from.y;
-			point_to.z = contact_force(2) * 0.001 + point_from.z;
+			point_to.x = contact_force(0) + point_from.x;
+			point_to.y = contact_force(1) + point_from.y;
+			point_to.z = contact_force(2) + point_from.z;
 
 			const double k1 = 10.0;
 			const double k2 = 3.0;

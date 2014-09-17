@@ -481,6 +481,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
 void NewEvalManager::initializeContactVariables()
 {
+	return;
+
 	if (!full_trajectory_->hasVelocity()
 			|| !full_trajectory_->hasAcceleration())
 		return;

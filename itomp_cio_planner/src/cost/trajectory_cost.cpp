@@ -207,10 +207,19 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
 
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
+				point);
+	double mass = 0;
+	for (int i = 0; i < model.mBodies.size(); ++i)
+		mass += model.mBodies[i].mMass;
+	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
+	double normalizer = 1.0 / mass * dt * dt;
+
 	for (int i = 0; i < 6; ++i)
 	{
 		// non-actuated root joints
 		double joint_torque = evaluation_manager->tau_[point](i);
+		joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
 	cost /= 6.0;

@@ -292,7 +292,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)
 	{
-		variables(i) += 1e-4 * noise(i);
+		variables(i) += 1e-2 * noise(i);
 	}
 }
 
