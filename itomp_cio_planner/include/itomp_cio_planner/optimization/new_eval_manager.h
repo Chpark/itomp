@@ -94,6 +94,7 @@ private:
 
 	friend class TrajectoryCostObstacle;
 	friend class TrajectoryCostPhysicsViolation;
+	friend class TrajectoryCostTorque;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 

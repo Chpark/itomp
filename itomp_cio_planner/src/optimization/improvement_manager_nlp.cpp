@@ -152,7 +152,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	//if (evaluation_count_ % 100 == 0)
 	{
 
-		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
+		evaluation_manager_->printTrajectoryCost(++evaluation_count_, evaluation_count_ % 100 == 0);
 		if (evaluation_count_ % 100 == 0)
 		{
 			printf("Elapsed (in eval) : %f\n",

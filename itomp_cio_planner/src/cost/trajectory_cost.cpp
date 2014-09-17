@@ -271,7 +271,26 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
-	// implement
+	TIME_PROFILER_START_TIMER(Torque);
+
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
+			point);
+	double mass = 0;
+	for (int i = 0; i < model.mBodies.size(); ++i)
+		mass += model.mBodies[i].mMass;
+	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
+	double normalizer = 1.0 / mass * dt * dt;
+
+	for (int i = 6; i < evaluation_manager->tau_[point].rows(); ++i)
+	{
+		// actuated joints
+		double joint_torque = evaluation_manager->tau_[point](i);
+		joint_torque *= normalizer;
+		cost += joint_torque * joint_torque;
+	}
+	cost /= (double)(evaluation_manager->tau_[point].rows() - 6);
+
+	TIME_PROFILER_END_TIMER(Torque);
 
 	return is_feasible;
 }
