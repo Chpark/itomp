@@ -173,11 +173,13 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),
 				cost_functions.size());
 
-	if (point_begin == 0)
-		++point_begin;
-	if (point_end == full_trajectory_->getNumPoints()
-			&& !full_trajectory_->hasFreeEndPoint())
-		--point_end;
+	/*
+	 if (point_begin == 0)
+	 ++point_begin;
+	 if (point_end == full_trajectory_->getNumPoints()
+	 && !full_trajectory_->hasFreeEndPoint())
+	 --point_end;
+	 */
 
 	for (int i = point_begin; i < point_end; ++i)
 	{
@@ -278,6 +280,9 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			}
 
 			Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+			if (contact_force(2) < 0.0)
+				contact_force(2) = 0.0;
+
 			Eigen::Vector3d contact_torque = contact_position.cross(
 					contact_force);
 
@@ -376,6 +381,9 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 				}
 
 				Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+				if (contact_force(2) < 0.0)
+					contact_force(2) = 0.0;
+
 				Eigen::Vector3d contact_torque = contact_position.cross(
 						contact_force);
 
@@ -438,6 +446,9 @@ void NewEvalManager::setParameters(
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();
+	if (!details && cost >= best_cost_)
+		return;
+
 	if (cost < best_cost_)
 		best_cost_ = cost;
 
@@ -446,8 +457,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
 	if (!details)
 	{
-		printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost,
-				best_cost_);
+		printf("[%d] Trajectory cost : %.7f (", iteration, best_cost_);
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
 			double sub_cost = evaluation_cost_matrix_.col(c).sum();
@@ -472,7 +482,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			for (int c = 0; c < cost_functions.size(); ++c)
 			{
 				double sub_cost = evaluation_cost_matrix_(i, c);
-				printf("%.7f", sub_cost);
+				printf("%.7f ", sub_cost);
 			}
 			printf("\n");
 		}
@@ -482,7 +492,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
 void NewEvalManager::initializeContactVariables()
 {
-	return;
+	//return;
 
 	if (!full_trajectory_->hasVelocity()
 			|| !full_trajectory_->hasAcceleration())
@@ -539,7 +549,7 @@ void NewEvalManager::initializeContactVariables()
 					Eigen::Vector3d::Zero(), jacobians[i], false);
 
 			contact_position[i] = rbdl_models_[point].X_base[rbdl_body_id].r;
-			contact_force[i] = 1.0 / num_contacts * tau.block(0, 0, 3, 1);
+			contact_force[i] = 0.0 / num_contacts * tau.block(0, 0, 3, 1);
 			contact_torque[i] = contact_position[i].cross(contact_force[i]);
 
 			if (i == 0 || i == 4)

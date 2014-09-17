@@ -315,9 +315,6 @@ void NewVizManager::animateContactForces(
 					contact_normal.dot(contact_force));
 			double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2)
 					+ 0.5;
-			printf("CV %d : %f %f=(%f %f %f).(%f %f %f)\n", i, contact_variable, force_normal,
-					contact_normal(0), contact_normal(1), contact_normal(2),
-					contact_force(0), contact_force(1), contact_force(2));
 
 			if (contact_variable > 0.5)
 			{

@@ -665,16 +665,16 @@ void FullTrajectory::interpolateContactVariables()
 				x1, v1, a1);
 		for (int i = 1; i < getNumPoints() - 1; ++i)
 		{
-			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(
-					i * discretization_);
+			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(0);
+					//i * discretization_);
 			if (has_velocity_)
 			{
-				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(
-						i * discretization_);
+				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(0);
+						//i * discretization_);
 			}
 			if (has_acceleration_)
 				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
-						poly.dderivative(i * discretization_);
+						poly.dderivative(0);//i * discretization_);
 		}
 	}
 }

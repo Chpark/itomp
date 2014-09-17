@@ -153,8 +153,11 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	{
 
 		evaluation_manager_->printTrajectoryCost(++evaluation_count_);
-		printf("Elapsed (in eval) : %f\n",
-				(ros::Time::now() - start_time_).toSec());
+		if (evaluation_count_ % 100 == 0)
+		{
+			printf("Elapsed (in eval) : %f\n",
+					(ros::Time::now() - start_time_).toSec());
+		}
 
 	}
 
@@ -246,26 +249,26 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 	TIME_PROFILER_PRINT_ITERATION_TIME();
 
-#define VALIDATE_DERIVATIVE
+//#define VALIDATE_DERIVATIVE
 #ifdef VALIDATE_DERIVATIVE
 	// validate
-/*	printf("Var : ");
-	for (long i = 0; i < variables.size(); ++i)
-	printf("%f ", variables(i));
-	printf("\n");*/
+	/*	printf("Var : ");
+	 for (long i = 0; i < variables.size(); ++i)
+	 printf("%f ", variables(i));
+	 printf("\n");*/
 	printf("[%d] Der : ", evaluation_count_);
 	for (long i = 0; i < variables.size(); ++i)
 	printf("%f ", der(i));
 	printf("\n");
 	/*
-	printf("Der_p : ");
-	for (long i = 0; i < variables.size(); ++i)
-	printf("%.14f ", delta_plus_vec(i));
-	printf("\n");
-	printf("Der_m : ");
-	for (long i = 0; i < variables.size(); ++i)
-	printf("%.14f ", delta_minus_vec(i));
-	printf("\n");*/
+	 printf("Der_p : ");
+	 for (long i = 0; i < variables.size(); ++i)
+	 printf("%.14f ", delta_plus_vec(i));
+	 printf("\n");
+	 printf("Der_m : ");
+	 for (long i = 0; i < variables.size(); ++i)
+	 printf("%.14f ", delta_minus_vec(i));
+	 printf("\n");*/
 	//column_vector der_ref = derivative_ref(variables);
 #endif
 
@@ -286,7 +289,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
 	int num_variables = variables.size();
-	MultivariateGaussian noise_generator(VectorXd::Zero (num_variables),
+	MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
 			MatrixXd::Identity(num_variables, num_variables));
 	VectorXd noise = VectorXd::Zero(num_variables);
 	noise_generator.sample(noise);
