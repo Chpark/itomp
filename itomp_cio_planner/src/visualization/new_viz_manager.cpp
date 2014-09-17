@@ -221,7 +221,7 @@ void NewVizManager::animateContactForces(
 	const double scale_keyframe = 0.03;
 	geometry_msgs::Point point_from, point_to;
 
-	visualization_msgs::Marker msg, msg2;
+	visualization_msgs::Marker msg, msg2, msg3, msg4;
 	msg.header.frame_id = reference_frame_;
 	msg.header.stamp = ros::Time::now();
 	msg.ns = is_best ? "itomp_best_cf" : "itomp_cf";
@@ -243,6 +243,14 @@ void NewVizManager::animateContactForces(
 	msg2.scale.x = scale_keyframe;
 	msg2.scale.y = scale_keyframe;
 	msg2.scale.z = scale_keyframe;
+
+	// inactive
+	msg3 = msg;
+	msg3.id = 1;
+	msg3.color = is_best ? colors_[RED] : colors_[MAGENTA];
+	msg4 = msg2;
+	msg4.id = 1;
+	msg4.color = is_best ? colors_[RED] : colors_[MAGENTA];
 
 	for (int point = full_trajectory->getKeyframeStartIndex();
 			point < full_trajectory->getNumPoints();
@@ -299,15 +307,32 @@ void NewVizManager::animateContactForces(
 			point_to.y = contact_force(1) * 0.001 + point_from.y;
 			point_to.z = contact_force(2) * 0.001 + point_from.z;
 
-			msg.points.push_back(point_from);
-			msg.points.push_back(point_to);
+			const double k1 = 10.0;
+			const double k2 = 3.0;
+			const double force_normal = std::max(0.0,
+					contact_normal.dot(contact_force));
+			double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2)
+					+ 0.5;
 
-			msg2.points.push_back(point_from);
+			if (contact_variable > 0.5)
+			{
+				msg.points.push_back(point_from);
+				msg.points.push_back(point_to);
+				msg2.points.push_back(point_from);
+			}
+			else
+			{
+				msg3.points.push_back(point_from);
+				msg3.points.push_back(point_to);
+				msg4.points.push_back(point_from);
+			}
 
 		}
 	}
 	vis_marker_publisher_.publish(msg);
 	vis_marker_publisher_.publish(msg2);
+	vis_marker_publisher_.publish(msg3);
+	vis_marker_publisher_.publish(msg4);
 }
 
 }
