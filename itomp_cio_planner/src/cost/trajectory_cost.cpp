@@ -145,7 +145,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 		Eigen::Vector3d contact_normal;
 		GroundManager::getInstance()->getNearestGroundPosition(
 				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point, i);
 
 		// test
 		int foot_index = i / 4 * 4;
@@ -216,7 +216,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	for (int i = 0; i < model.mBodies.size(); ++i)
 		mass += model.mBodies[i].mMass;
 	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
-	double normalizer = 1.0 / mass * dt * dt;
+	double normalizer = 1.0 / mass * dt;
 
 	for (int i = 0; i < 6; ++i)
 	{
@@ -235,10 +235,31 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
+	// TODO
+	Eigen::Vector3d goal_foot_pos[2];
+	goal_foot_pos[0] = Eigen::Vector3d(-0.1, 2.0, 0.0);
+	goal_foot_pos[1] = Eigen::Vector3d(-0.1, 2.0, 0.0);
+
+
 	bool is_feasible = true;
 	cost = 0;
 
 	// implement
+
+	if (point == evaluation_manager->getFullTrajectory()->getNumPoints() - 1)
+	{
+		Eigen::Vector3d cur_foot_pos[2];
+		unsigned body_ids[2];
+
+		// TODO
+		body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId("left_foot_endeffector_link");
+		body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId("right_foot_endeffector_link");
+		cur_foot_pos[0] = evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
+		cur_foot_pos[1] = evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
+
+		cost += (goal_foot_pos[0]-cur_foot_pos[0]).squaredNorm();
+		cost += (goal_foot_pos[1]-cur_foot_pos[1]).squaredNorm();
+	}
 
 	return is_feasible;
 }
@@ -279,7 +300,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 	for (int i = 0; i < model.mBodies.size(); ++i)
 		mass += model.mBodies[i].mMass;
 	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
-	double normalizer = 1.0 / mass * dt * dt;
+	double normalizer = 1.0 / mass * dt; // * dt;
 
 	for (int i = 6; i < evaluation_manager->tau_[point].rows(); ++i)
 	{
@@ -288,7 +309,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 		joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
-	cost /= (double)(evaluation_manager->tau_[point].rows() - 6);
+	cost /= (double) (evaluation_manager->tau_[point].rows() - 6);
 
 	TIME_PROFILER_END_TIMER(Torque);
 
@@ -372,9 +393,10 @@ bool TrajectoryCostFrictionCone::evaluate(
 		Eigen::Vector3d contact_normal;
 		GroundManager::getInstance()->getNearestGroundPosition(
 				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point, i);
 
 		double angle = 0.0;
+		double norm = contact_force.norm();
 		if (contact_force.norm() > 1e-7)
 		{
 			contact_force.normalize();
@@ -383,7 +405,7 @@ bool TrajectoryCostFrictionCone::evaluate(
 			angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
 		}
 
-		cost += angle * angle;
+		cost += angle * angle * norm * norm;
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);

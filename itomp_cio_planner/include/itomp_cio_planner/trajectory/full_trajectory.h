@@ -74,6 +74,8 @@ public:
 	int getNumKeyframes() const;
 	bool hasFreeEndPoint() const;
 
+	Eigen::Vector3d getContactForce(int point, int contact_index) const;
+
 protected:
 	void copyFromParameterTrajectory(
 			const ParameterTrajectoryConstPtr& parameter_trajectory,
@@ -167,6 +169,18 @@ inline int FullTrajectory::getNumKeyframes() const
 inline bool FullTrajectory::hasFreeEndPoint() const
 {
 	return has_free_end_point_;
+}
+
+inline Eigen::Vector3d FullTrajectory::getContactForce(int point,
+		int contact_index) const
+{
+	// mass * gravity
+	double scale = 150 * 10;
+	Eigen::Vector3d force_param = getComponentTrajectory(
+			TRAJECTORY_COMPONENT_CONTACT_FORCE).block(point, contact_index * 3,
+			1, 3).transpose();
+	force_param *= scale;
+	return force_param;
 }
 
 }

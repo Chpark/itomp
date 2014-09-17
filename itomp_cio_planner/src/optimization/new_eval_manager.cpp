@@ -279,7 +279,7 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 				break;
 			}
 
-			Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+			Eigen::Vector3d contact_force = full_trajectory_->getContactForce(point, i);
 			if (contact_force(2) < 0.0)
 				contact_force(2) = 0.0;
 
@@ -380,7 +380,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 					break;
 				}
 
-				Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+				Eigen::Vector3d contact_force = full_trajectory_->getContactForce(point, i);
 				if (contact_force(2) < 0.0)
 					contact_force(2) = 0.0;
 
