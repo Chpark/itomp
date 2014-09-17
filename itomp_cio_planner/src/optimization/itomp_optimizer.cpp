@@ -104,7 +104,7 @@ bool ItompOptimizer::optimize()
 	evaluation_manager_->printTrajectoryCost(iteration_, true);
 
 	evaluation_manager_->render();
-	evaluation_manager_->getFullTrajectory()->printTrajectory();
+	evaluation_manager_->getFullTrajectory()->printTrajectory(true, false, false);
 
 	double elpsed_time = (ros::WallTime::now() - start_time).toSec();
 

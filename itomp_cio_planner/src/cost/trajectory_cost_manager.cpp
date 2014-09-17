@@ -32,6 +32,7 @@ void TrajectoryCostManager::buildActiveCostFunctions()
 	ITOMP_TRAJECTORY_COST_ADD(FTR)
 	ITOMP_TRAJECTORY_COST_ADD(CartesianTrajectory)
 	ITOMP_TRAJECTORY_COST_ADD(Singularity)
+	ITOMP_TRAJECTORY_COST_ADD(FrictionCone)
 }
 
 }

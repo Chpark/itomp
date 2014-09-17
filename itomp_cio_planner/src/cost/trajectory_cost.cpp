@@ -174,13 +174,16 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 		Eigen::Vector3d body_contact_position = contact_body_transform.r;
 
-		Eigen::Vector3d body_rot = exponential_map::RotationToExponentialMap(contact_body_transform.E);
-		Eigen::Vector3d ground_rot = exponential_map::AngleAxisToExponentialMap(Eigen::AngleAxisd(0.0, contact_normal));
+		Eigen::Vector3d body_rot = exponential_map::RotationToExponentialMap(
+				contact_body_transform.E);
+		Eigen::Vector3d ground_rot = exponential_map::AngleAxisToExponentialMap(
+				Eigen::AngleAxisd(0.0, contact_normal));
 		Eigen::Vector3d orientation_diff = body_rot - ground_rot;
 
 		Eigen::Vector3d position_diff = body_contact_position
 				- contact_position;
-		double position_diff_cost = position_diff.squaredNorm() + orientation_diff.squaredNorm();
+		double position_diff_cost = position_diff.squaredNorm()
+				+ orientation_diff.squaredNorm();
 
 		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
@@ -208,7 +211,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
 
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-				point);
+			point);
 	double mass = 0;
 	for (int i = 0; i < model.mBodies.size(); ++i)
 		mass += model.mBodies[i].mMass;
@@ -313,6 +316,58 @@ bool TrajectoryCostSingularity::evaluate(
 	cost = 0;
 
 	// implement
+
+	return is_feasible;
+}
+
+bool TrajectoryCostFrictionCone::evaluate(
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
+{
+	TIME_PROFILER_START_TIMER(FrictionCone);
+
+	bool is_feasible = true;
+	cost = 0;
+
+	const FullTrajectoryConstPtr full_trajectory =
+			evaluation_manager->getFullTrajectory();
+	const ItompPlanningGroupConstPtr& planning_group =
+			evaluation_manager->getPlanningGroup();
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
+			point);
+
+	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+	int num_contacts = r.rows() / 3;
+
+	for (int i = 0; i < num_contacts; ++i)
+	{
+		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
+
+		Eigen::Vector3d contact_position;
+		Eigen::Vector3d contact_normal;
+		GroundManager::getInstance()->getNearestGroundPosition(
+				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
+		Eigen::Vector3d contact_force = f.block(3 * i, 0, 3, 1);
+
+		double angle = 0.0;
+		if (contact_force.norm() > 1e-7)
+		{
+			contact_force.normalize();
+			angle = (contact_force.norm() < 1e-7) ?
+					0.0 : acos(contact_normal.dot(contact_force));
+			angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
+		}
+
+		cost += angle * angle;
+	}
+
+	TIME_PROFILER_END_TIMER(FrictionCone);
 
 	return is_feasible;
 }

@@ -42,6 +42,7 @@ public:
 	double getFTRCostWeight() const;
 	double getCartesianTrajectoryCostWeight() const;
 	double getSingularityCostWeight() const;
+	double getFrictionConeCostWeight() const;
 
 	bool getAnimatePath() const;
 	double getSmoothnessCostVelocity() const;
@@ -120,6 +121,7 @@ private:
 	double rvo_cost_weight_;
 	double cartesian_trajectory_cost_weight_;
 	double singularity_cost_weight_;
+	double friction_cone_cost_weight_;
 	bool animate_path_;
 	double smoothness_cost_velocity_;
 	double smoothness_cost_acceleration_;
@@ -387,6 +389,11 @@ inline double PlanningParameters::getEnvironmentModelScale() const
 inline bool PlanningParameters::getHasRoot6d() const
 {
 	return has_root_6d_;
+}
+
+inline double PlanningParameters::getFrictionConeCostWeight() const
+{
+	return friction_cone_cost_weight_;
 }
 
 }

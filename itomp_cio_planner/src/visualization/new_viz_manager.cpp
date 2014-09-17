@@ -246,11 +246,13 @@ void NewVizManager::animateContactForces(
 
 	// inactive
 	msg3 = msg;
-	msg3.id = 1;
+	msg3.id = 0;
 	msg3.color = is_best ? colors_[RED] : colors_[MAGENTA];
+	msg3.ns = is_best ? "itomp_best_cf_ia" : "itomp_cf_ia";
 	msg4 = msg2;
-	msg4.id = 1;
+	msg4.id = 0;
 	msg4.color = is_best ? colors_[RED] : colors_[MAGENTA];
+	msg4.ns = is_best ? "itomp_best_cp_ia" : "itomp_cp_ia";
 
 	for (int point = full_trajectory->getKeyframeStartIndex();
 			point < full_trajectory->getNumPoints();
@@ -313,6 +315,9 @@ void NewVizManager::animateContactForces(
 					contact_normal.dot(contact_force));
 			double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2)
 					+ 0.5;
+			printf("CV %d : %f %f=(%f %f %f).(%f %f %f)\n", i, contact_variable, force_normal,
+					contact_normal(0), contact_normal(1), contact_normal(2),
+					contact_force(0), contact_force(1), contact_force(2));
 
 			if (contact_variable > 0.5)
 			{
