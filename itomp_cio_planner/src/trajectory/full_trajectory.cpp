@@ -663,7 +663,7 @@ void FullTrajectory::interpolateContactVariables()
 		ecl::QuinticPolynomial poly;
 		poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
 				x1, v1, a1);
-		for (int i = 1; i < getNumPoints() - 2; ++i)
+		for (int i = 1; i < getNumPoints() - 1; ++i)
 		{
 			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(
 					i * discretization_);
