@@ -31,7 +31,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& in, Eigen::V
 	if (in(1) > 5.5 && in(1) < 6.5)
 		out(2) = 0.05;
 
-	normal = Eigen::Vector3d(1, 0, 0);
+	normal = Eigen::Vector3d(0, 0, 1);
 }
 
 double interpolateSqrt(double x, double x1, double x2, double y1, double y2)
