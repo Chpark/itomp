@@ -16,6 +16,7 @@ CoM_cost_weight: 0.0
 FTR_cost_weight: 0.0
 cartesian_trajectory_cost_weight: 0.0
 singularity_cost_weight: 0.0
+friction_cone_cost_weight: 0.0
 smoothness_cost_velocity: 0.0
 smoothness_cost_acceleration: 1.0
 smoothness_cost_jerk: 0.0
@@ -34,8 +35,8 @@ animate_endeffector_segment:
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 2.0
-trajectory_discretization: 0.125
+trajectory_duration: 10.0
+trajectory_discretization: 0.5
 keyframe_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link

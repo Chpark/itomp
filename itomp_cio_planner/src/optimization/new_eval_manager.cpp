@@ -50,7 +50,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	planning_start_time_ = planning_start_time;
 	trajectory_start_time_ = trajectory_start_time;
 
-	evaluation_cost_matrix_ = Eigen::MatrixXd(full_trajectory_->getNumPoints(),
+	evaluation_cost_matrix_.setZero(full_trajectory_->getNumPoints(),
 			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
 
 	int num_joints = full_trajectory_->getComponentSize(
@@ -175,7 +175,8 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 	if (point_begin == 0)
 		++point_begin;
-	if (point_end == full_trajectory_->getNumPoints() && !full_trajectory_->hasFreeEndPoint())
+	if (point_end == full_trajectory_->getNumPoints()
+			&& !full_trajectory_->hasFreeEndPoint())
 		--point_end;
 
 	for (int i = point_begin; i < point_end; ++i)
@@ -440,13 +441,13 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (cost < best_cost_)
 		best_cost_ = cost;
 
-
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
 	if (!details)
 	{
-		printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost, best_cost_);
+		printf("[%d] Trajectory cost : %.7f/%.7f (", iteration, cost,
+				best_cost_);
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
 			double sub_cost = evaluation_cost_matrix_.col(c).sum();
@@ -456,7 +457,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	}
 	else
 	{
-		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost, best_cost_);
+		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
+				best_cost_);
 		printf("point ");
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
@@ -475,7 +477,6 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			printf("\n");
 		}
 	}
-
 
 }
 
