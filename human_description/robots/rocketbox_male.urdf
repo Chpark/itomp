@@ -31,8 +31,51 @@
   </material>
 
   <link name="root_link"/>
-  <link name="base_prismatic_dummy1"/>
-  <link name="base_prismatic_dummy2"/>
+  <link name="base_prismatic_dummy1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+  </link>
+  <link name="base_prismatic_dummy2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+  </link>
+  <link name="base_prismatic_dummy3">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+  </link>
+  <link name="base_revolute_dummy1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+  </link>
+  <link name="base_revolute_dummy2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+  </link>
   <joint name="base_prismatic_joint_x" type="prismatic">
     <axis xyz="1 0 0"/>
     <limit effort="10000" lower="-5.0" upper="5.0" velocity="0.6"/>
@@ -53,19 +96,35 @@
     <parent link="base_prismatic_dummy1"/>
     <child link="base_prismatic_dummy2"/>
   </joint>
-  <joint name="base_rotate_joint" type="continuous">
+  <joint name="base_prismatic_joint_z" type="prismatic">
     <axis xyz="0 0 1"/>
-    <limit effort="30" velocity="3.6"/>
-    <safety_controller k_velocity="1"/>
-    <calibration rising="0.0"/>
-    <dynamics damping="0.1"/>
+    <limit effort="10000" lower="-10.0" upper="10.0" velocity="0.6"/>
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-10.0" soft_upper_limit="10.0"/>
+    <calibration falling="0.00536"/>
+    <dynamics damping="20000.0"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
     <parent link="base_prismatic_dummy2"/>
-    <child link="pelvis_link"/>
+    <child link="base_prismatic_dummy3"/>
   </joint>
-
-  <link name="pelvis_link"/>
-	  
+  <joint name="base_revolute_joint_x" type="continuous">
+    <axis xyz="1 0 0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base_prismatic_dummy3"/>
+    <child link="base_revolute_dummy1"/>
+  </joint>
+  <joint name="base_revolute_joint_y" type="continuous">
+    <axis xyz="0 1 0"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base_revolute_dummy1"/>
+    <child link="base_revolute_dummy2"/>
+  </joint>
+  <joint name="base_revolute_joint_z" type="continuous">
+    <axis xyz="0 0 1"/>
+    <origin rpy="0 0 0" xyz="0 0 0"/>
+    <parent link="base_revolute_dummy2"/>
+    <child link="pelvis_link"/>
+  </joint>  
+  <link name="pelvis_link"/>	  
   <joint name="pelvis1_z_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
@@ -120,14 +179,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/torso.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/torso.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/torso.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/torso.obj"/>
       </geometry>
     </collision>
   </link>
@@ -214,14 +273,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/head.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/head.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/head.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/head.obj"/>
       </geometry>
     </collision>
   </link>
@@ -279,14 +338,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_lupperleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_lupperleg.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_lupperleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_lupperleg.obj"/>
       </geometry>
     </collision>
   </link>
@@ -303,14 +362,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_lowerleg.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_lowerleg.obj"/>
       </geometry>
     </collision>
   </link>
@@ -343,14 +402,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_foot.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_foot.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_foot.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_foot.obj"/>
       </geometry>
     </collision>
   </link>
@@ -429,14 +488,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_upperleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_upperleg.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_upperleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_upperleg.obj"/>
       </geometry>
     </collision>
   </link>
@@ -453,14 +512,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_lowerleg.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_lowerleg.obj"/>
       </geometry>
     </collision>
   </link>
@@ -493,14 +552,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_foot.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_foot.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_foot.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_foot.obj"/>
       </geometry>
     </collision>
   </link>
@@ -587,14 +646,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_upperarm.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_upperarm.obj"/>
       </geometry>
     </collision>
   </link>
@@ -611,14 +670,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_forearm.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_forearm.obj"/>
       </geometry>
     </collision>
   </link>
@@ -651,14 +710,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_hand.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_hand.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/l_hand.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/l_hand.obj"/>
       </geometry>
     </collision>
   </link>
@@ -726,14 +785,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_upperarm.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_upperarm.obj"/>
       </geometry>
     </collision>
   </link>
@@ -750,14 +809,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_forearm.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_forearm.obj"/>
       </geometry>
     </collision>
   </link>
@@ -790,14 +849,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_hand.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_hand.obj"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/rocket_box/r_hand.dae"/>
+        <mesh filename="package://human_description/meshes/rocket_box/r_hand.obj"/>
       </geometry>
     </collision>
   </link>
@@ -825,6 +884,345 @@
       </geometry>
     </collision>
   </link>
+  
+  
+<link name="left_foot_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_foot_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="left_foot_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="left_foot2_x_link"/>
+    <child link="left_foot_cp_1_link"/>
+  </joint>
+  <joint name="left_foot_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="left_foot2_x_link"/>
+    <child link="left_foot_cp_2_link"/>
+  </joint>
+  <joint name="left_foot_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="left_foot2_x_link"/>
+    <child link="left_foot_cp_3_link"/>
+  </joint>
+  <joint name="left_foot_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="left_foot2_x_link"/>
+    <child link="left_foot_cp_4_link"/>
+  </joint>
+<link name="right_foot_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_foot_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="right_foot_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="right_foot2_x_link"/>
+    <child link="right_foot_cp_1_link"/>
+  </joint>
+  <joint name="right_foot_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="right_foot2_x_link"/>
+    <child link="right_foot_cp_2_link"/>
+  </joint>
+  <joint name="right_foot_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="right_foot2_x_link"/>
+    <child link="right_foot_cp_3_link"/>
+  </joint>
+  <joint name="right_foot_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="right_foot2_x_link"/>
+    <child link="right_foot_cp_4_link"/>
+  </joint>
+
+<link name="left_hand_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_hand_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_hand_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="left_hand_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="left_hand_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="left_hand_x_link"/>
+    <child link="left_hand_cp_1_link"/>
+  </joint>
+  <joint name="left_hand_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="left_hand_x_link"/>
+    <child link="left_hand_cp_2_link"/>
+  </joint>
+  <joint name="left_hand_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="left_hand_x_link"/>
+    <child link="left_hand_cp_3_link"/>
+  </joint>
+  <joint name="left_hand_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="left_hand_x_link"/>
+    <child link="left_hand_cp_4_link"/>
+  </joint>
+<link name="right_hand_cp_1_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_hand_cp_2_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_hand_cp_3_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <link name="right_hand_cp_4_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <box size="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
+      <origin xyz="0 0 0"/>
+    </inertial>
+  </link>
+  <joint name="right_hand_cp_1_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 -0.05 -0.1"/>
+    <parent link="right_hand_x_link"/>
+    <child link="right_hand_cp_1_link"/>
+  </joint>
+  <joint name="right_hand_cp_2_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 -0.05 -0.1"/>
+    <parent link="right_hand_x_link"/>
+    <child link="right_hand_cp_2_link"/>
+  </joint>
+  <joint name="right_hand_cp_3_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.05 0.2 -0.1"/>
+    <parent link="right_hand_x_link"/>
+    <child link="right_hand_cp_3_link"/>
+  </joint>
+  <joint name="right_hand_cp_4_joint" type="revolute">
+    <axis xyz="0 0 1"/>
+    <limit effort="15" lower="0" upper="0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.05 0.2 -0.1"/>
+    <parent link="right_hand_x_link"/>
+    <child link="right_hand_cp_4_link"/>
+  </joint>
 
 </robot>
 
