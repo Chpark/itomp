@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<!--This does not replace URDF, and is not an extension of URDF.
+    This is a format for representing semantic information about the robot structure.
+    A URDF file must exist for this robot as well, where the joints and the links that are referenced are defined
+-->
+<robot name="rocketbox_male">
+    <!--GROUPS: Representation of a set of joints and links. This can be useful for specifying DOF to plan for, defining arms, end effectors, etc-->
+    <!--LINKS: When a link is specified, the parent joint of that link (if it exists) is automatically included-->
+    <!--JOINTS: When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
+    <!--CHAINS: When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
+    <!--SUBGROUPS: Groups can also be formed by referencing to already defined group names-->
+    <group name="lower_body">
+        <joint name="base_prismatic_joint_x" />
+        <joint name="base_prismatic_joint_y" />
+        <joint name="base_rotate_joint" />
+        <joint name="pelvis1_z_joint" />
+        <joint name="pelvis1_y_joint" />
+        <joint name="pelvis1_x_joint" />
+        <joint name="upper_left_leg_z_joint" />
+        <joint name="upper_left_leg_y_joint" />
+        <joint name="upper_left_leg_x_joint" />
+        <joint name="lower_left_leg_joint" />
+        <joint name="left_foot_z_joint" />
+        <joint name="left_foot_y_joint" />
+        <joint name="left_foot_x_joint" />
+        <joint name="left_foot2_z_joint" />
+        <joint name="left_foot2_y_joint" />
+        <joint name="left_foot2_x_joint" />
+        <joint name="left_foot_endeffector_joint" />
+        <joint name="upper_right_leg_z_joint" />
+        <joint name="upper_right_leg_y_joint" />
+        <joint name="upper_right_leg_x_joint" />
+        <joint name="lower_right_leg_joint" />
+        <joint name="right_foot_z_joint" />
+        <joint name="right_foot_y_joint" />
+        <joint name="right_foot_x_joint" />
+        <joint name="right_foot2_z_joint" />
+        <joint name="right_foot2_y_joint" />
+        <joint name="right_foot2_x_joint" />
+        <joint name="right_foot_endeffector_joint" />
+    </group>
+</robot>

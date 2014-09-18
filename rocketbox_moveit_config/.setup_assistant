@@ -1,0 +1,8 @@
+moveit_setup_assistant_config:
+  URDF:
+    package: human_description
+    relative_path: robots/rocketbox_male.urdf
+  SRDF:
+    relative_path: config/rocketbox_male.srdf
+  CONFIG:
+    generated_timestamp: 1411060585
