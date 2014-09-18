@@ -13,10 +13,10 @@ contact_invariant_cost_weight: 500.0
 physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 000.0
 CoM_cost_weight: 0.0
-FTR_cost_weight: 0.0001
+FTR_cost_weight: 0.000
 cartesian_trajectory_cost_weight: 0.0
 singularity_cost_weight: 0.0
-friction_cone_cost_weight: 0.00001
+friction_cone_cost_weight: 0.0000
 smoothness_cost_velocity: 0.0
 smoothness_cost_acceleration: 1.0
 smoothness_cost_jerk: 0.0

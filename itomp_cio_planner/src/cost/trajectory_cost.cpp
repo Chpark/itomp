@@ -46,7 +46,7 @@ bool TrajectoryCostSmoothness::evaluate(
 	for (int i = 6; i < pos.rows(); ++i)
 	{
 		value = std::abs((double) pos(i));
-		value = std::max(0.0, value - 0.2);
+		value = std::max(0.0, value - 0.3);
 		cost += value * value;
 	}
 
@@ -427,7 +427,7 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		if (ee_index != 0)
 			continue;
 
-		std::string chain_name = endeffector_chain_group_names[i];
+		std::string chain_name = endeffector_chain_group_names[foot_index/4];
 		Eigen::MatrixXd jacobianFull =
 				(robot_state->getJacobian(
 						evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
