@@ -1,0 +1,82 @@
+num_trials: 1
+planning_time_limit: 120.0
+max_iterations: 1
+max_iterations_after_collision_free: 0
+num_trajectories: 1
+
+smoothness_cost_weight: 1.0
+obstacle_cost_weight: 0.0
+torque_cost_weight: 0.0000
+state_validity_cost_weight: 0.0
+endeffector_velocity_cost_weight: 0.0
+contact_invariant_cost_weight: 500.0
+physics_violation_cost_weight: 1.0
+goal_pose_cost_weight: 000.0
+CoM_cost_weight: 0.0
+FTR_cost_weight: 1.0
+cartesian_trajectory_cost_weight: 0.0
+singularity_cost_weight: 0.0
+friction_cone_cost_weight: 0.00001
+smoothness_cost_velocity: 0.0
+smoothness_cost_acceleration: 1.0
+smoothness_cost_jerk: 0.0
+ridge_factor: 0.0
+
+temp: [1000.0, 1000.0, 0.0]
+
+print_planning_info: false
+
+animate_path: true
+animate_endeffector: true
+animate_endeffector_segment:
+  lower_body: [left_foot_cp_1_link, left_foot_cp_2_link, left_foot_cp_3_link, left_foot_cp_4_link, right_foot_cp_1_link, right_foot_cp_2_link, right_foot_cp_3_link, right_foot_cp_4_link]
+  torso: torso_x_link
+  head: head_endeffector_link
+  left_arm: left_hand_endeffector_link
+  right_arm: right_hand_endeffector_link
+  unified_body: right_hand_endeffector_link
+trajectory_duration: 8.0
+trajectory_discretization: 0.25
+keyframe_duration: 2.0
+friction_coefficient: 2.0
+lower_body_root: pelvis_link
+planning_step_size: 5.0
+
+collision_links:
+  pelvis_link: true
+  torso_x_link: true
+  head_x_link: true
+  head_endeffector_link: true
+  upper_left_leg_x_link: true
+  lower_left_leg_link: true
+  left_foot_x_link: true
+  upper_right_leg_x_link: true
+  lower_right_leg_link: true
+  right_foot_x_link: true
+  upper_left_arm_x_link: true
+  lower_left_arm_link: true
+  left_hand_x_link: true
+  left_hand_endeffector_link: true
+  upper_right_arm_x_link: true
+  lower_right_arm_link: true
+  right_hand_x_link: true
+  right_hand_endeffector_link: true
+
+use_cumulative_costs: true
+use_smooth_noises: true
+
+num_rollouts: 10
+num_reused_rollouts: 5
+noise_stddev: 2.0
+noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
+
+num_contacts: 8
+contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
+contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
+
+environment_model: package://move_itomp/meshes/appartzombi_x90.dae
+environment_model_position: [12.0, -8.0, 0.5]
+environment_model_scale: 1.0
+
+
+

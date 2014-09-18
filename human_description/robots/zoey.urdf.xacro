@@ -3,7 +3,7 @@
        xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
        xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
        xmlns:xacro="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
-       name="human" >
+       name="zoey" >
 
   <material name="Blue">
     <color rgba="0.0 0.0 0.8 1.0"/>
@@ -68,14 +68,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/pelvis.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/pelvis.dae" scale="0.00001 0.00001 0.00001"/>
       </geometry>
       <material name="Grey2"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/pelvis.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/pelvis.dae" scale="0.00001 0.00001 0.00001"/>
       </geometry>
     </collision>
   </link>
@@ -115,14 +115,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/torso.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/torso.dae" scale="0.00001 0.00001 0.00001"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/torso.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/torso.dae" scale="0.00001 0.00001 0.00001"/>
       </geometry>
     </collision>
   </link>
@@ -156,14 +156,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/head.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/head.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/head.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/head.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -197,14 +197,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_lupperleg.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_lupperleg.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_lupperleg.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_lupperleg.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -221,14 +221,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_lowerleg.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_lowerleg.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_lowerleg.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -261,14 +261,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_foot.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_foot.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_foot.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_foot.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -415,14 +415,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_upperarm.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_upperarm.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_upperarm.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -439,14 +439,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_forearm.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_forearm.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_forearm.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
@@ -479,14 +479,14 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_hand.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_hand.dae" scale="100 100 100"/>
       </geometry>
       <material name="Blue"/>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://human_description/meshes/zoey/l_hand.dae"/>
+        <mesh filename="package://human_description/meshes/zoey/l_hand.dae" scale="100 100 100"/>
       </geometry>
     </collision>
   </link>
