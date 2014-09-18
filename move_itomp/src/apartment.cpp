@@ -445,6 +445,27 @@ void displayStates(robot_state::RobotState& start_state,
 	goal_state_display_publisher.publish(disp_goal_state);
 }
 
+moveit_msgs::Constraints setRootJointConstraint(
+		const Eigen::Vector3d& root_trans)
+{
+	moveit_msgs::Constraints c;
+	moveit_msgs::JointConstraint jc;
+
+	jc.joint_name = "base_prismatic_joint_x";
+	jc.position = root_trans(0);
+	c.joint_constraints.push_back(jc);
+
+	jc.joint_name = "base_prismatic_joint_y";
+	jc.position = root_trans(1);
+	c.joint_constraints.push_back(jc);
+
+	jc.joint_name = "base_prismatic_joint_z";
+	jc.position = root_trans(2);
+	c.joint_constraints.push_back(jc);
+
+	return c;
+}
+
 void setWalkingStates(robot_state::RobotState& start_state,
 		robot_state::RobotState& goal_state, Eigen::Vector3d& start_trans,
 		Eigen::Vector3d& goal_trans, double start_rot = 0, double end_rot = 0)
@@ -556,12 +577,29 @@ int main(int argc, char **argv)
 
 	robot_states.push_back(planning_scene->getCurrentStateNonConst());
 	robot_states.push_back(robot_states.back());
+
 	Eigen::Vector3d start_trans(0.0, 1.0, 0.0);
 	Eigen::Vector3d goal_trans(0.0, 2.5, 0.0);
 	setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
 			start_trans, goal_trans);
+
+	// set trajectory constraints
+	std::vector<Eigen::Vector3d> waypoints;
+	// internal waypoints between start and goal
+	waypoints.push_back(Eigen::Vector3d(0.0, 1.5, 1.0));
+	waypoints.push_back(Eigen::Vector3d(0.0, 2.0, 2.0));
+	waypoints.push_back(Eigen::Vector3d(0.0, 2.5, 1.0));
+	for (int i = 0; i < waypoints.size(); ++i)
+	{
+		moveit_msgs::Constraints configuration_constraint =
+				setRootJointConstraint(waypoints[i]);
+		req.trajectory_constraints.constraints.push_back(
+				configuration_constraint);
+	}
+
 	doPlan("lower_body", req, res, robot_states[state_index],
 			robot_states[state_index + 1], planning_scene, planner_instance);
+
 	renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],

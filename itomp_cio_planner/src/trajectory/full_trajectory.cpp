@@ -369,6 +369,7 @@ void FullTrajectory::setGroupGoalState(
 		const sensor_msgs::JointState& joint_goal_state,
 		const ItompPlanningGroupConstPtr& planning_group,
 		const ItompRobotModelConstPtr& robot_model,
+		const moveit_msgs::TrajectoryConstraints& trajectory_constraints,
 		const moveit_msgs::Constraints& path_constraints,
 		bool fill_trajectory_min_jerk)
 {
@@ -406,7 +407,12 @@ void FullTrajectory::setGroupGoalState(
 		group_rbdl_joint_indices.insert(
 				planning_group->group_joints_[i].rbdl_joint_index_);
 	}
-	if (path_constraints.position_constraints.size() == 0)
+	if (trajectory_constraints.constraints.size() != 0)
+	{
+		fillInMinJerk(group_rbdl_joint_indices, robot_model, planning_group,
+				trajectory_constraints);
+	}
+	else if (path_constraints.position_constraints.size() == 0)
 	{
 		fillInMinJerk(group_rbdl_joint_indices);
 	}
@@ -463,6 +469,115 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices)
 				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
 						poly.dderivative(i * discretization_);
 		}
+	}
+}
+
+void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
+		const ItompRobotModelConstPtr& robot_model,
+		const ItompPlanningGroupConstPtr& planning_group,
+		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
+{
+	int num_points = getNumPoints();
+	int num_constraint_points = trajectory_constraints.constraints.size();
+	int interval = num_points / (num_constraint_points + 1);
+
+	int group_joint_index = 0;
+	for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin();
+			it != groupJointsKDLIndices.end(); ++it)
+	{
+		int j = *it;
+
+		bool has_constraints = false;
+		int constraint_index = -1;
+		for (int k = 0;
+				k
+						< trajectory_constraints.constraints[0].joint_constraints.size();
+				++k)
+		{
+			if (trajectory_constraints.constraints[0].joint_constraints[k].joint_name
+					== planning_group->group_joints_[group_joint_index].joint_name_)
+			{
+				has_constraints = true;
+				constraint_index = k;
+			}
+		}
+
+		if (!has_constraints)
+		{
+			double x0 = trajectory_[TRAJECTORY_TYPE_POSITION](0, j);
+			double v0 = trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j);
+			double a0 = trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j);
+
+			double x1 = trajectory_[TRAJECTORY_TYPE_POSITION](
+					getNumPoints() - 1, j);
+			double v1 = 0.0;
+			double a1 = 0.0;
+
+			ecl::QuinticPolynomial poly;
+			poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0,
+					duration_, x1, v1, a1);
+			for (int i = 1; i < getNumPoints() - 1; ++i)
+			{
+				trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(
+						i * discretization_);
+				if (has_velocity_)
+				{
+					trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) =
+							poly.derivative(i * discretization_);
+				}
+				if (has_acceleration_)
+					trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
+							poly.dderivative(i * discretization_);
+			}
+		}
+		else
+		{
+			// interpolate between waypoints
+			for (int k = 0; k <= num_constraint_points; ++k)
+			{
+				double x0 =
+						(k == 0 ?
+								trajectory_[TRAJECTORY_TYPE_POSITION](0, j) :
+								trajectory_constraints.constraints[k - 1].joint_constraints[constraint_index].position);
+				double v0 =
+						(k == 0 ?
+								trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j) : 0);
+				double a0 = (
+						k == 0 ?
+								trajectory_[TRAJECTORY_TYPE_ACCELERATION](0,
+										j) :
+								0);
+
+				double x1 =
+						(k == num_constraint_points ?
+								trajectory_[TRAJECTORY_TYPE_POSITION](
+										getNumPoints() - 1, j) :
+								trajectory_constraints.constraints[k].joint_constraints[constraint_index].position);
+				double v1 = 0.0;
+				double a1 = 0.0;
+
+				ecl::QuinticPolynomial poly;
+				poly = ecl::QuinticPolynomial::Interpolation(k * interval, x0,
+						v0, a0, std::min((k + 1) * interval, num_points - 1),
+						x1, v1, a1);
+				for (int i = std::max(1, k * interval);
+						i < std::min(((k + 1) * interval), getNumPoints() - 1);
+						++i)
+				{
+					trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(i);
+					if (has_velocity_)
+					{
+						trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) =
+								poly.derivative(i);
+					}
+					if (has_acceleration_)
+						trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
+								poly.dderivative(i);
+				}
+
+			}
+		}
+		++group_joint_index;
 	}
 }
 
@@ -684,7 +799,8 @@ void FullTrajectory::interpolateContactVariables()
 void FullTrajectory::printTrajectory(bool position, bool velocity,
 		bool acceleration) const
 {
-	const char* COMPONENT_NAMES[] = {"Joints", "Contact Positions", "Contact Forces"};
+	const char* COMPONENT_NAMES[] =
+	{ "Joints", "Contact Positions", "Contact Forces" };
 	for (int c = 0; c < TRAJECTORY_COMPONENT_NUM; ++c)
 	{
 		int begin = component_start_indices_[c];
@@ -699,8 +815,8 @@ void FullTrajectory::printTrajectory(bool position, bool velocity,
 				printf("%d : ", i);
 				for (int j = begin; j < end; ++j)
 				{
-					printf("[%d]%.10f ",
-							j, trajectory_[TRAJECTORY_TYPE_POSITION](i, j));
+					printf("[%d]%.10f ", j,
+							trajectory_[TRAJECTORY_TYPE_POSITION](i, j));
 				}
 				printf("\n");
 			}
@@ -714,8 +830,8 @@ void FullTrajectory::printTrajectory(bool position, bool velocity,
 				printf("%d : ", i);
 				for (int j = begin; j < end; ++j)
 				{
-					printf("[%d]%.10f ",
-							j, trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j));
+					printf("[%d]%.10f ", j,
+							trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j));
 				}
 				printf("\n");
 			}
@@ -728,8 +844,8 @@ void FullTrajectory::printTrajectory(bool position, bool velocity,
 				printf("%d : ", i);
 				for (int j = begin; j < end; ++j)
 				{
-					printf("[%d]%.10f ",
-							j, trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j));
+					printf("[%d]%.10f ", j,
+							trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j));
 				}
 				printf("\n");
 			}

@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/trajectory/trajectory.h>
 #include <sensor_msgs/JointState.h>
 #include <moveit_msgs/Constraints.h>
+#include <moveit_msgs/TrajectoryConstraints.h>
 
 namespace itomp_cio_planner
 {
@@ -56,6 +57,7 @@ public:
 	void setGroupGoalState(const sensor_msgs::JointState& joint_goal_state,
 			const ItompPlanningGroupConstPtr& planning_group,
 			const ItompRobotModelConstPtr& robot_model,
+			const moveit_msgs::TrajectoryConstraints& trajectory_constraints,
 			const moveit_msgs::Constraints& path_constraints,
 			bool fill_trajectory_min_jerk);
 
@@ -98,6 +100,10 @@ protected:
 			const ItompRobotModelConstPtr& robot_model,
 			const ItompPlanningGroupConstPtr& planning_group,
 			const moveit_msgs::Constraints& path_constraints);
+	void fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
+			const ItompRobotModelConstPtr& robot_model,
+			const ItompPlanningGroupConstPtr& planning_group,
+			const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
 
 	bool has_free_end_point_;
 
