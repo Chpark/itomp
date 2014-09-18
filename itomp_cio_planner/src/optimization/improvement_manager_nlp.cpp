@@ -152,12 +152,12 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	//if (evaluation_count_ % 100 == 0)
 	{
 
-		evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
+		evaluation_manager_->printTrajectoryCost(++evaluation_count_, false);
 		if (evaluation_count_ % 100 == 0)
 		{
 			printf("Elapsed (in eval) : %f\n",
 					(ros::Time::now() - start_time_).toSec());
-			evaluation_manager_->getFullTrajectory()->printTrajectory();
+			//evaluation_manager_->getFullTrajectory()->printTrajectory();
 		}
 
 	}

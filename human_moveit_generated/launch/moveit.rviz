@@ -99,6 +99,26 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          left_foot_cp_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           left_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
@@ -156,6 +176,26 @@ Visualization Manager:
             Show Trail: false
             Value: true
           pelvis_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -351,6 +391,26 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          left_foot_cp_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          left_foot_cp_4_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           left_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
@@ -408,6 +468,26 @@ Visualization Manager:
             Show Trail: false
             Value: true
           pelvis_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_1_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_2_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          right_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -574,6 +654,26 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        left_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         left_foot_endeffector_link:
           Alpha: 1
           Show Axes: false
@@ -631,6 +731,26 @@ Visualization Manager:
           Show Trail: false
           Value: true
         pelvis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_4_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -801,6 +921,26 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        left_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         left_foot_endeffector_link:
           Alpha: 1
           Show Axes: false
@@ -858,6 +998,26 @@ Visualization Manager:
           Show Trail: false
           Value: true
         pelvis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_cp_4_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -987,15 +1147,7 @@ Visualization Manager:
       Marker Topic: /itomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        kf_0: true
-        kf_10: true
-        kf_20: true
-        kf_30: true
-        kf_40: true
-        kf_50: true
-        kf_60: true
-        kf_70: true
-        kf_80: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -1003,17 +1155,7 @@ Visualization Manager:
       Marker Topic: /itomp_planner/visualization_marker
       Name: Marker
       Namespaces:
-        itomp_best_ee: true
-        itomp_ee: true
-        kf_0: true
-        kf_10: true
-        kf_20: true
-        kf_30: true
-        kf_40: true
-        kf_50: true
-        kf_60: true
-        kf_70: true
-        kf_80: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -1021,8 +1163,7 @@ Visualization Manager:
       Marker Topic: /move_itomp/visualization_marker_array
       Name: MarkerArray
       Namespaces:
-        environment: true
-        environment2: true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -1040,7 +1181,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 6.91545
+      Distance: 9.71571
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
@@ -1052,10 +1193,10 @@ Visualization Manager:
         Z: 1.46295e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.404798
+      Pitch: 0.364798
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 0.188339
+      Yaw: 0.113338
     Saved: ~
 Window Geometry:
   Displays:

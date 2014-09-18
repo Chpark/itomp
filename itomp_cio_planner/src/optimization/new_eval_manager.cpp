@@ -63,8 +63,9 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 					robot_model_->getRBDLRobotModel().mBodies.size(),
 					RigidBodyDynamics::Math::SpatialVectorZero));
 
-	robot_state_.reset(
-			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
+	robot_state_.resize(full_trajectory_->getNumPoints());
+	for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+		robot_state_[i].reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
 	initializeContactVariables();
 	parameter_trajectory_.reset(
@@ -85,10 +86,9 @@ NewEvalManager* NewEvalManager::createClone() const
 			TrajectoryFactory::getInstance()->CreateParameterTrajectory(
 					new_manager->full_trajectory_, planning_group_));
 	new_manager->parameter_modified_ = false;
-	new_manager->robot_state_.reset(
-			new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
-
 	new_manager->ref_evaluation_manager_ = this;
+
+	// share robot_state_ vector
 
 	return new_manager;
 }
@@ -201,7 +201,7 @@ void NewEvalManager::render()
 	bool is_best = (getTrajectoryCost() <= best_cost_);
 	if (PlanningParameters::getInstance()->getAnimatePath())
 		NewVizManager::getInstance()->animatePath(full_trajectory_,
-				robot_state_, is_best);
+				robot_state_[0], is_best);
 
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 	{

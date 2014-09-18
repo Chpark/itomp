@@ -186,7 +186,7 @@ void NewVizManager::animateEndeffectors(
 }
 
 void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
-		robot_state::RobotStatePtr& robot_state, bool is_best)
+		const robot_state::RobotStatePtr& robot_state, bool is_best)
 {
 	if (!is_best)
 		return;

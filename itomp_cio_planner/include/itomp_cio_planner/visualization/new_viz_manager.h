@@ -36,7 +36,7 @@ public:
 	void animateEndeffectors(const FullTrajectoryConstPtr& full_trajectory,
 			const std::vector<RigidBodyDynamics::Model>& models, bool is_best);
 	void animatePath(const FullTrajectoryConstPtr& full_trajectory,
-			robot_state::RobotStatePtr& robot_state, bool is_best);
+			const robot_state::RobotStatePtr& robot_state, bool is_best);
 	void animateContactForces(const FullTrajectoryConstPtr& full_trajectory, bool is_best, bool keyframe_only = false);
 
 	ros::Publisher& getVisualizationMarkerPublisher();

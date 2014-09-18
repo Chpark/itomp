@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 
-namespace
+namespace rom
 {	
 	std::string remplacerVirgule(const std::string& s)
 	{
@@ -63,7 +63,6 @@ namespace
 	}
 }
 
-using namespace planner;
 
 rom::ROM::ROM(const Eigen::MatrixXd& A, const Eigen::VectorXd& b, const double maxRadius, const double minx, const double miny, const double minz, const double maxx, const double maxy, const double maxz, const int axis1 ,const int axis2, const int axis3)
 	: A_(A)
@@ -138,7 +137,7 @@ double rom::ROM::NormalizedResidualRadius(const double x, const double y, const 
 rom::ROM rom::ROMFromFile(const std::string& filepath)
 {
 	Eigen::MatrixXd res;
-	std::ifstream myfile (filepath);
+	std::ifstream myfile (filepath.c_str());
 	std::string line;
 	double maxRadius_;
 	int size_;

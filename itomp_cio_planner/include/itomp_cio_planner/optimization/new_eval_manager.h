@@ -51,6 +51,8 @@ public:
 	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;
 	const RigidBodyDynamics::Model& getRBDLModel(int point) const;
 	const ItompPlanningGroupConstPtr& getPlanningGroup() const;
+	const ItompRobotModelConstPtr& getItompRobotModel() const;
+	const robot_state::RobotStatePtr& getRobotState(int point) const;
 
 private:
 	void initializeContactVariables();
@@ -73,7 +75,7 @@ private:
 	ItompRobotModelConstPtr robot_model_;
 	planning_scene::PlanningSceneConstPtr planning_scene_;
 	ItompPlanningGroupConstPtr planning_group_;
-	robot_state::RobotStatePtr robot_state_;
+	std::vector<robot_state::RobotStatePtr> robot_state_;
 
 	double planning_start_time_;
 	double trajectory_start_time_;
@@ -145,6 +147,16 @@ inline const ItompPlanningGroupConstPtr& NewEvalManager::getPlanningGroup() cons
 inline const RigidBodyDynamics::Model& NewEvalManager::getRBDLModel(int point) const
 {
 	return rbdl_models_[point];
+}
+
+inline const ItompRobotModelConstPtr& NewEvalManager::getItompRobotModel() const
+{
+	return robot_model_;
+}
+
+inline const robot_state::RobotStatePtr& NewEvalManager::getRobotState(int point) const
+{
+	return robot_state_[point];
 }
 
 }

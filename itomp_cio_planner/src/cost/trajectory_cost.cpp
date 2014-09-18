@@ -69,7 +69,8 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 	const FullTrajectoryConstPtr trajectory =
 			evaluation_manager->getFullTrajectory();
-	robot_state::RobotStatePtr robot_state = evaluation_manager->robot_state_;
+	robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(
+			point);
 	const planning_scene::PlanningSceneConstPtr planning_scene =
 			evaluation_manager->getPlanningScene();
 
@@ -390,7 +391,86 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
-	// implement
+	const FullTrajectoryConstPtr full_trajectory =
+			evaluation_manager->getFullTrajectory();
+	const ItompPlanningGroupConstPtr& planning_group =
+			evaluation_manager->getPlanningGroup();
+	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
+			point);
+
+	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
+			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+
+	// TODO:
+	const char* endeffector_chain_group_names[] =
+	{ "left_leg", "right_leg" };
+
+	std::vector<double> positions;
+	int num_joints = q.cols();
+	positions.resize(num_joints);
+
+	robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(
+			point);
+	robot_state->setVariablePositions(q.data());
+
+	int num_contacts = r.rows() / 3;
+	for (int i = 0; i < num_contacts; ++i)
+	{
+		int foot_index = i / 4 * 4;
+		int ee_index = i % 4;
+		if (ee_index != 0)
+			continue;
+
+		std::string chain_name = endeffector_chain_group_names[i];
+		Eigen::MatrixXd jacobianFull =
+				(robot_state->getJacobian(
+						evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
+								chain_name)));
+		Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3,
+				jacobianFull.cols());
+		Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
+
+		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
+		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
+				model.X_base[rbdl_body_id];
+
+		Eigen::Vector3d ground_contact_position;
+		Eigen::Vector3d contact_normal;
+		// TODO: handle non-z plane contacts
+		GroundManager::getInstance()->getNearestGroundPosition(
+				r.block(3 * i, 0, 3, 1), ground_contact_position,
+				contact_normal);
+		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
+				i);
+		Eigen::Vector3d body_contact_position = contact_body_transform.r;
+
+		// computing direction, first version as COM velocity between poses
+		Eigen::Vector3d direction = contact_force;
+		if (direction.norm() != 0)
+		{
+			direction.normalize();
+			double ftr = 1
+					/ std::sqrt(
+							direction.transpose()
+									* (jacobian * jacobian_transpose)
+									* direction);
+			KDL::Vector position, unused, normal;
+
+			ftr *= -direction.dot(contact_normal);
+			// bound value btw -10 and 10, then 0 and 1
+			ftr = (ftr < -10) ? -10 : ftr;
+			ftr = (ftr > 10) ? 10 : ftr;
+			ftr = (ftr + 10) / 20;
+
+			cost += std::max(0.0, contact_force.norm() - ftr);
+		}
+	}
 
 	return is_feasible;
 }
