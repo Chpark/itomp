@@ -1,12 +1,53 @@
 controller_list:
-  - name: fake_lower_body_controller
+  - name: fake_whole_body_controller
     joints:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
-      - base_rotate_joint
+      - base_prismatic_joint_z
+      - base_revolute_joint_x
+      - base_revolute_joint_y
+      - base_revolute_joint_z
       - pelvis1_z_joint
       - pelvis1_y_joint
       - pelvis1_x_joint
+      - torso_z_joint
+      - torso_y_joint
+      - torso_x_joint
+      - torso2_z_joint
+      - torso2_y_joint
+      - torso2_x_joint
+      - torso3_z_joint
+      - torso3_y_joint
+      - torso3_x_joint
+      - head_z_joint
+      - head_y_joint
+      - head_x_joint
+      - upper_left_specula_joint
+      - upper_left_arm_z_joint
+      - upper_left_arm_y_joint
+      - upper_left_arm_x_joint
+      - lower_left_arm_joint
+      - left_hand_z_joint
+      - left_hand_y_joint
+      - left_hand_x_joint
+      - left_hand_cp_1_joint
+      - left_hand_cp_2_joint
+      - left_hand_cp_3_joint
+      - left_hand_cp_4_joint
+      - left_hand_endeffector_joint
+      - upper_right_specula_joint
+      - upper_right_arm_z_joint
+      - upper_right_arm_y_joint
+      - upper_right_arm_x_joint
+      - lower_right_arm_joint
+      - right_hand_z_joint
+      - right_hand_y_joint
+      - right_hand_x_joint
+      - right_hand_cp_1_joint
+      - right_hand_cp_2_joint
+      - right_hand_cp_3_joint
+      - right_hand_cp_4_joint
+      - right_hand_endeffector_joint
       - upper_left_leg_z_joint
       - upper_left_leg_y_joint
       - upper_left_leg_x_joint
@@ -17,6 +58,10 @@ controller_list:
       - left_foot2_z_joint
       - left_foot2_y_joint
       - left_foot2_x_joint
+      - left_foot_cp_1_joint
+      - left_foot_cp_2_joint
+      - left_foot_cp_3_joint
+      - left_foot_cp_4_joint
       - upper_right_leg_z_joint
       - upper_right_leg_y_joint
       - upper_right_leg_x_joint
@@ -27,3 +72,32 @@ controller_list:
       - right_foot2_z_joint
       - right_foot2_y_joint
       - right_foot2_x_joint
+      - right_foot_cp_1_joint
+      - right_foot_cp_2_joint
+      - right_foot_cp_3_joint
+      - right_foot_cp_4_joint
+  - name: fake_lower_body_controller
+    joints:
+      - base_prismatic_joint_x
+      - base_prismatic_joint_y
+      - base_prismatic_joint_z
+      - base_revolute_joint_x
+      - base_revolute_joint_y
+      - base_revolute_joint_z
+      - pelvis1_z_joint
+      - pelvis1_y_joint
+      - pelvis1_x_joint
+      - upper_left_leg_z_joint
+      - upper_left_leg_y_joint
+      - upper_left_leg_x_joint
+      - lower_left_leg_joint
+      - left_foot_z_joint
+      - left_foot_y_joint
+      - left_foot_x_joint
+      - upper_right_leg_z_joint
+      - upper_right_leg_y_joint
+      - upper_right_leg_x_joint
+      - lower_right_leg_joint
+      - right_foot_z_joint
+      - right_foot_y_joint
+      - right_foot_x_joint

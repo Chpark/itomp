@@ -48,7 +48,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	////////////////////////////////////////////////////////////////////////////
 	{
 		RigidBodyDynamics::Addons::read_urdf_model(
-				"/home/chonhyon/hydro_workspace/itomp/human_description/robots/human_cio_rbdl.urdf",
+				"/home/chonhyon/hydro_workspace/itomp/human_description/robots/rocketbox_male_rbdl.urdf",
 				&rbdl_robot_model_);
 		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, -9.81);
 
@@ -66,7 +66,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 				"base_revolute_joint_y", "base_revolute_joint_z" };
 
 		// TODO: handle root transform values : trans_z(1.12)
-		rbdl_robot_model_.X_T[1].r(2) += 1.12;
+		rbdl_robot_model_.X_T[1].r(2) += 1.1713;//
 
 		// compute rbdl_affected_body_ids for partial FK
 		for (unsigned int i = 1; i < rbdl_robot_model_.mJoints.size(); ++i)

@@ -3,7 +3,7 @@
   <arg name="debug" default="false" />
 
   <!-- Load the URDF, SRDF and other .yaml configuration files on the param server -->
-  <include file="$(find human_moveit_generated)/launch/planning_context.launch">
+  <include file="$(find rocketbox_moveit_config)/launch/planning_context.launch">
     <arg name="load_robot_description" value="true"/>
   </include>
 
@@ -15,18 +15,18 @@
 
   <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen" />
 
-  <include file="$(find human_moveit_generated)/launch/moveit_rviz.launch">
+  <include file="$(find rocketbox_moveit_config)/launch/moveit_rviz.launch">
     <arg name="config" value="true"/>
     <arg name="debug" value="$(arg debug)"/>
   </include>
 
   <rosparam command="load" file="$(find itomp_cio_planner)/config/params_zombie.yaml" ns="itomp_planner"/>
-  <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml" ns="move_itomp"/>
+  <rosparam command="load" file="$(find rocketbox_moveit_config)/config/kinematics.yaml" ns="move_itomp"/>
   <param name="/move_itomp/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
 
 
   <node name="apartment" pkg="move_itomp" type="move_itomp" respawn="false" output="screen">
-    <rosparam command="load" file="$(find human_moveit_generated)/config/kinematics.yaml"/>
+    <rosparam command="load" file="$(find rocketbox_moveit_config)/config/kinematics.yaml"/>
    <param name="/planning_plugin" value="itomp_cio_planner/ItompPlanner"/>
   </node>
 
