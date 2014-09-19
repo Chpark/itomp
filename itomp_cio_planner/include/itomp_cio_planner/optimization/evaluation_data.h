@@ -80,7 +80,7 @@ public:
   ContactForceSolver contact_force_solver_;
 
   planning_scene::PlanningScenePtr planning_scene_;
-  robot_state::RobotStatePtr kinematic_state_;
+  std::vector<robot_state::RobotStatePtr> kinematic_state_;
 
   std::vector<KDL::Frame> cartesian_waypoints_;
 

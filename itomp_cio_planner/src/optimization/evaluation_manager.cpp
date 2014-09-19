@@ -67,6 +67,8 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory,
 		double trajectory_start_time,
 		const moveit_msgs::Constraints& path_constraints)
 {
+	omp_set_num_threads(getNumParallelThreads());
+
 	planning_start_time_ = planning_start_time;
 	trajectory_start_time_ = trajectory_start_time;
 
@@ -1209,77 +1211,63 @@ ADD_TIMER_POINT	UPDATE_TIME
 
 void EvaluationManager::computeCollisionCosts(int begin, int end)
 {
-	const collision_detection::AllowedCollisionMatrix acm =
+	collision_detection::AllowedCollisionMatrix acm =
 			data_->planning_scene_->getAllowedCollisionMatrix();
+	acm.setEntry("environment", "segment_0", true);
+	acm.setEntry("environment", "segment_1", true);
+
+	int num_all_joints = data_->kinematic_state_[0]->getVariableCount();
+
+	int num_threads = getNumParallelThreads();
 
 	collision_detection::CollisionRequest collision_request;
-	collision_detection::CollisionResult collision_result;
 	collision_request.verbose = false;
 	collision_request.contacts = true;
 	collision_request.max_contacts = 1000;
 
-	std::vector<double> positions;
+	std::vector<collision_detection::CollisionResult> collision_result(
+			num_threads);
+	std::vector<std::vector<double> > positions(num_threads);
 
-	int num_all_joints = data_->kinematic_state_->getVariableCount();
-	positions.resize(num_all_joints);
+	for (int i = 0; i < num_threads; ++i)
+	{
+		positions[i].resize(num_all_joints);
+	}
 
 	int safe_begin = max(0, begin);
 	int safe_end = min(num_points_, end);
+#pragma omp parallel for
 	for (int i = safe_begin; i < safe_end; ++i)
 	{
+		int thread_num = omp_get_thread_num();
+
 		double depthSum = 0.0;
 
 		int full_traj_index = getGroupTrajectory()->getFullTrajectoryIndex(i);
 		for (std::size_t k = 0; k < num_all_joints; k++)
 		{
-			positions[k] = (*getFullTrajectory())(full_traj_index, k);
+			positions[thread_num][k] = (*getFullTrajectory())(full_traj_index,
+					k);
 		}
-		data_->kinematic_state_->setVariablePositions(&positions[0]);
-
-		//data_->kinematic_state_->updateCollisionBodyTransforms();
-		//data_->planning_scene_->getCollisionWorld()->checkRobotCollision(collision_request, collision_result,
-		//  *data_->planning_scene_->getCollisionRobotUnpadded(), *data_->kinematic_state_, acm);
+		data_->kinematic_state_[thread_num]->setVariablePositions(
+				&positions[thread_num][0]);
 		data_->planning_scene_->checkCollisionUnpadded(collision_request,
-				collision_result, *data_->kinematic_state_);
+				collision_result[thread_num],
+				*data_->kinematic_state_[thread_num], acm);
 
 		const collision_detection::CollisionResult::ContactMap& contact_map =
-				collision_result.contacts;
+				collision_result[thread_num].contacts;
 		for (collision_detection::CollisionResult::ContactMap::const_iterator it =
 				contact_map.begin(); it != contact_map.end(); ++it)
 		{
 			const collision_detection::Contact& contact = it->second[0];
 
-			// TODO:
-			if (contact.body_name_1 == "segment_0"
-					|| contact.body_name_2 == "segment_0")
-				continue;
-
-			if (contact.body_name_1 == "segment_1"
-					&& contact.body_name_2 == "environment")
-				continue;
-
-			if (contact.body_name_1 == "environment"
-					&& contact.body_name_2 == "segment_1")
-				continue;
-
-			/*
-			 if (contact.body_name_1.find("left") != std::string::npos
-			 || contact.body_name_2.find("left") != std::string::npos)
-			 continue;
-			 if (contact.body_name_1.find("environment") == std::string::npos
-			 && contact.body_name_2.find("environment") == std::string::npos)
-			 {
-			 if (contact.depth < 0.01)
-			 continue;
-			 }
-			 */
-			//continue;
 			depthSum += contact.depth;
 
 			// for debug
 			//ROS_INFO("Collision between %s and %s : %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
 		}
-		collision_result.clear();
+		collision_result[thread_num].clear();
 		data_->stateCollisionCost_[i] = depthSum;
 	}
 }
@@ -1300,10 +1288,10 @@ std::vector<double> computeFTR(const std::string& group_name,
 		{
 			positions[k] = (*data->getFullTrajectory())(full_traj_index, k);
 		}
-		data->kinematic_state_->setVariablePositions(&positions[0]);
+		data->kinematic_state_[0]->setVariablePositions(&positions[0]);
 		robot_model::RobotModelConstPtr robot_model_ptr =
 				data->getItompRobotModel()->getRobotModel();
-		Eigen::MatrixXd jacobianFull = (data->kinematic_state_->getJacobian(
+		Eigen::MatrixXd jacobianFull = (data->kinematic_state_[0]->getJacobian(
 				robot_model_ptr->getJointModelGroup(group_name)));
 		Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3,
 				jacobianFull.cols());
@@ -1432,11 +1420,14 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 		//angle -= 5.0 * M_PI / 180.0;
 		// TODO: ?
 		if (angle > 5.0 * M_PI / 180.0)
+		{
 			data_->costAccumulator_.is_last_trajectory_valid_ = false;
-
-		if (angle < 0)
-			angle = 0;
-		cost = angle * angle;
+			cost = angle * angle;
+		}
+		else
+		{
+			cost = angle * angle * 0.1;
+		}
 
 		data_->stateCartesianTrajectoryCost_[i] = cost;
 	}
@@ -2492,10 +2483,10 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
 		{
 			positions[k] = (*data_->getFullTrajectory())(full_traj_index, k);
 		}
-		data_->kinematic_state_->setVariablePositions(&positions[0]);
+		data_->kinematic_state_[0]->setVariablePositions(&positions[0]);
 		robot_model::RobotModelConstPtr robot_model_ptr =
 				data_->getItompRobotModel()->getRobotModel();
-		Eigen::MatrixXd jacobianFull = (data_->kinematic_state_->getJacobian(
+		Eigen::MatrixXd jacobianFull = (data_->kinematic_state_[0]->getJacobian(
 				robot_model_ptr->getJointModelGroup(group_name)));
 
 		Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobianFull);

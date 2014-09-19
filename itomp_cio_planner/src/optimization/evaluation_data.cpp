@@ -33,7 +33,9 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
 
   robot_model_ = robot_model;
   planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getRobotModel()));
-  kinematic_state_.reset(new robot_state::RobotState(robot_model->getRobotModel()));
+  kinematic_state_.resize(getNumParallelThreads());
+  for (int i = 0; i < kinematic_state_.size(); ++i)
+	  kinematic_state_[i].reset(new robot_state::RobotState(robot_model->getRobotModel()));
   initStaticEnvironment();
 
   kdl_joint_array_.resize(robot_model->getKDLTree()->getNrOfJoints());
@@ -248,7 +250,8 @@ EvaluationData* EvaluationData::clone() const
 
   new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getRobotModel()));
   new_data->initStaticEnvironment();
-  new_data->kinematic_state_.reset(new robot_state::RobotState(robot_model_->getRobotModel()));
+  for (int i = 0; i < kinematic_state_.size(); ++i)
+	  new_data->kinematic_state_[i].reset(new robot_state::RobotState(robot_model_->getRobotModel()));
 
   return new_data;
 }
@@ -259,7 +262,7 @@ void EvaluationData::deepCopy(const EvaluationData& data)
   ItompCIOTrajectory* group_trajectory = group_trajectory_;
   ItompCIOTrajectory* full_trajectory = full_trajectory_;
   planning_scene::PlanningScenePtr planning_scene = planning_scene_;
-  robot_state::RobotStatePtr kinematic_state = kinematic_state_;
+  std::vector<robot_state::RobotStatePtr> kinematic_state = kinematic_state_;
 
   // copy
   *this = data;

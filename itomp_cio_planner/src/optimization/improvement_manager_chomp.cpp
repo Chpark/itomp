@@ -3,6 +3,7 @@
 #include <itomp_cio_planner/util/differentiation_rules.h>
 #include <itomp_cio_planner/model/itomp_robot_joint.h>
 #include <Eigen/LU>
+#include <iostream>
 
 using namespace Eigen;
 
@@ -282,6 +283,10 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
     evaluation_manager_->evaluate(tmp_rollout_cost_);
     rollout_costs_.row(r) = tmp_rollout_cost_.transpose();
   }
+  Eigen::VectorXd costs(rollouts_.size());
+  for (int i = 0; i < rollouts_.size(); ++i)
+	  costs(i) = rollout_costs_.row(i).sum();
+  std::cout << costs.transpose();
 
   setRolloutCosts();
 
@@ -306,11 +311,14 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
 bool ImprovementManagerChomp::generateRollouts(const std::vector<double>& noise_stddev,
     const std::vector<double>& contact_noise_stddev)
 {
+	bool keep_one = false;
+
   // we assume here that rollout_parameters_ and rollout_noise_ have already been allocated
   num_rollouts_gen_ = num_rollouts_ - num_rollouts_reused_;
   if (!rollouts_reused_next_)
   {
     num_rollouts_gen_ = num_rollouts_;
+    keep_one = true;
     if (num_rollouts_reused_ > 0)
     {
       rollouts_reused_next_ = true;
@@ -377,7 +385,11 @@ bool ImprovementManagerChomp::generateRollouts(const std::vector<double>& noise_
     for (int r = 0; r < num_rollouts_gen_; ++r)
     {
       noise_generators_[d].sample(tmp_noise_[d]);
-      rollouts_[r].noise_[d] = noise_stddev[d] * tmp_noise_[d];
+      if (r == 0 && keep_one)
+    	  rollouts_[r].noise_[d].setZero(rollouts_[r].noise_[d].rows(), rollouts_[r].noise_[d].cols());
+      else
+    	  rollouts_[r].noise_[d] = noise_stddev[d] * tmp_noise_[d];
+
       rollouts_[r].parameters_[d] = parameters_[d] + rollouts_[r].noise_[d];
     }
   }

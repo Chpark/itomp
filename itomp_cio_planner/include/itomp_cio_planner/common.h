@@ -11,6 +11,7 @@
 #include <sstream>
 #include <stddef.h>
 #include <math.h>
+#include <omp.h>
 
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
@@ -18,5 +19,10 @@
 #include <Eigen/Core>
 
 #include <itomp_cio_planner/util/itomp_debug.h>
+
+inline int getNumParallelThreads()
+{
+	return omp_get_max_threads();
+}
 
 #endif
