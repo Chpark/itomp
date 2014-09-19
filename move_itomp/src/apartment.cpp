@@ -16,6 +16,11 @@
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
 
+//file handling
+#include <string>
+#include <sstream>
+#include <fstream>
+
 const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / std::sqrt((long double) 2.0);
 
@@ -446,30 +451,52 @@ void displayStates(robot_state::RobotState& start_state,
 }
 
 moveit_msgs::Constraints setRootJointConstraint(
-		const Eigen::Vector3d& root_trans)
+        const Eigen::Matrix4d& transform)
 {
+    Eigen::Vector3d root_trans = transform.block<3,1>(0,3);
+    Eigen::Vector3d rotation = transform.block<3,3>(0,0).eulerAngles(0, 1, 2);
 	moveit_msgs::Constraints c;
-	moveit_msgs::JointConstraint jc;
+    moveit_msgs::JointConstraint jc;
+    moveit_msgs::OrientationConstraint oc;
 
 	jc.joint_name = "base_prismatic_joint_x";
 	jc.position = root_trans(0);
 	c.joint_constraints.push_back(jc);
 
 	jc.joint_name = "base_prismatic_joint_y";
-	jc.position = root_trans(1);
+    jc.position = root_trans(1);
 	c.joint_constraints.push_back(jc);
 
 	jc.joint_name = "base_prismatic_joint_z";
-	jc.position = root_trans(2);
+    jc.position = root_trans(2);
 	c.joint_constraints.push_back(jc);
 
+
+    jc.joint_name = "base_revolute_joint_x";
+    jc.position = rotation(0);
+    c.joint_constraints.push_back(jc);
+
+
+    jc.joint_name = "base_revolute_joint_y";
+    jc.position = rotation(1);
+    c.joint_constraints.push_back(jc);
+
+
+    jc.joint_name = "base_revolute_joint_z";
+    jc.position = rotation(2);
+    c.joint_constraints.push_back(jc);
 	return c;
 }
 
 void setWalkingStates(robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state, Eigen::Vector3d& start_trans,
-		Eigen::Vector3d& goal_trans, double start_rot = 0, double end_rot = 0)
+        robot_state::RobotState& goal_state, Eigen::Matrix4d& start_transf,
+        Eigen::Matrix4d& goal_transf)
 {
+    Eigen::Vector3d start_trans = start_transf.block<3,1>(0,3);
+    Eigen::Vector3d goal_trans = goal_transf.block<3,1>(0,3);
+    //computing rotation
+    Eigen::Vector3d startrot = start_transf.block<3,3>(0,0).eulerAngles(0, 1, 2);
+    Eigen::Vector3d endrot = start_transf.block<3,3>(0,0).eulerAngles(0, 1, 2);
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 
@@ -484,8 +511,12 @@ void setWalkingStates(robot_state::RobotState& start_state,
 	start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 	jointValue = start_trans(2);
 	start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-	jointValue = start_rot;
-	start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+    jointValue = startrot(0);
+    start_state.setJointPositions("base_revolute_joint_x", &jointValue);
+    jointValue = startrot(1);
+    start_state.setJointPositions("base_revolute_joint_y", &jointValue);
+    jointValue = startrot(2);
+    start_state.setJointPositions("base_revolute_joint_z", &jointValue);
 
 	goal_state = start_state;
 	joint_model_group->getVariableDefaultPositions("standup", values);
@@ -495,17 +526,79 @@ void setWalkingStates(robot_state::RobotState& start_state,
 	jointValue = goal_trans(1);
 	goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
 	jointValue = goal_trans(2);
-	goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-	jointValue = end_rot;
-	goal_state.setJointPositions("base_revolute_joint_z", &jointValue);
+    goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
+    jointValue = endrot(0);
+    start_state.setJointPositions("base_revolute_joint_x", &jointValue);
+    jointValue = endrot(1);
+    start_state.setJointPositions("base_revolute_joint_y", &jointValue);
+    jointValue = endrot(2);
+    start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+}
+
+//load initial path
+
+std::string ExtractQuotes(const std::string& line)
+{
+    int quoteStart = line.find("\"");
+    int quoteEnd = line.find("\"", quoteStart+1);
+    return line.substr(quoteStart+1, quoteEnd - quoteStart -1);
+}
+
+Eigen::Matrix4d readNodeLine(const std::string& line)
+{
+    Eigen::Matrix4d transform;
+    char c11[255],c12[255],c13[255];
+    char c21[255],c22[255],c23[255];
+    char c31[255],c32[255],c33[255];
+    char x[255],y[255],z[255];
+    sscanf(line.c_str(),"%s %s %s %s %s %s %s %s %s %s %s %s",
+           c11, c12, c13, x, c21, c22, c23, y, c31, c32, c33, z);
+    transform << strtod (c11, NULL), strtod (c12, NULL), strtod (c13, NULL), strtod (x, NULL),
+            strtod (c21, NULL), strtod (c22, NULL), strtod (c23, NULL), strtod (y, NULL),
+            strtod (c31, NULL), strtod (c32, NULL), strtod (c33, NULL), strtod (z, NULL),
+            0, 0, 0, 1;
+    return transform;
+}
+
+// file has following form (like a bvh)
+// STATE "A00 A01 A02 A03 ... A33" one line per state
+void InitTrajectoryFromFile(std::vector<Eigen::Matrix4d>& waypoints, const std::string& filepath)
+{
+    std::ifstream myfile (filepath.c_str());
+    if (myfile.is_open())
+    {
+        std::string line;
+        while (myfile.good())
+        {
+            getline(myfile, line);
+            if(line.find("size ") != std::string::npos)
+            {
+                // do we really care about the size
+            }
+            else if(! line.empty())
+            {
+                 waypoints.push_back(readNodeLine(line));
+            }
+        }
+        myfile.close();
+    }
+    else
+    {
+        std::cout << "can not find initial path file" << filepath << std::endl;
+    }
 }
 
 int main(int argc, char **argv)
 {
 	int motion = 0;
+    std::string initialpath = "";
 	if (argc >= 2)
 	{
 		motion = atoi(argv[1]);
+        if(argc >=3)
+        {
+            initialpath = argv[2];
+        }
 	}
 	printf("%d Motion %d\n", argc, motion);
 
@@ -576,23 +669,39 @@ int main(int argc, char **argv)
 	int state_index = 0;
 
 	robot_states.push_back(planning_scene->getCurrentStateNonConst());
-	robot_states.push_back(robot_states.back());
-
-	Eigen::Vector3d start_trans(0.0, 1.0, 0.0);
-	Eigen::Vector3d goal_trans(0.0, 2.5, 0.0);
-	setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
-			start_trans, goal_trans);
+    robot_states.push_back(robot_states.back());
+    Eigen::Matrix4d start_trans, goal_trans;
 
 	// set trajectory constraints
-	std::vector<Eigen::Vector3d> waypoints;
+    std::vector<Eigen::Matrix4d> waypoints;
 	// internal waypoints between start and goal
-	waypoints.push_back(Eigen::Vector3d(0.0, 1.5, 1.0));
-	waypoints.push_back(Eigen::Vector3d(0.0, 2.0, 2.0));
-	waypoints.push_back(Eigen::Vector3d(0.0, 2.5, 1.0));
+
+    if(initialpath.empty())
+    {
+        Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
+        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 1.0, 0.0);
+        start_trans =transform;
+        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.5, 0.0);
+        goal_trans = transform;
+        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 1.5, 1.0);
+        waypoints.push_back(transform);
+        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.0, 2.0);
+        waypoints.push_back(transform);
+        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.5, 1.0);
+        waypoints.push_back(transform);
+    }
+    else
+    {
+        InitTrajectoryFromFile(waypoints, initialpath);
+        start_trans = waypoints.front();
+        goal_trans =  waypoints.back();
+    }
+    setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
+            start_trans, goal_trans);
 	for (int i = 0; i < waypoints.size(); ++i)
 	{
 		moveit_msgs::Constraints configuration_constraint =
-				setRootJointConstraint(waypoints[i]);
+                setRootJointConstraint(waypoints[i]);
 		req.trajectory_constraints.constraints.push_back(
 				configuration_constraint);
 	}
