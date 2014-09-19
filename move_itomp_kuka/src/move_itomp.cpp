@@ -294,13 +294,31 @@ void displayStates(ros::NodeHandle& node_handle,
 	goal_state_display_publisher.publish(disp_goal_state);
 }
 
-bool isCollide(robot_state::RobotState& ik_state,
-		planning_scene::PlanningScenePtr& planning_scene)
+bool isCollide(robot_model::RobotModelPtr& robot_model,
+		robot_state::RobotState& ik_state,
+		planning_scene::PlanningScenePtr& planning_scene,
+		ros::Publisher& vis_array_publisher)
 {
+	visualization_msgs::MarkerArray ma;
+	visualization_msgs::Marker msg;
+	msg.header.frame_id = robot_model->getModelFrame();
+	msg.header.stamp = ros::Time::now();
+	msg.ns = "collision";
+	msg.type = visualization_msgs::Marker::SPHERE_LIST;
+	msg.action = visualization_msgs::Marker::ADD;
+	msg.scale.x = 0.2;
+	msg.scale.y = 0.2;
+	msg.scale.z = 0.2;
+	msg.color.a = 1.0;
+	msg.color.r = 1.0;
+	msg.color.g = 1.0;
+	msg.color.b = 0.0;
+	msg.id = 0;
+
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
 	collision_request.verbose = true;
-	collision_request.contacts = false;
+	collision_request.contacts = true;
 
 	collision_detection::AllowedCollisionMatrix acm =
 			planning_scene->getAllowedCollisionMatrix();
@@ -309,6 +327,27 @@ bool isCollide(robot_state::RobotState& ik_state,
 
 	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
 			ik_state, acm);
+
+	const collision_detection::CollisionResult::ContactMap& contact_map =
+			collision_result.contacts;
+	for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+			contact_map.begin(); it != contact_map.end(); ++it)
+	{
+		for (int i = 0; i < it->second.size(); ++i)
+		{
+			const collision_detection::Contact& contact = it->second[i];
+			geometry_msgs::Point point;
+			point.x = contact.pos(0);
+			point.y = contact.pos(1);
+			point.z = contact.pos(2);
+			msg.points.push_back(point);
+		}
+	}
+	ma.markers.push_back(msg);
+	vis_array_publisher.publish(ma);
+	ros::WallDuration sleep_time(0.01);
+	sleep_time.sleep();
+
 	return collision_result.collision;
 }
 
@@ -316,7 +355,8 @@ void computeIKState(ros::NodeHandle& node_handle,
 		robot_model::RobotModelPtr& robot_model,
 		robot_state::RobotState& ik_state,
 		planning_scene::PlanningScenePtr& planning_scene,
-		const std::string& group_name, Eigen::Affine3d& end_effector_state)
+		const std::string& group_name, Eigen::Affine3d& end_effector_state,
+		ros::Publisher& vis_array_publisher)
 {
 	ros::WallDuration sleep_time(0.01);
 
@@ -338,7 +378,8 @@ void computeIKState(ros::NodeHandle& node_handle,
 		found_ik = ik_state.setFromIK(joint_model_group, end_effector_state, 10,
 				0.1, moveit::core::GroupStateValidityCallbackFn(), options);
 
-		found_ik &= !isCollide(ik_state, planning_scene);
+		found_ik &= !isCollide(robot_model, ik_state, planning_scene,
+				vis_array_publisher);
 		double* pos = ik_state.getVariablePositions();
 		printf("IK result :");
 		for (int i = 0; i < ik_state.getVariableCount(); ++i)
@@ -371,8 +412,9 @@ void computeIKState(ros::NodeHandle& node_handle,
 		robot_model::RobotModelPtr& robot_model,
 		robot_state::RobotState& ik_state,
 		planning_scene::PlanningScenePtr& planning_scene,
-		const std::string& group_name, double x, double y, double z, double qx,
-		double qy, double qz, double qw)
+		const std::string& group_name, ros::Publisher& vis_array_publisher,
+		double x, double y, double z, double qx, double qy, double qz,
+		double qw)
 {
 	Eigen::Affine3d end_effector_state = Eigen::Affine3d::Identity();
 	Eigen::Quaternion<double> rot(qw, qx, qy, qz);
@@ -382,7 +424,7 @@ void computeIKState(ros::NodeHandle& node_handle,
 	end_effector_state.translation() = trans;
 
 	computeIKState(node_handle, robot_model, ik_state, planning_scene,
-			group_name, end_effector_state);
+			group_name, end_effector_state, vis_array_publisher);
 }
 
 void transformConstraint(double& x, double& y, double& z, double& qx,
@@ -547,11 +589,11 @@ int main(int argc, char **argv)
 	 */
 
 	{ 2, 0.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 2, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 2, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 	{ 2, 1.0, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1.5, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 1.5, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 	{ 2, 1.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1, 2, 8.5, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 1, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 
 	};
 
@@ -571,7 +613,8 @@ int main(int argc, char **argv)
 	robot_state::RobotState from_state(start_state);
 	robot_state::RobotState to_state(start_state);
 
-	isCollide(from_state, planning_scene);
+	isCollide(robot_model, from_state, planning_scene,
+			vis_marker_array_publisher);
 	for (int i = 0; i < 6; ++i)
 	{
 		vis_marker_array_publisher.publish(ma);
@@ -579,10 +622,10 @@ int main(int argc, char **argv)
 		ROS_INFO("*** Planning Sequence %d ***", i);
 
 		computeIKState(node_handle, robot_model, to_state, planning_scene,
-				"lower_body", EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1],
-				EE_CONSTRAINTS[i][2], EE_CONSTRAINTS[i][3],
-				EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5],
-				EE_CONSTRAINTS[i][6]);
+				"lower_body", vis_marker_array_publisher, EE_CONSTRAINTS[i][0],
+				EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2],
+				EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4],
+				EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
 
 		// for KUKA
 		if (i == 0)
@@ -605,8 +648,9 @@ int main(int argc, char **argv)
 					EE_CONSTRAINTS[i][6]);
 		}
 
-		displayStates(node_handle, robot_model, start_state, goal_state);
+		displayStates(node_handle, robot_model, from_state, to_state);
 		sleep_time.sleep();
+
 
 		plan(planner_instance, planning_scene, req, res, "lower_body",
 				from_state, to_state);
@@ -615,7 +659,12 @@ int main(int argc, char **argv)
 			display_trajectory.trajectory_start = response.trajectory_start;
 		display_trajectory.trajectory.push_back(response.trajectory);
 		//display_publisher.publish(display_trajectory);
+
+
+
+
 		from_state = to_state;
+
 
 		// use the last configuration of prev trajectory
 		int num_joints = from_state.getVariableCount();
@@ -624,6 +673,8 @@ int main(int argc, char **argv)
 				res.trajectory_->getLastWayPoint();
 		from_state.setVariablePositions(last_state.getVariablePositions());
 		from_state.update();
+
+
 	}
 
 	// return to the initial position

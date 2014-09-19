@@ -7,9 +7,16 @@ Panels:
         - /Global Options1
         - /MotionPlanning1
         - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_1_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_2_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_3_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_4_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_5_link1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_6_link1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planned Path1
         - /MarkerArray1
+        - /MarkerArray1/Namespaces1
       Splitter Ratio: 0.74256
     Tree Height: 837
   - Class: rviz/Help
@@ -190,27 +197,27 @@ Visualization Manager:
             Show Trail: false
           goal_1_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_2_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_3_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_4_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_5_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_6_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           kuka_root:
             Alpha: 1
@@ -276,12 +283,333 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
+      Marker Topic: /move_itomp/visualization_marker_array
+      Name: MarkerArray
+      Namespaces:
+        collision: true
+        environment: true
+      Queue Size: 100
+      Value: true
+    - Attached Body Color: 150; 50; 150
+      Class: moveit_rviz_plugin/RobotState
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        end_effector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_5_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_6_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        kuka_root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tcp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tcp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotState
+      Robot Alpha: 1
+      Robot Description: robot_description
+      Robot State Topic: /move_itomp/display_goal_state
+      Show All Links: true
+      Show Highlights: true
+      Value: false
+      Visual Enabled: true
+    - Attached Body Color: 150; 50; 150
+      Class: moveit_rviz_plugin/RobotState
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        end_effector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_5_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_6_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        kuka_root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tcp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tcp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotState
+      Robot Alpha: 1
+      Robot Description: robot_description
+      Robot State Topic: /move_itomp/display_start_state
+      Show All Links: true
+      Show Highlights: true
+      Value: false
+      Visual Enabled: true
+    - Class: rviz/MarkerArray
+      Enabled: false
       Marker Topic: /pomp_planner/visualization_marker_array
       Name: MarkerArray
       Namespaces:
         {}
       Queue Size: 100
-      Value: true
+      Value: false
+    - Attached Body Color: 150; 50; 150
+      Class: moveit_rviz_plugin/RobotState
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        end_effector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_5_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        goal_6_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        kuka_root:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_4:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_5:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_6:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        segment_7:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        tcp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tcp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        tool:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+      Name: RobotState
+      Robot Alpha: 1
+      Robot Description: robot_description
+      Robot State Topic: /move_itomp/display_state
+      Show All Links: true
+      Show Highlights: true
+      Value: false
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -297,22 +625,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 18.0736
+      Distance: 19.5713
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -4.48849
-        Y: -1.62474
-        Z: 2.4587e-07
+        X: -1.15591
+        Y: -0.373138
+        Z: 7.45143e-09
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.329797
+      Pitch: 1.0098
       Target Frame: segment_0
       Value: XYOrbit (rviz)
-      Yaw: 0.844951
+      Yaw: 0.479897
     Saved: ~
 Window Geometry:
   Displays:
