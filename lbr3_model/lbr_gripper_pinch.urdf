@@ -1,5 +1,10 @@
 <?xml version="1.0"?>
-<robot name="lbr3">
+<robot xmlns:sensor="http://playerstage.sourceforge.net/gazebo/xmlschema/#sensor"
+       xmlns:controller="http://playerstage.sourceforge.net/gazebo/xmlschema/#controller"
+       xmlns:interface="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+       xmlns:xacro="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
+       name="lbr3">
+
  <link name="kuka_root">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -189,15 +194,13 @@
   </joint>
 
 
-<!----->
-
 
   <joint name="joint_root" type="fixed">
     <parent link="kuka_root"/>
     <child link="segment_0"/>
     <axis xyz="0 0 1"/>
-<!--    <origin rpy="0 0 3.14159" xyz="5.4 1.9 4.16"/>-->
-    <origin rpy="0 0 0" xyz="5.4 1.9 4.16"/>
+    <origin rpy="0 0 3.14159" xyz="5.4 1.9 4.16"/>
+<!--    <origin rpy="0 0 0" xyz="5.4 1.9 4.16"/>-->
   </joint>
 
 
@@ -306,6 +309,6 @@
     <origin rpy="-1.570796 0 3.141592" xyz="1.0 2.0 8.5"/>
   </joint>
 
--->
+
 </robot>
 
