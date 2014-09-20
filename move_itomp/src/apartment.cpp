@@ -451,52 +451,28 @@ void displayStates(robot_state::RobotState& start_state,
 }
 
 moveit_msgs::Constraints setRootJointConstraint(
-        const Eigen::Matrix4d& transform)
+        const std::vector<std::string>& hierarchy,
+        const Eigen::VectorXd& transform)
 {
-    Eigen::Vector3d root_trans = transform.block<3,1>(0,3);
-    Eigen::Vector3d rotation = transform.block<3,3>(0,0).eulerAngles(0, 1, 2);
 	moveit_msgs::Constraints c;
     moveit_msgs::JointConstraint jc;
     moveit_msgs::OrientationConstraint oc;
 
-	jc.joint_name = "base_prismatic_joint_x";
-	jc.position = root_trans(0);
-	c.joint_constraints.push_back(jc);
-
-	jc.joint_name = "base_prismatic_joint_y";
-    jc.position = root_trans(1);
-	c.joint_constraints.push_back(jc);
-
-	jc.joint_name = "base_prismatic_joint_z";
-    jc.position = root_trans(2);
-	c.joint_constraints.push_back(jc);
-
-
-    jc.joint_name = "base_revolute_joint_x";
-    jc.position = rotation(0);
-    c.joint_constraints.push_back(jc);
-
-
-    jc.joint_name = "base_revolute_joint_y";
-    jc.position = rotation(1);
-    c.joint_constraints.push_back(jc);
-
-
-    jc.joint_name = "base_revolute_joint_z";
-    jc.position = rotation(2);
-    c.joint_constraints.push_back(jc);
+    int id = 0;
+    for(std::vector<std::string>::const_iterator cit= hierarchy.begin();
+        cit != hierarchy.end(); ++cit, ++id)
+    {
+        jc.joint_name = *cit;
+        jc.position = transform(id);
+        c.joint_constraints.push_back(jc);
+    }
 	return c;
 }
 
 void setWalkingStates(robot_state::RobotState& start_state,
-        robot_state::RobotState& goal_state, Eigen::Matrix4d& start_transf,
-        Eigen::Matrix4d& goal_transf)
+        robot_state::RobotState& goal_state, Eigen::VectorXd& start_transf,
+        Eigen::VectorXd& goal_transf, const std::vector<std::string>& hierarchy)
 {
-    Eigen::Vector3d start_trans = start_transf.block<3,1>(0,3);
-    Eigen::Vector3d goal_trans = goal_transf.block<3,1>(0,3);
-    //computing rotation
-    Eigen::Vector3d startrot = start_transf.block<3,3>(0,0).eulerAngles(0, 1, 2);
-    Eigen::Vector3d endrot = start_transf.block<3,3>(0,0).eulerAngles(0, 1, 2);
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 
@@ -505,65 +481,40 @@ void setWalkingStates(robot_state::RobotState& start_state,
 
 	joint_model_group->getVariableDefaultPositions("standup", values);
 	start_state.setVariablePositions(values);
-	jointValue = start_trans(0);
-	start_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-	jointValue = start_trans(1);
-	start_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-	jointValue = start_trans(2);
-	start_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-    jointValue = startrot(0);
-    start_state.setJointPositions("base_revolute_joint_x", &jointValue);
-    jointValue = startrot(1);
-    start_state.setJointPositions("base_revolute_joint_y", &jointValue);
-    jointValue = startrot(2);
-    start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+    int id = 0;
+    for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
+        cit != hierarchy.end(); ++cit, ++id)
+    {
+        jointValue = start_transf(id);
+        start_state.setJointPositions(*cit, &jointValue);
+    }
 
-	goal_state = start_state;
-	joint_model_group->getVariableDefaultPositions("standup", values);
-	goal_state.setVariablePositions(values);
-	jointValue = goal_trans(0);
-	goal_state.setJointPositions("base_prismatic_joint_x", &jointValue);
-	jointValue = goal_trans(1);
-	goal_state.setJointPositions("base_prismatic_joint_y", &jointValue);
-	jointValue = goal_trans(2);
-    goal_state.setJointPositions("base_prismatic_joint_z", &jointValue);
-    jointValue = endrot(0);
-    start_state.setJointPositions("base_revolute_joint_x", &jointValue);
-    jointValue = endrot(1);
-    start_state.setJointPositions("base_revolute_joint_y", &jointValue);
-    jointValue = endrot(2);
-    start_state.setJointPositions("base_revolute_joint_z", &jointValue);
+    goal_state = start_state;
+    joint_model_group->getVariableDefaultPositions("standup", values);
+    goal_state.setVariablePositions(values);
+
+    id = 0;
+    for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
+        cit != hierarchy.end(); ++cit, ++id)
+    {
+        jointValue = goal_transf(id);
+        goal_state.setJointPositions(*cit, &jointValue);
+    }
 }
 
 //load initial path
-
-std::string ExtractQuotes(const std::string& line)
-{
-    int quoteStart = line.find("\"");
-    int quoteEnd = line.find("\"", quoteStart+1);
-    return line.substr(quoteStart+1, quoteEnd - quoteStart -1);
-}
-
-Eigen::Matrix4d readNodeLine(const std::string& line)
-{
-    Eigen::Matrix4d transform;
-    char c11[255],c12[255],c13[255];
-    char c21[255],c22[255],c23[255];
-    char c31[255],c32[255],c33[255];
-    char x[255],y[255],z[255];
-    sscanf(line.c_str(),"%s %s %s %s %s %s %s %s %s %s %s %s",
-           c11, c12, c13, x, c21, c22, c23, y, c31, c32, c33, z);
-    transform << strtod (c11, NULL), strtod (c12, NULL), strtod (c13, NULL), strtod (x, NULL),
-            strtod (c21, NULL), strtod (c22, NULL), strtod (c23, NULL), strtod (y, NULL),
-            strtod (c31, NULL), strtod (c32, NULL), strtod (c33, NULL), strtod (z, NULL),
-            0, 0, 0, 1;
-    return transform;
-}
-
 // file has following form (like a bvh)
-// STATE "A00 A01 A02 A03 ... A33" one line per state
-void InitTrajectoryFromFile(std::vector<Eigen::Matrix4d>& waypoints, const std::string& filepath)
+// HIERARCHY
+// Ordered list of all joints for which there are constraints
+// MOTION
+// Frames:	16
+// Frame Time: 1
+// "X Y Z Rx Ry Rz J1 J2... Jn" one line per state
+std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& waypoints, const std::string& filepath)
 {
+    std::vector<std::string> res;
+    bool hierarchy = false;
+    bool motion = false;
     std::ifstream myfile (filepath.c_str());
     if (myfile.is_open())
     {
@@ -571,13 +522,36 @@ void InitTrajectoryFromFile(std::vector<Eigen::Matrix4d>& waypoints, const std::
         while (myfile.good())
         {
             getline(myfile, line);
-            if(line.find("size ") != std::string::npos)
+            if(line.find("HIERARCHY") != std::string::npos)
             {
-                // do we really care about the size
+                hierarchy = true;
             }
-            else if(! line.empty())
+            else if(line.find("MOTION") != std::string::npos)
             {
-                 waypoints.push_back(readNodeLine(line));
+                 hierarchy = false;
+            }
+            else if(line.find("Frame Time") != std::string::npos)
+            {
+                 motion = true;
+            }
+            else if(!line.empty())
+            {
+                if(hierarchy)
+                {
+                    res.push_back(line);
+                }
+                else if(motion)
+                {
+                    Eigen::VectorXd waypoint(res.size());
+                    char *endptr;
+                    int h = 0;
+                    waypoint[h++] = strtod(line.c_str(), &endptr);
+                    for(; h< res.size(); ++h)
+                    {
+                        waypoint[h] = strtod(endptr, &endptr);
+                    }
+                    waypoints.push_back(waypoint);
+                }
             }
         }
         myfile.close();
@@ -586,6 +560,7 @@ void InitTrajectoryFromFile(std::vector<Eigen::Matrix4d>& waypoints, const std::
     {
         std::cout << "can not find initial path file" << filepath << std::endl;
     }
+    return res;
 }
 
 int main(int argc, char **argv)
@@ -670,39 +645,44 @@ int main(int argc, char **argv)
 
 	robot_states.push_back(planning_scene->getCurrentStateNonConst());
     robot_states.push_back(robot_states.back());
-    Eigen::Matrix4d start_trans, goal_trans;
+    Eigen::VectorXd start_trans, goal_trans;
 
 	// set trajectory constraints
-    std::vector<Eigen::Matrix4d> waypoints;
+    std::vector<Eigen::VectorXd> waypoints;
+    std::vector<std::string> hierarchy;
 	// internal waypoints between start and goal
 
     if(initialpath.empty())
     {
-        Eigen::Matrix4d transform = Eigen::Matrix4d::Identity();
-        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 1.0, 0.0);
-        start_trans =transform;
-        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.5, 0.0);
-        goal_trans = transform;
-        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 1.5, 1.0);
-        waypoints.push_back(transform);
-        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.0, 2.0);
-        waypoints.push_back(transform);
-        transform.block<3,1>(0,3) = Eigen::Vector3d(0.0, 2.5, 1.0);
-        waypoints.push_back(transform);
+        hierarchy.push_back("base_prismatic_joint_x");
+        hierarchy.push_back("base_prismatic_joint_y");
+        hierarchy.push_back("base_prismatic_joint_z");
+        hierarchy.push_back("base_revolute_joint_z");
+        hierarchy.push_back("base_revolute_joint_y");
+        hierarchy.push_back("base_revolute_joint_x");
+        Eigen::VectorXd vec1;
+        start_trans = Eigen::VectorXd(6); start_trans << 0.0, 1.0, 0.0,0,0,0;
+        goal_trans =  Eigen::VectorXd(6); goal_trans << 0.0, 2.5, 0.0,0,0,0;
+        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 1.5, 1.0,0,0,0;
+        waypoints.push_back(vec1);
+        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.0, 2.0,0,0,0;
+        waypoints.push_back(vec1);
+        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.5, 1.0,0,0,0;
+        waypoints.push_back(vec1);
     }
     else
     {
-        InitTrajectoryFromFile(waypoints, initialpath);
+        hierarchy = InitTrajectoryFromFile(waypoints, initialpath);
         start_trans = waypoints.front();
         goal_trans =  waypoints.back();
     }
     setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
-            start_trans, goal_trans);
+            start_trans, goal_trans, hierarchy);
 	for (int i = 0; i < waypoints.size(); ++i)
 	{
 		moveit_msgs::Constraints configuration_constraint =
-                setRootJointConstraint(waypoints[i]);
-		req.trajectory_constraints.constraints.push_back(
+                setRootJointConstraint(hierarchy, waypoints[i]);
+        req.trajectory_constraints.constraints.push_back(
 				configuration_constraint);
 	}
 
