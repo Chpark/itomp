@@ -15,7 +15,7 @@
     </visual>
  </link>
 
-<!--
+
  <link name="link_kinect">
     <visual>
       <geometry>
@@ -24,7 +24,7 @@
       <material name="Blue"/>
     </visual>
  </link>
--->
+
  <link name="segment_0">
     <visual>
       <geometry>
@@ -130,13 +130,13 @@
   </link>
 
   <!-- ################################### JOINTS ############################### -->
-<!--
+
   <joint name="kinect_depth_joint" type="fixed">
      <origin xyz="5.15 9.6 14.55" rpy="0 0.87 -1.57"/>
      <parent link="segment_0"/>
      <child link="link_kinect"/>
   </joint>
--->
+
   <joint name="joint_0" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="176" velocity="1.31" />
     <parent link="segment_0"/> 
