@@ -54,7 +54,8 @@ void PlanningParameters::initFromNodeHandle()
 	node_handle.param("cartesian_trajectory_cost_weight",
 			cartesian_trajectory_cost_weight_, 0.0);
 	node_handle.param("singularity_cost_weight", singularity_cost_weight_, 0.0);
-	node_handle.param("friction_cone_cost_weight", friction_cone_cost_weight_, 0.0);
+	node_handle.param("friction_cone_cost_weight", friction_cone_cost_weight_,
+			0.0);
 
 	node_handle.param("smoothness_cost_velocity", smoothness_cost_velocity_,
 			0.0);
@@ -68,12 +69,12 @@ void PlanningParameters::initFromNodeHandle()
 
 	node_handle.param("print_planning_info", print_planning_info_, true);
 
-	animate_endeffector_segment_.clear();
-	if (node_handle.hasParam("animate_endeffector_segment"))
+	group_endeffector_names_.clear();
+	if (node_handle.hasParam("group_endeffectors"))
 	{
 		XmlRpc::XmlRpcValue segment;
 
-		node_handle.getParam("animate_endeffector_segment", segment);
+		node_handle.getParam("group_endeffectors", segment);
 
 		if (segment.getType() == XmlRpc::XmlRpcValue::TypeStruct)
 		{
@@ -86,7 +87,7 @@ void PlanningParameters::initFromNodeHandle()
 					if (it->second.getType() == XmlRpc::XmlRpcValue::TypeString)
 					{
 						std::string endeffector = it->second;
-						animate_endeffector_segment_.insert(
+						group_endeffector_names_.insert(
 								std::make_pair<std::string, std::string>(
 										component, endeffector));
 					}
@@ -97,7 +98,7 @@ void PlanningParameters::initFromNodeHandle()
 						for (int i = 0; i < size; ++i)
 						{
 							std::string endeffector = it->second[i];
-							animate_endeffector_segment_.insert(
+							group_endeffector_names_.insert(
 									std::make_pair<std::string, std::string>(
 											component, endeffector));
 						}
@@ -191,6 +192,34 @@ void PlanningParameters::initFromNodeHandle()
 			{
 				double value = segment[i];
 				contact_variable_goal_values_.push_back(value);
+			}
+		}
+	}
+
+	contact_points_.clear();
+	if (node_handle.hasParam("contact_points"))
+	{
+		XmlRpc::XmlRpcValue contact_points;
+
+		node_handle.getParam("contact_points", contact_points);
+
+		if (contact_points.getType() == XmlRpc::XmlRpcValue::TypeStruct)
+		{
+			if (contact_points.size() > 0)
+			{
+				for (XmlRpc::XmlRpcValue::iterator it = contact_points.begin();
+						it != contact_points.end(); it++)
+				{
+					std::string endeffector_name = it->first;
+					ROS_ASSERT(
+							it->second.getType() == XmlRpc::XmlRpcValue::TypeArray);
+					int size = it->second.size();
+					for (int i = 0; i < size; ++i)
+					{
+						std::string endeffector_contact_point_name = it->second[i];
+						contact_points_[endeffector_name].push_back(endeffector_contact_point_name);
+					}
+				}
 			}
 		}
 	}

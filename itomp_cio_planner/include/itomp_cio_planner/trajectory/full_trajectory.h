@@ -3,6 +3,7 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/trajectory/trajectory.h>
+#include <itomp_cio_planner/contact/contact_variables.h>
 #include <sensor_msgs/JointState.h>
 #include <moveit_msgs/Constraints.h>
 #include <moveit_msgs/TrajectoryConstraints.h>
@@ -61,9 +62,8 @@ public:
 			const moveit_msgs::Constraints& path_constraints,
 			bool fill_trajectory_min_jerk);
 
-	void setContactVariables(int point,
-			const std::vector<Eigen::Vector3d>& contact_positions,
-			const std::vector<Eigen::Vector3d>& contact_forces);
+	void setContactVariables(int point, const std::vector<ContactVariables>& contact_variables);
+	void getContactVariables(int point, std::vector<ContactVariables>& contact_variables);
 	void interpolateContactVariables();
 
 	FullTrajectory* createClone() const;
@@ -105,6 +105,7 @@ protected:
 			const ItompPlanningGroupConstPtr& planning_group,
 			const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
 
+	int num_contacts_;
 	bool has_free_end_point_;
 
 	int keyframe_start_index_;

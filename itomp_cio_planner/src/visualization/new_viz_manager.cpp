@@ -45,7 +45,7 @@ void NewVizManager::setPlanningGroup(
 	planning_group_ = planning_group;
 
 	const multimap<string, string>& endeffector_names =
-			PlanningParameters::getInstance()->getAnimateEndeffectorSegment();
+			PlanningParameters::getInstance()->getGroupEndeffectorNames();
 	std::pair<multimap<string, string>::const_iterator,
 			multimap<string, string>::const_iterator> ret =
 			endeffector_names.equal_range(planning_group_->name_);
@@ -215,8 +215,9 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 }
 
 void NewVizManager::animateContactForces(
-		const FullTrajectoryConstPtr& full_trajectory, bool is_best,
-		bool keyframe_only)
+		const FullTrajectoryConstPtr& full_trajectory,
+		const std::vector<std::vector<ContactVariables> >& contact_variables,
+		bool is_best, bool keyframe_only)
 {
 	const double scale_line = 0.005;
 	const double scale_keyframe = 0.03;
@@ -269,83 +270,46 @@ void NewVizManager::animateContactForces(
 		step = 1;
 	}
 
+	int num_contacts = contact_variables[0].size();
 	for (int point = begin; point < end; point += step)
 	{
-		const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		int num_contacts = r.rows() / 3;
-
 		for (int i = 0; i < num_contacts; ++i)
 		{
-			Eigen::Vector3d contact_position;
-			Eigen::Vector3d contact_normal;
-			GroundManager::getInstance()->getNearestGroundPosition(
-					r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-			Eigen::Vector3d contact_force = full_trajectory->getContactForce(
-					point, i);
+			double contact_v = contact_variables[point][i].getVariable();
 
-			// test
-			int foot_index = i / 4 * 4;
-			int ee_index = i % 4;
-			contact_position = r.block(3 * foot_index, 0, 3, 1);
-
-			double contact_v = contact_position(2);
-			contact_v = 0.5 * tanh(4*contact_v-2) + 0.5;
-
-
-
-			contact_position(2) = 0;
-			switch (ee_index)
+			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 			{
-			case 0:
-				contact_position(0) -= 0.05;
-				contact_position(1) -= 0.05;
-				break;
-			case 1:
-				contact_position(0) += 0.05;
-				contact_position(1) -= 0.05;
-				break;
-			case 2:
-				contact_position(0) += 0.05;
-				contact_position(1) += 0.2;
-				break;
-			case 3:
-				contact_position(0) -= 0.05;
-				contact_position(1) += 0.2;
-				break;
-			}
+				Eigen::Vector3d point_position =
+						contact_variables[point][i].projected_point_positions_[c];
 
-			point_from.x = contact_position(0);
-			point_from.y = contact_position(1);
-			point_from.z = contact_position(2);
+				Eigen::Vector3d contact_force =
+						contact_variables[point][i].getPointForce(c);
+				contact_force *= contact_v;
 
-			point_to.x = contact_force(0) * 0.00001 + point_from.x;
-			point_to.y = contact_force(1) * 0.00001 + point_from.y;
-			point_to.z = contact_force(2) * 0.00001 + point_from.z;
+				point_from.x = point_position(0);
+				point_from.y = point_position(1);
+				point_from.z = point_position(2);
 
-			const double k1 = 0.01;//10.0;
-					const double k2 = 3;//3.0;
-			const double force_normal = std::max(0.0,
-					contact_normal.dot(contact_force));
-			double contact_variable = contact_v;//0.5 * std::tanh(k1 * force_normal - k2)+ 0.5;
+				point_to.x = contact_force(0) * 0.00001 + point_from.x;
+				point_to.y = contact_force(1) * 0.00001 + point_from.y;
+				point_to.z = contact_force(2) * 0.00001 + point_from.z;
 
-			if (contact_variable > 0.0)
-			{
-				msg.points.push_back(point_from);
-				msg.points.push_back(point_to);
-				msg2.points.push_back(point_from);
-			}
-			else
-			{
-				msg3.points.push_back(point_from);
-				msg3.points.push_back(point_to);
-				msg4.points.push_back(point_from);
+				const double k1 = 0.01; //10.0;
+				const double k2 = 3; //3.0;
+				double contact_variable = contact_v;
+
+				if (contact_variable > 0.0)
+				{
+					msg.points.push_back(point_from);
+					msg.points.push_back(point_to);
+					msg2.points.push_back(point_from);
+				}
+				else
+				{
+					msg3.points.push_back(point_from);
+					msg3.points.push_back(point_to);
+					msg4.points.push_back(point_from);
+				}
 			}
 
 		}

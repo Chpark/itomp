@@ -12,18 +12,21 @@ FullTrajectory::FullTrajectory(const ItompRobotModelConstPtr& robot_model,
 		bool has_velocity_and_acceleration, bool free_point_end,
 		int num_contacts) :
 		Trajectory(discretization, has_velocity_and_acceleration,
-				has_velocity_and_acceleration), has_free_end_point_(
+				has_velocity_and_acceleration), num_contacts_(num_contacts), has_free_end_point_(
 				free_point_end)
 {
 	// set num_elements & component_start_indices
 	component_start_indices_[TRAJECTORY_COMPONENT_JOINT] = 0;
 	num_elements_ += robot_model->getNumJoints();
+
 	component_start_indices_[TRAJECTORY_COMPONENT_CONTACT_POSITION] =
 			num_elements_;
-	num_elements_ += num_contacts * 3;
+	num_elements_ += num_contacts * 7; // var + pos(3) + ori(3)
+
 	component_start_indices_[TRAJECTORY_COMPONENT_CONTACT_FORCE] =
 			num_elements_;
-	num_elements_ += num_contacts * 3;
+	num_elements_ += num_contacts * NUM_ENDEFFECTOR_CONTACT_POINTS * 3; // n * force(3)
+
 	component_start_indices_[TRAJECTORY_COMPONENT_NUM] = num_elements_;
 
 	// set keyframe-related variables
@@ -730,28 +733,43 @@ void FullTrajectory::restoreBackupTrajectories()
 }
 
 void FullTrajectory::setContactVariables(int point,
-		const std::vector<Eigen::Vector3d>& contact_positions,
-		const std::vector<Eigen::Vector3d>& contact_forces)
+		const std::vector<ContactVariables>& contact_variables)
 {
-	int num_contacts = getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION) / 3;
-
 	Eigen::MatrixXd::RowXpr row = getTrajectoryPoint(point);
 	int position_start =
 			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
 	int force_start =
 			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
-	for (int i = 0; i < num_contacts; ++i)
-	{
-		row(position_start + i * 3) = contact_positions[i](0);
-		row(position_start + i * 3 + 1) = contact_positions[i](1);
-		row(position_start + i * 3 + 2) = contact_positions[i](2);
 
-		row(force_start + i * 3) = contact_forces[i](0);
-		row(force_start + i * 3 + 1) = contact_forces[i](1);
-		row(force_start + i * 3 + 2) = contact_forces[i](2);
+	for (int i = 0; i < num_contacts_; ++i)
+	{
+		row.block(0, position_start + i * 7, 1, 7) =
+				contact_variables[i].serialized_position_.transpose();
+		row.block(0, force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1,
+				3 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
+				contact_variables[i].serialized_forces_.transpose();
 	}
 }
+
+void FullTrajectory::getContactVariables(int point,
+		std::vector<ContactVariables>& contact_variables)
+{
+	Eigen::MatrixXd::RowXpr row = getTrajectoryPoint(point);
+	int position_start =
+			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+	int force_start =
+			component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
+
+	for (int i = 0; i < num_contacts_; ++i)
+	{
+		contact_variables[i].serialized_position_ = row.block(0,
+				position_start + i * 7, 1, 7).transpose();
+		contact_variables[i].serialized_forces_ = row.block(0,
+				force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1,
+				3 * NUM_ENDEFFECTOR_CONTACT_POINTS).transpose();
+	}
+}
+
 void FullTrajectory::interpolateContactVariables()
 {
 	int start =

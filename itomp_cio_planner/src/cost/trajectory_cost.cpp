@@ -141,75 +141,37 @@ bool TrajectoryCostContactInvariant::evaluate(
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
 			point);
 
-	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-	int num_contacts = r.rows() / 3;
-
 	bool has_positive = false;
 	double negative_cost = 1.0;
 
+	const std::vector<ContactVariables>& contact_variables =
+			evaluation_manager->contact_variables_[point];
+	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
 				model.X_base[rbdl_body_id];
 
-		Eigen::Vector3d contact_position;
-		Eigen::Vector3d contact_normal;
-		GroundManager::getInstance()->getNearestGroundPosition(
-				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
-				i);
-
-		// test
-		int foot_index = i / 4 * 4;
-		int ee_index = i % 4;
-		contact_position = r.block(3 * foot_index, 0, 3, 1);
-
-		double contact_v = contact_position(2);
-		if (contact_v > 0.5)
+		double raw_contact_variable = contact_variables[i].getRawVariable();
+		if (raw_contact_variable > 0.0)
 			has_positive = true;
-		negative_cost *= contact_v;
+		negative_cost *= raw_contact_variable;
 
-		contact_v = 0.5 * tanh(4 * contact_v - 2) + 0.5;
+		double contact_v = contact_variables[i].getVariable();
+		if (contact_v < 0.0)
+			std::cout << "Minus contact var!!! " << contact_v << " " <<  contact_variables[i].getRawVariable() << std::endl;
 
-		contact_position(2) = 0;
-		switch (ee_index)
-		{
-		case 0:
-			contact_position(0) -= 0.05;
-			contact_position(1) -= 0.05;
-			break;
-		case 1:
-			contact_position(0) += 0.05;
-			contact_position(1) -= 0.05;
-			break;
-		case 2:
-			contact_position(0) += 0.05;
-			contact_position(1) += 0.2;
-			break;
-		case 3:
-			contact_position(0) -= 0.05;
-			contact_position(1) += 0.2;
-			break;
-		}
+		Eigen::Vector3d body_position = contact_body_transform.r;
+		Eigen::Vector3d body_orientation =
+				exponential_map::RotationToExponentialMap(
+						contact_body_transform.E);
 
-		Eigen::Vector3d body_contact_position = contact_body_transform.r;
+		Eigen::Vector3d position_diff = body_position
+				- contact_variables[i].projected_position_;
+		Eigen::Vector3d orientation_diff = body_orientation
+				- contact_variables[i].projected_orientation_;
 
-		Eigen::Vector3d body_rot = exponential_map::RotationToExponentialMap(
-				contact_body_transform.E);
-		Eigen::Vector3d ground_rot = exponential_map::AngleAxisToExponentialMap(
-				Eigen::AngleAxisd(0.0, contact_normal));
-		Eigen::Vector3d orientation_diff = body_rot - ground_rot;
-
-		Eigen::Vector3d position_diff = body_contact_position
-				- contact_position;
 		double position_diff_cost = position_diff.squaredNorm()
 				+ orientation_diff.squaredNorm();
 
@@ -218,16 +180,16 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 		const double k1 = 0.01; //10.0;
 		const double k2 = 3; //3.0;
-		const double force_normal = std::max(0.0,
-				contact_normal.dot(contact_force));
-		double contact_variable = contact_v; //0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
 
-		cost += contact_variable
-				* (position_diff_cost + contact_body_velocity_cost);
+		cost += contact_v * (position_diff_cost + contact_body_velocity_cost);
 	}
 
 	if (!has_positive)
+	{
 		cost += negative_cost;
+		if (negative_cost < 0)
+			std::cout << "Minus negative_cost var!!! " << negative_cost << std::endl;
+	}
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
@@ -400,16 +362,10 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 
 	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 
 	// TODO:
 	const char* endeffector_chain_group_names[] =
-	{ "left_leg", "right_leg" };
+	{ "left_leg", "right_leg", "left_arm", "right_arm" };
 
 	std::vector<double> positions;
 	int num_joints = q.cols();
@@ -419,15 +375,12 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 			point);
 	robot_state->setVariablePositions(q.data());
 
-	int num_contacts = r.rows() / 3;
+	const std::vector<ContactVariables>& contact_variables =
+			evaluation_manager->contact_variables_[point];
+	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
-		int foot_index = i / 4 * 4;
-		int ee_index = i % 4;
-		if (ee_index != 0)
-			continue;
-
-		std::string chain_name = endeffector_chain_group_names[foot_index/4];
+		std::string chain_name = endeffector_chain_group_names[i];
 		Eigen::MatrixXd jacobianFull =
 				(robot_state->getJacobian(
 						evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
@@ -440,18 +393,16 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
 				model.X_base[rbdl_body_id];
 
-		Eigen::Vector3d ground_contact_position;
-		Eigen::Vector3d contact_normal;
-		// TODO: handle non-z plane contacts
-		GroundManager::getInstance()->getNearestGroundPosition(
-				r.block(3 * i, 0, 3, 1), ground_contact_position,
-				contact_normal);
-		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
-				i);
-		Eigen::Vector3d body_contact_position = contact_body_transform.r;
+		Eigen::Vector3d orientation = contact_variables[i].projected_orientation_;
+		Eigen::Vector3d contact_normal = orientation.block(0, 2, 3, 1).transpose();
+		Eigen::Vector3d contact_force_sum = Eigen::Vector3d::Zero();
+		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+		{
+			contact_force_sum += contact_variables[i].getPointForce(c);
+		}
 
 		// computing direction, first version as COM velocity between poses
-		Eigen::Vector3d direction = contact_force;
+		Eigen::Vector3d direction = contact_force_sum;
 		if (direction.norm() != 0)
 		{
 			direction.normalize();
@@ -468,7 +419,7 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 			ftr = (ftr > 10) ? 10 : ftr;
 			ftr = (ftr + 10) / 20;
 
-			cost += std::max(0.0, contact_force.norm() - ftr);
+			cost += std::max(0.0, contact_force_sum.norm() - ftr);
 		}
 	}
 
@@ -512,45 +463,34 @@ bool TrajectoryCostFrictionCone::evaluate(
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
 			point);
 
-	const Eigen::VectorXd& r = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-	const Eigen::VectorXd& f = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE,
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-	int num_contacts = r.rows() / 3;
-
+	const std::vector<ContactVariables>& contact_variables =
+			evaluation_manager->contact_variables_[point];
+	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
-		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
+		double contact_variable = contact_variables[i].getVariable();
 
-		Eigen::Vector3d contact_position;
-		Eigen::Vector3d contact_normal;
-		GroundManager::getInstance()->getNearestGroundPosition(
-				r.block(3 * i, 0, 3, 1), contact_position, contact_normal);
-		Eigen::Vector3d contact_force = full_trajectory->getContactForce(point,
-				i);
+		Eigen::Matrix3d orientation = exponential_map::ExponentialMapToRotation(
+				contact_variables[i].projected_orientation_);
+		Eigen::Vector3d contact_normal =
+				orientation.block(0, 2, 3, 1).transpose();
 
-		// active contacts only
-		const double k1 = 10.0;
-		const double k2 = 3.0;
-		const double force_normal = std::max(0.0,
-				contact_normal.dot(contact_force));
-		double contact_variable = 0.5 * std::tanh(k1 * force_normal - k2) + 0.5;
-
-		double angle = 0.0;
-		double norm = contact_force.norm();
-		if (contact_force.norm() > 1e-7)
+		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 		{
-			contact_force.normalize();
-			angle = (contact_force.norm() < 1e-7) ?
-					0.0 : acos(contact_normal.dot(contact_force));
-			angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
-		}
+			Eigen::Vector3d point_force = contact_variables[i].getPointForce(c);
 
-		cost += contact_variable * angle * angle * norm * norm;
+			double angle = 0.0;
+			double norm = point_force.norm();
+			if (point_force.norm() > 1e-7)
+			{
+				point_force.normalize();
+				angle = (point_force.norm() < 1e-7) ?
+						0.0 : acos(contact_normal.dot(point_force));
+				angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
+			}
+
+			cost += contact_variable * angle * angle * norm * norm;
+		}
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);

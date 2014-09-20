@@ -28,8 +28,9 @@ print_planning_info: false
 
 animate_path: true
 animate_endeffector: true
-animate_endeffector_segment:
-  lower_body: [left_foot_cp_1_link, left_foot_cp_2_link, left_foot_cp_3_link, left_foot_cp_4_link, right_foot_cp_1_link, right_foot_cp_2_link, right_foot_cp_3_link, right_foot_cp_4_link]
+group_endeffectors:
+  lower_body: [left_foot_endeffector_link, right_foot_endeffector_link]
+  whole_body: [left_foot_endeffector_link, right_foot_endeffector_link, left_hand_endeffector_link, right_hand_endeffector_link]
   torso: torso_x_link
   head: head_endeffector_link
   left_arm: left_hand_endeffector_link
@@ -70,12 +71,18 @@ num_reused_rollouts: 5
 noise_stddev: 2.0
 noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
 
-num_contacts: 8
+num_contacts: 2
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
+contact_points:
+  left_foot_endeffector_link : [left_foot_cp_1_link, left_foot_cp_2_link, left_foot_cp_3_link, left_foot_cp_4_link]
+  right_foot_endeffector_link : [right_foot_cp_1_link, right_foot_cp_2_link, right_foot_cp_3_link, right_foot_cp_4_link]
+  left_hand_endeffector_link : [left_hand_cp_1_link, left_hand_cp_2_link, left_hand_cp_3_link, left_hand_cp_4_link]
+  right_hand_endeffector_link : [right_hand_cp_1_link, right_hand_cp_2_link, right_hand_cp_3_link, right_hand_cp_4_link]
+
 environment_model: package://move_itomp/meshes/appartzombi_x90.dae
-environment_model_position: [12.0, -8.0, 0.5]
+environment_model_position: [12.0, -8.0, 0.272]
 environment_model_scale: 1.0
 
 

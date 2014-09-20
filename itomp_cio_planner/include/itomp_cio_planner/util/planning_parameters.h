@@ -51,7 +51,7 @@ public:
 	std::vector<double> getSmoothnessCosts() const;
 	double getRidgeFactor() const;
 	bool getAnimateEndeffector() const;
-	const std::multimap<std::string, std::string>& getAnimateEndeffectorSegment() const;
+	const std::multimap<std::string, std::string>& getGroupEndeffectorNames() const;
 	int getNumTrajectories() const;
 	int getNumTrials() const;
 	int getNumRollouts() const;
@@ -101,6 +101,8 @@ public:
 	double getEnvironmentModelScale() const;
 	bool getHasRoot6d() const;
 
+	const std::map<std::string, std::vector<std::string> >& getContactPoints() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -128,7 +130,8 @@ private:
 	double smoothness_cost_jerk_;
 	double ridge_factor_;
 	bool animate_endeffector_;
-	std::multimap<std::string, std::string> animate_endeffector_segment_;
+	std::multimap<std::string, std::string> group_endeffector_names_;
+	std::map<std::string, std::vector<std::string> > contact_points_;
 	int num_trajectories_;
 	double planning_step_size_;
 	int num_time_steps_;
@@ -287,9 +290,9 @@ inline bool PlanningParameters::getAnimateEndeffector() const
 	return animate_endeffector_;
 }
 
-inline const std::multimap<std::string, std::string>& PlanningParameters::getAnimateEndeffectorSegment() const
+inline const std::multimap<std::string, std::string>& PlanningParameters::getGroupEndeffectorNames() const
 {
-	return animate_endeffector_segment_;
+	return group_endeffector_names_;
 }
 
 inline std::vector<double> PlanningParameters::getSmoothnessCosts() const
@@ -394,6 +397,11 @@ inline bool PlanningParameters::getHasRoot6d() const
 inline double PlanningParameters::getFrictionConeCostWeight() const
 {
 	return friction_cone_cost_weight_;
+}
+
+inline const std::map<std::string, std::vector<std::string> >& PlanningParameters::getContactPoints() const
+{
+	return contact_points_;
 }
 
 }
