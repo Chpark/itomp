@@ -21,7 +21,7 @@ planner_configs:
     type: geometric::PRM
   PRMstarkConfigDefault:
     type: geometric::PRMstar
-whole_body:
+lower_body:
   planner_configs:
     - SBLkConfigDefault
     - ESTkConfigDefault
@@ -36,7 +36,7 @@ whole_body:
     - PRMstarkConfigDefault
   projection_evaluator: joints(base_prismatic_joint_x,base_prismatic_joint_y)
   longest_valid_segment_fraction: 0.05
-lower_body:
+whole_body:
   planner_configs:
     - SBLkConfigDefault
     - ESTkConfigDefault
