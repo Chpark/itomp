@@ -655,7 +655,7 @@
   <joint name="left_hand_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.009816 0.007404 -0.21684"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="0.01757 -0.00204 -0.08"/>
     <parent link="left_hand_x_link"/>
     <child link="left_hand_endeffector_link"/>
   </joint>
@@ -809,7 +809,7 @@
   <joint name="right_hand_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.000348 0.010884 -0.21684"/>
+    <origin rpy="-1.570796 0 -1.570796" xyz="-0.01229 -0.007225 -0.07007"/>
     <parent link="right_hand_x_link"/>
     <child link="right_hand_endeffector_link"/>
   </joint>
@@ -1059,31 +1059,32 @@
   <joint name="left_hand_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.01757 0.0606 -0.22569"/>
-    <parent link="left_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="0.06264 0.14569 0"/>
+    <parent link="left_hand_endeffector_link"/>
     <child link="left_hand_cp_1_link"/>
   </joint>
   <joint name="left_hand_cp_2_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.01757 -0.06468 -0.22569"/>
-    <parent link="left_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06264 0.14569 0"/>
+    <parent link="left_hand_endeffector_link"/>
     <child link="left_hand_cp_2_link"/>
   </joint>
   <joint name="left_hand_cp_3_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.01757 -0.06468 -0.02705"/>
-    <parent link="left_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06264 -0.05295 0"/>
+    <parent link="left_hand_endeffector_link"/>
     <child link="left_hand_cp_3_link"/>
   </joint>
   <joint name="left_hand_cp_4_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.01757 0.0606 -0.02705"/>
-    <parent link="left_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="0.06264 -0.05295 0"/>
+    <parent link="left_hand_endeffector_link"/>
     <child link="left_hand_cp_4_link"/>
   </joint>
+
 <link name="right_hand_cp_1_link">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -1143,29 +1144,29 @@
   <joint name="right_hand_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.01229 0.05553 -0.01712"/>
-    <parent link="right_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06264 -0.05295 0"/>
+    <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_1_link"/>
   </joint>
   <joint name="right_hand_cp_2_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.01229 -0.06975 -0.01712"/>
-    <parent link="right_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="0.06264 -0.05295 0"/>
+    <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_2_link"/>
   </joint>
   <joint name="right_hand_cp_3_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.01229 -0.06975 -0.21577"/>
-    <parent link="right_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="0.06264 0.1457 0"/>
+    <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_3_link"/>
   </joint>
   <joint name="right_hand_cp_4_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.01229 0.05553 -0.21577"/>
-    <parent link="right_hand_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06264 0.1457 0"/>
+    <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_4_link"/>
   </joint>
 
