@@ -15,10 +15,11 @@ using namespace std;
 namespace itomp_cio_planner
 {
 
-ContactPoint::ContactPoint(const string& link_name, unsigned rbdl_body_id) :
-		link_name_(link_name), rbdl_body_id_(rbdl_body_id)
+ContactPoint::ContactPoint(const string& link_name, unsigned rbdl_body_id,
+		const std::vector<unsigned int>& contact_point_rbdl_ids) :
+		link_name_(link_name), rbdl_body_id_(rbdl_body_id), contact_point_rbdl_ids_(contact_point_rbdl_ids)
 {
-	link_name_ = link_name;
+
 }
 
 ContactPoint::~ContactPoint()

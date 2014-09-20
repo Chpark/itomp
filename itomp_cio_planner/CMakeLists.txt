@@ -39,13 +39,10 @@ src/trajectory/trajectory.cpp
 src/trajectory/full_trajectory.cpp
 src/trajectory/parameter_trajectory.cpp
 src/trajectory/trajectory_factory.cpp
-#src/cost/smoothness_cost.cpp
-#src/cost/trajectory_cost_accumulator.cpp
 src/cost/trajectory_cost.cpp
 src/cost/trajectory_cost_manager.cpp
 src/contact/contact_point.cpp
 src/contact/ground_manager.cpp
-src/contact/contact_force_solver.cpp
 src/visualization/new_viz_manager.cpp
 src/util/min_jerk_trajectory.cpp
 src/util/planning_parameters.cpp
@@ -56,7 +53,6 @@ src/optimization/itomp_optimizer.cpp
 src/optimization/new_eval_manager.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
-src/optimization/rollout.cpp
 src/rom/ROM.cpp
 )
 target_link_libraries(itomp dlib)

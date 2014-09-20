@@ -66,7 +66,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 				"base_revolute_joint_y", "base_revolute_joint_z" };
 
 		// TODO: handle root transform values : trans_z(1.12)
-		rbdl_robot_model_.X_T[1].r(2) += 1.1713;//
+		rbdl_robot_model_.X_T[1].r(2) += 1.218534; //
 
 		// compute rbdl_affected_body_ids for partial FK
 		for (unsigned int i = 1; i < rbdl_robot_model_.mJoints.size(); ++i)
@@ -364,33 +364,8 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 	// add rbdl partial fk ids
 
-	/*
-	// TODO: add contact points to lower body
-	if (robot_model->hasLinkModel("left_foot_endeffector_link"))
-	{
-
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["lower_body"])->contact_points_.push_back(
-		 ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["lower_body"])->contact_points_.push_back(
-		 ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
-
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["whole_body"])->contact_points_.push_back(
-		 ContactPoint("left_foot_endeffector_link", rbdl_robot_model_.GetBodyId("left_foot_endeffector_link")));
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["whole_body"])->contact_points_.push_back(
-		 ContactPoint("right_foot_endeffector_link", rbdl_robot_model_.GetBodyId("right_foot_endeffector_link")));
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["whole_body"])->contact_points_.push_back(
-		 ContactPoint("left_hand_endeffector_link", rbdl_robot_model_.GetBodyId("left_hand_endeffector_link")));
-		 boost::const_pointer_cast<ItompPlanningGroup>(
-		 planning_groups_["whole_body"])->contact_points_.push_back(
-		 ContactPoint("right_hand_endeffector_link", rbdl_robot_model_.GetBodyId("right_hand_endeffector_link")));
-	}
-	*/
-
+	const std::map<std::string, std::vector<std::string> >& contact_points =
+			PlanningParameters::getInstance()->getContactPoints();
 	const std::vector<const robot_model::JointModelGroup*>& jointModelGroups =
 			moveit_robot_model_->getJointModelGroups();
 	for (std::vector<const robot_model::JointModelGroup*>::const_iterator it =
@@ -400,19 +375,45 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		ItompPlanningGroupPtr planning_group = boost::const_pointer_cast<
 				ItompPlanningGroup>(planning_groups_[group_name]);
 
-		const multimap<string, string>& endeffector_names =
-				PlanningParameters::getInstance()->getAnimateEndeffectorSegment();
+		const multimap<string, string>& group_endeffector_names =
+				PlanningParameters::getInstance()->getGroupEndeffectorNames();
 
 		std::pair<multimap<string, string>::const_iterator,
 				multimap<string, string>::const_iterator> ret =
-				endeffector_names.equal_range(group_name);
+				group_endeffector_names.equal_range(group_name);
 
 		for (multimap<string, string>::const_iterator it = ret.first;
 				it != ret.second; ++it)
 		{
-			planning_group->contact_points_.push_back(
-					ContactPoint(it->second,
-							rbdl_robot_model_.GetBodyId(it->second.c_str())));
+			string endeffector_name = it->second;
+			unsigned int endeffector_rbdl_id = rbdl_robot_model_.GetBodyId(
+					endeffector_name.c_str());
+			while (rbdl_robot_model_.IsFixedBodyId(endeffector_rbdl_id))
+			{
+				endeffector_rbdl_id = rbdl_robot_model_.GetParentBodyId(
+						endeffector_rbdl_id);
+			}
+
+			std::map<std::string, std::vector<std::string> >::const_iterator it2 =
+					contact_points.find(endeffector_name);
+			if (it2 != contact_points.end())
+			{
+				const std::vector<string>& endeffector_contact_point_names =
+						it2->second;
+
+				std::vector<unsigned int> contact_point_rbdl_ids;
+				for (int i = 0; i < endeffector_contact_point_names.size(); ++i)
+				{
+					const std::string& name = endeffector_contact_point_names[i];
+					unsigned int point_rbdl_id = rbdl_robot_model_.GetBodyId(
+							name.c_str());
+					contact_point_rbdl_ids.push_back(point_rbdl_id);
+
+				}
+				planning_group->contact_points_.push_back(
+						ContactPoint(endeffector_name, endeffector_rbdl_id,
+								contact_point_rbdl_ids));
+			}
 		}
 	}
 

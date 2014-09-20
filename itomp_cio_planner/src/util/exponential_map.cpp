@@ -25,11 +25,10 @@ Eigen::Vector3d AngleAxisToExponentialMap(const Eigen::AngleAxisd& angle_axis)
 Eigen::AngleAxisd ExponentialMapToAngleAxis(
 		const Eigen::Vector3d& exponential_rotation)
 {
-	double theta = exponential_rotation.norm();
-	Eigen::Vector3d axis = boost::math::sinc_pi(0.5 * theta) * 2.0
-			* exponential_rotation;
+	double angle = 0.5 * exponential_rotation.norm();
+	Eigen::Vector3d axis = exponential_rotation.normalized();
 
-	return Eigen::AngleAxisd(theta, axis);
+	return Eigen::AngleAxisd(angle, axis);
 }
 
 }

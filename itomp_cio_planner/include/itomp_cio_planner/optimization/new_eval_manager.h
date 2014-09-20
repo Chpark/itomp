@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/trajectory/parameter_trajectory.h>
+#include <itomp_cio_planner/contact/contact_variables.h>
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
 #include <ros/publisher.h>
@@ -14,6 +15,7 @@
 namespace itomp_cio_planner
 {
 ITOMP_FORWARD_DECL(NewEvalManager)
+
 class NewEvalManager
 {
 public:
@@ -85,6 +87,7 @@ private:
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
 	std::vector<Eigen::VectorXd> tau_; // joint forces from inverse dynamics
 	std::vector<std::vector<RigidBodyDynamics::Math::SpatialVector> > external_forces_;
+	std::vector<std::vector<ContactVariables> > contact_variables_;
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
@@ -94,9 +97,12 @@ private:
 
 	const NewEvalManager* ref_evaluation_manager_;
 
+	friend class TrajectoryCostContactInvariant;
 	friend class TrajectoryCostObstacle;
 	friend class TrajectoryCostPhysicsViolation;
 	friend class TrajectoryCostTorque;
+	friend class TrajectoryCostFTR;
+	friend class TrajectoryCostFrictionCone;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 
