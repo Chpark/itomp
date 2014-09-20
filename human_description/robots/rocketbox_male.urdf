@@ -78,18 +78,18 @@
   </link>
   <joint name="base_prismatic_joint_x" type="prismatic">
     <axis xyz="1 0 0"/>
-    <limit effort="10000" lower="-5.0" upper="5.0" velocity="0.6"/>
-    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-4.9" soft_upper_limit="4.9"/>
+    <limit effort="10000" lower="-6.0" upper="6.0" velocity="0.6"/>
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-5.9" soft_upper_limit="5.9"/>
     <calibration falling="0.00536"/>
     <dynamics damping="20000.0"/>
-    <origin rpy="0 0 0" xyz="0 0 1.1713"/>
+    <origin rpy="0 0 0" xyz="0 0 1.218534"/>
     <parent link="root_link"/>
     <child link="base_prismatic_dummy1"/>
   </joint>
   <joint name="base_prismatic_joint_y" type="prismatic">
     <axis xyz="0 1 0"/>
-    <limit effort="10000" lower="-5.0" upper="5.0" velocity="0.6"/>
-    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-4.9" soft_upper_limit="4.9"/>
+    <limit effort="10000" lower="-6.0" upper="6.0" velocity="0.6"/>
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-5.9" soft_upper_limit="5.9"/>
     <calibration falling="0.00536"/>
     <dynamics damping="20000.0"/>
     <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -366,10 +366,10 @@
   </link>
 	
 	  
-  <joint name="left_foot_endeffector_joint" type="fixed">
+  <joint name="left_foot_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
-    <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.024924 -0.097428 0.001788"/>
+    <limit effort="15" lower="0.0" upper="0.0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="-0.024924 -0.097428 -0.120162"/>
     <parent link="left_foot_x_link"/>
     <child link="left_foot_endeffector_link"/>
   </joint>
@@ -505,10 +505,10 @@
     </inertial>
   </link>
   	  
-  <joint name="right_foot_endeffector_joint" type="fixed">
+  <joint name="right_foot_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
-    <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.024924 -0.097428 0.001776"/>
+    <limit effort="15" lower="0.0" upper="0.0" velocity="5"/>
+    <origin rpy="0 0 0" xyz="0.024924 -0.097428 -0.120162"/>
     <parent link="right_foot_x_link"/>
     <child link="right_foot_endeffector_link"/>
   </joint>
@@ -890,29 +890,29 @@
   <joint name="left_foot_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.08027 0.27372 -0.12195"/>
-    <parent link="left_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="0.08027 0.27372 0.0"/>
+    <parent link="left_foot_endeffector_link"/>
     <child link="left_foot_cp_1_link"/>
   </joint>
   <joint name="left_foot_cp_2_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.09166 0.27372 -0.12195"/>
-    <parent link="left_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.09166 0.27372 0.0"/>
+    <parent link="left_foot_endeffector_link"/>
     <child link="left_foot_cp_2_link"/>
   </joint>
   <joint name="left_foot_cp_3_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.09166 -0.07769 -0.12195"/>
-    <parent link="left_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.09166 -0.07769 0.0"/>
+    <parent link="left_foot_endeffector_link"/>
     <child link="left_foot_cp_3_link"/>
   </joint>
   <joint name="left_foot_cp_4_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.08027 -0.07769 -0.12195"/>
-    <parent link="left_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="0.08027 -0.07769 0.0"/>
+    <parent link="left_foot_endeffector_link"/>
     <child link="left_foot_cp_4_link"/>
   </joint>
 <link name="right_foot_cp_1_link">
@@ -974,29 +974,29 @@
   <joint name="right_foot_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.10495 0.2684 -0.12195"/>
-    <parent link="right_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="0.10495 0.2684 0.0"/>
+    <parent link="right_foot_endeffector_link"/>
     <child link="right_foot_cp_1_link"/>
   </joint>
   <joint name="right_foot_cp_2_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.06698 0.2684 -0.12195"/>
-    <parent link="right_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06698 0.2684 0.0"/>
+    <parent link="right_foot_endeffector_link"/>
     <child link="right_foot_cp_2_link"/>
   </joint>
   <joint name="right_foot_cp_3_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.06698 -0.08301 -0.12195"/>
-    <parent link="right_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="-0.06698 -0.08301 0.0"/>
+    <parent link="right_foot_endeffector_link"/>
     <child link="right_foot_cp_3_link"/>
   </joint>
   <joint name="right_foot_cp_4_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.10495 -0.08301 -0.12195"/>
-    <parent link="right_foot_x_link"/>
+    <origin rpy="0 0 0" xyz="0.10495 -0.08301 0.0"/>
+    <parent link="right_foot_endeffector_link"/>
     <child link="right_foot_cp_4_link"/>
   </joint>
 
