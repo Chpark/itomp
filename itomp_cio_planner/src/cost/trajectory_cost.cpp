@@ -47,7 +47,7 @@ bool TrajectoryCostSmoothness::evaluate(
 	{
 		value = std::abs((double) pos(i));
 		value = std::max(0.0, value - 0.3);
-		cost += value * value;
+		//cost += value * value;
 	}
 
 	// normalize cost (independent to # of joints)
