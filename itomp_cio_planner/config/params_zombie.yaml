@@ -1,11 +1,11 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 100
+max_iterations: 300
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
 smoothness_cost_weight: 1.0
-obstacle_cost_weight: 1.0
+obstacle_cost_weight: 0.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
 contact_invariant_cost_weight: 500.0
@@ -39,7 +39,7 @@ group_endeffectors:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 8.0
 trajectory_discretization: 0.25
-keyframe_duration: 2.0
+keyframe_duration: 1.0
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0
