@@ -500,11 +500,18 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			}
 			for (int c = 0; c < num_contacts; ++c)
 			{
+				double contact_variable =
+						contact_variables_[i][c].getVariable();
 				Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
 
 				for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
 					force_sum += contact_variables_[i][c].getPointForce(j);
-				printf("%.7f ", force_sum.norm() * contact_variables_[i][c].getVariable());
+
+				const double k_1 = (c < 2) ? 1e-6 : 1e-4;
+				const double active_force = force_sum.norm() * contact_variable;
+
+				printf("%.7f(%.7f) ", force_sum.norm() * contact_variable,
+						k_1 * active_force * active_force);
 			}
 
 			printf("\n");

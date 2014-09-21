@@ -31,15 +31,20 @@ bool TrajectoryCostSmoothness::evaluate(
 	const Eigen::MatrixXd mat_acc = trajectory->getComponentTrajectory(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
 			Trajectory::TRAJECTORY_TYPE_ACCELERATION);
-	for (int i = 0; i < mat_acc.cols(); ++i)
+	const Eigen::MatrixXd mat_vel = trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+			Trajectory::TRAJECTORY_TYPE_VELOCITY);
+	for (int i = 0; i < 6/*mat_vel.cols()*/; ++i)
 	{
-		value = mat_acc(point, i);
+		value = mat_vel(point, i);
 		cost += value * value;
 	}
 
 	// normalize cost (independent to # of joints)
-	cost /= trajectory->getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	/*
+	 cost /= trajectory->getComponentSize(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	 */
 
 	/*
 	 const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
@@ -298,7 +303,6 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 	const std::vector<ContactVariables>& contact_variables =
 			evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
-	num_contacts = 2;
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		double contact_variable = contact_variables[i].getVariable();
@@ -307,12 +311,9 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 		{
 			force_sum += contact_variables[i].getPointForce(c);
 		}
-		const double k_1 = 1e-5;
-		const double k_2 = 1e-7;
-		const double regulation_factor = ((i < 2) ? 1.0 : 10.0) * k_1
-				/ (contact_variable * contact_variable + k_2);
-		const double force_magnitude = force_sum.norm() / 15000.0;
-		cost += regulation_factor * force_magnitude * force_magnitude;
+		const double k_1 = (i < 2) ? 1e-6 : 1e-4;
+		const double active_force = force_sum.norm() * contact_variable;
+		cost += k_1 * active_force * active_force;
 	}
 
 	TIME_PROFILER_END_TIMER(COM);
@@ -329,26 +330,16 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 	// implement
 	TIME_PROFILER_START_TIMER(EndeffectorVelocity);
 
-	// implement
-
-	// TODO: contact regulation cost for hand contacts
 	const std::vector<ContactVariables>& contact_variables =
 			evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
-	for (int i = 2; i < num_contacts; ++i)
+	for (int i = 0; i < num_contacts; ++i)
 	{
-		double contact_variable = contact_variables[i].getVariable();
-		Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
-		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
-		{
-			force_sum += contact_variables[i].getPointForce(c);
-		}
-		const double k_1 = 1e-5;
-		const double k_2 = 1e-7;
-		const double regulation_factor = ((i < 2) ? 1.0 : 10.0) * k_1
-				/ (contact_variable * contact_variable + k_2);
-		const double force_magnitude = force_sum.norm() / 15000.0;
-		cost += regulation_factor * force_magnitude * force_magnitude;
+		unsigned int rbdl_body_id =
+				evaluation_manager->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
+		double squared_norm =
+				evaluation_manager->rbdl_models_[point].v[rbdl_body_id].squaredNorm();
+		cost += squared_norm;
 	}
 
 	TIME_PROFILER_END_TIMER(EndeffectorVelocity);
