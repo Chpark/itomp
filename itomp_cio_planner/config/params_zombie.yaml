@@ -82,7 +82,7 @@ contact_points:
   left_hand_endeffector_link : [left_hand_cp_1_link, left_hand_cp_2_link, left_hand_cp_3_link, left_hand_cp_4_link]
   right_hand_endeffector_link : [right_hand_cp_1_link, right_hand_cp_2_link, right_hand_cp_3_link, right_hand_cp_4_link]
 
-environment_model: package://move_itomp/meshes/appartzombi_sofa.dae
+environment_model: package://move_itomp/meshes/appartzombi_x90.dae
 environment_model_position: [12.0, -8.0, 0.272]
 environment_model_scale: 1.0
 
