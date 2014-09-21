@@ -46,9 +46,7 @@ void ImprovementManagerNLP::initialize(
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
 
-	TIME_PROFILER_INIT(getROSWallTime, num_threads_);
-	TIME_PROFILER_ADD_ENTRY(FK);
-	TIME_PROFILER_ADD_ENTRY(ID);
+	TIME_PROFILER_INIT(getROSWallTime, num_threads_);TIME_PROFILER_ADD_ENTRY(FK);
 
 	const ParameterTrajectoryConstPtr& parameter_trajectory =
 			evaluation_manager_->getParameterTrajectory();
@@ -153,16 +151,11 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 
 	evaluation_manager_->render();
 
-	//if (evaluation_count_ % 100 == 0)
+	evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
+	if (evaluation_count_ % 100 == 0)
 	{
-
-		evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
-		if (evaluation_count_ % 100 == 0)
-		{
-			printf("Elapsed (in eval) : %f\n",
-					(ros::Time::now() - start_time_).toSec());
-			//evaluation_manager_->getFullTrajectory()->printTrajectory();
-		}
+		printf("Elapsed (in eval) : %f\n",
+				(ros::Time::now() - start_time_).toSec());
 	}
 
 	if (cost < best_cost_)

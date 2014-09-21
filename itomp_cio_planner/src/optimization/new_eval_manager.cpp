@@ -395,7 +395,8 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 		}
 		else
 		{
-			contact_variables_[point] = ref_evaluation_manager_->contact_variables_[point];
+			contact_variables_[point] =
+					ref_evaluation_manager_->contact_variables_[point];
 			tau_[point] = ref_evaluation_manager_->tau_[point];
 			external_forces_[point] =
 					ref_evaluation_manager_->external_forces_[point];
@@ -440,33 +441,34 @@ void NewEvalManager::setParameters(
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();
-	if (iteration != 0 && cost >= best_cost_)
-		return;
 
-	if (cost < best_cost_)
+	bool is_best = cost < best_cost_;
+	if (is_best)
 		best_cost_ = cost;
 
 	const std::vector<TrajectoryCostConstPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
-	if (!details)
+	if (!details || !is_best)
 	{
-		printf("[%d] Trajectory cost : %.7f (", iteration, best_cost_);
-		for (int c = 0; c < cost_functions.size(); ++c)
-		{
-			double sub_cost = evaluation_cost_matrix_.col(c).sum();
-			printf("%c=%.7f, ", cost_functions[c]->getName().at(0), sub_cost);
-		}
-		printf(")\n");
+		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
+				best_cost_);
 	}
 	else
 	{
 		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
 				best_cost_);
-		printf("point ");
+		printf("Costs ");
 		for (int c = 0; c < cost_functions.size(); ++c)
 		{
 			printf("%s ", cost_functions[c]->getName().c_str());
+		}
+		printf("\n");
+
+		for (int c = 0; c < cost_functions.size(); ++c)
+		{
+			double sub_cost = evaluation_cost_matrix_.col(c).sum();
+			printf("%c=%.7f ", cost_functions[c]->getName().at(0), sub_cost);
 		}
 		printf("\n");
 
@@ -481,20 +483,15 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			printf("\n");
 		}
 
+		printf("Contact active forces\n");
 		for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
 		{
 			const Eigen::VectorXd& r = full_trajectory_->getComponentTrajectory(
 					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
 					Trajectory::TRAJECTORY_TYPE_POSITION).row(i);
 
-			printf("%d ", i);
+			printf("[%d] ", i);
 			int num_contacts = planning_group_->getNumContacts();
-			for (int c = 0; c < num_contacts; ++c)
-			{
-				printf("%.7f(%.7f) ", r(c * 7),
-						contact_variables_[i][c].getVariable());
-
-			}
 			for (int c = 0; c < num_contacts; ++c)
 			{
 				double contact_variable =
@@ -507,9 +504,31 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 				const double k_1 = (c < 2) ? 1e-6 : 1e-4;
 				const double active_force = force_sum.norm() * contact_variable;
 
-				printf("%.7f(%.7f) ", force_sum.norm() * contact_variable,
-						k_1 * active_force * active_force);
+				printf("%.7f ", force_sum.norm() * contact_variable);
 			}
+			/*
+			 for (int c = 0; c < num_contacts; ++c)
+			 {
+			 printf("%.7f(%.7f) ", r(c * 7),
+			 contact_variables_[i][c].getVariable());
+
+			 }
+			 for (int c = 0; c < num_contacts; ++c)
+			 {
+			 double contact_variable =
+			 contact_variables_[i][c].getVariable();
+			 Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
+
+			 for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
+			 force_sum += contact_variables_[i][c].getPointForce(j);
+
+			 const double k_1 = (c < 2) ? 1e-6 : 1e-4;
+			 const double active_force = force_sum.norm() * contact_variable;
+
+			 printf("%.7f(%.7f) ", force_sum.norm() * contact_variable,
+			 k_1 * active_force * active_force);
+			 }
+			 */
 
 			printf("\n");
 		}
