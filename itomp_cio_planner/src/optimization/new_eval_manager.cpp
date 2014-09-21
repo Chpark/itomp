@@ -440,7 +440,7 @@ void NewEvalManager::setParameters(
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();
-	if (cost >= best_cost_)
+	if (iteration != 0 && cost >= best_cost_)
 		return;
 
 	if (cost < best_cost_)

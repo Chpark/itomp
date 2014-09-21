@@ -21,6 +21,7 @@ ImprovementManagerNLP::ImprovementManagerNLP()
 {
 	evaluation_count_ = 0;
 	eps_ = 1e-7;
+	best_cost_ = std::numeric_limits<double>::max();
 }
 
 ImprovementManagerNLP::~ImprovementManagerNLP()
@@ -72,6 +73,8 @@ void ImprovementManagerNLP::initialize(
 						num_parameter_elements_));
 		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_points, num_costs);
 	}
+	best_parameter_.resize(Trajectory::TRAJECTORY_TYPE_NUM,
+			Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
 }
 
 bool ImprovementManagerNLP::updatePlanningParameters()
@@ -160,7 +163,12 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 					(ros::Time::now() - start_time_).toSec());
 			//evaluation_manager_->getFullTrajectory()->printTrajectory();
 		}
+	}
 
+	if (cost < best_cost_)
+	{
+		best_cost_ = cost;
+		best_parameter_ = evaluation_parameters_[0];
 	}
 
 	return cost;
@@ -282,10 +290,16 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	addNoiseToVariables(variables);
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_, PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+			dlib::objective_delta_stop_strategy(eps_,
+					PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 			variables, 0.0);
+
+	evaluation_manager_->setParameters(best_parameter_);
+	evaluation_manager_->evaluate();
+	evaluation_manager_->printTrajectoryCost(0, true);
+	evaluation_manager_->render();
 }
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)

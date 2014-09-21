@@ -38,6 +38,9 @@ protected:
   std::vector<std::vector<Eigen::MatrixXd> > evaluation_parameters_;
   std::vector<Eigen::MatrixXd> evaluation_cost_matrices_;
 
+  double best_cost_;
+  std::vector<Eigen::MatrixXd> best_parameter_;
+
   double eps_;
 
   ros::Time start_time_;
