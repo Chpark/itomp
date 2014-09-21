@@ -569,7 +569,7 @@
   <joint name="left_hand_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.009816 0.007404 -0.21684"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="0.01757 -0.00204 -0.08"/>
     <parent link="left_hand_x_link"/>
     <child link="left_hand_endeffector_link"/>
   </joint>
@@ -723,7 +723,7 @@
   <joint name="right_hand_endeffector_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="-0.001" upper="0.001" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.000348 0.010884 -0.21684"/>
+    <origin rpy="-1.570796 0 -1.570796" xyz="-0.01229 -0.007225 -0.07007"/>
     <parent link="right_hand_x_link"/>
     <child link="right_hand_endeffector_link"/>
   </joint>
