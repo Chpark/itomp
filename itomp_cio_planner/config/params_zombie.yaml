@@ -12,7 +12,7 @@ contact_invariant_cost_weight: 500.0
 physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 000.0
 endeffector_velocity_cost_weight: 1.0
-CoM_cost_weight: 1.0
+CoM_cost_weight: 0.0
 RVO_cost_weight: 0.0
 FTR_cost_weight: 0.000
 cartesian_trajectory_cost_weight: 0.0
@@ -39,7 +39,7 @@ group_endeffectors:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 8.0
 trajectory_discretization: 0.25
-keyframe_duration: 1.0
+keyframe_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0
