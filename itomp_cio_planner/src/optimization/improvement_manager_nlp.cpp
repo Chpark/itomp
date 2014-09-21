@@ -152,7 +152,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	//if (evaluation_count_ % 100 == 0)
 	{
 
-		evaluation_manager_->printTrajectoryCost(++evaluation_count_, false);
+		evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
 		if (evaluation_count_ % 100 == 0)
 		{
 			printf("Elapsed (in eval) : %f\n",
@@ -281,7 +281,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	addNoiseToVariables(variables);
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_, 1000), //.be_verbose(),
+			dlib::objective_delta_stop_strategy(eps_, 300).be_verbose(),
 			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 			variables, 0.0);
