@@ -311,7 +311,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 		{
 			force_sum += contact_variables[i].getPointForce(c);
 		}
-		const double k_1 = (i < 2) ? 1e-6 : 1e-4;
+		const double k_1 = 1e-6;//(i < 2) ? 1e-6 : 1e-4;
 		const double active_force = force_sum.norm() * contact_variable;
 		cost += k_1 * active_force * active_force;
 	}
