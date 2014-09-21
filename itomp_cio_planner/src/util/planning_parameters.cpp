@@ -50,6 +50,7 @@ void PlanningParameters::initFromNodeHandle()
 			endeffector_velocity_cost_weight_, 0.0);
 	node_handle.param("torque_cost_weight", torque_cost_weight_, 0.0);
 	node_handle.param("RVO_cost_weight", rvo_cost_weight_, 0.0);
+	node_handle.param("ROM_cost_weight", rom_cost_weight_, 0.0);
 	node_handle.param("FTR_cost_weight", ftr_cost_weight_, 1.0);
 	node_handle.param("cartesian_trajectory_cost_weight",
 			cartesian_trajectory_cost_weight_, 0.0);

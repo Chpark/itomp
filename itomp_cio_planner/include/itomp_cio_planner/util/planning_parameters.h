@@ -39,6 +39,7 @@ public:
 	double getGoalPoseCostWeight() const;
 	double getCOMCostWeight() const;
 	double getRVOCostWeight() const;
+	double getROMCostWeight() const;
 	double getFTRCostWeight() const;
 	double getCartesianTrajectoryCostWeight() const;
 	double getSingularityCostWeight() const;
@@ -121,6 +122,7 @@ private:
 	double com_cost_weight_;
 	double ftr_cost_weight_;
 	double rvo_cost_weight_;
+	double rom_cost_weight_;
 	double cartesian_trajectory_cost_weight_;
 	double singularity_cost_weight_;
 	double friction_cone_cost_weight_;
@@ -317,6 +319,11 @@ inline double PlanningParameters::getFTRCostWeight() const
 inline double PlanningParameters::getRVOCostWeight() const
 {
 	return rvo_cost_weight_;
+}
+
+inline double PlanningParameters::getROMCostWeight() const
+{
+	return rom_cost_weight_;
 }
 
 inline int PlanningParameters::getNumTrajectories() const

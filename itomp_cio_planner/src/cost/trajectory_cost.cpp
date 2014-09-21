@@ -394,6 +394,8 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
+	TIME_PROFILER_START_TIMER(FTR);
+
 	const FullTrajectoryConstPtr full_trajectory =
 			evaluation_manager->getFullTrajectory();
 	const ItompPlanningGroupConstPtr& planning_group =
@@ -465,6 +467,23 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 			cost += std::max(0.0, contact_force_sum.norm() - ftr);
 		}
 	}
+
+	TIME_PROFILER_END_TIMER(FTR);
+
+	return is_feasible;
+}
+
+bool TrajectoryCostROM::evaluate(
+		const NewEvalManager* evaluation_manager, int point, double& cost) const
+{
+	bool is_feasible = true;
+	cost = 0;
+
+	TIME_PROFILER_START_TIMER(ROM);
+
+	// implement
+
+	TIME_PROFILER_END_TIMER(ROM);
 
 	return is_feasible;
 }
