@@ -27,33 +27,33 @@ bool TrajectoryCostSmoothness::evaluate(
 
 	cost = 0;
 	double value;
-	/*
-	 const Eigen::MatrixXd mat_acc = trajectory->getTrajectory(
-	 Trajectory::TRAJECTORY_TYPE_ACCELERATION);
-	 for (int i = 0; i < mat_acc.cols(); ++i)
-	 {
-	 value = std::abs(mat_acc(point, i));
-	 cost += value * value;
-	 }
 
-	 // normalize cost (independent to # of joints)
-	 cost /= trajectory->getComponentSize(
-	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-	 */
-
-	const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-	for (int i = 6; i < pos.rows(); ++i)
+	const Eigen::MatrixXd mat_acc = trajectory->getComponentTrajectory(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+			Trajectory::TRAJECTORY_TYPE_ACCELERATION);
+	for (int i = 0; i < mat_acc.cols(); ++i)
 	{
-		value = std::abs((double) pos(i));
-		value = std::max(0.0, value - 0.3);
-		//cost += value * value;
+		value = mat_acc(point, i);
+		cost += value * value;
 	}
+
+	// normalize cost (independent to # of joints)
+	cost /= trajectory->getComponentSize(
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+
+	/*
+	 const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
+	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+	 for (int i = 6; i < pos.rows(); ++i)
+	 {
+	 value = std::abs((double) pos(i));
+	 value = std::max(0.0, value - 0.3);
+	 //cost += value * value;
+	 }*/
 
 	// normalize cost (independent to # of joints)
 	//cost /= trajectory->getComponentSize(
 	//	FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-
 	TIME_PROFILER_END_TIMER(Smoothness);
 
 	return true;
@@ -159,8 +159,6 @@ bool TrajectoryCostContactInvariant::evaluate(
 		negative_cost *= raw_contact_variable;
 
 		double contact_v = contact_variables[i].getVariable();
-		if (contact_v < 0.0)
-			std::cout << "Minus contact var!!! " << contact_v << " " <<  contact_variables[i].getRawVariable() << std::endl;
 
 		Eigen::Vector3d body_position = contact_body_transform.r;
 		Eigen::Vector3d body_orientation =
@@ -187,8 +185,6 @@ bool TrajectoryCostContactInvariant::evaluate(
 	if (!has_positive)
 	{
 		cost += negative_cost;
-		if (negative_cost < 0)
-			std::cout << "Minus negative_cost var!!! " << negative_cost << std::endl;
 	}
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
@@ -229,6 +225,8 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
+	TIME_PROFILER_START_TIMER(GoalPose);
+
 	// TODO
 	Eigen::Vector3d goal_foot_pos[3];
 	goal_foot_pos[0] = Eigen::Vector3d(-0.1, 2.0, 0.0);
@@ -281,6 +279,8 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		//cost += (goal_ori - cur_ori[2]).squaredNorm();
 	}
 
+	TIME_PROFILER_END_TIMER(GoalPose);
+
 	return is_feasible;
 }
 
@@ -290,7 +290,32 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
+	TIME_PROFILER_START_TIMER(COM);
+
 	// implement
+
+	// TODO: contact regulation cost for foot contacts
+	const std::vector<ContactVariables>& contact_variables =
+			evaluation_manager->contact_variables_[point];
+	int num_contacts = contact_variables.size();
+	num_contacts = 2;
+	for (int i = 0; i < num_contacts; ++i)
+	{
+		double contact_variable = contact_variables[i].getVariable();
+		Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
+		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+		{
+			force_sum += contact_variables[i].getPointForce(c);
+		}
+		const double k_1 = 1e-5;
+		const double k_2 = 1e-7;
+		const double regulation_factor = ((i < 2) ? 1.0 : 10.0) * k_1
+				/ (contact_variable * contact_variable + k_2);
+		const double force_magnitude = force_sum.norm() / 15000.0;
+		cost += regulation_factor * force_magnitude * force_magnitude;
+	}
+
+	TIME_PROFILER_END_TIMER(COM);
 
 	return is_feasible;
 }
@@ -302,6 +327,31 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 	cost = 0;
 
 	// implement
+	TIME_PROFILER_START_TIMER(EndeffectorVelocity);
+
+	// implement
+
+	// TODO: contact regulation cost for hand contacts
+	const std::vector<ContactVariables>& contact_variables =
+			evaluation_manager->contact_variables_[point];
+	int num_contacts = contact_variables.size();
+	for (int i = 2; i < num_contacts; ++i)
+	{
+		double contact_variable = contact_variables[i].getVariable();
+		Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
+		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+		{
+			force_sum += contact_variables[i].getPointForce(c);
+		}
+		const double k_1 = 1e-5;
+		const double k_2 = 1e-7;
+		const double regulation_factor = ((i < 2) ? 1.0 : 10.0) * k_1
+				/ (contact_variable * contact_variable + k_2);
+		const double force_magnitude = force_sum.norm() / 15000.0;
+		cost += regulation_factor * force_magnitude * force_magnitude;
+	}
+
+	TIME_PROFILER_END_TIMER(EndeffectorVelocity);
 
 	return is_feasible;
 }
@@ -393,8 +443,10 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
 				model.X_base[rbdl_body_id];
 
-		Eigen::Vector3d orientation = contact_variables[i].projected_orientation_;
-		Eigen::Vector3d contact_normal = orientation.block(0, 2, 3, 1).transpose();
+		Eigen::Vector3d orientation =
+				contact_variables[i].projected_orientation_;
+		Eigen::Vector3d contact_normal =
+				orientation.block(0, 2, 3, 1).transpose();
 		Eigen::Vector3d contact_force_sum = Eigen::Vector3d::Zero();
 		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 		{

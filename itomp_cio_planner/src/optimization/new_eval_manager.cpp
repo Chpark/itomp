@@ -255,9 +255,14 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			int rbdl_endeffector_id =
 					planning_group_->contact_points_[i].getRBDLBodyId();
 
-			RigidBodyDynamics::Math::SpatialTransform tr = rbdl_models_[point].X_base[rbdl_endeffector_id];
-			RigidBodyDynamics::Math::SpatialTransform tr1 = rbdl_models_[point].X_lambda[planning_group_->contact_points_[i].getContactPointRBDLIds(0)];
-			RigidBodyDynamics::Math::SpatialTransform tr2 = rbdl_models_[point].X_base[planning_group_->contact_points_[i].getContactPointRBDLIds(0)];
+			RigidBodyDynamics::Math::SpatialTransform tr =
+					rbdl_models_[point].X_base[rbdl_endeffector_id];
+			RigidBodyDynamics::Math::SpatialTransform tr1 =
+					rbdl_models_[point].X_lambda[planning_group_->contact_points_[i].getContactPointRBDLIds(
+							0)];
+			RigidBodyDynamics::Math::SpatialTransform tr2 =
+					rbdl_models_[point].X_base[planning_group_->contact_points_[i].getContactPointRBDLIds(
+							0)];
 
 			contact_variables_[point][i].ComputeProjectedPointPositions(
 					proj_position, proj_orientation, rbdl_models_[point],
@@ -489,9 +494,19 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 			int num_contacts = planning_group_->getNumContacts();
 			for (int c = 0; c < num_contacts; ++c)
 			{
-				printf("%.7f ", r(c * 7));
+				printf("%.7f(%.7f) ", r(c * 7),
+						contact_variables_[i][c].getVariable());
 
 			}
+			for (int c = 0; c < num_contacts; ++c)
+			{
+				Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
+
+				for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
+					force_sum += contact_variables_[i][c].getPointForce(j);
+				printf("%.7f ", force_sum.norm() * contact_variables_[i][c].getVariable());
+			}
+
 			printf("\n");
 		}
 	}
