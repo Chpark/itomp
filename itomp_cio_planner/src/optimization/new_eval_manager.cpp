@@ -395,6 +395,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 		}
 		else
 		{
+			contact_variables_[point] = ref_evaluation_manager_->contact_variables_[point];
 			tau_[point] = ref_evaluation_manager_->tau_[point];
 			external_forces_[point] =
 					ref_evaluation_manager_->external_forces_[point];
