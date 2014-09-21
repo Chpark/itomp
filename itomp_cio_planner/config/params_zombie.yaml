@@ -5,7 +5,7 @@ max_iterations_after_collision_free: 0
 num_trajectories: 1
 
 smoothness_cost_weight: 1.0
-obstacle_cost_weight: 0.0
+obstacle_cost_weight: 1.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
 contact_invariant_cost_weight: 500.0
@@ -39,7 +39,7 @@ group_endeffectors:
   unified_body: right_hand_endeffector_link
 trajectory_duration: 8.0
 trajectory_discretization: 0.25
-keyframe_duration: 1.0
+keyframe_duration: 2.0
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0
@@ -82,7 +82,7 @@ contact_points:
   left_hand_endeffector_link : [left_hand_cp_1_link, left_hand_cp_2_link, left_hand_cp_3_link, left_hand_cp_4_link]
   right_hand_endeffector_link : [right_hand_cp_1_link, right_hand_cp_2_link, right_hand_cp_3_link, right_hand_cp_4_link]
 
-environment_model: package://move_itomp/meshes/appartzombi_x90.dae
+environment_model: package://move_itomp/meshes/appartzombi_sofa.dae
 environment_model_position: [12.0, -8.0, 0.272]
 environment_model_scale: 1.0
 

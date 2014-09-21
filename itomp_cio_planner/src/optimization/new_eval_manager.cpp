@@ -91,6 +91,11 @@ NewEvalManager* NewEvalManager::createClone() const
 	new_manager->ref_evaluation_manager_ = this;
 
 	// share robot_state_ vector
+	new_manager->robot_state_.resize(full_trajectory_->getNumPoints());
+	for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+		new_manager->robot_state_[i].reset(
+				new robot_state::RobotState(
+						robot_model_->getMoveitRobotModel()));
 
 	return new_manager;
 }
@@ -254,15 +259,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 
 			int rbdl_endeffector_id =
 					planning_group_->contact_points_[i].getRBDLBodyId();
-
-			RigidBodyDynamics::Math::SpatialTransform tr =
-					rbdl_models_[point].X_base[rbdl_endeffector_id];
-			RigidBodyDynamics::Math::SpatialTransform tr1 =
-					rbdl_models_[point].X_lambda[planning_group_->contact_points_[i].getContactPointRBDLIds(
-							0)];
-			RigidBodyDynamics::Math::SpatialTransform tr2 =
-					rbdl_models_[point].X_base[planning_group_->contact_points_[i].getContactPointRBDLIds(
-							0)];
 
 			contact_variables_[point][i].ComputeProjectedPointPositions(
 					proj_position, proj_orientation, rbdl_models_[point],

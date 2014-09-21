@@ -21,21 +21,40 @@ GroundManager::~GroundManager()
 {
 }
 
-void GroundManager::initialize()
+void GroundManager::initialize(
+		const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
+	planning_scene_ = planning_scene;
 }
 
 void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 		const Eigen::Vector3d& orientation_in, Eigen::Vector3d& position_out,
 		Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal) const
 {
+	double min_dist = position_in(2) - (-0.227936);
+
 	position_out = Eigen::Vector3d(position_in(0), position_in(1), -0.227936);
 
 	normal = Eigen::Vector3d(0, 0, 1);
 
+	if (position_in(0) < -4.2)
+	{
+
+	}
+	else if (position_in(0) < -3.9)
+	{
+		position_out(2) = 1.2;
+	}
+	else if (position_in(0) < -3.0)
+	{
+		position_out(2) = 0.45;
+	}
+
 	// TODO:
 	orientation_out = exponential_map::AngleAxisToExponentialMap(
 			Eigen::AngleAxisd(0.5 * M_PI, normal));
+
+	getNearestGroundPosition(position_in, position_out, normal, min_dist);
 }
 
 double interpolateSqrt(double x, double x1, double x2, double y1, double y2)
@@ -45,106 +64,63 @@ double interpolateSqrt(double x, double x1, double x2, double y1, double y2)
 	return y;
 }
 
-void GroundManager::getNearestGroundPosition(const KDL::Vector& in,
-		KDL::Vector& out, KDL::Vector& normal,
-		const planning_scene::PlanningScenePtr& planning_scene) const
+bool GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
+		Eigen::Vector3d& position_out, Eigen::Vector3d& normal, double current_min_distance) const
 {
-	const double FOOT_FRONT = 0.2;
-	const double FOOT_REAR = 0.2; //0.05;
-	const double MARGIN = 0.1;
+	bool updated = false;
 
-	normal = KDL::Vector(0, 0, 1);
-
-	double height = 0.0;
-
-	const int NUM_TERRAINS = 5;
-
-	double x[] =
-	{ -10000, -1.9, -1.5, -1.1, -0.7, 10000 };
-	double z[] =
-	{ -0.6, -0.45, -0.3, -0.15, 0 };
-
-	for (int i = 0; i < NUM_TERRAINS; ++i)
+	const collision_detection::WorldConstPtr& world =
+			planning_scene_->getWorld();
+	std::vector<std::string> object_ids = world->getObjectIds();
+	for (int i = 0; i < object_ids.size(); ++i)
 	{
-		if (in.y() >= x[i] && in.y() <= x[i + 1])
+		collision_detection::World::ObjectConstPtr obj = world->getObject(
+				object_ids[i]);
+		for (int j = 0; j < obj->shapes_.size(); ++j)
 		{
-			height = z[i];
-
-//      if (exact)
-//        break;
-
-			if (i != 0 && z[i - 1] > z[i])
+			shapes::ShapeConstPtr shape = obj->shapes_[j];
+			const shapes::Mesh* mesh =
+					dynamic_cast<const shapes::Mesh*>(shape.get());
+			if (mesh == NULL)
+				continue;
+			Eigen::Affine3d& transform = obj->shape_poses_[j];
+			for (int k = 0; k < mesh->triangle_count; ++k)
 			{
-				if (in.y() - x[i] <= FOOT_REAR)
-					height = z[i - 1];
-				else if (in.y() - x[i] <= FOOT_REAR + MARGIN)
+				int triangle_vertex1 = mesh->triangles[3 * k];
+				int triangle_vertex2 = mesh->triangles[3 * k + 1];
+				int triangle_vertex3 = mesh->triangles[3 * k + 2];
+				Eigen::Vector3d position1(mesh->vertices[3 * triangle_vertex1],
+						mesh->vertices[3 * triangle_vertex1 + 1],
+						mesh->vertices[3 * triangle_vertex1 + 2]);
+				Eigen::Vector3d position2(mesh->vertices[3 * triangle_vertex2],
+						mesh->vertices[3 * triangle_vertex2 + 1],
+						mesh->vertices[3 * triangle_vertex2 + 2]);
+				Eigen::Vector3d position3(mesh->vertices[3 * triangle_vertex3],
+						mesh->vertices[3 * triangle_vertex3 + 1],
+						mesh->vertices[3 * triangle_vertex3 + 2]);
+				position1 = transform * position1;
+				position2 = transform * position2;
+				position3 = transform * position3;
+
+				Eigen::Vector3d projection = ProjPoint2Triangle(position1,
+						position2, position3, position_in);
+				double distance = (position_in - projection).norm();
+				if (distance < current_min_distance)
 				{
-					height = interpolateSqrt(in.y(), x[i] + FOOT_REAR,
-							x[i] + FOOT_REAR + MARGIN, z[i - 1], z[i]);
-				}
-			}
-			else if (z[i + 1] > z[i])
-			{
-				if (x[i + 1] - in.y() <= FOOT_FRONT)
-					height = z[i + 1];
-				else if (x[i + 1] - in.y() <= FOOT_FRONT + MARGIN)
-				{
-					height = interpolateSqrt(in.y(),
-							x[i + 1] - FOOT_FRONT - MARGIN,
-							x[i + 1] - FOOT_FRONT, z[i], z[i + 1]);
+					current_min_distance = distance;
+					normal = Eigen::Vector3d(mesh->triangle_normals[3 * k],
+							mesh->triangle_normals[3 * k + 1],
+							mesh->triangle_normals[3 * k + 2]);
+					normal = transform.rotation() * normal;
+					position_out = projection;
+
+					updated = true;
 				}
 			}
 		}
 	}
 
-	out = KDL::Vector(in.x(), in.y(), height);
-
-	/*
-	 double current_min_distance = std::numeric_limits<double>::max();
-	 Eigen::Vector3d in_eigen(in.x(), in.y(), in.z());
-	 const collision_detection::WorldConstPtr& world = planning_scene->getWorld();
-	 std::vector<std::string> object_ids = world->getObjectIds();
-	 for (int i = 0; i < object_ids.size(); ++i)
-	 {
-	 collision_detection::World::ObjectConstPtr obj = world->getObject(object_ids[i]);
-	 for (int j = 0; j < obj->shapes_.size(); ++j)
-	 {
-	 shapes::ShapeConstPtr shape = obj->shapes_[j];
-	 const shapes::Mesh* mesh = dynamic_cast<const shapes::Mesh*>(shape.get());
-	 if (mesh == NULL)
-	 continue;
-	 Eigen::Affine3d& transform = obj->shape_poses_[j];
-	 for(int k=0; k<mesh->triangle_count; ++k)
-	 {
-	 int triangle_vertex1 = mesh->triangles[3*k];
-	 int triangle_vertex2 = mesh->triangles[3*k+1];
-	 int triangle_vertex3 = mesh->triangles[3*k+2];
-	 Eigen::Vector3d position1(mesh->vertices[3*triangle_vertex1],mesh->vertices[3*triangle_vertex1+1],mesh->vertices[3*triangle_vertex1+2]);
-	 Eigen::Vector3d position2(mesh->vertices[3*triangle_vertex2],mesh->vertices[3*triangle_vertex2+1],mesh->vertices[3*triangle_vertex2+2]);
-	 Eigen::Vector3d position3(mesh->vertices[3*triangle_vertex3],mesh->vertices[3*triangle_vertex3+1],mesh->vertices[3*triangle_vertex3+2]);
-	 position1 = transform * position1;
-	 position2 = transform * position2;
-	 position3 = transform * position3;
-
-	 Eigen::Vector3d projection = ProjPoint2Triangle(position1, position2, position3, in_eigen);
-	 double distance = (in_eigen - projection).norm();
-	 if(distance < current_min_distance)
-	 {
-	 current_min_distance = distance;
-	 Eigen::Vector3d normal_eigen(mesh->triangle_normals[3*k], mesh->triangle_normals[3*k+1], mesh->triangle_normals[3*k+2]);
-	 normal_eigen = transform.rotation() * normal_eigen;
-	 normal.x(normal_eigen.x());
-	 normal.y(normal_eigen.y());
-	 normal.z(normal_eigen.z());
-	 out.x(projection.x());
-	 out.y(projection.y());
-	 out.z(projection.z());
-	 }
-	 }
-	 }
-
-	 }
-	 */
+	return updated;
 }
 
 void GroundManager::getSafeGroundPosition(const KDL::Vector& in,
