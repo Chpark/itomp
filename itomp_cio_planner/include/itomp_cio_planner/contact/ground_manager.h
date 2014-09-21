@@ -19,7 +19,7 @@ public:
 			Eigen::Vector3d& position_out, Eigen::Vector3d& orientation_out,
 			Eigen::Vector3d& normal) const;
 
-	bool getNearestGroundPosition(const Eigen::Vector3d& position_in,
+	bool getNearestMeshPosition(const Eigen::Vector3d& position_in,
 			Eigen::Vector3d& position_out, Eigen::Vector3d& normal, double current_min_distance) const;
 	void getSafeGroundPosition(const KDL::Vector& in, KDL::Vector& out) const;
 

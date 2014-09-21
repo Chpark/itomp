@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 1
+max_iterations: 100
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 

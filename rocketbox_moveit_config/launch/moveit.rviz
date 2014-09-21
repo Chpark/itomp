@@ -7,8 +7,6 @@ Panels:
         - /MotionPlanning1
         - /MotionPlanning1/Scene Geometry1
         - /MotionPlanning1/Scene Robot1
-        - /MotionPlanning1/Scene Robot1/Links1
-        - /MotionPlanning1/Scene Robot1/Links1/left_foot_cp_1_link1
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planning Metrics1
         - /MotionPlanning1/Planned Path1
@@ -99,18 +97,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           head_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          left_foot2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          left_foot2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          left_foot2_z_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -210,31 +196,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          pelvis1_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          pelvis1_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          pelvis1_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           pelvis_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_z_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -315,30 +277,6 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
           root_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso2_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_z_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -501,21 +439,9 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          left_foot2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          left_foot2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          left_foot2_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           left_foot_cp_1_link:
             Alpha: 1
-            Show Axes: true
+            Show Axes: false
             Show Trail: false
             Value: true
           left_foot_cp_2_link:
@@ -609,31 +535,7 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-          pelvis1_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          pelvis1_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          pelvis1_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           pelvis_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          right_foot2_z_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -717,30 +619,6 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          torso2_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso2_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso2_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_x_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_y_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          torso3_z_link:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
           torso_x_link:
             Alpha: 1
             Show Axes: false
@@ -816,7 +694,7 @@ Visualization Manager:
             Show Trail: false
         Robot Alpha: 0.5
         Show Robot Collision: false
-        Show Robot Visual: true
+        Show Robot Visual: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
@@ -876,22 +754,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 2.48155
+      Distance: 7.70732
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.591399
-        Y: 0.715821
-        Z: 2.23518e-07
+        X: -2.64326
+        Y: 1.28496
+        Z: 4.61937e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: -0.085203
+      Pitch: 0.329797
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 6.06995
+      Yaw: 4.73994
     Saved: ~
 Window Geometry:
   Displays:

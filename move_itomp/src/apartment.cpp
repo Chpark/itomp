@@ -21,7 +21,6 @@
 #include <sstream>
 #include <fstream>
 
-const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / std::sqrt((long double) 2.0);
 
 void loadStaticScene(ros::NodeHandle& node_handle,
@@ -686,10 +685,10 @@ int main(int argc, char **argv)
 				configuration_constraint);
 	}
 
-	doPlan("lower_body", req, res, robot_states[state_index],
+	doPlan("whole_body", req, res, robot_states[state_index],
 			robot_states[state_index + 1], planning_scene, planner_instance);
 
-	renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
+	//renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],
 			node_handle, robot_model);

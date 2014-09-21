@@ -1,6 +1,7 @@
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/util/multivariate_gaussian.h>
+#include <itomp_cio_planner/util/planning_parameters.h>
 #include <omp.h>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -281,7 +282,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	addNoiseToVariables(variables);
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_, 300).be_verbose(),
+			dlib::objective_delta_stop_strategy(eps_, PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 			variables, 0.0);
