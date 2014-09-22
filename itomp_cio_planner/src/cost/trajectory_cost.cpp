@@ -2,6 +2,7 @@
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/util/exponential_map.h>
 #include <itomp_cio_planner/rom/ROM.h>
+#include <ros/package.h>
 
 namespace itomp_cio_planner
 {
@@ -494,7 +495,7 @@ void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 {
     // load rom files
     // right_arm
-    std::string source("/home/stonneau/hydro_workspace/itomp/itomp_cio_planner/config/rom/");
+    std::string source(ros::package::getPath("itomp_cio_planner") + "/config/rom/");
     std::string rightArmRom(source + "rightarm_itomp.rom");
     std::string rightLegRom(source + "right_ankle_itomp.rom");
     std::string leftArmRom(source + "left_arm_itomp.rom");
