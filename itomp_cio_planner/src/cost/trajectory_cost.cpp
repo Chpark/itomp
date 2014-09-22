@@ -1,6 +1,7 @@
 #include <itomp_cio_planner/cost/trajectory_cost.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/util/exponential_map.h>
+#include <itomp_cio_planner/rom/ROM.h>
 
 namespace itomp_cio_planner
 {
@@ -484,9 +485,24 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+namespace
+{
+std::vector<rom::ROM> roms_;
+}
+
 void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 {
-
+    // load rom files
+    // right_arm
+    std::string source("/home/stonneau/hydro_workspace/itomp/itomp_cio_planner/config/rom/");
+    std::string rightArmRom(source + "rightarm_itomp.rom");
+    std::string rightLegRom(source + "right_ankle_itomp.rom");
+    std::string leftArmRom(source + "left_arm_itomp.rom");
+    std::string leftLegRom(source + "left_ankle_itomp.rom");
+    roms_.push_back(rom::ROMFromFile(rightArmRom));
+    roms_.push_back(rom::ROMFromFile(rightLegRom));
+    roms_.push_back(rom::ROMFromFile(leftArmRom));
+    roms_.push_back(rom::ROMFromFile(leftLegRom));
 }
 
 bool TrajectoryCostROM::evaluate(
@@ -502,9 +518,35 @@ bool TrajectoryCostROM::evaluate(
 
 	// joint angle vector q at waypoint 'point'
 	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+                FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
 
 	// implement
+    // first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
+    double x,y,z;
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_x_joint"));
+
+    cost += roms_[0].ResidualRadius(z, y, x);
+
+
+
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_x_joint"));
+    cost += roms_[1].ResidualRadius(z, y, x);
+
+
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_x_joint"));
+    cost += roms_[2].ResidualRadius(z, y, x);
+
+
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_x_joint"));
+    cost += roms_[3].ResidualRadius(z, y, x);
 
 	TIME_PROFILER_END_TIMER(ROM);
 

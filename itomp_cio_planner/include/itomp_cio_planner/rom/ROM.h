@@ -45,22 +45,22 @@ public:
 	 ~ROM();
 
 	/// \brief the distance between a given point and the closest boundary of the polytope.
-	/// If the point is outside the polytope, returns -1
+    /// If the point is outside the polytope, returns a negative distance
 	double ResidualRadius(const double x, const double y, const double z) const;
 
 	/// \brief the distance between a given point and the closest boundary of the polytope divided by the Chebyshev radius
-	/// If the point is outside the polytope, returns -1
+    /// If the point is outside the polytope, returns a negative distance
 	double NormalizedResidualRadius(const double x, const double y, const double z) const;
 
 public:	
-	const Eigen::MatrixXd A_;
-	const Eigen::MatrixXd ANorm_;
-	const Eigen::VectorXd b_;
-	const Eigen::VectorXd bNorm_;
-	const double maxRadius_;
-	const double minx_, miny_, minz_;
-	const double maxx_, maxy_, maxz_;
-	const int  axis1_, axis2_, axis3_;
+    Eigen::MatrixXd A_;
+    Eigen::MatrixXd ANorm_;
+    Eigen::VectorXd b_;
+    Eigen::VectorXd bNorm_;
+    double maxRadius_;
+    double minx_, miny_, minz_;
+    double maxx_, maxy_, maxz_;
+    int  axis1_, axis2_, axis3_;
 private:
 	Eigen::Vector3d vAxis1_, vAxis2_, vAxis3_;
 };
