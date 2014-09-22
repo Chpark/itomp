@@ -15,7 +15,7 @@ endeffector_velocity_cost_weight: 1.0
 CoM_cost_weight: 0.0
 RVO_cost_weight: 0.0
 FTR_cost_weight: 0.000
-ROM_cost_weight: 0.0
+ROM_cost_weight: 1.0
 cartesian_trajectory_cost_weight: 0.0
 singularity_cost_weight: 0.0
 friction_cone_cost_weight: 0.0000
