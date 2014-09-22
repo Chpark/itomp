@@ -105,7 +105,7 @@ private:
 	friend class TrajectoryCostFrictionCone;
 	friend class TrajectoryCostCOM;
 	friend class TrajectoryCostEndeffectorVelocity;
-	friend class TrajectoryCostRVO;
+	friend class TrajectoryCostROM;
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
 

@@ -16,6 +16,7 @@ TrajectoryCost::~TrajectoryCost()
 
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Smoothness)
 bool TrajectoryCostSmoothness::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -64,6 +65,7 @@ bool TrajectoryCostSmoothness::evaluate(
 	return true;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Obstacle)
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -120,6 +122,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Validity)
 bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -131,6 +134,7 @@ bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -197,6 +201,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(PhysicsViolation)
 bool TrajectoryCostPhysicsViolation::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -227,6 +232,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(GoalPose)
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -289,6 +295,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(COM)
 bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -321,6 +328,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(EndeffectorVelocity)
 bool TrajectoryCostEndeffectorVelocity::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -347,6 +355,7 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Torque)
 bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -377,6 +386,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(RVO)
 bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -388,6 +398,7 @@ bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FTR)
 bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
@@ -473,6 +484,11 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	return is_feasible;
 }
 
+void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
+{
+
+}
+
 bool TrajectoryCostROM::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -481,6 +497,13 @@ bool TrajectoryCostROM::evaluate(
 
 	TIME_PROFILER_START_TIMER(ROM);
 
+	const FullTrajectoryConstPtr full_trajectory =
+				evaluation_manager->getFullTrajectory();
+
+	// joint angle vector q at waypoint 'point'
+	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+
 	// implement
 
 	TIME_PROFILER_END_TIMER(ROM);
@@ -488,6 +511,7 @@ bool TrajectoryCostROM::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(CartesianTrajectory);
 bool TrajectoryCostCartesianTrajectory::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -499,6 +523,7 @@ bool TrajectoryCostCartesianTrajectory::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Singularity)
 bool TrajectoryCostSingularity::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
@@ -510,6 +535,7 @@ bool TrajectoryCostSingularity::evaluate(
 	return is_feasible;
 }
 
+ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FrictionCone)
 bool TrajectoryCostFrictionCone::evaluate(
 		const NewEvalManager* evaluation_manager, int point, double& cost) const
 {

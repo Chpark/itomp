@@ -14,7 +14,7 @@ TrajectoryCostManager::~TrajectoryCostManager()
 
 }
 
-void TrajectoryCostManager::buildActiveCostFunctions()
+void TrajectoryCostManager::buildActiveCostFunctions(const NewEvalManager* evaluation_manager)
 {
 	cost_function_vector_.clear();
 	int index = 0;

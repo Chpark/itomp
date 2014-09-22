@@ -50,6 +50,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	planning_start_time_ = planning_start_time;
 	trajectory_start_time_ = trajectory_start_time;
 
+	TrajectoryCostManager::getInstance()->buildActiveCostFunctions(this);
 	evaluation_cost_matrix_.setZero(full_trajectory_->getNumPoints(),
 			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
 

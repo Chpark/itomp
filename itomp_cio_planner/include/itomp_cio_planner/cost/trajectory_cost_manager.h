@@ -13,7 +13,7 @@ public:
 	TrajectoryCostManager();
 	virtual ~TrajectoryCostManager();
 
-	void buildActiveCostFunctions();
+	void buildActiveCostFunctions(const NewEvalManager* evaluation_manager);
 
 	const std::vector<TrajectoryCostConstPtr>& getCostFunctionVector() const;
 	int getNumActiveCostFunctions();
@@ -29,9 +29,6 @@ inline const std::vector<TrajectoryCostConstPtr>& TrajectoryCostManager::getCost
 
 inline int TrajectoryCostManager::getNumActiveCostFunctions()
 {
-	if (cost_function_vector_.size() == 0)
-		buildActiveCostFunctions();
-
 	return cost_function_vector_.size();
 }
 

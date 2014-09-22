@@ -15,6 +15,8 @@ public:
 	TrajectoryCost(int index, std::string name, double weight);
 	virtual ~TrajectoryCost();
 
+	virtual void initialize(const NewEvalManager* evaluation_manager) {};
+
 	virtual bool evaluate(const NewEvalManager* evaluation_manager, int point,
 			double& cost) const = 0;
 

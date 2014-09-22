@@ -80,7 +80,7 @@ bool ImprovementManagerNLP::updatePlanningParameters()
 	if (!ImprovementManager::updatePlanningParameters())
 		return false;
 
-	TrajectoryCostManager::getInstance()->buildActiveCostFunctions();
+	TrajectoryCostManager::getInstance()->buildActiveCostFunctions(evaluation_manager_.get());
 
 	return true;
 }
