@@ -685,13 +685,12 @@ int main(int argc, char **argv)
 				configuration_constraint);
 	}
 
+	displayStates(robot_states[state_index], robot_states[state_index + 1],
+				node_handle, robot_model);
+
 	doPlan("whole_body", req, res, robot_states[state_index],
 			robot_states[state_index + 1], planning_scene, planner_instance);
 
-	//renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
-
-	displayStates(robot_states[state_index], robot_states[state_index + 1],
-			node_handle, robot_model);
 
 	visualizeResult(res, node_handle, 0, 1.0);
 
