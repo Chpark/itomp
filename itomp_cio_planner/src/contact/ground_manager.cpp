@@ -58,7 +58,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	}
 
 
-	//getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
+	getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
 
 	Eigen::Vector3d proj_x_axis = x_axis - x_axis.dot(normal) * normal;
 	Eigen::Vector3d proj_y_axis = y_axis - y_axis.dot(normal) * normal;
@@ -89,6 +89,9 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 	for (int i = 0; i < triangles_.size(); ++i)
 	{
 		const Triangle& triangle = triangles_[i];
+
+		if (triangle.normal_.dot(normal_in) < 0.5)
+			continue;
 
 		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
 				triangle.points_[2], position_in);
