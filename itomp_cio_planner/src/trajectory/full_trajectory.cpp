@@ -482,7 +482,7 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 {
 	int num_points = getNumPoints();
 	int num_constraint_points = trajectory_constraints.constraints.size();
-	int interval = num_points / (num_constraint_points + 1);
+	double interval = (double) num_points / (num_constraint_points + 1);
 
 	int group_joint_index = 0;
 	for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin();
@@ -560,12 +560,15 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 				double a1 = 0.0;
 
 				ecl::QuinticPolynomial poly;
-				poly = ecl::QuinticPolynomial::Interpolation(k * interval, x0,
-						v0, a0, std::min((k + 1) * interval, num_points - 1),
-						x1, v1, a1);
-				for (int i = std::max(1, k * interval);
-						i < std::min(((k + 1) * interval), getNumPoints() - 1);
-						++i)
+				poly = ecl::QuinticPolynomial::Interpolation(
+						safeDoubleToInt(k * interval), x0, v0, a0,
+						std::min(safeDoubleToInt((k + 1) * interval),
+								num_points - 1), x1, v1, a1);
+				for (int i = std::max(1, safeDoubleToInt(k * interval));
+						i
+								< std::min(
+										safeDoubleToInt(((k + 1) * interval)),
+										getNumPoints() - 1); ++i)
 				{
 					trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(i);
 					if (has_velocity_)
