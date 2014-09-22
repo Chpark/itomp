@@ -8,27 +8,35 @@ namespace exponential_map
 
 Eigen::Vector3d RotationToExponentialMap(const Eigen::Matrix3d& matrix)
 {
-	return AngleAxisToExponentialMap(Eigen::AngleAxisd(matrix));
+	return QuaternionToExponentialMap(Eigen::Quaterniond(matrix));
 }
 
 Eigen::Matrix3d ExponentialMapToRotation(
 		const Eigen::Vector3d& exponential_rotation)
 {
-	return ExponentialMapToAngleAxis(exponential_rotation).toRotationMatrix();
+	return ExponentialMapToQuaternion(exponential_rotation).toRotationMatrix();
 }
 
-Eigen::Vector3d AngleAxisToExponentialMap(const Eigen::AngleAxisd& angle_axis)
+Eigen::Vector3d QuaternionToExponentialMap(
+		const Eigen::Quaterniond& quaternion)
 {
-	return angle_axis.axis() * 2.0 * angle_axis.angle();
+	Eigen::Vector3d vec = quaternion.vec();
+	if (vec.norm() < 1e-7)
+		return Eigen::Vector3d::Zero();
+
+	double theta = 2.0 * std::acos(quaternion.w());
+	vec.normalize();
+	return theta * vec;
 }
 
-Eigen::AngleAxisd ExponentialMapToAngleAxis(
+Eigen::Quaterniond ExponentialMapToQuaternion(
 		const Eigen::Vector3d& exponential_rotation)
 {
 	double angle = 0.5 * exponential_rotation.norm();
-	Eigen::Vector3d axis = exponential_rotation.normalized();
-
-	return Eigen::AngleAxisd(angle, axis);
+	Eigen::Quaterniond quaternion;
+	quaternion.w() = std::cos(angle);
+	quaternion.vec() = 0.5 * boost::math::sinc_pi(angle) * exponential_rotation;
+	return quaternion;
 }
 
 }
