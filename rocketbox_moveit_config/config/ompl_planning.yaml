@@ -51,3 +51,63 @@ whole_body:
     - PRMstarkConfigDefault
   projection_evaluator: joints(base_prismatic_joint_x,base_prismatic_joint_y)
   longest_valid_segment_fraction: 0.05
+left_arm:
+  planner_configs:
+    - SBLkConfigDefault
+    - ESTkConfigDefault
+    - LBKPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - KPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+    - TRRTkConfigDefault
+    - PRMkConfigDefault
+    - PRMstarkConfigDefault
+  projection_evaluator: joints(upper_left_specula_joint,upper_left_arm_z_joint)
+  longest_valid_segment_fraction: 0.05
+right_arm:
+  planner_configs:
+    - SBLkConfigDefault
+    - ESTkConfigDefault
+    - LBKPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - KPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+    - TRRTkConfigDefault
+    - PRMkConfigDefault
+    - PRMstarkConfigDefault
+  projection_evaluator: joints(upper_right_specula_joint,upper_right_arm_z_joint)
+  longest_valid_segment_fraction: 0.05
+left_leg:
+  planner_configs:
+    - SBLkConfigDefault
+    - ESTkConfigDefault
+    - LBKPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - KPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+    - TRRTkConfigDefault
+    - PRMkConfigDefault
+    - PRMstarkConfigDefault
+  projection_evaluator: joints(upper_left_leg_z_joint,upper_left_leg_y_joint)
+  longest_valid_segment_fraction: 0.05
+right_leg:
+  planner_configs:
+    - SBLkConfigDefault
+    - ESTkConfigDefault
+    - LBKPIECEkConfigDefault
+    - BKPIECEkConfigDefault
+    - KPIECEkConfigDefault
+    - RRTkConfigDefault
+    - RRTConnectkConfigDefault
+    - RRTstarkConfigDefault
+    - TRRTkConfigDefault
+    - PRMkConfigDefault
+    - PRMstarkConfigDefault
+  projection_evaluator: joints(upper_right_leg_z_joint,upper_right_leg_y_joint)
+  longest_valid_segment_fraction: 0.05
