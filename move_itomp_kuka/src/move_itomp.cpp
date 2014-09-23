@@ -35,6 +35,7 @@ MoveItomp::~MoveItomp()
 
 void MoveItomp::run(const std::string& group_name)
 {
+
 	group_name_ = group_name;
 
 	robot_model_loader::RobotModelLoader robot_model_loader(
@@ -209,12 +210,12 @@ void MoveItomp::run(const std::string& group_name)
 		goal_pose.pose.orientation.w = rot.w();
 		std::string endeffector_name = "end_effector_link";
 
-		plan(planner_instance_, planning_scene_, req, res, "lower_body",
-				from_state, goal_pose, endeffector_name);
+		plan(planning_scene_, req, res, "lower_body", from_state, goal_pose,
+				endeffector_name);
 
 		res.getMessage(response);
 
-		if (res.trajectory_->getWayPointCount() == 0)
+		if (res.trajectory_ == NULL)
 		{
 			--i;
 			continue;
@@ -247,7 +248,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	sleep_time.sleep();
 	ROS_INFO("Done");
-	planner_instance_.reset();
+	//planner_instance_.reset();
 
 	int num_joints =
 			display_trajectory.trajectory[0].joint_trajectory.points[0].positions.size();
@@ -277,6 +278,9 @@ void MoveItomp::run(const std::string& group_name)
 		std::cout << std::endl;
 	}
 
+	planner_instance_.reset();
+	planning_scene_.reset();
+	robot_model_.reset();
 }
 
 bool MoveItomp::isStateSingular(
@@ -297,8 +301,7 @@ bool MoveItomp::isStateSingular(
 		return false;
 }
 
-void MoveItomp::plan(planning_interface::PlannerManagerPtr& planner_instance,
-		planning_scene::PlanningScenePtr planning_scene,
+void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
 		planning_interface::MotionPlanRequest& req,
 		planning_interface::MotionPlanResponse& res,
 		const std::string& group_name, robot_state::RobotState& start_state,
@@ -340,7 +343,7 @@ void MoveItomp::plan(planning_interface::PlannerManagerPtr& planner_instance,
 	req.goal_constraints.push_back(joint_goal);
 
 	planning_interface::PlanningContextPtr context =
-			planner_instance->getPlanningContext(planning_scene_, req,
+			planner_instance_->getPlanningContext(planning_scene_, req,
 					res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)
@@ -350,8 +353,7 @@ void MoveItomp::plan(planning_interface::PlannerManagerPtr& planner_instance,
 	}
 }
 
-void MoveItomp::plan(planning_interface::PlannerManagerPtr& planner_instance,
-		planning_scene::PlanningScenePtr planning_scene,
+void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
 		planning_interface::MotionPlanRequest& req,
 		planning_interface::MotionPlanResponse& res,
 		const std::string& group_name, robot_state::RobotState& start_state,
@@ -398,7 +400,7 @@ void MoveItomp::plan(planning_interface::PlannerManagerPtr& planner_instance,
 	req.goal_constraints.push_back(pose_goal);
 
 	planning_interface::PlanningContextPtr context =
-			planner_instance->getPlanningContext(planning_scene_, req,
+			planner_instance_->getPlanningContext(planning_scene_, req,
 					res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)

@@ -25,14 +25,12 @@ protected:
 
 	bool isStateSingular(planning_scene::PlanningScenePtr& planning_scene,
 			const std::string& group_name, robot_state::RobotState& state);
-	void plan(planning_interface::PlannerManagerPtr& planner_instance,
-			planning_scene::PlanningScenePtr planning_scene,
+	void plan(planning_scene::PlanningScenePtr planning_scene,
 			planning_interface::MotionPlanRequest& req,
 			planning_interface::MotionPlanResponse& res,
 			const std::string& group_name, robot_state::RobotState& start_state,
 			robot_state::RobotState& goal_state);
-	void plan(planning_interface::PlannerManagerPtr& planner_instance,
-			planning_scene::PlanningScenePtr planning_scene,
+	void plan(planning_scene::PlanningScenePtr planning_scene,
 			planning_interface::MotionPlanRequest& req,
 			planning_interface::MotionPlanResponse& res,
 			const std::string& group_name, robot_state::RobotState& start_state,
