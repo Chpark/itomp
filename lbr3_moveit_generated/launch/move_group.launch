@@ -34,7 +34,7 @@
   <!-- Sensors Functionality -->
   <arg name="moveit_octomap_sensor_params_file" default="$(find lbr3_moveit_generated)/config/sensors_kinect.yaml" />
   <include ns="move_group" file="$(find lbr3_moveit_generated)/launch/sensor_manager.launch.xml" if="$(arg allow_trajectory_execution)">
-    <arg name="moveit_sensor_manager" value="lbr3" /> 
+<!--    <arg name="moveit_sensor_manager" value="lbr3" /> -->
   </include>
 
   <!-- Start the actual move_group node/action server -->

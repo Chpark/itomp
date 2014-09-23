@@ -12,7 +12,7 @@
   </include>
 
   <!-- If needed, broadcast static tf for robot root -->
-  
+  <node pkg="tf" type="static_transform_publisher" name="camera_frame_from_bagfile_tf_broadcaster" args="-0.02 0 0 -0.4999998 0.49960184 -0.49999984 0.50039816 /link_kinect /camera_depth_optical_frame 100" />
 
   <!-- We do not have a robot connected, so publish fake joint states -->
   <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher">
