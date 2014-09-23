@@ -135,7 +135,7 @@ bool ItompPlannerNode::planKinematicPath(const planning_interface::MotionPlanReq
       const string& groupName = planningGroups[i];
 
       // optimize
-      trajectoryOptimization(groupName, jointGoalState, req.path_constraints);
+      trajectoryOptimization(groupName, jointGoalState, req.path_constraints, req.trajectory_constraints);
 
       writePlanningInfo(c, i);
     }
@@ -250,11 +250,11 @@ void ItompPlannerNode::getPlanningGroups(std::vector<std::string>& plannningGrou
 }
 
 void ItompPlannerNode::trajectoryOptimization(const string& groupName, const sensor_msgs::JointState& jointGoalState,
-    const moveit_msgs::Constraints& path_constraints)
+    const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
   ros::WallTime create_time = ros::WallTime::now();
 
-  fillGroupJointTrajectory(groupName, jointGoalState, path_constraints);
+  fillGroupJointTrajectory(groupName, jointGoalState, path_constraints, trajectory_constraints);
 
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
@@ -314,7 +314,7 @@ void ItompPlannerNode::fillInResult(const std::vector<std::string>& planningGrou
 }
 
 void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const sensor_msgs::JointState& jointGoalState,
-    const moveit_msgs::Constraints& path_constraints)
+    const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
   int num_trajectories = PlanningParameters::getInstance()->getNumTrajectories();
   const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
@@ -364,6 +364,11 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName, const s
     groupJointsKDLIndices.insert(group->group_joints_[i].kdl_joint_index_);
   }
 
+  if (trajectory_constraints.constraints.size() != 0)
+  {
+	  trajectory_->fillInMinJerk(groupJointsKDLIndices, group,
+			  trajectory_constraints);
+  }
   if (path_constraints.position_constraints.size() == 0)
   {
     trajectory_->fillInMinJerk(groupJointsKDLIndices, start_point_velocities_.row(0), start_point_accelerations_.row(0));

@@ -283,10 +283,12 @@ void ImprovementManagerChomp::runSingleIteration(int iteration)
     evaluation_manager_->evaluate(tmp_rollout_cost_);
     rollout_costs_.row(r) = tmp_rollout_cost_.transpose();
   }
+  /*
   Eigen::VectorXd costs(rollouts_.size());
   for (int i = 0; i < rollouts_.size(); ++i)
 	  costs(i) = rollout_costs_.row(i).sum();
   std::cout << costs.transpose();
+  */
 
   setRolloutCosts();
 

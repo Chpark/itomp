@@ -8,6 +8,8 @@
 #ifndef MOVE_ITOMP_H_
 #define MOVE_ITOMP_H_
 
+#include <moveit_msgs/RobotTrajectory.h>
+
 namespace move_itomp
 {
 
@@ -40,6 +42,8 @@ protected:
 
 	void computeIKState(robot_state::RobotState& ik_state,
 			const Eigen::Affine3d& end_effector_state);
+
+	void printTrajectory(const moveit_msgs::RobotTrajectory &traj);
 
 	ros::NodeHandle node_handle_;
 	robot_model::RobotModelPtr robot_model_;

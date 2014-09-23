@@ -30,9 +30,9 @@ private:
   void initTrajectory(const sensor_msgs::JointState &joint_state);
   void getPlanningGroups(std::vector<std::string>& plannningGroups, const std::string& groupName);
   void fillGroupJointTrajectory(const std::string& groupName, const sensor_msgs::JointState& jointGoalState,
-      const moveit_msgs::Constraints& path_constraints);
+      const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
   void trajectoryOptimization(const std::string& groupName, const sensor_msgs::JointState& jointGoalState,
-      const moveit_msgs::Constraints& path_constraints);
+      const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
 
   void
   fillInResult(const std::vector<std::string>& planningGroups, planning_interface::MotionPlanResponse &res);

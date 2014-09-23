@@ -205,7 +205,7 @@ void MoveItomp::run(const std::string& group_name)
 		computeIKState(states[i], goal_transform[i]);
 	}
 
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 1; ++i)
 	{
 		ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -238,6 +238,8 @@ void MoveItomp::run(const std::string& group_name)
 			--i;
 			continue;
 		}
+
+		printTrajectory(response.trajectory);
 
 		// plan using ITOMP
 		// use the last configuration of prev trajectory
@@ -279,53 +281,15 @@ void MoveItomp::run(const std::string& group_name)
 		{
 			display_trajectory.trajectory_start = response.trajectory_start;
 		}
-
 		display_trajectory.trajectory.push_back(response.trajectory);
-
-		/*
-		// use the last configuration of prev trajectory
-		if (i != 5)
-		{
-			int num_joints = from_state.getVariableCount();
-			std::vector<double> positions(num_joints);
-			const robot_state::RobotState& last_state =
-					res.trajectory_->getLastWayPoint();
-			to_state.setVariablePositions(last_state.getVariablePositions());
-			to_state.update();
-		}
-		*/
 	}
 
 	// publish trajectory
 	display_publisher_.publish(display_trajectory);
 
-	int num_joints =
-			display_trajectory.trajectory[0].joint_trajectory.points[0].positions.size();
 	int num_trajectories = display_trajectory.trajectory.size();
-	for (int k = 0; k < num_joints; ++k)
-	{
-		std::cout
-				<< display_trajectory.trajectory[0].joint_trajectory.joint_names[k]
-				<< " ";
-	}
-	std::cout << std::endl;
 	for (int i = 0; i < num_trajectories; ++i)
-	{
-		int num_points =
-				display_trajectory.trajectory[i].joint_trajectory.points.size();
-		for (int j = 0; j < num_points; ++j)
-		{
-			std::cout << "[" << j << "] ";
-			for (int k = 0; k < num_joints; ++k)
-			{
-				double value =
-						display_trajectory.trajectory[i].joint_trajectory.points[j].positions[k];
-				std::cout << value << " ";
-			}
-			std::cout << std::endl;
-		}
-		std::cout << std::endl;
-	}
+		printTrajectory(display_trajectory.trajectory[i]);
 
 	itomp_planner_instance_.reset();
 	ompl_planner_instance_.reset();
@@ -714,6 +678,30 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 	{
 		ROS_INFO("Could not find IK solution");
 	}
+}
+
+void MoveItomp::printTrajectory(const moveit_msgs::RobotTrajectory &traj)
+{
+	int num_joints = traj.joint_trajectory.points[0].positions.size();
+	for (int k = 0; k < num_joints; ++k)
+	{
+		std::cout << traj.joint_trajectory.joint_names[k] << " ";
+	}
+	std::cout << std::endl;
+
+	int num_points = traj.joint_trajectory.points.size();
+	for (int j = 0; j < num_points; ++j)
+	{
+		std::cout << "[" << j << "] ";
+		for (int k = 0; k < num_joints; ++k)
+		{
+			double value = traj.joint_trajectory.points[j].positions[k];
+			std::cout << value << " ";
+		}
+		std::cout << std::endl;
+	}
+	std::cout << std::endl;
+
 }
 
 }

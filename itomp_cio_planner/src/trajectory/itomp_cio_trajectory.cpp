@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <ros/console.h>
 #include <ros/assert.h>
+#include <ecl/geometry/polynomial.hpp>
 
 using namespace std;
 
@@ -482,91 +483,92 @@ void ItompCIOTrajectory::fillInMinJerk(
 	}
 }
 
-void ItompCIOTrajectory::fillInMinJerkWithMidPoint(
-		const vector<double>& midPoint,
-		const std::set<int>& groupJointsKDLIndices, int index)
+void ItompCIOTrajectory::fillInMinJerk(
+		const std::set<int>& groupJointsKDLIndices,
+		const ItompPlanningGroup* planning_group,
+		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
-	/*
-	 double start_index = start_index_ - 1;
-	 double end_index = end_index_ + 1;
-	 double T[7]; // powers of the time duration
-	 T[0] = 1.0;
-	 T[1] = (end_index - start_index) * discretization_;
+	int num_points = getNumPoints();
+	int num_constraint_points = trajectory_constraints.constraints.size();
+	double interval = (double) num_points / (num_constraint_points - 1);
 
-	 for (int i = 2; i <= 6; i++)
-	 T[i] = T[i - 1] * T[1];
+	int group_joint_index = 0;
+	for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin();
+			it != groupJointsKDLIndices.end(); ++it)
+	{
+		int j = *it;
 
-	 // calculate the spline coefficients for each joint:
-	 // (these are for the special case of zero start and end vel and acc)
-	 double coeff[num_joints_][7];
-	 for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-	 {
-	 int i = *it;
-	 ROS_INFO("Joint %d from %f to %f", i, (*this)(start_index, i), (*this)(end_index, i));
+		bool has_constraints = false;
+		int constraint_index = -1;
+		for (int k = 0;
+				k
+						< trajectory_constraints.constraints[0].joint_constraints.size();
+				++k)
+		{
 
-	 if (index != 0)	// || i == 27 || i == 28 || i == 35 || i == 9)
+			if (trajectory_constraints.constraints[0].joint_constraints[k].joint_name
+					== planning_group->group_joints_[group_joint_index].joint_name_)
+			{
 
-	 {
-	 //int group_joint_index = kdlToGroupJoint.at(i);
+				has_constraints = true;
+				constraint_index = k;
+			}
+		}
 
-	 double x0 = (*this)(start_index, i);
-	 double x1 = (*this)(end_index, i);
-	 double mid = midPoint[i];
+		if (!has_constraints)
+		{
+			double x0 = (*this)(0, j);
+			double v0 = 0.0;
+			double a0 = 0.0;
 
-	 if (i == 9)
-	 mid = -0.5;
+			double x1 = (*this)(getNumPoints(), j);
+			double v1 = 0.0;
+			double a1 = 0.0;
 
-	 if (i == 27)
-	 mid = 1.2;
+			ecl::QuinticPolynomial poly;
+			poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0,
+					duration_, x1, v1, a1);
+			for (int i = 1; i < getNumPoints() - 1; ++i)
+			{
+				(*this)(i, j) = poly(i * discretization_);
+			}
+		}
+		else
+		{
+			// interpolate between waypoints
+			for (int k = 0; k < num_constraint_points - 1; ++k)
+			{
+				double x0 =
+						trajectory_constraints.constraints[k].joint_constraints[constraint_index].position;
+				double v0 = 0.0;
+				double a0 = 0.0;
 
-	 if (i == 28)
-	 mid = -1.0;
+				double x1 =
+						trajectory_constraints.constraints[k + 1].joint_constraints[constraint_index].position;
+				double v1 = 0.0;
+				double a1 = 0.0;
 
-	 if (i == 35)
-	 mid = -0.6;
+				double interp_begin = (double) safeToInt(k * interval);
+				double interp_end = (double) std::min(
+						safeToInt((k + 1) * interval), num_points - 1);
 
-	 coeff[i][0] = x0;
-	 coeff[i][1] = 0;
-	 coeff[i][2] = 0;
-	 coeff[i][3] = (-22 * (x1 - x0) + 64 * (mid - x0)) / T[3];
-	 coeff[i][4] = (81 * (x1 - x0) - 192 * (mid - x0)) / T[4];
-	 coeff[i][5] = (-90 * (x1 - x0) + 192 * (mid - x0)) / T[5];
-	 coeff[i][6] = (32 * (x1 - x0) - 64 * (mid - x0)) / T[6];
-	 }
-	 else
-	 {
-	 double x0 = (*this)(start_index, i);
-	 double x1 = (*this)(end_index, i);
-	 coeff[i][0] = x0;
-	 coeff[i][1] = 0;
-	 coeff[i][2] = 0;
-	 coeff[i][3] = (-20 * x0 + 20 * x1) / (2 * T[3]);
-	 coeff[i][4] = (30 * x0 - 30 * x1) / (2 * T[4]);
-	 coeff[i][5] = (-12 * x0 + 12 * x1) / (2 * T[5]);
-	 coeff[i][6] = 0;
-	 }
-	 }
+				ecl::QuinticPolynomial poly;
+				poly = ecl::QuinticPolynomial::Interpolation(interp_begin, x0,
+						v0, a0, interp_end, x1, v1, a1);
+				for (int i = std::max(1, safeToInt(k * interval));
+						i
+								< std::min(safeToInt(((k + 1) * interval)),
+										getNumPoints() - 1); ++i)
+				{
+					double value = poly(i);
+					(*this)(i, j) = value;
+				}
 
-	 // now fill in the joint positions at each time step
-	 for (int i = start_index + 1; i < end_index; i++)
-	 {
-	 double t[7]; // powers of the time index point
-	 t[0] = 1.0;
-	 t[1] = (i - start_index) * discretization_;
-	 for (int k = 2; k <= 6; k++)
-	 t[k] = t[k - 1] * t[1];
-
-	 for (std::set<int>::const_iterator it = groupJointsKDLIndices.begin(); it != groupJointsKDLIndices.end(); ++it)
-	 {
-	 int j = *it;
-	 (*this)(i, j) = 0.0;
-	 for (int k = 0; k <= 6; k++)
-	 {
-	 (*this)(i, j) += t[k] * coeff[j][k];
-	 }
-	 }
-	 }
-	 */
+			}
+		}
+		++group_joint_index;
+	}
+	printTrajectory();
 }
 
 void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(
@@ -734,28 +736,6 @@ void ItompCIOTrajectory::printTrajectory() const
 		}
 		printf("\n");
 	}
-	/*
-	 printf("Free Trajectory\n");
-	 for (int i = 0; i <= num_contact_phases_; ++i)
-	 {
-	 printf("%d : ", i);
-	 for (int j = 0; j < num_joints_; ++j)
-	 {
-	 printf("%f ", free_trajectory_(i, j));
-	 }
-	 printf("\n");
-	 }
-	 printf("Free Velocity Trajectory\n");
-	 for (int i = 0; i <= num_contact_phases_; ++i)
-	 {
-	 printf("%d : ", i);
-	 for (int j = 0; j < num_joints_; ++j)
-	 {
-	 printf("%f ", free_vel_trajectory_(i, j));
-	 }
-	 printf("\n");
-	 }
-	 */
 }
 
 }
