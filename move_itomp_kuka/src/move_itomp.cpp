@@ -72,17 +72,39 @@ void MoveItomp::run(const std::string& group_name)
 		ROS_FATAL_STREAM(
 				"Exception while creating planning plugin loader " << ex.what());
 	}
-	planner_plugin_name = "ompl_interface/OMPLPlanner";
+
 	try
 	{
-		planner_instance_.reset(
+		itomp_planner_instance_.reset(
 				planner_plugin_loader->createUnmanagedInstance(
 						planner_plugin_name));
-		if (!planner_instance_->initialize(robot_model_,
+		if (!itomp_planner_instance_->initialize(robot_model_,
 				node_handle_.getNamespace()))
 			ROS_FATAL_STREAM("Could not initialize planner instance");
 		ROS_INFO_STREAM(
-				"Using planning interface '" << planner_instance_->getDescription() << "'");
+				"Using planning interface '" << itomp_planner_instance_->getDescription() << "'");
+	} catch (pluginlib::PluginlibException& ex)
+	{
+		const std::vector<std::string> &classes =
+				planner_plugin_loader->getDeclaredClasses();
+		std::stringstream ss;
+		for (std::size_t i = 0; i < classes.size(); ++i)
+			ss << classes[i] << " ";
+		ROS_ERROR_STREAM(
+				"Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
+	}
+
+	planner_plugin_name = "ompl_interface/OMPLPlanner";
+	try
+	{
+		ompl_planner_instance_.reset(
+				planner_plugin_loader->createUnmanagedInstance(
+						planner_plugin_name));
+		if (!ompl_planner_instance_->initialize(robot_model_,
+				node_handle_.getNamespace()))
+			ROS_FATAL_STREAM("Could not initialize planner instance");
+		ROS_INFO_STREAM(
+				"Using planning interface '" << ompl_planner_instance_->getDescription() << "'");
 	} catch (pluginlib::PluginlibException& ex)
 	{
 		const std::vector<std::string> &classes =
@@ -185,14 +207,12 @@ void MoveItomp::run(const std::string& group_name)
 
 	for (int i = 0; i < 6; ++i)
 	{
-		//vis_marker_array_publisher_.publish(ma);
-
 		ROS_INFO("*** Planning Sequence %d ***", i);
 
 		robot_state::RobotState& from_state = states[i];
 		robot_state::RobotState& to_state = states[(i + 1) % 6];
 
-		displayStates(node_handle_, from_state, to_state);
+		displayStates(from_state, to_state);
 		sleep_time.sleep();
 
 		const Eigen::Affine3d& transform = goal_transform[(i + 1) % 6];
@@ -210,27 +230,16 @@ void MoveItomp::run(const std::string& group_name)
 		goal_pose.pose.orientation.w = rot.w();
 		std::string endeffector_name = "end_effector_link";
 
-		plan(planning_scene_, req, res, "lower_body", from_state, goal_pose,
-				endeffector_name);
-
+		// planning using OMPL
+		plan(req, res, from_state, goal_pose, endeffector_name);
 		res.getMessage(response);
-
 		if (res.trajectory_ == NULL)
 		{
 			--i;
 			continue;
 		}
 
-		if (i == 0)
-		{
-			display_trajectory.trajectory_start = response.trajectory_start;
-		}
-
-		display_trajectory.trajectory.push_back(response.trajectory);
-		//display_publisher.publish(display_trajectory);
-
-		//from_state = to_state;
-
+		// plan using ITOMP
 		// use the last configuration of prev trajectory
 		if (i != 5)
 		{
@@ -241,14 +250,54 @@ void MoveItomp::run(const std::string& group_name)
 			to_state.setVariablePositions(last_state.getVariablePositions());
 			to_state.update();
 		}
+		req.trajectory_constraints.constraints.clear();
+		moveit_msgs::Constraints c;
+		moveit_msgs::JointConstraint jc;
+		int num_joints =
+				response.trajectory.joint_trajectory.points[0].positions.size();
+		int num_points = response.trajectory.joint_trajectory.points.size();
+		req.trajectory_constraints.constraints.resize(num_points);
+		for (int j = 0; j < num_points; ++j)
+		{
+			req.trajectory_constraints.constraints[j].joint_constraints.resize(
+					num_joints);
+			for (int k = 0; k < num_joints; ++k)
+			{
+				jc.joint_name = from_state.getVariableNames()[k];
+				jc.position =
+						response.trajectory.joint_trajectory.points[j].positions[k];
+				req.trajectory_constraints.constraints[j].joint_constraints[k] =
+						jc;
+			}
+		}
+		plan(req, res, from_state, to_state);
+		res.getMessage(response);
+
+		////////////////////////////////////
+
+		if (i == 0)
+		{
+			display_trajectory.trajectory_start = response.trajectory_start;
+		}
+
+		display_trajectory.trajectory.push_back(response.trajectory);
+
+		/*
+		// use the last configuration of prev trajectory
+		if (i != 5)
+		{
+			int num_joints = from_state.getVariableCount();
+			std::vector<double> positions(num_joints);
+			const robot_state::RobotState& last_state =
+					res.trajectory_->getLastWayPoint();
+			to_state.setVariablePositions(last_state.getVariablePositions());
+			to_state.update();
+		}
+		*/
 	}
 
 	// publish trajectory
 	display_publisher_.publish(display_trajectory);
-
-	sleep_time.sleep();
-	ROS_INFO("Done");
-	//planner_instance_.reset();
 
 	int num_joints =
 			display_trajectory.trajectory[0].joint_trajectory.points[0].positions.size();
@@ -278,18 +327,20 @@ void MoveItomp::run(const std::string& group_name)
 		std::cout << std::endl;
 	}
 
-	planner_instance_.reset();
+	itomp_planner_instance_.reset();
+	ompl_planner_instance_.reset();
 	planning_scene_.reset();
 	robot_model_.reset();
+
+	sleep_time.sleep();
+	ROS_INFO("Done");
 }
 
-bool MoveItomp::isStateSingular(
-		planning_scene::PlanningScenePtr& planning_scene,
-		const std::string& group_name, robot_state::RobotState& state)
+bool MoveItomp::isStateSingular(robot_state::RobotState& state)
 {
 	// check singularity
 	Eigen::MatrixXd jacobianFull = (state.getJacobian(
-			planning_scene_->getRobotModel()->getJointModelGroup(group_name)));
+			planning_scene_->getRobotModel()->getJointModelGroup(group_name_)));
 	Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobianFull);
 	int rows = svd.singularValues().rows();
 	double min_value = svd.singularValues()(rows - 1);
@@ -301,16 +352,15 @@ bool MoveItomp::isStateSingular(
 		return false;
 }
 
-void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
-		planning_interface::MotionPlanRequest& req,
+void MoveItomp::plan(planning_interface::MotionPlanRequest& req,
 		planning_interface::MotionPlanResponse& res,
-		const std::string& group_name, robot_state::RobotState& start_state,
+		robot_state::RobotState& start_state,
 		robot_state::RobotState& goal_state)
 {
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup(group_name);
-	req.group_name = group_name;
-	req.allowed_planning_time = 300.0;
+			start_state.getJointModelGroup(group_name_);
+	req.group_name = group_name_;
+	req.allowed_planning_time = 3000.0;
 
 	// Copy from start_state to req.start_state
 	unsigned int num_joints = start_state.getVariableCount();
@@ -343,7 +393,7 @@ void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
 	req.goal_constraints.push_back(joint_goal);
 
 	planning_interface::PlanningContextPtr context =
-			planner_instance_->getPlanningContext(planning_scene_, req,
+			itomp_planner_instance_->getPlanningContext(planning_scene_, req,
 					res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)
@@ -353,16 +403,15 @@ void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
 	}
 }
 
-void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
-		planning_interface::MotionPlanRequest& req,
+void MoveItomp::plan(planning_interface::MotionPlanRequest& req,
 		planning_interface::MotionPlanResponse& res,
-		const std::string& group_name, robot_state::RobotState& start_state,
+		robot_state::RobotState& start_state,
 		geometry_msgs::PoseStamped& goal_pose,
 		const std::string& endeffector_link)
 {
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup(group_name);
-	req.group_name = group_name;
+			start_state.getJointModelGroup(group_name_);
+	req.group_name = group_name_;
 	req.allowed_planning_time = 300.0;
 
 	// Copy from start_state to req.start_state
@@ -400,7 +449,7 @@ void MoveItomp::plan(planning_scene::PlanningScenePtr planning_scene,
 	req.goal_constraints.push_back(pose_goal);
 
 	planning_interface::PlanningContextPtr context =
-			planner_instance_->getPlanningContext(planning_scene_, req,
+			ompl_planner_instance_->getPlanningContext(planning_scene_, req,
 					res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)
@@ -472,8 +521,7 @@ void MoveItomp::loadStaticScene()
 	planning_scene_diff_publisher_.publish(planning_scene_msg);
 }
 
-void MoveItomp::displayState(ros::NodeHandle& node_handle,
-		robot_state::RobotState& state)
+void MoveItomp::displayState(robot_state::RobotState& state)
 {
 	std_msgs::ColorRGBA color;
 	color.a = 0.5;
@@ -505,8 +553,7 @@ void MoveItomp::displayState(ros::NodeHandle& node_handle,
 	state_display_publisher.publish(disp_state);
 }
 
-void MoveItomp::displayStates(ros::NodeHandle& node_handle,
-		robot_state::RobotState& start_state,
+void MoveItomp::displayStates(robot_state::RobotState& start_state,
 		robot_state::RobotState& goal_state)
 {
 	// display start / goal states
@@ -624,8 +671,6 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 	const robot_state::JointModelGroup* joint_model_group =
 			ik_state.getJointModelGroup(group_name_);
 
-	int num_joints = ik_state.getVariableCount();
-
 	kinematics::KinematicsQueryOptions options;
 	options.return_approximate_solution = false;
 	bool found_ik = false;
@@ -640,7 +685,7 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 
 		found_ik &= !isStateCollide(ik_state);
 
-		if (found_ik && isStateSingular(planning_scene_, group_name_, ik_state))
+		if (found_ik && isStateSingular(ik_state))
 			found_ik = false;
 
 		double* pos = ik_state.getVariablePositions();
@@ -651,7 +696,7 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 		if (found_ik)
 			break;
 
-		displayState(node_handle_, ik_state);
+		displayState(ik_state);
 		sleep_time.sleep();
 
 		++i;
@@ -669,18 +714,6 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 	{
 		ROS_INFO("Could not find IK solution");
 	}
-}
-
-void MoveItomp::transform(Eigen::Affine3d& t, const Eigen::Affine3d& transform)
-{
-	Eigen::Matrix3d mat = t.rotation();
-
-	Eigen::Matrix3d parent_mat = mat * transform.rotation().inverse();
-	Eigen::Vector3d parent_trans = t.translation()
-			- parent_mat * transform.translation();
-
-	t.linear() = parent_mat;
-	t.translation() = parent_trans;
 }
 
 }
