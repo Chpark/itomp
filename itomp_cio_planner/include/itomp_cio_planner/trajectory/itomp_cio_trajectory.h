@@ -39,6 +39,7 @@ public:
 	double operator()(int traj_point, int joint) const;
 
 	Eigen::MatrixXd::RowXpr getTrajectoryPoint(int traj_point);
+	const Eigen::MatrixXd::ConstRowXpr getTrajectoryPoint(int traj_point) const;
 	Eigen::MatrixXd::RowXpr getContactTrajectoryPoint(int phase);
 
 	void getTrajectoryPointKDL(int traj_point,
@@ -170,6 +171,12 @@ inline double ItompCIOTrajectory::getContactValue(int phase, int contact) const
 
 inline Eigen::MatrixXd::RowXpr ItompCIOTrajectory::getTrajectoryPoint(
 		int traj_point)
+{
+	return trajectory_.row(traj_point);
+}
+
+inline const Eigen::MatrixXd::ConstRowXpr ItompCIOTrajectory::getTrajectoryPoint(
+		int traj_point) const
 {
 	return trajectory_.row(traj_point);
 }

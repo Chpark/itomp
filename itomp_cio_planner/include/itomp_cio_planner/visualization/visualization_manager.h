@@ -11,6 +11,7 @@
 #include <itomp_cio_planner/common.h>
 #include <ros/publisher.h>
 #include <kdl/frames.hpp>
+#include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/util/singleton.h>
 
 namespace itomp_cio_planner
@@ -33,7 +34,7 @@ public:
 
 	void animateCoM(int numFreeVars, int freeVarStartIndex, const std::vector<KDL::Vector>& CoM, bool best);
 	void animateRoot(int numFreeVars, int freeVarStartIndex, const std::vector<std::vector<KDL::Frame> >& segmentFrames, bool best);
-	void animatePath(int free_vars_start, int free_vars_end);
+	void animatePath(const ItompCIOTrajectory* traj);
 
 	void clearCollisionPointMarkPositions()
 	{
@@ -52,7 +53,7 @@ public:
 
 
 private:
-	void visualizeState(int index);
+
 
 	ros::Publisher vis_marker_array_publisher_;
 	ros::Publisher vis_marker_publisher_;
@@ -62,6 +63,9 @@ private:
 	std::string reference_frame_;
 
 	std::vector<Eigen::Vector3d> collision_point_mark_positions_;
+
+	const itomp_cio_planner::ItompRobotModel* robot_model_;
+	robot_state::RobotStatePtr robot_state_;
 };
 }
 ;

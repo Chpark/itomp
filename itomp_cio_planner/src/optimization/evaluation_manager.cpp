@@ -498,8 +498,7 @@ void EvaluationManager::render(int trajectory_index)
 	}
 	if (PlanningParameters::getInstance()->getAnimatePath())
 	{
-		VisualizationManager::getInstance()->animatePath(full_vars_start_,
-				full_vars_end_ - 1);
+		VisualizationManager::getInstance()->animatePath(getFullTrajectoryConst());
 	}
 }
 

@@ -89,6 +89,8 @@ bool ItompOptimizer::optimize()
         //if (!is_succeed_)
           //num_iterations += 100;
       }
+
+      evaluation_manager_.render(trajectory_index_);
     }
   }
   //evaluation_manager_.postprocess_ik();
