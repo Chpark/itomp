@@ -69,6 +69,23 @@ void addWaypoint(planning_interface::MotionPlanRequest& req, double x, double y,
 	req.path_constraints.orientation_constraints.push_back(ori_constraint);
 }
 
+bool isStateSingular(planning_scene::PlanningScenePtr& planning_scene,
+		const std::string& group_name, robot_state::RobotState& state)
+{
+	// check singularity
+	Eigen::MatrixXd jacobianFull = (state.getJacobian(
+			planning_scene->getRobotModel()->getJointModelGroup(group_name)));
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobianFull);
+	int rows = svd.singularValues().rows();
+	double min_value = svd.singularValues()(rows - 1);
+
+	const double threshold = 1e-3;
+	if (min_value < threshold)
+		return true;
+	else
+		return false;
+}
+
 void plan(planning_interface::PlannerManagerPtr& planner_instance,
 		planning_scene::PlanningScenePtr planning_scene,
 		planning_interface::MotionPlanRequest& req,
@@ -79,6 +96,7 @@ void plan(planning_interface::PlannerManagerPtr& planner_instance,
 	const robot_state::JointModelGroup* joint_model_group =
 			start_state.getJointModelGroup(group_name);
 	req.group_name = group_name;
+	req.allowed_planning_time = 300.0;
 
 	// Copy from start_state to req.start_state
 	unsigned int num_joints = start_state.getVariableCount();
@@ -121,10 +139,69 @@ void plan(planning_interface::PlannerManagerPtr& planner_instance,
 	}
 }
 
+void plan(planning_interface::PlannerManagerPtr& planner_instance,
+		planning_scene::PlanningScenePtr planning_scene,
+		planning_interface::MotionPlanRequest& req,
+		planning_interface::MotionPlanResponse& res,
+		const std::string& group_name, robot_state::RobotState& start_state,
+		geometry_msgs::PoseStamped& goal_pose,
+		const std::string& endeffector_link)
+{
+	const robot_state::JointModelGroup* joint_model_group =
+			start_state.getJointModelGroup(group_name);
+	req.group_name = group_name;
+	req.allowed_planning_time = 300.0;
+
+	// Copy from start_state to req.start_state
+	unsigned int num_joints = start_state.getVariableCount();
+	req.start_state.joint_state.name = start_state.getVariableNames();
+	req.start_state.joint_state.position.resize(num_joints);
+	req.start_state.joint_state.velocity.resize(num_joints);
+	req.start_state.joint_state.effort.resize(num_joints);
+	memcpy(&req.start_state.joint_state.position[0],
+			start_state.getVariablePositions(), sizeof(double) * num_joints);
+	if (start_state.hasVelocities())
+		memcpy(&req.start_state.joint_state.velocity[0],
+				start_state.getVariableVelocities(),
+				sizeof(double) * num_joints);
+	else
+		memset(&req.start_state.joint_state.velocity[0], 0,
+				sizeof(double) * num_joints);
+	if (start_state.hasAccelerations())
+		memcpy(&req.start_state.joint_state.effort[0],
+				start_state.getVariableAccelerations(),
+				sizeof(double) * num_joints);
+	else
+		memset(&req.start_state.joint_state.effort[0], 0,
+				sizeof(double) * num_joints);
+
+	planning_scene->getCurrentStateNonConst().update();
+
+	// goal state
+	std::vector<double> tolerance_pose(3, 0.01);
+	std::vector<double> tolerance_angle(3, 0.01);
+	moveit_msgs::Constraints pose_goal =
+			kinematic_constraints::constructGoalConstraints(endeffector_link,
+					goal_pose, tolerance_pose, tolerance_angle);
+	req.goal_constraints.clear();
+	req.goal_constraints.push_back(pose_goal);
+
+	planning_interface::PlanningContextPtr context =
+			planner_instance->getPlanningContext(planning_scene, req,
+					res.error_code_);
+	context->solve(res);
+	if (res.error_code_.val != res.error_code_.SUCCESS)
+	{
+		ROS_ERROR("Could not compute plan successfully");
+		return;
+	}
+}
+
 void loadStaticScene(ros::NodeHandle& node_handle,
 		planning_scene::PlanningScenePtr& planning_scene,
 		robot_model::RobotModelPtr& robot_model,
-		visualization_msgs::MarkerArray& ma)
+		visualization_msgs::MarkerArray& ma,
+		moveit_msgs::PlanningScene& planning_scene_msg)
 {
 
 	std::string environment_file;
@@ -176,11 +253,12 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		collision_object.mesh_poses.push_back(pose);
 
 		collision_object.operation = collision_object.ADD;
-		moveit_msgs::PlanningScene planning_scene_msg;
+		//moveit_msgs::PlanningScene planning_scene_msg;
 		planning_scene_msg.world.collision_objects.push_back(collision_object);
 		planning_scene_msg.is_diff = true;
 		planning_scene->setPlanningSceneDiffMsg(planning_scene_msg);
 
+		/*
 		// visualize
 		visualization_msgs::Marker msg;
 		msg.header.frame_id = robot_model->getModelFrame();
@@ -199,6 +277,7 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		msg.color.b = 0.5;
 		msg.mesh_resource = environment_file;
 		ma.markers.push_back(msg);
+		*/
 	}
 }
 
@@ -317,16 +396,11 @@ bool isCollide(robot_model::RobotModelPtr& robot_model,
 
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
-	collision_request.verbose = true;
+	collision_request.verbose = false;
 	collision_request.contacts = true;
 
-	collision_detection::AllowedCollisionMatrix acm =
-			planning_scene->getAllowedCollisionMatrix();
-	acm.setEntry("environment", "segment_0", true);
-	acm.setEntry("environment", "segment_1", true);
-
 	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
-			ik_state, acm);
+			ik_state);
 
 	const collision_detection::CollisionResult::ContactMap& contact_map =
 			collision_result.contacts;
@@ -380,6 +454,10 @@ void computeIKState(ros::NodeHandle& node_handle,
 
 		found_ik &= !isCollide(robot_model, ik_state, planning_scene,
 				vis_array_publisher);
+
+		if (found_ik && isStateSingular(planning_scene, group_name, ik_state))
+			found_ik = false;
+
 		double* pos = ik_state.getVariablePositions();
 		printf("IK result :");
 		for (int i = 0; i < ik_state.getVariableCount(); ++i)
@@ -486,6 +564,22 @@ int main(int argc, char **argv)
 	planning_scene::PlanningScenePtr planning_scene(
 			new planning_scene::PlanningScene(robot_model));
 
+	ros::Publisher planning_scene_diff_publisher = node_handle.advertise<
+			moveit_msgs::PlanningScene>("/planning_scene", 1);
+
+	while (planning_scene_diff_publisher.getNumSubscribers() < 1)
+	{
+		ros::WallDuration sleep_t(0.5);
+		sleep_t.sleep();
+		ROS_INFO("Waiting planning_scene subscribers");
+	}
+
+
+	collision_detection::AllowedCollisionMatrix& acm =
+			planning_scene->getAllowedCollisionMatrixNonConst();
+	acm.setEntry("environment", "segment_0", true);
+	acm.setEntry("environment", "segment_1", true);
+
 	// We will now construct a loader to load a planner, by name.
 	// Note that we are using the ROS pluginlib library here.
 	boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
@@ -507,6 +601,7 @@ int main(int argc, char **argv)
 		ROS_FATAL_STREAM(
 				"Exception while creating planning plugin loader " << ex.what());
 	}
+	planner_plugin_name = "ompl_interface/OMPLPlanner";
 	try
 	{
 		planner_instance.reset(
@@ -538,9 +633,14 @@ int main(int argc, char **argv)
 	moveit_msgs::DisplayTrajectory display_trajectory;
 	moveit_msgs::MotionPlanResponse response;
 
+	moveit_msgs::PlanningScene planning_scene_msg;
+
 	visualization_msgs::MarkerArray ma;
-	loadStaticScene(node_handle, planning_scene, robot_model, ma);
+	loadStaticScene(node_handle, planning_scene, robot_model, ma, planning_scene_msg);
 	vis_marker_array_publisher.publish(ma);
+
+	planning_scene_diff_publisher.publish(planning_scene_msg);
+
 
 	/* Sleep a little to allow time to startup rviz, etc. */
 	ros::WallDuration sleep_time(1.0);
@@ -548,6 +648,13 @@ int main(int argc, char **argv)
 
 	planning_interface::MotionPlanRequest req;
 	planning_interface::MotionPlanResponse res;
+
+	req.workspace_parameters.min_corner.x =
+			req.workspace_parameters.min_corner.y =
+					req.workspace_parameters.min_corner.z = -10.0;
+	req.workspace_parameters.max_corner.x =
+			req.workspace_parameters.max_corner.y =
+					req.workspace_parameters.max_corner.z = 10.0;
 
 	// Set start_state
 	robot_state::RobotState& start_state =
@@ -589,11 +696,11 @@ int main(int argc, char **argv)
 	 */
 
 	{ 2, 0.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 2, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 2, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 	{ 2, 1.0, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1.5, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 1.5, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 	{ 2, 1.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1, 2, 8.5+1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ 1, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 
 	};
 
@@ -615,75 +722,91 @@ int main(int argc, char **argv)
 
 	isCollide(robot_model, from_state, planning_scene,
 			vis_marker_array_publisher);
-	for (int i = 0; i < 6; ++i)
+	for (int c = 0; c < 8; ++c)
 	{
-		vis_marker_array_publisher.publish(ma);
-
-		ROS_INFO("*** Planning Sequence %d ***", i);
-
-		computeIKState(node_handle, robot_model, to_state, planning_scene,
-				"lower_body", vis_marker_array_publisher, EE_CONSTRAINTS[i][0],
-				EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2],
-				EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4],
-				EE_CONSTRAINTS[i][5], EE_CONSTRAINTS[i][6]);
-
-		// for KUKA
-		if (i == 0)
+		from_state = start_state;
+		to_state = start_state;
+		for (int i = 0; i < 2; ++i)
 		{
-			from_state = to_state;
-			goal_state = to_state;
-		}
+			vis_marker_array_publisher.publish(ma);
 
-		if (i != 0)
-		{
-			req.path_constraints.position_constraints.clear();
-			req.path_constraints.orientation_constraints.clear();
-			addWaypoint(req, EE_CONSTRAINTS[i - 1][0], EE_CONSTRAINTS[i - 1][1],
-					EE_CONSTRAINTS[i - 1][2], EE_CONSTRAINTS[i - 1][3],
-					EE_CONSTRAINTS[i - 1][4], EE_CONSTRAINTS[i - 1][5],
-					EE_CONSTRAINTS[i - 1][6]);
-			addWaypoint(req, EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1],
+			ROS_INFO("*** Planning Sequence %d ***", c);
+
+			computeIKState(node_handle, robot_model, to_state, planning_scene,
+					"lower_body", vis_marker_array_publisher,
+					EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1],
 					EE_CONSTRAINTS[i][2], EE_CONSTRAINTS[i][3],
 					EE_CONSTRAINTS[i][4], EE_CONSTRAINTS[i][5],
 					EE_CONSTRAINTS[i][6]);
+
+			// for KUKA
+			if (i == 0)
+			{
+				from_state = to_state;
+				goal_state = to_state;
+			}
+
+			displayStates(node_handle, robot_model, from_state, to_state);
+			sleep_time.sleep();
+
+			geometry_msgs::PoseStamped goal_pose;
+			goal_pose.header.frame_id = robot_model->getModelFrame();
+			goal_pose.pose.position.x = EE_CONSTRAINTS[i][0];
+			goal_pose.pose.position.y = EE_CONSTRAINTS[i][1];
+			goal_pose.pose.position.z = EE_CONSTRAINTS[i][2];
+			goal_pose.pose.orientation.x = EE_CONSTRAINTS[i][3];
+			goal_pose.pose.orientation.y = EE_CONSTRAINTS[i][4];
+			goal_pose.pose.orientation.z = EE_CONSTRAINTS[i][5];
+			goal_pose.pose.orientation.w = EE_CONSTRAINTS[i][6];
+			std::string endeffector_name = "end_effector_link";
+
+			plan(planner_instance, planning_scene, req, res, "lower_body",
+					from_state, goal_pose, endeffector_name);
+
+			/*plan(planner_instance, planning_scene, req, res, "lower_body",
+			 from_state, to_state);*/
+
+			res.getMessage(response);
+
+			if (res.trajectory_->getWayPointCount() == 0)
+			{
+				--i;
+				continue;
+			}
+
+			if (i == 1)
+			{
+				if (c == 0)
+					display_trajectory.trajectory_start =
+							response.trajectory_start;
+				display_trajectory.trajectory.push_back(response.trajectory);
+			}
+			//display_publisher.publish(display_trajectory);
+
+			from_state = to_state;
+
+			// use the last configuration of prev trajectory
+			int num_joints = from_state.getVariableCount();
+			std::vector<double> positions(num_joints);
+			const robot_state::RobotState& last_state =
+					res.trajectory_->getLastWayPoint();
+			from_state.setVariablePositions(last_state.getVariablePositions());
+			from_state.update();
+
 		}
-
-		displayStates(node_handle, robot_model, from_state, to_state);
-		sleep_time.sleep();
-
-
-		plan(planner_instance, planning_scene, req, res, "lower_body",
-				from_state, to_state);
-		res.getMessage(response);
-		if (i == 0)
-			display_trajectory.trajectory_start = response.trajectory_start;
-		display_trajectory.trajectory.push_back(response.trajectory);
-		//display_publisher.publish(display_trajectory);
-
-
-
-
-		from_state = to_state;
-
-
-		// use the last configuration of prev trajectory
-		int num_joints = from_state.getVariableCount();
-		std::vector<double> positions(num_joints);
-		const robot_state::RobotState& last_state =
-				res.trajectory_->getLastWayPoint();
-		from_state.setVariablePositions(last_state.getVariablePositions());
-		from_state.update();
-
-
 	}
 
-	// return to the initial position
-	req.path_constraints.position_constraints.clear();
-	req.path_constraints.orientation_constraints.clear();
-	plan(planner_instance, planning_scene, req, res, "lower_body", from_state,
-			goal_state);
-	res.getMessage(response);
-	display_trajectory.trajectory.push_back(response.trajectory);
+	/*
+	 ROS_INFO("*** Planning Sequence %d ***", 6);
+
+	 // return to the initial position
+	 req.path_constraints.position_constraints.clear();
+	 req.path_constraints.orientation_constraints.clear();
+	 plan(planner_instance, planning_scene, req, res, "lower_body", from_state,
+	 goal_state);
+	 res.getMessage(response);
+	 display_trajectory.trajectory.push_back(response.trajectory);
+	 */
 
 	// publish trajectory
 	display_publisher.publish(display_trajectory);
@@ -692,5 +815,34 @@ int main(int argc, char **argv)
 	ROS_INFO("Done");
 	planner_instance.reset();
 
+	int num_joints =
+			display_trajectory.trajectory[0].joint_trajectory.points[0].positions.size();
+	int num_points =
+			display_trajectory.trajectory[0].joint_trajectory.points.size();
+	int num_trajectories = display_trajectory.trajectory.size();
+	for (int k = 0; k < num_joints; ++k)
+	{
+		std::cout
+				<< display_trajectory.trajectory[0].joint_trajectory.joint_names[k]
+				<< " ";
+	}
+	std::cout << std::endl;
+	for (int i = 0; i < num_trajectories; ++i)
+	{
+		for (int j = 0; j < num_points; ++j)
+		{
+			std::cout << "[" << j << "] ";
+			for (int k = 0; k < num_joints; ++k)
+			{
+				double value =
+						display_trajectory.trajectory[i].joint_trajectory.points[j].positions[k];
+				std::cout << value << " ";
+			}
+			std::cout << std::endl;
+		}
+		std::cout << std::endl;
+	}
+
 	return 0;
 }
+
