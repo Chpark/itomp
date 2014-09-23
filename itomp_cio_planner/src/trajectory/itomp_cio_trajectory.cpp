@@ -489,7 +489,33 @@ void ItompCIOTrajectory::fillInMinJerk(
 		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
 	int num_points = getNumPoints();
-	int num_constraint_points = trajectory_constraints.constraints.size();
+
+	int trajectory_index = 0;
+	std::string trajectory_index_string = boost::lexical_cast<std::string>(
+			trajectory_index);
+	int traj_constraint_begin = 0;
+	int traj_constraint_end = trajectory_constraints.constraints.size();
+	int i = 0;
+	for (i = 0; i < trajectory_constraints.constraints.size(); ++i)
+	{
+		if (trajectory_constraints.constraints[i].name
+				== trajectory_index_string)
+		{
+			traj_constraint_begin = i;
+			break;
+		}
+	}
+	for (; i < trajectory_constraints.constraints.size(); ++i)
+	{
+		if (trajectory_constraints.constraints[i].name
+				== "end")
+		{
+			traj_constraint_end = i + 1;
+			break;
+		}
+	}
+	int num_constraint_points = traj_constraint_end - traj_constraint_begin;
+
 	double interval = (double) num_points / (num_constraint_points - 1);
 
 	int group_joint_index = 0;
@@ -502,11 +528,11 @@ void ItompCIOTrajectory::fillInMinJerk(
 		int constraint_index = -1;
 		for (int k = 0;
 				k
-						< trajectory_constraints.constraints[0].joint_constraints.size();
+						< trajectory_constraints.constraints[traj_constraint_begin].joint_constraints.size();
 				++k)
 		{
 
-			if (trajectory_constraints.constraints[0].joint_constraints[k].joint_name
+			if (trajectory_constraints.constraints[traj_constraint_begin].joint_constraints[k].joint_name
 					== planning_group->group_joints_[group_joint_index].joint_name_)
 			{
 
@@ -538,13 +564,15 @@ void ItompCIOTrajectory::fillInMinJerk(
 			// interpolate between waypoints
 			for (int k = 0; k < num_constraint_points - 1; ++k)
 			{
+				int point = k + traj_constraint_begin;
+
 				double x0 =
-						trajectory_constraints.constraints[k].joint_constraints[constraint_index].position;
+						trajectory_constraints.constraints[point].joint_constraints[constraint_index].position;
 				double v0 = 0.0;
 				double a0 = 0.0;
 
 				double x1 =
-						trajectory_constraints.constraints[k + 1].joint_constraints[constraint_index].position;
+						trajectory_constraints.constraints[point + 1].joint_constraints[constraint_index].position;
 				double v1 = 0.0;
 				double a1 = 0.0;
 

@@ -12,6 +12,7 @@
 #include <moveit_msgs/PositionConstraint.h>
 #include <moveit_msgs/OrientationConstraint.h>
 #include <boost/variant/get.hpp>
+#include <boost/lexical_cast.hpp>
 #include <geometric_shapes/mesh_operations.h>
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
@@ -132,7 +133,7 @@ void MoveItomp::run(const std::string& group_name)
 	moveit_msgs::DisplayTrajectory display_trajectory;
 	moveit_msgs::MotionPlanResponse response;
 	visualization_msgs::MarkerArray ma;
-	planning_interface::MotionPlanRequest req;
+	planning_interface::MotionPlanRequest req, req2;
 	planning_interface::MotionPlanResponse res;
 
 	req.workspace_parameters.min_corner.x =
@@ -230,49 +231,64 @@ void MoveItomp::run(const std::string& group_name)
 		goal_pose.pose.orientation.w = rot.w();
 		std::string endeffector_name = "end_effector_link";
 
-		// planning using OMPL
-		plan(req, res, from_state, goal_pose, endeffector_name);
-		res.getMessage(response);
-		if (res.trajectory_ == NULL)
+		req2.trajectory_constraints.constraints.clear();
+		int traj_constraint_begin = 0;
+		for (int c = 0; c < 2; ++c)
 		{
-			--i;
-			continue;
-		}
-
-		printTrajectory(response.trajectory);
-
-		// plan using ITOMP
-		// use the last configuration of prev trajectory
-		if (i != 5)
-		{
-			int num_joints = from_state.getVariableCount();
-			std::vector<double> positions(num_joints);
-			const robot_state::RobotState& last_state =
-					res.trajectory_->getLastWayPoint();
-			to_state.setVariablePositions(last_state.getVariablePositions());
-			to_state.update();
-		}
-		req.trajectory_constraints.constraints.clear();
-		moveit_msgs::Constraints c;
-		moveit_msgs::JointConstraint jc;
-		int num_joints =
-				response.trajectory.joint_trajectory.points[0].positions.size();
-		int num_points = response.trajectory.joint_trajectory.points.size();
-		req.trajectory_constraints.constraints.resize(num_points);
-		for (int j = 0; j < num_points; ++j)
-		{
-			req.trajectory_constraints.constraints[j].joint_constraints.resize(
-					num_joints);
-			for (int k = 0; k < num_joints; ++k)
+			// planning using OMPL
+			plan(req, res, from_state, goal_pose, endeffector_name);
+			if (res.error_code_.val != res.error_code_.SUCCESS)
 			{
-				jc.joint_name = from_state.getVariableNames()[k];
-				jc.position =
-						response.trajectory.joint_trajectory.points[j].positions[k];
-				req.trajectory_constraints.constraints[j].joint_constraints[k] =
-						jc;
+				--c;
+				continue;
 			}
+			res.getMessage(response);
+
+			printTrajectory(response.trajectory);
+
+			// plan using ITOMP
+			// use the last configuration of prev trajectory
+			if (i != 5)
+			{
+				int num_joints = from_state.getVariableCount();
+				std::vector<double> positions(num_joints);
+				const robot_state::RobotState& last_state =
+						res.trajectory_->getLastWayPoint();
+				to_state.setVariablePositions(
+						last_state.getVariablePositions());
+				to_state.update();
+			}
+
+			moveit_msgs::JointConstraint jc;
+			int num_joints =
+					response.trajectory.joint_trajectory.points[0].positions.size();
+			int num_points = response.trajectory.joint_trajectory.points.size();
+			req2.trajectory_constraints.constraints.resize(traj_constraint_begin + num_points);
+			std::string trajectory_index_string = boost::lexical_cast<
+					std::string>(c);
+			for (int j = 0; j < num_points; ++j)
+			{
+				int point = j + traj_constraint_begin;
+				if (j == 0)
+					req2.trajectory_constraints.constraints[point].name =
+							trajectory_index_string;
+				if (j == num_points - 1)
+					req2.trajectory_constraints.constraints[point].name = "end";
+
+				req2.trajectory_constraints.constraints[point].joint_constraints.resize(
+						num_joints);
+				for (int k = 0; k < num_joints; ++k)
+				{
+					jc.joint_name = from_state.getVariableNames()[k];
+					jc.position =
+							response.trajectory.joint_trajectory.points[j].positions[k];
+					req2.trajectory_constraints.constraints[point].joint_constraints[k] =
+							jc;
+				}
+			}
+			traj_constraint_begin += num_points;
 		}
-		plan(req, res, from_state, to_state);
+		plan(req2, res, from_state, to_state);
 		res.getMessage(response);
 
 		////////////////////////////////////
