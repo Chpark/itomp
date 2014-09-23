@@ -594,16 +594,15 @@ void VisualizationManager::setPlanningGroup(
 }
 
 void VisualizationManager::animateEndeffector(int trajectory_index,
-		int numFreeVars, int freeVarStartIndex,
-		const vector<vector<KDL::Frame> >& segmentFrames,
-		const vector<int>& stateValidity, bool best)
+		int point_start, int point_end,
+		const vector<vector<KDL::Frame> >& segmentFrames, bool best)
 {
 	const double trajectory_color_diff = 0.33;
 	const double scale = 0.05;
+	const int marker_step = 1;
 
-	visualization_msgs::Marker::_color_type RED;
 	visualization_msgs::Marker::_color_type YELLOW;
-
+	visualization_msgs::Marker::_color_type RED;
 	RED.a = 1.0;
 	RED.r = 1.0;
 	RED.g = 0.0;
@@ -626,100 +625,31 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 
 	msg.points.resize(0);
 
-	msg.color.a = 1.0;
-	msg.color.r = 0.1;
-	msg.color.g = 0.0;
-	msg.color.b = 1.0;
-
-	visualization_msgs::Marker msg_bad = msg;
-	msg_bad.ns = "itomp_endeffector_bad";
-	msg_bad.color = RED;
-
-	visualization_msgs::Marker msg_collision = msg;
-
-	if (best)
-	{
-		msg.ns = "itomp_endeffector_best";
-		msg.id = 13;
-		/*
-		 msg.color.a = 1.0;
-		 msg.color.r = 0.0;
-		 msg.color.g = 1.0;
-		 msg.color.b = 1.0;
-		 */
-	}
+	msg.color = best ? YELLOW : RED;
 
 	for (unsigned int index = 0;
 			index < animate_endeffector_segment_numbers_.size(); ++index)
 	{
-		msg.id = 100 * trajectory_index + index * 3;
-		msg_bad.id = msg.id + 1;
-		if (best)
-			msg.id += 2;
+		msg.id = trajectory_index * animate_endeffector_segment_numbers_.size()
+				+ index;
+
+		int sn = animate_endeffector_segment_numbers_[index];
+		if (sn <= 0)
+			continue;
 
 		geometry_msgs::Point prevPt;
-		int sn = animate_endeffector_segment_numbers_[index];
-		if (sn > 0)
+
+		for (int j = point_start; j < point_end; j += marker_step)
 		{
-			int marker_step = 1;
-			for (int i = 0; i < numFreeVars; i = i + marker_step)
-			{
-				int j = i + freeVarStartIndex;
-				geometry_msgs::Point point;
-				point.x = segmentFrames[j][sn].p.x();
-				point.y = segmentFrames[j][sn].p.y();
-				point.z = segmentFrames[j][sn].p.z();
-				if (stateValidity[j])
-					msg.points.push_back(point);
-				else
-					msg_bad.points.push_back(point);
-
-				if (i != 0)
-				{
-					geometry_msgs::Point diff;
-					diff.x = point.x - prevPt.x;
-					diff.y = point.y - prevPt.y;
-					diff.z = point.z - prevPt.z;
-					double dist = sqrt(
-							diff.x * diff.x + diff.y * diff.y
-									+ diff.z * diff.z);
-					int numNeeded = (int) (dist / scale * 2);
-					for (int k = 0; k < numNeeded; ++k)
-					{
-						geometry_msgs::Point dummy;
-						dummy.x = prevPt.x + diff.x * (k + 1) / numNeeded;
-						dummy.y = prevPt.y + diff.y * (k + 1) / numNeeded;
-						dummy.z = prevPt.z + diff.z * (k + 1) / numNeeded;
-						msg.points.push_back(dummy);
-					}
-				}
-				prevPt = point;
-			}
-			vis_marker_publisher_.publish(msg);
-			//vis_marker_publisher_.publish(msg_bad);
+			geometry_msgs::Point point;
+			point.x = segmentFrames[j][sn].p.x();
+			point.y = segmentFrames[j][sn].p.y();
+			point.z = segmentFrames[j][sn].p.z();
+			msg.points.push_back(point);
 		}
-	}
-
-	msg_collision.id = 100 + trajectory_index
-			+ animate_endeffector_segment_numbers_.size() * 2 + 1;
-	msg_collision.color = YELLOW;
-
-	for (unsigned int i = 0; i < collision_point_mark_positions_.size(); ++i)
-	{
-		const Eigen::Vector3d& pos = collision_point_mark_positions_[i];
-		geometry_msgs::Point point;
-		point.x = pos[0];
-		point.y = pos[1];
-		point.z = pos[2];
-		double scale = 0.05;
-		msg_collision.scale.x = scale;
-		msg_collision.scale.y = scale;
-		msg_collision.scale.z = scale;
-
-		msg_collision.points.push_back(point);
+		vis_marker_publisher_.publish(msg);
 
 	}
-	vis_marker_publisher_.publish(msg_collision);
 }
 
 void VisualizationManager::animateRoot(int numFreeVars, int freeVarStartIndex,
@@ -856,9 +786,9 @@ void VisualizationManager::animateCoM(int numFreeVars, int freeVarStartIndex,
 void VisualizationManager::animatePath(const ItompCIOTrajectory* traj)
 {
 	std::vector<std::string> link_names =
-		robot_model_->getRobotModel()->getLinkModelNames();
-	//std::vector<std::string> link_names =
-		//	robot_model_->getRobotModel()->getJointModelGroup("lower_body")->getLinkModelNames();
+			robot_model_->getRobotModel()->getJointModelGroup("lower_body")->getLinkModelNames();
+	link_names.push_back("tool");
+
 	std_msgs::ColorRGBA color;
 	color.a = 0.5;
 	color.r = 0.0;
@@ -875,7 +805,8 @@ void VisualizationManager::animatePath(const ItompCIOTrajectory* traj)
 		robot_state_->updateLinkTransforms();
 		std::string ns = "wp_" + boost::lexical_cast<std::string>(point);
 		robot_state_->getRobotMarkers(ma_point, link_names, color, ns, dur);
-		ma.markers.insert(ma.markers.end(), ma_point.markers.begin(), ma_point.markers.end());
+		ma.markers.insert(ma.markers.end(), ma_point.markers.begin(),
+				ma_point.markers.end());
 	}
 	vis_marker_array_publisher_.publish(ma);
 }

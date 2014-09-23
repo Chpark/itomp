@@ -28,7 +28,7 @@ print_planning_info: true
 animate_path: true
 animate_endeffector: true
 animate_endeffector_segment:
-  lower_body: end_effector_link
+  lower_body: [tcp_1_link, tcp_2_link]
   torso: torso_x_link
   head: head_endeffector_link
   left_arm: left_hand_endeffector_link

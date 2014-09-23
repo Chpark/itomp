@@ -491,14 +491,15 @@ void EvaluationManager::render(int trajectory_index)
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 	{
 		VisualizationManager::getInstance()->animateEndeffector(
-				trajectory_index, num_vars_full_, full_vars_start_,
-				data_->segment_frames_, data_->state_validity_, false);
-		VisualizationManager::getInstance()->animateCoM(num_vars_full_,
-				full_vars_start_, data_->CoMPositions_, false);
+				trajectory_index, full_vars_start_, full_vars_end_,
+				data_->segment_frames_, false);
+		//VisualizationManager::getInstance()->animateCoM(num_vars_full_,
+		//	full_vars_start_, data_->CoMPositions_, false);
 	}
 	if (PlanningParameters::getInstance()->getAnimatePath())
 	{
-		VisualizationManager::getInstance()->animatePath(getFullTrajectoryConst());
+		VisualizationManager::getInstance()->animatePath(
+				getFullTrajectoryConst());
 	}
 }
 
@@ -725,9 +726,15 @@ bool EvaluationManager::performForwardKinematics(int begin, int end)
 					data_->joint_pos_[i], data_->joint_axis_[i],
 					data_->segment_frames_[i]);
 		else
-			data_->fk_solver_.JntToCartPartial(data_->kdl_joint_array_,
+			data_->fk_solver_.JntToCartFull(data_->kdl_joint_array_,
 					data_->joint_pos_[i], data_->joint_axis_[i],
 					data_->segment_frames_[i]);
+		// TODO: check patrial FK
+		/*
+		 data_->fk_solver_.JntToCartPartial(data_->kdl_joint_array_,
+		 data_->joint_pos_[i], data_->joint_axis_[i],
+		 data_->segment_frames_[i]);
+		 */
 
 		data_->state_is_in_collision_[i] = false;
 

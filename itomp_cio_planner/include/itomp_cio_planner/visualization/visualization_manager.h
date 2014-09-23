@@ -25,15 +25,20 @@ public:
 	virtual ~VisualizationManager();
 
 	void initialize(const ItompRobotModel& robot_model);
-	void setPlanningGroup(const ItompRobotModel& robot_model, const std::string& groupName);
+	void setPlanningGroup(const ItompRobotModel& robot_model,
+			const std::string& groupName);
 
 	void render();
 
-	void animateEndeffector(int trajectory_index, int numFreeVars, int freeVarStartIndex, const std::vector<
-			std::vector<KDL::Frame> >& segmentFrames, const std::vector<int>& stateValidity, bool best);
+	void animateEndeffector(int trajectory_index, int point_start,
+			int point_end, const std::vector<std::vector<KDL::Frame> >& segmentFrames,
+			bool best);
 
-	void animateCoM(int numFreeVars, int freeVarStartIndex, const std::vector<KDL::Vector>& CoM, bool best);
-	void animateRoot(int numFreeVars, int freeVarStartIndex, const std::vector<std::vector<KDL::Frame> >& segmentFrames, bool best);
+	void animateCoM(int numFreeVars, int freeVarStartIndex,
+			const std::vector<KDL::Vector>& CoM, bool best);
+	void animateRoot(int numFreeVars, int freeVarStartIndex,
+			const std::vector<std::vector<KDL::Frame> >& segmentFrames,
+			bool best);
 	void animatePath(const ItompCIOTrajectory* traj);
 
 	void clearCollisionPointMarkPositions()
@@ -46,14 +51,20 @@ public:
 	}
 	void renderEnvironment();
 	void renderGround();
-	void clearAnimations() {}
+	void clearAnimations()
+	{
+	}
 
-	ros::Publisher& getVisualizationMarkerPublisher() { return vis_marker_publisher_; }
-	ros::Publisher& getVisualizationMarkerArrayPublisher() { return vis_marker_array_publisher_; }
-
+	ros::Publisher& getVisualizationMarkerPublisher()
+	{
+		return vis_marker_publisher_;
+	}
+	ros::Publisher& getVisualizationMarkerArrayPublisher()
+	{
+		return vis_marker_array_publisher_;
+	}
 
 private:
-
 
 	ros::Publisher vis_marker_array_publisher_;
 	ros::Publisher vis_marker_publisher_;
