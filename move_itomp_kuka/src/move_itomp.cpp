@@ -206,7 +206,7 @@ void MoveItomp::run(const std::string& group_name)
 		computeIKState(states[i], goal_transform[i]);
 	}
 
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 6; ++i)
 	{
 		ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -233,7 +233,7 @@ void MoveItomp::run(const std::string& group_name)
 
 		req2.trajectory_constraints.constraints.clear();
 		int traj_constraint_begin = 0;
-		for (int c = 0; c < 2; ++c)
+		for (int c = 0; c < 4; ++c)
 		{
 			// planning using OMPL
 			plan(req, res, from_state, goal_pose, endeffector_name);
