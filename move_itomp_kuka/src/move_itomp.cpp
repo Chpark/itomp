@@ -288,6 +288,7 @@ void MoveItomp::run(const std::string& group_name)
 			}
 			traj_constraint_begin += num_points;
 		}
+		//req2.trajectory_constraints.constraints.clear();
 		plan(req2, res, from_state, to_state);
 		res.getMessage(response);
 
@@ -427,6 +428,20 @@ void MoveItomp::plan(planning_interface::MotionPlanRequest& req,
 					goal_pose, tolerance_pose, tolerance_angle);
 	req.goal_constraints.clear();
 	req.goal_constraints.push_back(pose_goal);
+
+	moveit_msgs::OrientationConstraint oc;
+	oc.link_name = "tool";
+	oc.orientation.x = -0.5;
+	oc.orientation.y = -0.5;
+	oc.orientation.z = 0.5;
+	oc.orientation.w = 0.5;
+	oc.absolute_x_axis_tolerance = M_PI;
+	oc.absolute_y_axis_tolerance = M_PI;
+	oc.absolute_z_axis_tolerance = 5.0 * M_PI / 180.0;
+	oc.weight = 1.0;
+	oc.header.frame_id = robot_model_->getModelFrame();
+	oc.header.stamp = ros::Time::now();
+	//req.path_constraints.orientation_constraints.push_back(oc);
 
 	planning_interface::PlanningContextPtr context =
 			ompl_planner_instance_->getPlanningContext(planning_scene_, req,
