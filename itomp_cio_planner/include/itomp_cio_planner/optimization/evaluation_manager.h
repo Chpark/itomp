@@ -49,6 +49,7 @@ public:
   };
 
   EvaluationManager(int* iteration);
+  EvaluationManager() {};
   virtual ~EvaluationManager();
 
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
@@ -69,7 +70,7 @@ public:
 
   void handleJointLimits();
   void updateFullTrajectory();
-  void render(int trajectory_index);
+  void render(int trajectory_index, bool is_best);
 
   const ItompCIOTrajectory* getGroupTrajectoryConst() const;
   const ItompCIOTrajectory* getFullTrajectoryConst() const;

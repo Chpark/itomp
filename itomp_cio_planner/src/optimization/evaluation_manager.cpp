@@ -95,9 +95,6 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory,
 	is_collision_free_ = false;
 	last_trajectory_collision_free_ = false;
 
-	// Initialize visualizer
-	VisualizationManager::getInstance()->setPlanningGroup(*robot_model_,
-			planning_group_->name_);
 	vis_marker_pub_ =
 			VisualizationManager::getInstance()->getVisualizationMarkerPublisher();
 	vis_marker_array_pub_ =
@@ -486,21 +483,23 @@ double EvaluationManager::evaluateDerivatives(double value,
 	return cost;
 }
 
-void EvaluationManager::render(int trajectory_index)
+void EvaluationManager::render(int trajectory_index, bool is_best)
 {
+	if (PlanningParameters::getInstance()->getAnimatePath())
+	{
+		VisualizationManager::getInstance()->animatePath(trajectory_index,
+				getFullTrajectoryConst(), is_best);
+	}
+
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 	{
 		VisualizationManager::getInstance()->animateEndeffector(
 				trajectory_index, full_vars_start_, full_vars_end_,
-				data_->segment_frames_, false);
+				data_->segment_frames_, is_best);
 		//VisualizationManager::getInstance()->animateCoM(num_vars_full_,
 		//	full_vars_start_, data_->CoMPositions_, false);
 	}
-	if (PlanningParameters::getInstance()->getAnimatePath())
-	{
-		VisualizationManager::getInstance()->animatePath(
-				getFullTrajectoryConst());
-	}
+
 }
 
 void EvaluationManager::computeMassAndGravityForce()
@@ -2472,10 +2471,12 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
 	if (PlanningParameters::getInstance()->getSingularityCostWeight() == 0.0)
 		return;
 
+	return;
+
 	double min_singular_value = std::numeric_limits<double>::max();
 	int min_singular_value_index = begin;
 
-	std::vector<double> positions, trajectory_ftrs;
+	std::vector<double> positions;
 	int num_joints = data_->getFullTrajectory()->getNumJoints();
 	positions.resize(num_joints);
 	for (int i = begin; i < end; ++i)
@@ -2489,13 +2490,25 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
 		{
 			positions[k] = (*data_->getFullTrajectory())(full_traj_index, k);
 		}
+		int sz = data_->kinematic_state_[0]->getVariableCount();
 		data_->kinematic_state_[0]->setVariablePositions(&positions[0]);
+		data_->kinematic_state_[0]->update();
 		robot_model::RobotModelConstPtr robot_model_ptr =
 				data_->getItompRobotModel()->getRobotModel();
+
+		const moveit::core::JointModelGroup* jmg =
+				robot_model_ptr->getJointModelGroup(group_name);
 		Eigen::MatrixXd jacobianFull = (data_->kinematic_state_[0]->getJacobian(
-				robot_model_ptr->getJointModelGroup(group_name)));
+				jmg));
+
+		int rows2 = jacobianFull.rows();
+		cout << jacobianFull << endl;
+		for (int k = 0; k < num_joints; ++k)
+			printf("%f ", positions[k]);
+		printf("\n");
 
 		Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobianFull);
+		cout << svd.singularValues() << endl;
 
 		/*
 		 printf("[%d] svd values : ", i);
@@ -2507,7 +2520,7 @@ void EvaluationManager::computeSingularityCosts(int begin, int end)
 		 */
 
 		int rows = svd.singularValues().rows();
-		double value = svd.singularValues()(rows - 1);
+		double value = (rows == 0 ? 0.0 : svd.singularValues()(rows - 1));
 		if (value < min_singular_value)
 		{
 			min_singular_value = value;

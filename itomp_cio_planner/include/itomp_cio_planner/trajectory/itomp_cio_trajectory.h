@@ -32,6 +32,7 @@ public:
 			double contact_phase_duration);
 	ItompCIOTrajectory(const ItompCIOTrajectory& source_traj,
 			const ItompPlanningGroup* planning_group, int diff_rule_length);
+	ItompCIOTrajectory() {};
 
 	virtual ~ItompCIOTrajectory();
 
@@ -64,7 +65,8 @@ public:
 	void fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 			const Eigen::MatrixXd::RowXpr joint_vel_array,
 			const Eigen::MatrixXd::RowXpr joint_acc_array);
-	void fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
+	void fillInMinJerk(int trajectory_index,
+			const std::set<int>& groupJointsKDLIndices,
 			const ItompPlanningGroup* planning_group,
 			const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
 	void fillInMinJerkCartesianTrajectory(

@@ -325,6 +325,8 @@ void ItompCIOTrajectory::fillInMinJerk(
 		const Eigen::MatrixXd::RowXpr joint_vel_array,
 		const Eigen::MatrixXd::RowXpr joint_acc_array)
 {
+	ROS_INFO("Trajectory 0 use fillInMinJerk");
+
 	vel_start_ = joint_vel_array;
 	acc_start_ = joint_acc_array;
 	double start_index = start_index_ - 1;
@@ -483,14 +485,14 @@ void ItompCIOTrajectory::fillInMinJerk(
 	}
 }
 
-void ItompCIOTrajectory::fillInMinJerk(
+void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 		const std::set<int>& groupJointsKDLIndices,
 		const ItompPlanningGroup* planning_group,
 		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
+	printTrajectory();
 	int num_points = getNumPoints();
 
-	int trajectory_index = 0;
 	std::string trajectory_index_string = boost::lexical_cast<std::string>(
 			trajectory_index);
 	int traj_constraint_begin = 0;
@@ -585,7 +587,7 @@ void ItompCIOTrajectory::fillInMinJerk(
 						v0, a0, interp_end, x1, v1, a1);
 				for (int i = std::max(1, safeToInt(k * interval));
 						i
-								< std::min(safeToInt(((k + 1) * interval)),
+								<= std::min(safeToInt(((k + 1) * interval)),
 										getNumPoints() - 1); ++i)
 				{
 					double value = poly(i);

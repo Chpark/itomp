@@ -6,6 +6,7 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/itomp_cio_trajectory.h>
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
+#include <itomp_cio_planner/optimization/best_cost_manager.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
 
@@ -40,10 +41,11 @@ private:
   ItompRobotModel robot_model_;
 
   ItompCIOTrajectoryPtr trajectory_;
-  ItompOptimizerPtr optimizer_;
+  std::vector<ItompCIOTrajectoryPtr> trajectories_;
+  std::vector<ItompOptimizerPtr> optimizers_;
+
   double trajectory_start_time_;
 
-  void printTrajectory(ItompCIOTrajectory* trajectory);
   double last_planning_time_;
   int last_min_cost_trajectory_;
 
@@ -58,6 +60,8 @@ private:
   Eigen::MatrixXd start_point_accelerations_;
 
   robot_state::RobotStatePtr complete_initial_robot_state_;
+
+  BestCostManager best_cost_manager_;
 
   sensor_msgs::JointState jointConstraintsToJointState(const std::vector<moveit_msgs::Constraints> &constraints)
   {

@@ -31,7 +31,8 @@ public:
 	void render();
 
 	void animateEndeffector(int trajectory_index, int point_start,
-			int point_end, const std::vector<std::vector<KDL::Frame> >& segmentFrames,
+			int point_end,
+			const std::vector<std::vector<KDL::Frame> >& segmentFrames,
 			bool best);
 
 	void animateCoM(int numFreeVars, int freeVarStartIndex,
@@ -39,7 +40,11 @@ public:
 	void animateRoot(int numFreeVars, int freeVarStartIndex,
 			const std::vector<std::vector<KDL::Frame> >& segmentFrames,
 			bool best);
-	void animatePath(const ItompCIOTrajectory* traj);
+	void animatePath(int trajectory_index, const ItompCIOTrajectory* traj,
+			bool is_best);
+
+	void publish(const visualization_msgs::Marker& msg);
+	void publish(const visualization_msgs::MarkerArray& msg);
 
 	void clearCollisionPointMarkPositions()
 	{
@@ -65,6 +70,7 @@ public:
 	}
 
 private:
+	boost::mutex mtx_;
 
 	ros::Publisher vis_marker_array_publisher_;
 	ros::Publisher vis_marker_publisher_;
@@ -76,8 +82,20 @@ private:
 	std::vector<Eigen::Vector3d> collision_point_mark_positions_;
 
 	const itomp_cio_planner::ItompRobotModel* robot_model_;
-	robot_state::RobotStatePtr robot_state_;
+	std::vector<robot_state::RobotStatePtr> robot_states_;
 };
+
+inline void VisualizationManager::publish(const visualization_msgs::Marker& msg)
+{
+	boost::lock_guard<boost::mutex> guard(mtx_);
+	vis_marker_publisher_.publish(msg);
+}
+inline void VisualizationManager::publish(const visualization_msgs::MarkerArray& msg)
+{
+	boost::lock_guard<boost::mutex> guard(mtx_);
+	vis_marker_array_publisher_.publish(msg);
+}
+
 }
 ;
 

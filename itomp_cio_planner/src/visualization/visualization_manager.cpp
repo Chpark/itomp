@@ -556,8 +556,11 @@ void VisualizationManager::initialize(
 
 	robot_model_ = &robot_model;
 
-	robot_state_.reset(
-			new robot_state::RobotState(robot_model_->getRobotModel()));
+	int num_traj = PlanningParameters::getInstance()->getNumTrajectories();
+	robot_states_.resize(num_traj);
+	for (int i = 0; i < num_traj; ++i)
+		robot_states_[i].reset(
+				new robot_state::RobotState(robot_model_->getRobotModel()));
 }
 
 void VisualizationManager::setPlanningGroup(
@@ -601,16 +604,21 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 	const double scale = 0.05;
 	const int marker_step = 1;
 
-	visualization_msgs::Marker::_color_type YELLOW;
-	visualization_msgs::Marker::_color_type RED;
+	visualization_msgs::Marker::_color_type YELLOW, LIGHT_YELLOW;
+	visualization_msgs::Marker::_color_type RED, LIGHT_RED;
 	RED.a = 1.0;
 	RED.r = 1.0;
 	RED.g = 0.0;
 	RED.b = 0.0;
 	YELLOW.a = 1.0;
 	YELLOW.r = 1.0;
-	YELLOW.g = 0.0;
+	YELLOW.g = 1.0;
 	YELLOW.b = 0.0;
+	LIGHT_RED = RED;
+	LIGHT_RED.g = 0.5;
+	LIGHT_RED.b = 0.5;
+	LIGHT_YELLOW = YELLOW;
+	LIGHT_YELLOW.b = 0.5;
 
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = reference_frame_;
@@ -625,13 +633,16 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 
 	msg.points.resize(0);
 
-	msg.color = best ? YELLOW : RED;
-
 	for (unsigned int index = 0;
 			index < animate_endeffector_segment_numbers_.size(); ++index)
 	{
+		if (index != 0)
+			break;
+
 		msg.id = trajectory_index * animate_endeffector_segment_numbers_.size()
 				+ index;
+
+		msg.color = best ? (index == 0 ? YELLOW : LIGHT_YELLOW) : (index == 0 ? RED : LIGHT_RED);
 
 		int sn = animate_endeffector_segment_numbers_[index];
 		if (sn <= 0)
@@ -647,7 +658,7 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 			point.z = segmentFrames[j][sn].p.z();
 			msg.points.push_back(point);
 		}
-		vis_marker_publisher_.publish(msg);
+		publish(msg);
 
 	}
 }
@@ -783,17 +794,29 @@ void VisualizationManager::animateCoM(int numFreeVars, int freeVarStartIndex,
 	vis_marker_publisher_.publish(msg);
 }
 
-void VisualizationManager::animatePath(const ItompCIOTrajectory* traj)
+void VisualizationManager::animatePath(int trajectory_index,
+		const ItompCIOTrajectory* traj, bool is_best)
 {
+	if (!is_best)
+		return;
+
 	std::vector<std::string> link_names =
 			robot_model_->getRobotModel()->getJointModelGroup("lower_body")->getLinkModelNames();
 	link_names.push_back("tool");
 
-	std_msgs::ColorRGBA color;
-	color.a = 0.5;
-	color.r = 0.0;
-	color.g = 1.0;
-	color.b = 0.0;
+	std_msgs::ColorRGBA WHITE, YELLOW, RED;
+	WHITE.a = 1.0;
+	WHITE.r = 1.0;
+	WHITE.g = 1.0;
+	WHITE.b = 1.0;
+	YELLOW.a = 1.0;
+	YELLOW.r = 0.0;
+	YELLOW.g = 1.0;
+	YELLOW.b = 1.0;
+	RED.a = 0.5;
+	RED.r = 1.0;
+	RED.g = 0.0;
+	RED.b = 0.0;
 	ros::Duration dur(100.0);
 
 	visualization_msgs::MarkerArray ma;
@@ -801,14 +824,23 @@ void VisualizationManager::animatePath(const ItompCIOTrajectory* traj)
 	{
 		visualization_msgs::MarkerArray ma_point;
 		const Eigen::MatrixXd& mat = traj->getTrajectoryPoint(point);
-		robot_state_->setVariablePositions(mat.data());
-		robot_state_->updateLinkTransforms();
+		robot_states_[trajectory_index]->setVariablePositions(mat.data());
+		robot_states_[trajectory_index]->updateLinkTransforms();
 		std::string ns = "wp_" + boost::lexical_cast<std::string>(point);
-		robot_state_->getRobotMarkers(ma_point, link_names, color, ns, dur);
+		robot_states_[trajectory_index]->getRobotMarkers(ma_point, link_names,
+				WHITE, ns, dur);
 		ma.markers.insert(ma.markers.end(), ma_point.markers.begin(),
 				ma_point.markers.end());
 	}
+	int marker_size = ma.markers.size();
+	/*
+	 for (int i = 0; i < marker_size; ++i)
+	 {
+	 ma.markers[i].id += trajectory_index * marker_size;
+	 }
+	 */
 	vis_marker_array_publisher_.publish(ma);
+
 }
 
 }
