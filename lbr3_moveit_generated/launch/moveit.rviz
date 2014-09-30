@@ -4,11 +4,17 @@ Panels:
     Name: Displays
     Property Tree Widget:
       Expanded:
+        - /Global Options1
+        - /Grid1
         - /MotionPlanning1
         - /MotionPlanning1/Scene Geometry1
+        - /MotionPlanning1/Scene Robot1
+        - /MotionPlanning1/Scene Robot1/Links1
+        - /MotionPlanning1/Scene Robot1/Links1/goal_1_link1
         - /MotionPlanning1/Planned Path1
         - /Marker1
         - /Marker1/Namespaces1
+        - /Axes1
       Splitter Ratio: 0.421131
     Tree Height: 829
   - Class: rviz/Help
@@ -147,10 +153,10 @@ Visualization Manager:
             Show Axes: false
             Show Trail: false
             Value: true
-        Loop Animation: true
+        Loop Animation: false
         Robot Alpha: 0.5
-        Show Robot Collision: true
-        Show Robot Visual: false
+        Show Robot Collision: false
+        Show Robot Visual: true
         Show Trail: false
         State Display Time: 0.05 s
         Trajectory Topic: /move_group/display_planned_path
@@ -176,7 +182,7 @@ Visualization Manager:
       Planning Scene Topic: /planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 0.8
+        Scene Alpha: 1
         Scene Color: 128; 128; 128
         Scene Display Time: 0.2
         Show Scene Geometry: true
@@ -196,7 +202,7 @@ Visualization Manager:
             Show Trail: false
           goal_1_link:
             Alpha: 1
-            Show Axes: false
+            Show Axes: true
             Show Trail: false
           goal_2_link:
             Alpha: 1
@@ -288,7 +294,7 @@ Visualization Manager:
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -392,12 +398,12 @@ Visualization Manager:
       Robot State Topic: /move_itomp/display_start_state
       Show All Links: true
       Show Highlights: true
-      Value: true
+      Value: false
       Visual Enabled: true
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: true
+      Enabled: false
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -501,7 +507,7 @@ Visualization Manager:
       Robot State Topic: /move_itomp/display_goal_state
       Show All Links: true
       Show Highlights: true
-      Value: true
+      Value: false
       Visual Enabled: true
     - Class: rviz/Marker
       Enabled: true
@@ -510,18 +516,25 @@ Visualization Manager:
       Namespaces:
         environment: true
         itomp_endeffector: true
-        wp_0: false
-        wp_10: false
-        wp_100: false
-        wp_20: false
-        wp_30: false
-        wp_40: false
-        wp_50: false
-        wp_60: false
-        wp_70: false
-        wp_80: false
-        wp_90: false
+        wp_0: true
+        wp_10: true
+        wp_100: true
+        wp_20: true
+        wp_30: true
+        wp_40: true
+        wp_50: true
+        wp_60: true
+        wp_70: true
+        wp_80: true
+        wp_90: true
       Queue Size: 100
+      Value: true
+    - Class: rviz/Axes
+      Enabled: true
+      Length: 10
+      Name: Axes
+      Radius: 0.1
+      Reference Frame: segment_0
       Value: true
   Enabled: true
   Global Options:
@@ -538,22 +551,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 17.0345
+      Distance: 35.4513
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 2.4845
-        Y: -1.71539
-        Z: -3.3226e-05
+        X: 1.78656
+        Y: 7.26935
+        Z: -3.51333e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.389797
+      Pitch: 0.4398
       Target Frame: kuka_root
       Value: XYOrbit (rviz)
-      Yaw: 2.47368
+      Yaw: 4.76189
     Saved: ~
 Window Geometry:
   Displays:
@@ -565,7 +578,7 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073030000042d00000018000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073020000042d00000018000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855
