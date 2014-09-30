@@ -229,6 +229,17 @@ void MoveItomp::run(const std::string& group_name)
 		displayStates(from_state, to_state);
 		sleep_time.sleep();
 
+		if (i == 0)
+		{
+			req2.trajectory_constraints.constraints.clear();
+			plan(req2, res, from_state, from_state);
+			res.getMessage(response);
+
+			display_trajectory.trajectory_start = response.trajectory_start;
+			response.trajectory.joint_trajectory.points.resize(response.trajectory.joint_trajectory.points.size() / 5);
+			display_trajectory.trajectory.push_back(response.trajectory);
+		}
+
 		const Eigen::Affine3d& transform = goal_transform[(i + 1) % 6];
 		Eigen::Vector3d trans = transform.translation();
 		Eigen::Quaterniond rot = Eigen::Quaterniond(transform.linear());
@@ -318,8 +329,14 @@ void MoveItomp::run(const std::string& group_name)
 
 		if (i == 0)
 		{
-			display_trajectory.trajectory_start = response.trajectory_start;
+			//display_trajectory.trajectory_start = response.trajectory_start;
 		}
+		display_trajectory.trajectory.push_back(response.trajectory);
+
+		req2.trajectory_constraints.constraints.clear();
+		plan(req2, res, to_state, to_state);
+		res.getMessage(response);
+		response.trajectory.joint_trajectory.points.resize(response.trajectory.joint_trajectory.points.size() / 5);
 		display_trajectory.trajectory.push_back(response.trajectory);
 	}
 

@@ -2,7 +2,7 @@ num_trials: 1
 planning_time_limit: 120.0
 max_iterations: 2000
 max_iterations_after_collision_free: 1
-num_trajectories: 1
+num_trajectories: 4
 
 smoothness_cost_weight: 0.00001
 obstacle_cost_weight: 1.0
@@ -63,7 +63,7 @@ num_contacts: 0
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://kuka_description/env/scene2_s4.dae
+environment_model: package://kuka_description/env/scene2_s6.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 
