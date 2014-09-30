@@ -162,186 +162,387 @@ void MoveItomp::run(const std::string& group_name)
 
 	const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
-	double EE_CONSTRAINTS[][7] =
+	int benchmark = 2;
+
+	if (benchmark == 1)
 	{
-	{ .2, .05, 1.2, -0.5, 0.5, -0.5, 0.5 },
-	{ .2, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
-	{ .2, .10, 1.2, -0.5, 0.5, -0.5, 0.5 },
-	{ .15, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
-	{ .2, .15, 1.2, -0.5, 0.5, -0.5, 0.5 },
-	{ .1, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 }, };
-
-	for (int i = 0; i < 6; ++i)
-	{
-		for (int j = 0; j < 3; ++j)
-			EE_CONSTRAINTS[i][j] *= 10.0;
-
-		EE_CONSTRAINTS[i][0] -= 5.4;
-		EE_CONSTRAINTS[i][1] -= 1.9;
-		EE_CONSTRAINTS[i][2] -= 4.16;
-
-		EE_CONSTRAINTS[i][0] = -EE_CONSTRAINTS[i][0];
-		EE_CONSTRAINTS[i][1] = -EE_CONSTRAINTS[i][1];
-	}
-
-	Eigen::Affine3d goal_transform[6];
-	for (int i = 0; i < 6; ++i)
-	{
-		Eigen::Vector3d trans = Eigen::Vector3d(EE_CONSTRAINTS[i][0],
-				EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
-		Eigen::Quaterniond rot = Eigen::Quaterniond(EE_CONSTRAINTS[i][6],
-				EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4],
-				EE_CONSTRAINTS[i][5]);
-
-		goal_transform[i].linear() = rot.toRotationMatrix();
-		goal_transform[i].translation() = trans;
-	}
-
-	// transform from tcp to arm end-effector
-	Eigen::Affine3d transform_1_inv =
-			robot_model_->getLinkModel("tcp_1_link")->getJointOriginTransform().inverse();
-	Eigen::Affine3d transform_2_inv =
-			robot_model_->getLinkModel("tcp_2_link")->getJointOriginTransform().inverse();
-
-	for (int i = 0; i < 6; ++i)
-	{
-		goal_transform[i] = goal_transform[i]
-				* ((i % 2 == 0) ? transform_1_inv : transform_2_inv);
-	}
-
-	start_state.update();
-	ROS_ASSERT(isStateCollide(start_state) == false);
-
-	std::vector<robot_state::RobotState> states(6, start_state);
-	for (int i = 0; i < 6; ++i)
-	{
-		states[i].update();
-		computeIKState(states[i], goal_transform[i]);
-	}
-
-	for (int i = 0; i < 6; ++i)
-	{
-		ROS_INFO("*** Planning Sequence %d ***", i);
-
-		robot_state::RobotState& from_state = states[i];
-		robot_state::RobotState& to_state = states[(i + 1) % 6];
-
-		displayStates(from_state, to_state);
-		sleep_time.sleep();
-
-		if (i == 0)
+		// static benchmark 1
+		///
+		double EE_CONSTRAINTS[][7] =
 		{
+		{ .2, .05, 1.2, -0.5, 0.5, -0.5, 0.5 },
+		{ .2, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
+		{ .2, .10, 1.2, -0.5, 0.5, -0.5, 0.5 },
+		{ .15, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
+		{ .2, .15, 1.2, -0.5, 0.5, -0.5, 0.5 },
+		{ .1, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 }, };
+
+		for (int i = 0; i < 6; ++i)
+		{
+			for (int j = 0; j < 3; ++j)
+				EE_CONSTRAINTS[i][j] *= 10.0;
+
+			EE_CONSTRAINTS[i][0] -= 5.4;
+			EE_CONSTRAINTS[i][1] -= 1.9;
+			EE_CONSTRAINTS[i][2] -= 4.16;
+
+			EE_CONSTRAINTS[i][0] = -EE_CONSTRAINTS[i][0];
+			EE_CONSTRAINTS[i][1] = -EE_CONSTRAINTS[i][1];
+		}
+
+		Eigen::Affine3d goal_transform[6];
+		for (int i = 0; i < 6; ++i)
+		{
+			Eigen::Vector3d trans = Eigen::Vector3d(EE_CONSTRAINTS[i][0],
+					EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
+			Eigen::Quaterniond rot = Eigen::Quaterniond(EE_CONSTRAINTS[i][6],
+					EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4],
+					EE_CONSTRAINTS[i][5]);
+
+			goal_transform[i].linear() = rot.toRotationMatrix();
+			goal_transform[i].translation() = trans;
+		}
+
+		// transform from tcp to arm end-effector
+		Eigen::Affine3d transform_1_inv = robot_model_->getLinkModel(
+				"tcp_1_link")->getJointOriginTransform().inverse();
+		Eigen::Affine3d transform_2_inv = robot_model_->getLinkModel(
+				"tcp_2_link")->getJointOriginTransform().inverse();
+
+		for (int i = 0; i < 6; ++i)
+		{
+			goal_transform[i] = goal_transform[i]
+					* ((i % 2 == 0) ? transform_1_inv : transform_2_inv);
+		}
+
+		start_state.update();
+		ROS_ASSERT(isStateCollide(start_state) == false);
+
+		std::vector<robot_state::RobotState> states(6, start_state);
+		for (int i = 0; i < 6; ++i)
+		{
+			states[i].update();
+			computeIKState(states[i], goal_transform[i]);
+		}
+
+		for (int i = 0; i < 6; ++i)
+		{
+			ROS_INFO("*** Planning Sequence %d ***", i);
+
+			robot_state::RobotState& from_state = states[i];
+			robot_state::RobotState& to_state = states[(i + 1) % 6];
+
+			displayStates(from_state, to_state);
+			sleep_time.sleep();
+
+			if (i == 0)
+			{
+				req2.trajectory_constraints.constraints.clear();
+				plan(req2, res, from_state, from_state);
+				res.getMessage(response);
+
+				display_trajectory.trajectory_start = response.trajectory_start;
+				response.trajectory.joint_trajectory.points.resize(
+						response.trajectory.joint_trajectory.points.size() / 5);
+				display_trajectory.trajectory.push_back(response.trajectory);
+			}
+
+			const Eigen::Affine3d& transform = goal_transform[(i + 1) % 6];
+			Eigen::Vector3d trans = transform.translation();
+			Eigen::Quaterniond rot = Eigen::Quaterniond(transform.linear());
+
+			geometry_msgs::PoseStamped goal_pose;
+			goal_pose.header.frame_id = robot_model_->getModelFrame();
+			goal_pose.pose.position.x = trans(0);
+			goal_pose.pose.position.y = trans(1);
+			goal_pose.pose.position.z = trans(2);
+			goal_pose.pose.orientation.x = rot.x();
+			goal_pose.pose.orientation.y = rot.y();
+			goal_pose.pose.orientation.z = rot.z();
+			goal_pose.pose.orientation.w = rot.w();
+			std::string endeffector_name = "end_effector_link";
+
 			req2.trajectory_constraints.constraints.clear();
-			plan(req2, res, from_state, from_state);
+			int traj_constraint_begin = 0;
+			for (int c = 0; c < 4; ++c)
+			{
+				// planning using OMPL
+				plan(req, res, from_state, goal_pose, endeffector_name);
+				if (res.error_code_.val != res.error_code_.SUCCESS)
+				{
+					--c;
+					continue;
+				}
+				res.getMessage(response);
+
+				printTrajectory(response.trajectory);
+
+				// plan using ITOMP
+				// use the last configuration of prev trajectory
+				if (i != 5)
+				{
+					int num_joints = from_state.getVariableCount();
+					std::vector<double> positions(num_joints);
+					const robot_state::RobotState& last_state =
+							res.trajectory_->getLastWayPoint();
+					to_state.setVariablePositions(
+							last_state.getVariablePositions());
+					to_state.update();
+				}
+
+				moveit_msgs::JointConstraint jc;
+				int num_joints =
+						response.trajectory.joint_trajectory.points[0].positions.size();
+				int num_points =
+						response.trajectory.joint_trajectory.points.size();
+				req2.trajectory_constraints.constraints.resize(
+						traj_constraint_begin + num_points);
+				std::string trajectory_index_string = boost::lexical_cast<
+						std::string>(c);
+				for (int j = 0; j < num_points; ++j)
+				{
+					int point = j + traj_constraint_begin;
+					if (j == 0)
+						req2.trajectory_constraints.constraints[point].name =
+								trajectory_index_string;
+					if (j == num_points - 1)
+						req2.trajectory_constraints.constraints[point].name =
+								"end";
+
+					req2.trajectory_constraints.constraints[point].joint_constraints.resize(
+							num_joints);
+					for (int k = 0; k < num_joints; ++k)
+					{
+						jc.joint_name = from_state.getVariableNames()[k];
+						jc.position =
+								response.trajectory.joint_trajectory.points[j].positions[k];
+						req2.trajectory_constraints.constraints[point].joint_constraints[k] =
+								jc;
+					}
+				}
+				traj_constraint_begin += num_points;
+			}
+
+			plan(req2, res, from_state, to_state);
 			res.getMessage(response);
 
-			display_trajectory.trajectory_start = response.trajectory_start;
-			response.trajectory.joint_trajectory.points.resize(response.trajectory.joint_trajectory.points.size() / 5);
+			int n = res.trajectory_->getWayPointCount();
+			for (int k = 0; k < n; ++k)
+			{
+				bool is_collide = isStateCollide(
+						res.trajectory_->getWayPoint(k));
+				if (is_collide)
+					ROS_INFO("%d waypoint has collision", k);
+			}
+
+			display_trajectory.trajectory.push_back(response.trajectory);
+
+			req2.trajectory_constraints.constraints.clear();
+			plan(req2, res, to_state, to_state);
+			res.getMessage(response);
+			response.trajectory.joint_trajectory.points.resize(
+					response.trajectory.joint_trajectory.points.size() / 5);
 			display_trajectory.trajectory.push_back(response.trajectory);
 		}
-
-		const Eigen::Affine3d& transform = goal_transform[(i + 1) % 6];
-		Eigen::Vector3d trans = transform.translation();
-		Eigen::Quaterniond rot = Eigen::Quaterniond(transform.linear());
-
-		geometry_msgs::PoseStamped goal_pose;
-		goal_pose.header.frame_id = robot_model_->getModelFrame();
-		goal_pose.pose.position.x = trans(0);
-		goal_pose.pose.position.y = trans(1);
-		goal_pose.pose.position.z = trans(2);
-		goal_pose.pose.orientation.x = rot.x();
-		goal_pose.pose.orientation.y = rot.y();
-		goal_pose.pose.orientation.z = rot.z();
-		goal_pose.pose.orientation.w = rot.w();
-		std::string endeffector_name = "end_effector_link";
-
-		req2.trajectory_constraints.constraints.clear();
-		int traj_constraint_begin = 0;
-		for (int c = 0; c < 4; ++c)
+		///
+	}
+	else if (benchmark == 2)
+	{
+		const int num_waypoints = 4;
+		// static benchmark 2
+		///
+		double EE_CONSTRAINTS[][7] =
 		{
-			// planning using OMPL
-			plan(req, res, from_state, goal_pose, endeffector_name);
-			if (res.error_code_.val != res.error_code_.SUCCESS)
+		{ 3.3, 2, 7.0, 0.5, 0.5, 0.5, 0.5 },
+		{ 3.3, 2, 10.0, 0.5, 0.5, 0.5, 0.5 },
+		{ 3.3, -2, 10.0, 0.5, 0.5, 0.5, 0.5 },
+		{ 3.3, -2, 7.0, 0.5, 0.5, 0.5, 0.5 } };
+
+		Eigen::Affine3d goal_transform[num_waypoints];
+		for (int i = 0; i < num_waypoints; ++i)
+		{
+			Eigen::Vector3d trans = Eigen::Vector3d(EE_CONSTRAINTS[i][0],
+					EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
+			Eigen::Quaterniond rot = Eigen::Quaterniond(EE_CONSTRAINTS[i][6],
+					EE_CONSTRAINTS[i][3], EE_CONSTRAINTS[i][4],
+					EE_CONSTRAINTS[i][5]);
+
+			goal_transform[i].linear() = rot.toRotationMatrix();
+			goal_transform[i].translation() = trans;
+		}
+
+		// transform from tcp to arm end-effector
+		Eigen::Affine3d transform_1_inv = robot_model_->getLinkModel(
+				"tcp_1_link")->getJointOriginTransform().inverse();
+		Eigen::Affine3d transform_2_inv = robot_model_->getLinkModel(
+				"tcp_2_link")->getJointOriginTransform().inverse();
+
+		for (int i = 0; i < num_waypoints; ++i)
+		{
+			//goal_transform[i] = goal_transform[i] * transform_2_inv;
+		}
+
+		start_state.update();
+		ROS_ASSERT(isStateCollide(start_state) == false);
+
+		std::vector<robot_state::RobotState> states(num_waypoints, start_state);
+		for (int i = 0; i < num_waypoints; ++i)
+		{
+			states[i].update();
+			computeIKState(states[i], goal_transform[i]);
+		}
+
+		for (int i = 0; i < num_waypoints - 1; ++i)
+		{
+			ROS_INFO("*** Planning Sequence %d ***", i);
+
+			robot_state::RobotState& from_state = states[i];
+			robot_state::RobotState& to_state = states[(i + 1) % num_waypoints];
+
+			displayStates(from_state, to_state);
+			sleep_time.sleep();
+
+			if (i == 0)
 			{
-				--c;
-				continue;
+
+				req2.trajectory_constraints.constraints.clear();
+				plan(req2, res, from_state, from_state);
+				res.getMessage(response);
+
+				display_trajectory.trajectory_start = response.trajectory_start;
+				response.trajectory.joint_trajectory.points.resize(
+						response.trajectory.joint_trajectory.points.size() / 5);
+				display_trajectory.trajectory.push_back(response.trajectory);
 			}
+
+			const Eigen::Affine3d& transform = goal_transform[(i + 1)
+					% num_waypoints];
+			Eigen::Vector3d trans = transform.translation();
+			Eigen::Quaterniond rot = Eigen::Quaterniond(transform.linear());
+
+			geometry_msgs::PoseStamped goal_pose;
+			goal_pose.header.frame_id = robot_model_->getModelFrame();
+			goal_pose.pose.position.x = trans(0);
+			goal_pose.pose.position.y = trans(1);
+			goal_pose.pose.position.z = trans(2);
+			goal_pose.pose.orientation.x = rot.x();
+			goal_pose.pose.orientation.y = rot.y();
+			goal_pose.pose.orientation.z = rot.z();
+			goal_pose.pose.orientation.w = rot.w();
+			std::string endeffector_name = "tcp_2_link"; //"end_effector_link";
+
+			req2.trajectory_constraints.constraints.clear();
+			int traj_constraint_begin = 0;
+			for (int c = 0; c < 4; ++c)
+			{
+				// planning using OMPL
+				plan(req, res, from_state, goal_pose, endeffector_name);
+				if (res.error_code_.val != res.error_code_.SUCCESS)
+				{
+					--c;
+					continue;
+				}
+				res.getMessage(response);
+
+				printTrajectory(response.trajectory);
+
+				// use the last configuration of prev trajectory
+				{
+					int num_joints = from_state.getVariableCount();
+					std::vector<double> positions(num_joints);
+					const robot_state::RobotState& last_state =
+							res.trajectory_->getLastWayPoint();
+					to_state.setVariablePositions(
+							last_state.getVariablePositions());
+					to_state.update();
+				}
+
+				moveit_msgs::JointConstraint jc;
+				int num_joints =
+						response.trajectory.joint_trajectory.points[0].positions.size();
+				int num_points =
+						response.trajectory.joint_trajectory.points.size();
+				req2.trajectory_constraints.constraints.resize(
+						traj_constraint_begin + num_points);
+				std::string trajectory_index_string = boost::lexical_cast<
+						std::string>(c);
+				for (int j = 0; j < num_points; ++j)
+				{
+					int point = j + traj_constraint_begin;
+					if (j == 0)
+						req2.trajectory_constraints.constraints[point].name =
+								trajectory_index_string;
+					if (j == num_points - 1)
+						req2.trajectory_constraints.constraints[point].name =
+								"end";
+
+					req2.trajectory_constraints.constraints[point].joint_constraints.resize(
+							num_joints);
+					for (int k = 0; k < num_joints; ++k)
+					{
+						jc.joint_name = from_state.getVariableNames()[k];
+						jc.position =
+								response.trajectory.joint_trajectory.points[j].positions[k];
+						req2.trajectory_constraints.constraints[point].joint_constraints[k] =
+								jc;
+					}
+				}
+				traj_constraint_begin += num_points;
+			}
+
+			req2.trajectory_constraints.constraints.clear();
+			moveit_msgs::PositionConstraint pc;
+			pc.target_point_offset.x = EE_CONSTRAINTS[i][0];
+			pc.target_point_offset.y = EE_CONSTRAINTS[i][1];
+			pc.target_point_offset.z = EE_CONSTRAINTS[i][2];
+			req2.path_constraints.position_constraints.push_back(pc);
+			pc.target_point_offset.x = EE_CONSTRAINTS[i + 1][0];
+			pc.target_point_offset.y = EE_CONSTRAINTS[i + 1][1];
+			pc.target_point_offset.z = EE_CONSTRAINTS[i + 1][2];
+			req2.path_constraints.position_constraints.push_back(pc);
+			plan(req2, res, from_state, to_state);
+			req2.path_constraints.position_constraints.clear();
 			res.getMessage(response);
 
-			printTrajectory(response.trajectory);
-
-			// plan using ITOMP
-			// use the last configuration of prev trajectory
-			if (i != 5)
+			int n = res.trajectory_->getWayPointCount();
+			for (int k = 0; k < n; ++k)
 			{
-				int num_joints = from_state.getVariableCount();
-				std::vector<double> positions(num_joints);
-				const robot_state::RobotState& last_state =
-						res.trajectory_->getLastWayPoint();
-				to_state.setVariablePositions(
-						last_state.getVariablePositions());
-				to_state.update();
+				bool is_collide = isStateCollide(
+						res.trajectory_->getWayPoint(k));
+				if (is_collide)
+					ROS_INFO("%d waypoint has collision", k);
 			}
 
-			moveit_msgs::JointConstraint jc;
-			int num_joints =
-					response.trajectory.joint_trajectory.points[0].positions.size();
-			int num_points = response.trajectory.joint_trajectory.points.size();
-			req2.trajectory_constraints.constraints.resize(
-					traj_constraint_begin + num_points);
-			std::string trajectory_index_string = boost::lexical_cast<
-					std::string>(c);
-			for (int j = 0; j < num_points; ++j)
-			{
-				int point = j + traj_constraint_begin;
-				if (j == 0)
-					req2.trajectory_constraints.constraints[point].name =
-							trajectory_index_string;
-				if (j == num_points - 1)
-					req2.trajectory_constraints.constraints[point].name = "end";
+			display_trajectory.trajectory.push_back(response.trajectory);
 
-				req2.trajectory_constraints.constraints[point].joint_constraints.resize(
-						num_joints);
-				for (int k = 0; k < num_joints; ++k)
-				{
-					jc.joint_name = from_state.getVariableNames()[k];
-					jc.position =
-							response.trajectory.joint_trajectory.points[j].positions[k];
-					req2.trajectory_constraints.constraints[point].joint_constraints[k] =
-							jc;
-				}
-			}
-			traj_constraint_begin += num_points;
+			req2.trajectory_constraints.constraints.clear();
+			plan(req2, res, to_state, to_state);
+			res.getMessage(response);
+			response.trajectory.joint_trajectory.points.resize(
+					response.trajectory.joint_trajectory.points.size() / 5);
+			display_trajectory.trajectory.push_back(response.trajectory);
 		}
-		//req2.trajectory_constraints.constraints.clear();
-		plan(req2, res, from_state, to_state);
-		res.getMessage(response);
-
-		int n = res.trajectory_->getWayPointCount();
-		for (int k = 0; k < n; ++k)
-		{
-			bool is_collide = isStateCollide(res.trajectory_->getWayPoint(k));
-			if (is_collide)
-				ROS_INFO("%d waypoint has collision", k);
-		}
-
-		////////////////////////////////////
-
-		if (i == 0)
-		{
-			//display_trajectory.trajectory_start = response.trajectory_start;
-		}
-		display_trajectory.trajectory.push_back(response.trajectory);
-
-		req2.trajectory_constraints.constraints.clear();
-		plan(req2, res, to_state, to_state);
-		res.getMessage(response);
-		response.trajectory.joint_trajectory.points.resize(response.trajectory.joint_trajectory.points.size() / 5);
-		display_trajectory.trajectory.push_back(response.trajectory);
+		///
 	}
 
 	// publish trajectory
+
+	double prev_time = 0;
+	for (int j = 1; j < display_trajectory.trajectory.size(); ++j)
+	{
+		prev_time += display_trajectory.trajectory[j - 1].joint_trajectory.points.size() * 0.05;
+		ros::Duration d(prev_time);
+		for (int i = 0; i < display_trajectory.trajectory[j].joint_trajectory.points.size(); ++i)
+			display_trajectory.trajectory[j].joint_trajectory.points[i].time_from_start += d;
+	}
+
 	display_publisher_.publish(display_trajectory);
+
+	for (int j = 0; j < display_trajectory.trajectory.size(); ++j)
+	{
+		for (int i = 0; i < display_trajectory.trajectory[j].joint_trajectory.points.size(); ++i)
+			printf("%d %d : %f\n", j, i, display_trajectory.trajectory[j].joint_trajectory.points[i].time_from_start.toSec());
+	}
 
 	int num_trajectories = display_trajectory.trajectory.size();
 	for (int i = 0; i < num_trajectories; ++i)
@@ -785,7 +986,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle node_handle("~");
 
 	move_itomp::MoveItomp* move_itomp = new move_itomp::MoveItomp(node_handle);
-	move_itomp->run("lower_body");
+	move_itomp->run("lower_body_tcp2");
 	delete move_itomp;
 
 	return 0;
