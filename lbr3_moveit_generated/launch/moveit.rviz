@@ -176,8 +176,8 @@ Visualization Manager:
       Planning Scene Topic: /planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 0.5
-        Scene Color: 170; 255; 0
+        Scene Alpha: 0.8
+        Scene Color: 128; 128; 128
         Scene Display Time: 0.2
         Show Scene Geometry: true
         Voxel Coloring: Z-Axis
@@ -538,22 +538,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 27.4578
+      Distance: 17.0345
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.0956611
-        Y: 0.177542
-        Z: -3.51334e-05
+        X: 2.4845
+        Y: -1.71539
+        Z: -3.3226e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.0302
+      Pitch: 0.389797
       Target Frame: kuka_root
       Value: XYOrbit (rviz)
-      Yaw: 1.58866
+      Yaw: 2.47368
     Saved: ~
 Window Geometry:
   Displays:

@@ -164,17 +164,24 @@ void MoveItomp::run(const std::string& group_name)
 
 	double EE_CONSTRAINTS[][7] =
 	{
-	{ .2, .05, 1.2, -0.5, -0.5, 0.5, 0.5 },
-	{ .2, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
-	{ .2, .10, 1.2, -0.5, -0.5, 0.5, 0.5 },
-	{ .15, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
-	{ .2, .15, 1.2, -0.5, -0.5, 0.5, 0.5 },
-	{ .1, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 }, };
+	{ .2, .05, 1.2, -0.5, 0.5, -0.5, 0.5 },
+	{ .2, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
+	{ .2, .10, 1.2, -0.5, 0.5, -0.5, 0.5 },
+	{ .15, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 },
+	{ .2, .15, 1.2, -0.5, 0.5, -0.5, 0.5 },
+	{ .1, .2, .85 + .1, -INV_SQRT_2, 0, 0, INV_SQRT_2 }, };
 
 	for (int i = 0; i < 6; ++i)
 	{
 		for (int j = 0; j < 3; ++j)
 			EE_CONSTRAINTS[i][j] *= 10.0;
+
+		EE_CONSTRAINTS[i][0] -= 5.4;
+		EE_CONSTRAINTS[i][1] -= 1.9;
+		EE_CONSTRAINTS[i][2] -= 4.16;
+
+		EE_CONSTRAINTS[i][0] = -EE_CONSTRAINTS[i][0];
+		EE_CONSTRAINTS[i][1] = -EE_CONSTRAINTS[i][1];
 	}
 
 	Eigen::Affine3d goal_transform[6];
@@ -212,7 +219,7 @@ void MoveItomp::run(const std::string& group_name)
 		computeIKState(states[i], goal_transform[i]);
 	}
 
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 6; ++i)
 	{
 		ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -665,8 +672,8 @@ bool MoveItomp::isStateCollide(const robot_state::RobotState& state)
 	}
 	ma.markers.push_back(msg);
 	vis_marker_array_publisher_.publish(ma);
-	ros::WallDuration sleep_time(0.01);
-	sleep_time.sleep();
+	//ros::WallDuration sleep_time(0.01);
+	//sleep_time.sleep();
 
 	return collision_result.collision;
 }
