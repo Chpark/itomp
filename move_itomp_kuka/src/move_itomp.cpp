@@ -263,7 +263,8 @@ void MoveItomp::run(const std::string& group_name)
 			int num_joints =
 					response.trajectory.joint_trajectory.points[0].positions.size();
 			int num_points = response.trajectory.joint_trajectory.points.size();
-			req2.trajectory_constraints.constraints.resize(traj_constraint_begin + num_points);
+			req2.trajectory_constraints.constraints.resize(
+					traj_constraint_begin + num_points);
 			std::string trajectory_index_string = boost::lexical_cast<
 					std::string>(c);
 			for (int j = 0; j < num_points; ++j)
@@ -498,7 +499,8 @@ void MoveItomp::loadStaticScene()
 		pose.orientation.z = 0.0;
 		pose.orientation.w = 1.0;
 
-		shapes::Mesh* shape = shapes::createMeshFromResource(environment_file);
+		shapes::Mesh* shape = shapes::createMeshFromResource(environment_file,
+				Eigen::Vector3d(scale, scale, scale));
 		shapes::ShapeMsg mesh_msg;
 		shapes::constructMsgFromShape(shape, mesh_msg);
 		shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
