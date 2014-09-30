@@ -164,12 +164,12 @@ void MoveItomp::run(const std::string& group_name)
 
 	const double EE_CONSTRAINTS[][7] =
 	{
-	{ 2, 0.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 2, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
-	{ 2, 1.0, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1.5, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
-	{ 2, 1.5, 12, -0.5, -0.5, 0.5, 0.5 },
-	{ 1, 2, 8.5 + 1.0, 0, -INV_SQRT_2, INV_SQRT_2, 0 }, };
+	{ .2, .05, 1.2, -0.5, -0.5, 0.5, 0.5 },
+	{ .2, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ .2, .10, 1.2, -0.5, -0.5, 0.5, 0.5 },
+	{ .15, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
+	{ .2, .15, 1.2, -0.5, -0.5, 0.5, 0.5 },
+	{ .1, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 }, };
 
 	Eigen::Affine3d goal_transform[6];
 	for (int i = 0; i < 6; ++i)
@@ -206,7 +206,7 @@ void MoveItomp::run(const std::string& group_name)
 		computeIKState(states[i], goal_transform[i]);
 	}
 
-	for (int i = 0; i < 6; ++i)
+	for (int i = 0; i < 1; ++i)
 	{
 		ROS_INFO("*** Planning Sequence %d ***", i);
 

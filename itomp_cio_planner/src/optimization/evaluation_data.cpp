@@ -187,7 +187,8 @@ void EvaluationData::initStaticEnvironment()
     pose.orientation.z = 0.0;
     pose.orientation.w = 1.0;
 
-    shapes::Mesh* shape = shapes::createMeshFromResource(environment_file);
+    shapes::Mesh* shape = shapes::createMeshFromResource(environment_file,
+    		Eigen::Vector3d(scale, scale, scale));
     shapes::ShapeMsg mesh_msg;
     shapes::constructMsgFromShape(shape, mesh_msg);
     shape_msgs::Mesh mesh = boost::get<shape_msgs::Mesh>(mesh_msg);
