@@ -67,6 +67,7 @@ int ItompPlannerNode::run()
 }
 
 bool ItompPlannerNode::planKinematicPath(
+		const planning_scene::PlanningSceneConstPtr& planning_scene,
 		const planning_interface::MotionPlanRequest &req,
 		planning_interface::MotionPlanResponse &res)
 {
@@ -92,9 +93,7 @@ bool ItompPlannerNode::planKinematicPath(
 
 		// initialize trajectory with start state
 		initTrajectory(req.start_state.joint_state);
-		planning_scene::PlanningScene planning_scene(
-				robot_model_.getRobotModel());
-		complete_initial_robot_state_ = planning_scene.getCurrentStateUpdated(
+		complete_initial_robot_state_ = planning_scene->getCurrentStateUpdated(
 				req.start_state);
 
 		sensor_msgs::JointState jointGoalState;
@@ -112,7 +111,8 @@ bool ItompPlannerNode::planKinematicPath(
 
 			// optimize
 			trajectoryOptimization(groupName, jointGoalState,
-					req.path_constraints, req.trajectory_constraints);
+					req.path_constraints, req.trajectory_constraints,
+					planning_scene);
 
 			writePlanningInfo(c, i);
 		}
@@ -255,7 +255,8 @@ void optimization_thread_function(ItompOptimizerPtr& optimizer)
 void ItompPlannerNode::trajectoryOptimization(const string& groupName,
 		const sensor_msgs::JointState& jointGoalState,
 		const moveit_msgs::Constraints& path_constraints,
-		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
+		const moveit_msgs::TrajectoryConstraints& trajectory_constraints,
+		const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	ros::WallTime create_time = ros::WallTime::now();
 
@@ -273,7 +274,7 @@ void ItompPlannerNode::trajectoryOptimization(const string& groupName,
 		optimizers_[i].reset(
 				new ItompOptimizer(i, trajectories_[i].get(), &robot_model_,
 						group, planning_start_time_, trajectory_start_time_,
-						path_constraints, &best_cost_manager_));
+						path_constraints, &best_cost_manager_, planning_scene));
 
 	std::vector<boost::shared_ptr<boost::thread> > optimization_threads(
 			num_trajectories);

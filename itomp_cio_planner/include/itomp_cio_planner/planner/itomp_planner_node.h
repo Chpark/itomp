@@ -23,7 +23,8 @@ public:
 
   int run();
 
-  bool planKinematicPath(const planning_interface::MotionPlanRequest &req, planning_interface::MotionPlanResponse &res);
+  bool planKinematicPath(const planning_scene::PlanningSceneConstPtr& planning_scene,
+		  const planning_interface::MotionPlanRequest &req, planning_interface::MotionPlanResponse &res);
 
 private:
   bool preprocessRequest(const planning_interface::MotionPlanRequest &req);
@@ -33,7 +34,8 @@ private:
   void fillGroupJointTrajectory(const std::string& groupName, const sensor_msgs::JointState& jointGoalState,
       const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
   void trajectoryOptimization(const std::string& groupName, const sensor_msgs::JointState& jointGoalState,
-      const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
+      const moveit_msgs::Constraints& path_constraints, const moveit_msgs::TrajectoryConstraints& trajectory_constraints,
+      const planning_scene::PlanningSceneConstPtr& planning_scene);
 
   void
   fillInResult(const std::vector<std::string>& planningGroups, planning_interface::MotionPlanResponse &res);

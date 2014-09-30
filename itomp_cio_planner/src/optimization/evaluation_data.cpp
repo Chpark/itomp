@@ -26,17 +26,18 @@ EvaluationData::~EvaluationData()
 
 void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
     ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, const EvaluationManager* evaluation_manager,
-    int num_mass_segments, const moveit_msgs::Constraints& path_constraints)
+    int num_mass_segments, const moveit_msgs::Constraints& path_constraints,
+    const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
   full_trajectory_ = full_trajectory;
   group_trajectory_ = group_trajectory;
 
   robot_model_ = robot_model;
-  planning_scene_.reset(new planning_scene::PlanningScene(robot_model->getRobotModel()));
+  planning_scene_ = planning_scene;
   kinematic_state_.resize(getNumParallelThreads());
   for (int i = 0; i < kinematic_state_.size(); ++i)
 	  kinematic_state_[i].reset(new robot_state::RobotState(robot_model->getRobotModel()));
-  initStaticEnvironment();
+  //initStaticEnvironment();
 
   kdl_joint_array_.resize(robot_model->getKDLTree()->getNrOfJoints());
 
@@ -160,6 +161,7 @@ void EvaluationData::initStaticEnvironment()
   // TODO:
   //return;
 
+	/*
   string environment_file = PlanningParameters::getInstance()->getEnvironmentModel();
   //"package://kuka_description/env/monitor_col2.dae";
   if (!environment_file.empty())
@@ -176,12 +178,7 @@ void EvaluationData::initStaticEnvironment()
     pose.position.x = environment_position[0];
     pose.position.y = environment_position[1];
     pose.position.z = environment_position[2];
-    /*
-     pose.orientation.x = sqrt(0.5);
-     pose.orientation.y = 0.0;
-     pose.orientation.z = 0.0;
-     pose.orientation.w = sqrt(0.5);
-     */
+
     pose.orientation.x = 0.0;
     pose.orientation.y = 0.0;
     pose.orientation.z = 0.0;
@@ -195,24 +192,7 @@ void EvaluationData::initStaticEnvironment()
 
     collision_object.meshes.push_back(mesh);
     collision_object.mesh_poses.push_back(pose);
-    /*
-     // replace mesh with box
-     shape_msgs::SolidPrimitive primitive;
-     primitive.type = primitive.BOX;
-     primitive.dimensions.resize(3);
-     primitive.dimensions[0] = 2.0;
-     primitive.dimensions[1] = 5.0;
-     primitive.dimensions[2] = 5.0;
-     collision_object.primitives.push_back(primitive);
-     pose.position.x = 0.0;
-     pose.position.y = 0.0;
-     pose.position.z = -2.6;
-     pose.orientation.x = 0.0;
-     pose.orientation.y = 0.0;
-     pose.orientation.z = 0.0;
-     pose.orientation.w = 1.0;
-     collision_object.primitive_poses.push_back(pose);
-     */
+
 
     collision_object.operation = collision_object.ADD;
     moveit_msgs::PlanningScene planning_scene_msg;
@@ -238,6 +218,7 @@ void EvaluationData::initStaticEnvironment()
 
   collision_detection::AllowedCollisionMatrix acm = planning_scene_->getAllowedCollisionMatrix();
   //acm.setEntry(true);
+  */
 }
 
 EvaluationData* EvaluationData::clone() const
@@ -249,8 +230,6 @@ EvaluationData* EvaluationData::clone() const
   new_data->group_trajectory_ = new ItompCIOTrajectory(*group_trajectory_);
   new_data->full_trajectory_ = new ItompCIOTrajectory(*full_trajectory_);
 
-  new_data->planning_scene_.reset(new planning_scene::PlanningScene(robot_model_->getRobotModel()));
-  new_data->initStaticEnvironment();
   for (int i = 0; i < kinematic_state_.size(); ++i)
 	  new_data->kinematic_state_[i].reset(new robot_state::RobotState(robot_model_->getRobotModel()));
 
@@ -262,7 +241,6 @@ void EvaluationData::deepCopy(const EvaluationData& data)
   // store pointers
   ItompCIOTrajectory* group_trajectory = group_trajectory_;
   ItompCIOTrajectory* full_trajectory = full_trajectory_;
-  planning_scene::PlanningScenePtr planning_scene = planning_scene_;
   std::vector<robot_state::RobotStatePtr> kinematic_state = kinematic_state_;
 
   // copy
@@ -277,7 +255,6 @@ void EvaluationData::deepCopy(const EvaluationData& data)
   full_trajectory_ = full_trajectory;
 
   // do not copy planning scene
-  planning_scene_ = planning_scene;
   kinematic_state_ = kinematic_state;
 }
 

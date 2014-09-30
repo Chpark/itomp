@@ -16,7 +16,8 @@ ItompOptimizer::ItompOptimizer(int trajectory_index,
 		const ItompPlanningGroup *planning_group, double planning_start_time,
 		double trajectory_start_time,
 		const moveit_msgs::Constraints& path_constraints,
-		BestCostManager* best_cost_manager) :
+		BestCostManager* best_cost_manager,
+		const planning_scene::PlanningSceneConstPtr& planning_scene) :
 		is_feasible(false), terminated_(false), trajectory_index_(
 				trajectory_index), planning_start_time_(planning_start_time), iteration_(
 				-1), feasible_iteration_(0), last_improvement_iteration_(-1), full_trajectory_(
@@ -28,16 +29,17 @@ ItompOptimizer::ItompOptimizer(int trajectory_index,
 				best_cost_manager)
 {
 	initialize(robot_model, planning_group, trajectory_start_time,
-			path_constraints);
+			path_constraints, planning_scene);
 }
 
 void ItompOptimizer::initialize(ItompRobotModel *robot_model,
 		const ItompPlanningGroup *planning_group, double trajectory_start_time,
-		const moveit_msgs::Constraints& path_constraints)
+		const moveit_msgs::Constraints& path_constraints,
+		const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	evaluation_manager_.initialize(full_trajectory_, &group_trajectory_,
 			robot_model, planning_group, planning_start_time_,
-			trajectory_start_time, path_constraints);
+			trajectory_start_time, path_constraints, planning_scene);
 
 	//improvement_manager_.reset(new ImprovementManagerNLP());
 	improvement_manager_.reset(new ImprovementManagerChomp());

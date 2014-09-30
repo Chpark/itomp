@@ -26,7 +26,8 @@ public:
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
       ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group,
       const EvaluationManager* evaluation_manager, int num_mass_segments,
-      const moveit_msgs::Constraints& path_constraints);
+      const moveit_msgs::Constraints& path_constraints,
+      const planning_scene::PlanningSceneConstPtr& planning_scene);
 
   double getNumPoints() const;
   double getNumJoints() const;
@@ -79,7 +80,7 @@ public:
   KDL::TreeFkSolverJointPosAxisPartial fk_solver_;
   ContactForceSolver contact_force_solver_;
 
-  planning_scene::PlanningScenePtr planning_scene_;
+  planning_scene::PlanningSceneConstPtr planning_scene_;
   std::vector<robot_state::RobotStatePtr> kinematic_state_;
 
   std::vector<KDL::Frame> cartesian_waypoints_;

@@ -54,7 +54,8 @@ public:
 
   void initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTrajectory *group_trajectory,
       ItompRobotModel *robot_model, const ItompPlanningGroup *planning_group, double planning_start_time,
-      double trajectory_start_time, const moveit_msgs::Constraints& path_constraints);
+      double trajectory_start_time, const moveit_msgs::Constraints& path_constraints,
+      const planning_scene::PlanningSceneConstPtr& planning_scene);
 
   void setTrajectory(const Eigen::MatrixXd& parameters, const Eigen::MatrixXd& vel_parameters,
       const Eigen::MatrixXd& contact_parameters);

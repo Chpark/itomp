@@ -65,7 +65,8 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory,
 		ItompCIOTrajectory *group_trajectory, ItompRobotModel *robot_model,
 		const ItompPlanningGroup *planning_group, double planning_start_time,
 		double trajectory_start_time,
-		const moveit_msgs::Constraints& path_constraints)
+		const moveit_msgs::Constraints& path_constraints,
+		const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	omp_set_num_threads(getNumParallelThreads());
 
@@ -105,7 +106,7 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory,
 	GroundManager::getInstance().init();
 
 	default_data_.initialize(full_trajectory, group_trajectory, robot_model,
-			planning_group, this, num_mass_segments_, path_constraints);
+			planning_group, this, num_mass_segments_, path_constraints, planning_scene);
 
 	timings_.resize(100, 0);
 	for (int i = 0; i < 100; ++i)
@@ -1216,10 +1217,12 @@ ADD_TIMER_POINT	UPDATE_TIME
 
 void EvaluationManager::computeCollisionCosts(int begin, int end)
 {
+	/*
 	collision_detection::AllowedCollisionMatrix acm =
 			data_->planning_scene_->getAllowedCollisionMatrix();
 	acm.setEntry("environment", "segment_0", true);
 	acm.setEntry("environment", "segment_1", true);
+	*/
 
 	int num_all_joints = data_->kinematic_state_[0]->getVariableCount();
 
@@ -1258,7 +1261,7 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
 				&positions[thread_num][0]);
 		data_->planning_scene_->checkCollisionUnpadded(collision_request,
 				collision_result[thread_num],
-				*data_->kinematic_state_[thread_num], acm);
+				*data_->kinematic_state_[thread_num]);
 
 		const collision_detection::CollisionResult::ContactMap& contact_map =
 				collision_result[thread_num].contacts;

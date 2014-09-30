@@ -29,9 +29,9 @@ public:
 			std::vector<Vector4d>& contactViolationVector,
 			std::vector<KDL::Vector>& contactPointVelVector,
             const std::vector<std::vector<KDL::Frame> >& segmentFrames,
-            const planning_scene::PlanningScenePtr& planning_scene) const;
+            const planning_scene::PlanningSceneConstPtr& planning_scene) const;
 
-    double getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames, const planning_scene::PlanningScenePtr& planning_scene) const;
+    double getDistanceToGround(int point, const std::vector<std::vector<KDL::Frame> >& segmentFrames, const planning_scene::PlanningSceneConstPtr& planning_scene) const;
 
 	int getLinkSegmentNumber() const { return linkSegmentNumber_; }
 	const std::string& getLinkName() const { return linkName_; }

@@ -34,7 +34,7 @@ double interpolateSqrt(double x, double x1, double x2, double y1, double y2)
 }
 
 void GroundManager::getNearestGroundPosition(const KDL::Vector& in, KDL::Vector& out, KDL::Vector& normal,
-    const planning_scene::PlanningScenePtr& planning_scene) const
+    const planning_scene::PlanningSceneConstPtr& planning_scene) const
 {
   const double FOOT_FRONT = 0.2;
   const double FOOT_REAR = 0.2; //0.05;

@@ -22,7 +22,7 @@ bool ItompPlanningContext::initialize(const robot_model::RobotModelConstPtr& mod
 
 bool ItompPlanningContext::solve(planning_interface::MotionPlanResponse &res)
 {
-	return itomp_planner_node_->planKinematicPath(req_, res);
+	return itomp_planner_node_->planKinematicPath(planning_scene_, req_, res);
 }
 bool ItompPlanningContext::solve(planning_interface::MotionPlanDetailedResponse &res)
 {

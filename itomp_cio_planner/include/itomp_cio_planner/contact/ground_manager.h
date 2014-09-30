@@ -20,7 +20,7 @@ public:
 	void init();
 
 	static GroundManager& getInstance() { return instance_; }
-    void getNearestGroundPosition(const KDL::Vector& in, KDL::Vector& out, KDL::Vector& normal, const planning_scene::PlanningScenePtr& planning_scene) const;
+    void getNearestGroundPosition(const KDL::Vector& in, KDL::Vector& out, KDL::Vector& normal, const planning_scene::PlanningSceneConstPtr& planning_scene) const;
 	void getSafeGroundPosition(const KDL::Vector& in, KDL::Vector& out) const;
 
 private:
