@@ -139,6 +139,7 @@
 
   <joint name="joint_0" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="176" velocity="1.31" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.949605822" soft_upper_limit="2.949605822"/>
     <parent link="segment_0"/> 
     <child link="segment_1"/>
     <axis xyz="0 0 1"/>
@@ -147,6 +148,7 @@
 
   <joint name="joint_1" type="revolute">
     <limit lower="-2.094395102393187" upper="2.0943951023931335" effort="176" velocity="1.31" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.076941378" soft_upper_limit="2.076941378"/>
     <parent link="segment_1"/>
     <child link="segment_2"/>
     <axis xyz="0 1 0"/>
@@ -155,6 +157,7 @@
 
   <joint name="joint_2" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="110" velocity="1.57" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.949605822" soft_upper_limit="2.949605822"/>
     <parent link="segment_2"/>
     <child link="segment_3"/>
     <axis xyz="0 0 1"/>
@@ -163,6 +166,7 @@
 
   <joint name="joint_3" type="revolute">
     <limit lower="-2.09439510239316" upper="2.09439510239316" effort="110" velocity="1.57" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.076941378" soft_upper_limit="2.076941378"/>
     <parent link="segment_3"/>
     <child link="segment_4"/>
     <axis xyz="0 -1 0"/>
@@ -171,6 +175,7 @@
 
   <joint name="joint_4" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="110" velocity="2.51" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.949605822" soft_upper_limit="2.949605822"/>
     <parent link="segment_4"/>
     <child link="segment_5"/>
     <axis xyz="0 0 1"/>
@@ -179,6 +184,7 @@
 
   <joint name="joint_5" type="revolute">
     <limit lower="-2.09439510239316" upper="2.09439510239316" effort="40" velocity="2.36" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.076941378" soft_upper_limit="2.076941378"/>
     <parent link="segment_5"/>
     <child link="segment_6"/>
     <axis xyz="0 1 0"/>
@@ -187,6 +193,7 @@
 
   <joint name="joint_6" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="40" velocity="2.36" />
+    <safety_controller k_position="100" k_velocity="2000000" soft_lower_limit="-2.949605822" soft_upper_limit="2.949605822"/>
     <parent link="segment_6"/>
     <child link="segment_7"/>
     <axis xyz="0 0 1"/>
