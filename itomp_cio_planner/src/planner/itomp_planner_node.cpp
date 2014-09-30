@@ -266,6 +266,8 @@ void ItompPlannerNode::trajectoryOptimization(const string& groupName,
 			PlanningParameters::getInstance()->getNumTrajectories();
 	const ItompPlanningGroup* group = robot_model_.getPlanningGroup(groupName);
 
+	best_cost_manager_.reset();
+
 	optimizers_.resize(num_trajectories);
 	for (int i = 0; i < num_trajectories; ++i)
 		optimizers_[i].reset(

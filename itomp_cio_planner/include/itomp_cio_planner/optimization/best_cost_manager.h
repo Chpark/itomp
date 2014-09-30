@@ -18,6 +18,8 @@ public:
 	BestCostManager();
 	~BestCostManager();
 
+	void reset();
+
 	bool updateBestCost(int trajectory_index, double cost, bool feasible);
 	int getBestCostTrajectoryIndex() const;
 
@@ -42,6 +44,13 @@ inline BestCostManager::BestCostManager() :
 inline BestCostManager::~BestCostManager()
 {
 
+}
+
+inline void BestCostManager::reset()
+{
+	best_cost = std::numeric_limits<double>::max();
+	best_trajectory_index_ = 0;
+	is_feasible_ = false;
 }
 
 inline bool BestCostManager::updateBestCost(int trajectory_index, double cost,
