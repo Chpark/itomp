@@ -63,6 +63,7 @@
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="joint_kuka_root" type="fixed" parent_frame="root_link" child_link="kuka_root" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="kuka_root" link2="link_kinect" reason="Never" />
     <disable_collisions link1="kuka_root" link2="segment_0" reason="Adjacent" />
     <disable_collisions link1="kuka_root" link2="segment_1" reason="Never" />
     <disable_collisions link1="kuka_root" link2="segment_2" reason="Never" />
@@ -72,6 +73,15 @@
     <disable_collisions link1="kuka_root" link2="segment_6" reason="Never" />
     <disable_collisions link1="kuka_root" link2="segment_7" reason="Never" />
     <disable_collisions link1="kuka_root" link2="tool" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_0" reason="Adjacent" />
+    <disable_collisions link1="link_kinect" link2="segment_1" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_2" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_3" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_4" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_5" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_6" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="segment_7" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="tool" reason="Never" />
     <disable_collisions link1="segment_0" link2="segment_1" reason="Adjacent" />
     <disable_collisions link1="segment_0" link2="segment_2" reason="Never" />
     <disable_collisions link1="segment_0" link2="segment_4" reason="Never" />
@@ -94,6 +104,6 @@
     <disable_collisions link1="segment_5" link2="segment_6" reason="Adjacent" />
     <disable_collisions link1="segment_5" link2="segment_7" reason="Never" />
     <disable_collisions link1="segment_6" link2="segment_7" reason="Adjacent" />
-    <disable_collisions link1="segment_6" link2="tool" reason="Never" />
+    <disable_collisions link1="segment_6" link2="tool" reason="Default" />
     <disable_collisions link1="segment_7" link2="tool" reason="Adjacent" />
 </robot>

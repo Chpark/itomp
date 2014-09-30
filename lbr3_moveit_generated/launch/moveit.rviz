@@ -5,6 +5,7 @@ Panels:
     Property Tree Widget:
       Expanded:
         - /MotionPlanning1
+        - /MotionPlanning1/Scene Geometry1
         - /MotionPlanning1/Planned Path1
         - /Marker1
         - /Marker1/Namespaces1
@@ -148,8 +149,8 @@ Visualization Manager:
             Value: true
         Loop Animation: true
         Robot Alpha: 0.5
-        Show Robot Collision: false
-        Show Robot Visual: true
+        Show Robot Collision: true
+        Show Robot Visual: false
         Show Trail: false
         State Display Time: 0.05 s
         Trajectory Topic: /move_group/display_planned_path
@@ -175,8 +176,8 @@ Visualization Manager:
       Planning Scene Topic: /planning_scene
       Robot Description: robot_description
       Scene Geometry:
-        Scene Alpha: 1
-        Scene Color: 128; 128; 128
+        Scene Alpha: 0.5
+        Scene Color: 170; 255; 0
         Scene Display Time: 0.2
         Show Scene Geometry: true
         Voxel Coloring: Z-Axis
@@ -507,7 +508,19 @@ Visualization Manager:
       Marker Topic: /pomp_planner/visualization_marker
       Name: Marker
       Namespaces:
-        {}
+        environment: true
+        itomp_endeffector: true
+        wp_0: false
+        wp_10: false
+        wp_100: false
+        wp_20: false
+        wp_30: false
+        wp_40: false
+        wp_50: false
+        wp_60: false
+        wp_70: false
+        wp_80: false
+        wp_90: false
       Queue Size: 100
       Value: true
   Enabled: true
@@ -525,22 +538,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 6.05455
+      Distance: 27.4578
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -0.276773
-        Y: -0.370859
+        X: -0.0956611
+        Y: 0.177542
         Z: -3.51334e-05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.355204
+      Pitch: 1.0302
       Target Frame: kuka_root
       Value: XYOrbit (rviz)
-      Yaw: 1.86865
+      Yaw: 1.58866
     Saved: ~
 Window Geometry:
   Displays:
@@ -552,7 +565,7 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073030000042d00000046000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073030000042d00000018000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855

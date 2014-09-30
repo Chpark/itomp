@@ -601,7 +601,7 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 		const vector<vector<KDL::Frame> >& segmentFrames, bool best)
 {
 	const double trajectory_color_diff = 0.33;
-	const double scale = 0.005;
+	const double scale = 0.05;
 	const int marker_step = 1;
 
 	visualization_msgs::Marker::_color_type YELLOW, LIGHT_YELLOW;

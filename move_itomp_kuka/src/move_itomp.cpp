@@ -162,7 +162,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
-	const double EE_CONSTRAINTS[][7] =
+	double EE_CONSTRAINTS[][7] =
 	{
 	{ .2, .05, 1.2, -0.5, -0.5, 0.5, 0.5 },
 	{ .2, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
@@ -170,6 +170,12 @@ void MoveItomp::run(const std::string& group_name)
 	{ .15, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 },
 	{ .2, .15, 1.2, -0.5, -0.5, 0.5, 0.5 },
 	{ .1, .2, .85 + .1, 0, -INV_SQRT_2, INV_SQRT_2, 0 }, };
+
+	for (int i = 0; i < 6; ++i)
+	{
+		for (int j = 0; j < 3; ++j)
+			EE_CONSTRAINTS[i][j] *= 10.0;
+	}
 
 	Eigen::Affine3d goal_transform[6];
 	for (int i = 0; i < 6; ++i)
@@ -292,6 +298,14 @@ void MoveItomp::run(const std::string& group_name)
 		//req2.trajectory_constraints.constraints.clear();
 		plan(req2, res, from_state, to_state);
 		res.getMessage(response);
+
+		int n = res.trajectory_->getWayPointCount();
+		for (int k = 0; k < n; ++k)
+		{
+			bool is_collide = isStateCollide(res.trajectory_->getWayPoint(k));
+			if (is_collide)
+				ROS_INFO("%d waypoint has collision", k);
+		}
 
 		////////////////////////////////////
 

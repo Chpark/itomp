@@ -19,7 +19,7 @@
  <link name="link_kinect">
     <visual>
       <geometry>
-       <box size = "0.06 0.28 .04"/>
+       <box size = "0.6 2.8 .4"/>
       </geometry>
       <material name="Blue"/>
     </visual>
@@ -28,12 +28,12 @@
  <link name="segment_0">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_0.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_0.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_0_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_0_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 	</collision>
   </link>
@@ -41,12 +41,12 @@
  <link name="segment_1">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_1.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_1.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_1_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_1_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision> 
   </link>
@@ -54,12 +54,12 @@
  <link name="segment_2">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_2.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_2.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_2_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_2_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision>
   </link>
@@ -67,12 +67,12 @@
  <link name="segment_3">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_3.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_3.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_3_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_3_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision> 
   </link>
@@ -80,12 +80,12 @@
  <link name="segment_4">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_4.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_4.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_4_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_4_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision> -->
   </link>
@@ -93,12 +93,12 @@
  <link name="segment_5">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_5.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_5.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_5_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_5_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision> 
   </link>
@@ -106,12 +106,12 @@
   <link name="segment_6">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_6.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_6.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_6_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_6_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision>
   </link>
@@ -119,12 +119,12 @@
   <link name="segment_7">
     <visual>
       <geometry>
-        <mesh filename="package://lbr3_model/cad/segment_7.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://lbr3_model/cad/segment_7.dae" scale="0.01 0.01 0.01"/>
       </geometry>
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_7_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_7_collision.dae" scale="0.01 0.01 0.01"/>
 			</geometry>
 		</collision>
   </link>
@@ -132,8 +132,7 @@
   <!-- ################################### JOINTS ############################### -->
 
   <joint name="kinect_depth_joint" type="fixed">
-     <!--<origin xyz="0.495 0.92 1.455" rpy="0 0.9 -1.57"/> -->
-     <origin xyz="0.515 0.96 1.455" rpy="0 0.87 -1.57"/>
+     <origin xyz="5.15 9.6 14.55" rpy="0 0.87 -1.57"/>
      <parent link="segment_0"/>
      <child link="link_kinect"/>
   </joint>
@@ -144,7 +143,7 @@
     <parent link="segment_0"/> 
     <child link="segment_1"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="0 0 .1105"/>
+    <origin xyz="0 0 1.105"/>
   </joint>
 
   <joint name="joint_1" type="revolute">
@@ -153,7 +152,7 @@
     <parent link="segment_1"/>
     <child link="segment_2"/>
     <axis xyz="0 1 0"/>
-    <origin xyz="0 0 .2"/>
+    <origin xyz="0 0 2"/>
   </joint>
 
   <joint name="joint_2" type="revolute">
@@ -162,7 +161,7 @@
     <parent link="segment_2"/>
     <child link="segment_3"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="0 0 .2"/>
+    <origin xyz="0 0 2"/>
   </joint>
 
   <joint name="joint_3" type="revolute">
@@ -171,7 +170,7 @@
     <parent link="segment_3"/>
     <child link="segment_4"/>
     <axis xyz="0 -1 0"/>
-    <origin xyz="0 0 .2"/>
+    <origin xyz="0 0 2"/>
   </joint>
 
   <joint name="joint_4" type="revolute">
@@ -180,7 +179,7 @@
     <parent link="segment_4"/>
     <child link="segment_5"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="0 0 .2"/>
+    <origin xyz="0 0 2"/>
   </joint>
 
   <joint name="joint_5" type="revolute">
@@ -189,7 +188,7 @@
     <parent link="segment_5"/>
     <child link="segment_6"/>
     <axis xyz="0 1 0"/>
-    <origin xyz="0 0 .1885"/>
+    <origin xyz="0 0 1.885"/>
   </joint>
 
   <joint name="joint_6" type="revolute">
@@ -198,26 +197,30 @@
     <parent link="segment_6"/>
     <child link="segment_7"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="0 0 .0795"/>
+    <origin xyz="0 0 .795"/>
   </joint>
+
+
 
   <joint name="joint_root" type="fixed">
     <parent link="kuka_root"/>
     <child link="segment_0"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="0 0 3.14159" xyz=".54 .19 .416"/>
+    <origin rpy="0 0 3.14159" xyz="5.4 1.9 4.16"/>
 <!--    <origin rpy="0 0 0" xyz="5.4 1.9 4.16"/>-->
   </joint>
+
+
 
   <link name="tool">
     <visual>
       <geometry>
-        <mesh filename="package://kuka_description/cad/tool.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://kuka_description/cad/tool_s.dae"/>
       </geometry>
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://kuka_description/cad/tool.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://kuka_description/cad/tool_s.dae"/>
       </geometry>
     </collision>
   </link>
@@ -261,14 +264,14 @@
     <parent link="tool"/>
     <child link="tcp_1_link"/>
     <axis xyz="0 0 1"/>
-    <origin xyz="-.164 -0.028 .232"/>
+    <origin xyz="-1.64 -0.28 2.32"/>
   </joint>
 
   <joint name="joint_tcp_2" type="fixed">
     <parent link="tool"/>
     <child link="tcp_2_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="0 -1.570796 0" xyz="-.294 -0.011 0.044"/>
+    <origin rpy="0 -1.570796 0" xyz="-2.94 -0.11 0.44"/>
   </joint>
 
   <joint name="joint_goal_1" type="fixed">
@@ -282,37 +285,38 @@
     <parent link="kuka_root"/>
     <child link="goal_2_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 1.570796" xyz=".20 .10 1.20"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="2.0 1.0 12.0"/>
   </joint>
 
   <joint name="joint_goal_3" type="fixed">
     <parent link="kuka_root"/>
     <child link="goal_3_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 1.570796" xyz=".20 .15 1.20"/>
+    <origin rpy="-1.570796 0 1.570796" xyz="2.0 1.5 12.0"/>
   </joint>
 
   <joint name="joint_goal_4" type="fixed">
     <parent link="kuka_root"/>
     <child link="goal_4_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 3.141592" xyz=".20 .20 .85"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="2.0 2.0 8.5"/>
   </joint>
 
   <joint name="joint_goal_5" type="fixed">
     <parent link="kuka_root"/>
     <child link="goal_5_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 3.141592" xyz=".15 .20 .85"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="1.5 2.0 8.5"/>
   </joint>
 
   <joint name="joint_goal_6" type="fixed">
     <parent link="kuka_root"/>
     <child link="goal_6_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 3.141592" xyz=".10 .20 .85"/>
+    <origin rpy="-1.570796 0 3.141592" xyz="1.0 2.0 8.5"/>
   </joint>
 
 
 </robot>
+
 
