@@ -162,7 +162,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
-	int benchmark = 2;
+	int benchmark = (group_name_ == "lower_body") ? 1 : 2;
 
 	if (benchmark == 1)
 	{
@@ -225,7 +225,7 @@ void MoveItomp::run(const std::string& group_name)
 			computeIKState(states[i], goal_transform[i]);
 		}
 
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < 1; ++i)
 		{
 			ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -323,6 +323,7 @@ void MoveItomp::run(const std::string& group_name)
 				traj_constraint_begin += num_points;
 			}
 
+			//req2.trajectory_constraints.constraints.clear();
 			plan(req2, res, from_state, to_state);
 			res.getMessage(response);
 
@@ -370,6 +371,11 @@ void MoveItomp::run(const std::string& group_name)
 			goal_transform[i].linear() = rot.toRotationMatrix();
 			goal_transform[i].translation() = trans;
 		}
+
+		for (int i = 0; i < num_waypoints - 1; ++i)
+			drawPath(i, goal_transform[i].translation(), goal_transform[i + 1].translation());
+		ros::WallDuration sleep_t(0.001);
+		sleep_t.sleep();
 
 		// transform from tcp to arm end-effector
 		Eigen::Affine3d transform_1_inv = robot_model_->getLinkModel(
@@ -527,6 +533,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	// publish trajectory
 
+	/*
 	double prev_time = 0;
 	for (int j = 1; j < display_trajectory.trajectory.size(); ++j)
 	{
@@ -534,6 +541,15 @@ void MoveItomp::run(const std::string& group_name)
 		ros::Duration d(prev_time);
 		for (int i = 0; i < display_trajectory.trajectory[j].joint_trajectory.points.size(); ++i)
 			display_trajectory.trajectory[j].joint_trajectory.points[i].time_from_start += d;
+	}
+	*/
+
+	for (int j = 0; j < display_trajectory.trajectory.size(); ++j)
+	{
+		std::vector<trajectory_msgs::JointTrajectoryPoint> short_traj;
+		for (int i = 0; i < display_trajectory.trajectory[j].joint_trajectory.points.size(); i += 51)
+			short_traj.push_back(display_trajectory.trajectory[j].joint_trajectory.points[i]);
+		display_trajectory.trajectory[j].joint_trajectory.points = short_traj;
 	}
 
 	display_publisher_.publish(display_trajectory);
@@ -976,6 +992,58 @@ void MoveItomp::printTrajectory(const moveit_msgs::RobotTrajectory &traj)
 
 }
 
+void MoveItomp::drawPath(int id, const Eigen::Vector3d& from, const Eigen::Vector3d& to)
+{
+	const double trajectory_color_diff = 0.33;
+	const double scale = 0.05;
+	const int marker_step = 1;
+
+	visualization_msgs::Marker::_color_type BLUE, LIGHT_YELLOW;
+	visualization_msgs::Marker::_color_type RED, LIGHT_RED;
+	RED.a = 1.0;
+	RED.r = 1.0;
+	RED.g = 0.0;
+	RED.b = 0.0;
+	BLUE.a = 1.0;
+	BLUE.r = 0.5;
+	BLUE.g = 0.5;
+	BLUE.b = 1.0;
+	LIGHT_RED = RED;
+	LIGHT_RED.g = 0.5;
+	LIGHT_RED.b = 0.5;
+	LIGHT_YELLOW = BLUE;
+	LIGHT_YELLOW.b = 0.5;
+
+	visualization_msgs::Marker msg;
+	msg.header.frame_id = robot_model_->getModelFrame();
+	msg.header.stamp = ros::Time::now();
+	msg.ns = "cartesian_traj";
+	msg.type = visualization_msgs::Marker::LINE_LIST;
+	msg.action = visualization_msgs::Marker::ADD;
+
+	msg.scale.x = scale;
+	msg.scale.y = scale;
+	msg.scale.z = scale;
+
+	msg.id = id;
+	msg.color = BLUE;
+
+	msg.points.resize(0);
+	geometry_msgs::Point point;
+	point.x = from(0) - 0.001;
+	point.y = from(1);
+	point.z = from(2);
+	msg.points.push_back(point);
+	point.x = to(0) - 0.001;
+	point.y = to(1);
+	point.z = to(2);
+	msg.points.push_back(point);
+
+	visualization_msgs::MarkerArray ma;
+	ma.markers.push_back(msg);
+	vis_marker_array_publisher_.publish(ma);
+}
+
 }
 
 int main(int argc, char **argv)
@@ -987,6 +1055,7 @@ int main(int argc, char **argv)
 
 	move_itomp::MoveItomp* move_itomp = new move_itomp::MoveItomp(node_handle);
 	move_itomp->run("lower_body_tcp2");
+	//move_itomp->run("lower_body");
 	delete move_itomp;
 
 	return 0;
