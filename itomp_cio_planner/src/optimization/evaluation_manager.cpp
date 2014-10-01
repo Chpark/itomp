@@ -106,7 +106,8 @@ void EvaluationManager::initialize(ItompCIOTrajectory *full_trajectory,
 	GroundManager::getInstance().init();
 
 	default_data_.initialize(full_trajectory, group_trajectory, robot_model,
-			planning_group, this, num_mass_segments_, path_constraints, planning_scene);
+			planning_group, this, num_mass_segments_, path_constraints,
+			planning_scene);
 
 	timings_.resize(100, 0);
 	for (int i = 0; i < 100; ++i)
@@ -562,6 +563,8 @@ void EvaluationManager::handleJointLimits()
 
 void EvaluationManager::handleTrajectoryConstraint()
 {
+	return;
+
 	if (data_->cartesian_waypoints_.size() == 0)
 		return;
 
@@ -1217,13 +1220,6 @@ ADD_TIMER_POINT	UPDATE_TIME
 
 void EvaluationManager::computeCollisionCosts(int begin, int end)
 {
-	/*
-	collision_detection::AllowedCollisionMatrix acm =
-			data_->planning_scene_->getAllowedCollisionMatrix();
-	acm.setEntry("environment", "segment_0", true);
-	acm.setEntry("environment", "segment_1", true);
-	*/
-
 	int num_all_joints = data_->kinematic_state_[0]->getVariableCount();
 
 	int num_threads = getNumParallelThreads();
@@ -1370,74 +1366,96 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 			== 0.0)
 		return;
 
-	// TODO: fix hard-coded values
-	const int END_EFFECTOR_SEGMENT_INDEX =
-			robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
-					"segment_7");
-
-	/*
-	 const double rotation_weight = 0.0;
-
-	 int num_vars_free = 100;
-
-	 for (int i = 0; i < num_points_; ++i)
-	 data_->stateCartesianTrajectoryCost_[i] = 0;
-
-	 if (data_->cartesian_waypoints_.size() == 0)
-	 return;
-
-	 KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
-	 KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
-	 KDL::Vector dir = (end_pos - start_pos);
-	 dir.Normalize();
-
-	 // TODO: fix
-	 int point_index = 5;
-	 for (int i = point_index; i < point_index + num_vars_free; ++i)
-	 {
-	 KDL::Frame& frame = data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
-	 KDL::Vector distToLine = (frame.p - start_pos) - KDL::dot(dir, (frame.p - start_pos)) * dir;
-	 double distance = distToLine.Norm();
-
-	 double cost = distance;
-
-	 data_->stateCartesianTrajectoryCost_[i] = cost * cost;
-
-	 if (distance > 0.1)
-	 ROS_INFO("error : %d dist : %f", i, distance);
-	 }
-	 */
-
-	data_->costAccumulator_.is_last_trajectory_valid_ = true;
-
-	// orientation constraint
-	int num_vars_free = 100;
-	int point_index = 5;
-	for (int i = point_index; i < point_index + num_vars_free; ++i)
+	if (data_->cartesian_waypoints_.size() != 0)
 	{
-		KDL::Frame& frame =
-				data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
-		KDL::Rotation rot = frame.M;
-		KDL::Vector x_dir = rot.UnitX();
-		KDL::Vector y_dir = rot.UnitY();
-		KDL::Vector z_dir = rot.UnitZ();
+		// position constraint
 
-		double cost = 0;
-		double dot = KDL::dot(y_dir, KDL::Vector(0, 0, -1));
-		double angle = (dot > 1.0) ? 0 : acos(dot);
-		//angle -= 5.0 * M_PI / 180.0;
-		// TODO: ?
-		if (angle > 5.0 * M_PI / 180.0)
+		const int END_EFFECTOR_SEGMENT_INDEX =
+				robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
+						"tcp_2_link");
+
+		data_->costAccumulator_.is_last_trajectory_valid_ = true;
+
+		const double rotation_weight = 0.0;
+
+		int num_vars_free = 100;
+
+		for (int i = 0; i < num_points_; ++i)
+			data_->stateCartesianTrajectoryCost_[i] = 0;
+
+		if (data_->cartesian_waypoints_.size() == 0)
+			return;
+
+		KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
+		KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
+		KDL::Vector dir = (end_pos - start_pos);
+		dir.Normalize();
+
+		// TODO: fix
+		int point_index = 5;
+		for (int i = point_index; i < point_index + num_vars_free; ++i)
 		{
-			data_->costAccumulator_.is_last_trajectory_valid_ = false;
-			cost = angle * angle;
-		}
-		else
-		{
-			cost = angle * angle * 0.1;
+			KDL::Frame& frame =
+					data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+			KDL::Vector distToLine = (frame.p - start_pos)
+					- KDL::dot(dir, (frame.p - start_pos)) * dir;
+			double distance = distToLine.Norm();
+
+			double cost = distance;
+
+			if (distance > 0.05)
+				data_->costAccumulator_.is_last_trajectory_valid_ = false;
+
+			data_->stateCartesianTrajectoryCost_[i] = cost * cost;
+
+			//if (distance > 0.1)
+				//ROS_INFO("error : %d dist : %f", i, distance);
 		}
 
-		data_->stateCartesianTrajectoryCost_[i] = cost;
+	}
+	else
+	{
+		if (planning_group_->name_ != "lower_body")
+			return;
+
+		// orientation constraint
+
+		// TODO: fix hard-coded values
+		const int END_EFFECTOR_SEGMENT_INDEX =
+				robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
+						"segment_7");
+
+		data_->costAccumulator_.is_last_trajectory_valid_ = true;
+
+		// orientation constraint
+		int num_vars_free = 100;
+		int point_index = 5;
+		for (int i = point_index; i < point_index + num_vars_free; ++i)
+		{
+			KDL::Frame& frame =
+					data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+			KDL::Rotation rot = frame.M;
+			KDL::Vector x_dir = rot.UnitX();
+			KDL::Vector y_dir = rot.UnitY();
+			KDL::Vector z_dir = rot.UnitZ();
+
+			double cost = 0;
+			double dot = KDL::dot(y_dir, KDL::Vector(0, 0, -1));
+			double angle = (dot > 1.0) ? 0 : acos(dot);
+			//angle -= 5.0 * M_PI / 180.0;
+			// TODO: ?
+			if (angle > 5.0 * M_PI / 180.0)
+			{
+				data_->costAccumulator_.is_last_trajectory_valid_ = false;
+				cost = angle * angle;
+			}
+			else
+			{
+				cost = angle * angle * 0.1;
+			}
+
+			data_->stateCartesianTrajectoryCost_[i] = cost;
+		}
 	}
 }
 

@@ -249,6 +249,7 @@ void ItompPlannerNode::getPlanningGroups(
 
 void optimization_thread_function(ItompOptimizerPtr& optimizer)
 {
+	omp_set_num_threads(getNumParallelThreads());
 	optimizer->optimize();
 }
 
@@ -394,7 +395,7 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName,
 			trajectories_[i]->fillInMinJerk(i, groupJointsKDLIndices, group,
 					trajectory_constraints);
 		}
-		if (path_constraints.position_constraints.size() == 0)
+		if (true)//path_constraints.position_constraints.size() == 0)
 		{
 			trajectories_[i]->fillInMinJerk(groupJointsKDLIndices,
 					start_point_velocities_.row(0),

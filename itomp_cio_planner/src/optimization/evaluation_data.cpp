@@ -150,9 +150,9 @@ void EvaluationData::initialize(ItompCIOTrajectory *full_trajectory, ItompCIOTra
   for (int i = 0; i < path_constraints.position_constraints.size(); ++i)
   {
     geometry_msgs::Vector3 position = path_constraints.position_constraints[i].target_point_offset;
-    geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[i].orientation;
+    //geometry_msgs::Quaternion orientation = path_constraints.orientation_constraints[i].orientation;
     cartesian_waypoints_[i].p = KDL::Vector(position.x, position.y, position.z);
-    cartesian_waypoints_[i].M = KDL::Rotation::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w);
+    //cartesian_waypoints_[i].M = KDL::Rotation::Quaternion(orientation.x, orientation.y, orientation.z, orientation.w);
   }
 }
 

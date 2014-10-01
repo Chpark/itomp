@@ -23,7 +23,8 @@
 
 inline int getNumParallelThreads()
 {
-	return omp_get_max_threads();
+	//return omp_get_max_threads();
+	return 2;
 }
 
 #endif
