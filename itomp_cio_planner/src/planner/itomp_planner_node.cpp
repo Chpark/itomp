@@ -17,7 +17,7 @@ namespace itomp_cio_planner
 {
 
 ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model) :
-		last_planning_time_(0), last_min_cost_trajectory_(0)
+		last_planning_time_(0), last_min_cost_trajectory_(0), planning_count_(0)
 {
 	complete_initial_robot_state_.reset(new robot_state::RobotState(model));
 }
@@ -51,6 +51,8 @@ bool ItompPlannerNode::init()
 			new ItompCIOTrajectory(&robot_model_, trajectory_duration,
 					trajectory_discretization, num_contacts,
 					PlanningParameters::getInstance()->getPhaseDuration()));
+
+	resetPlanningInfo(1, 1);
 
 	ROS_INFO("Initialized ITOMP planning service...");
 
@@ -86,8 +88,8 @@ bool ItompPlannerNode::planKinematicPath(
 	getPlanningGroups(planningGroups, req.group_name);
 
 	int num_trials = PlanningParameters::getInstance()->getNumTrials();
-	resetPlanningInfo(num_trials, planningGroups.size());
-	for (int c = 0; c < num_trials; ++c)
+	//resetPlanningInfo(num_trials, planningGroups.size());
+	for (int c = planning_count_; c < planning_count_ + num_trials; ++c)
 	{
 		printf("Trial [%d]\n", c);
 
@@ -121,6 +123,8 @@ bool ItompPlannerNode::planKinematicPath(
 
 	// return trajectory
 	fillInResult(planningGroups, res);
+
+	planning_count_ += num_trials;
 
 	return true;
 }
@@ -330,24 +334,26 @@ void ItompPlannerNode::fillInResult(
 	res.error_code_.val = moveit_msgs::MoveItErrorCodes::SUCCESS;
 
 	// print results
-	if (PlanningParameters::getInstance()->getPrintPlanningInfo())
-	{
-		const std::vector<std::string>& joint_names =
-				res.trajectory_->getFirstWayPoint().getVariableNames();
-		for (int j = 0; j < num_all_joints; j++)
-			printf("%s ", joint_names[j].c_str());
-		printf("\n");
-		for (int i = 0;
-				i < trajectories_[best_trajectory_index]->getNumPoints(); ++i)
-		{
-			for (int j = 0; j < num_all_joints; j++)
-			{
-				printf("%f ",
-						res.trajectory_->getWayPoint(i).getVariablePosition(j));
-			}
-			printf("\n");
-		}
-	}
+	/*
+	 if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+	 {
+	 const std::vector<std::string>& joint_names =
+	 res.trajectory_->getFirstWayPoint().getVariableNames();
+	 for (int j = 0; j < num_all_joints; j++)
+	 printf("%s ", joint_names[j].c_str());
+	 printf("\n");
+	 for (int i = 0;
+	 i < trajectories_[best_trajectory_index]->getNumPoints(); ++i)
+	 {
+	 for (int j = 0; j < num_all_joints; j++)
+	 {
+	 printf("%f ",
+	 res.trajectory_->getWayPoint(i).getVariablePosition(j));
+	 }
+	 printf("\n");
+	 }
+	 }
+	 */
 }
 
 void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName,
@@ -390,12 +396,16 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName,
 
 		*(trajectories_[i].get()) = *(trajectory_.get());
 
+
 		if (i != 0 && trajectory_constraints.constraints.size() != 0)
 		{
 			trajectories_[i]->fillInMinJerk(i, groupJointsKDLIndices, group,
-					trajectory_constraints);
+					trajectory_constraints, start_point_velocities_.row(0),
+					start_point_accelerations_.row(0));
 		}
-		if (true)//path_constraints.position_constraints.size() == 0)
+
+		// else !!!
+		else if (true) //path_constraints.position_constraints.size() == 0)
 		{
 			trajectories_[i]->fillInMinJerk(groupJointsKDLIndices,
 					start_point_velocities_.row(0),
@@ -421,6 +431,9 @@ void ItompPlannerNode::writePlanningInfo(int trials, int component)
 {
 	int best_trajectory_index = best_cost_manager_.getBestCostTrajectoryIndex();
 
+	if (planning_info_.size() <= trials)
+		planning_info_.resize(trials + 1,
+				std::vector<PlanningInfo>(planning_info_[0].size()));
 	PlanningInfo& info = planning_info_[trials][component];
 	info.time = last_planning_time_;
 	info.iterations = optimizers_[best_trajectory_index]->getLastIteration()

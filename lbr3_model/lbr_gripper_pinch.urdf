@@ -279,7 +279,7 @@
     <child link="goal_1_link"/>
     <axis xyz="0 0 1"/>
 <!--    <origin rpy="1.570796 0 1.570796" xyz="2.0 0.5 12.0"/>-->
-    <origin rpy="-1.570796 0 -1.570796" xyz="3.4 1.4 7.84"/>
+    <origin rpy="1.570796 0 1.570796" xyz="3.4 1.4 7.84"/>
   </joint>
 
   <joint name="joint_goal_2" type="fixed">

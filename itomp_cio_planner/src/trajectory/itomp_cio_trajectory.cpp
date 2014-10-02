@@ -488,9 +488,14 @@ void ItompCIOTrajectory::fillInMinJerk(
 void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 		const std::set<int>& groupJointsKDLIndices,
 		const ItompPlanningGroup* planning_group,
-		const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
+		const moveit_msgs::TrajectoryConstraints& trajectory_constraints,
+		const Eigen::MatrixXd::RowXpr joint_vel_array,
+		const Eigen::MatrixXd::RowXpr joint_acc_array)
 {
-	printTrajectory();
+	vel_start_ = joint_vel_array;
+	acc_start_ = joint_acc_array;
+
+	//printTrajectory();
 	int num_points = getNumPoints();
 
 	std::string trajectory_index_string = boost::lexical_cast<std::string>(
@@ -509,13 +514,14 @@ void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 	}
 	for (; i < trajectory_constraints.constraints.size(); ++i)
 	{
-		if (trajectory_constraints.constraints[i].name
-				== "end")
+		if (trajectory_constraints.constraints[i].name == "end")
 		{
 			traj_constraint_end = i + 1;
 			break;
 		}
 	}
+
+	// temporary change
 	int num_constraint_points = traj_constraint_end - traj_constraint_begin;
 
 	double interval = (double) num_points / (num_constraint_points - 1);
@@ -563,6 +569,26 @@ void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 		}
 		else
 		{
+			double x0 =
+					trajectory_constraints.constraints[traj_constraint_begin].joint_constraints[constraint_index].position;
+			double v0 = 0.0;
+			double a0 = 0.0;
+
+			double x1 = trajectory_constraints.constraints[traj_constraint_end
+					- 1].joint_constraints[constraint_index].position;
+			;
+			double v1 = 0.0;
+			double a1 = 0.0;
+
+			ecl::QuinticPolynomial poly;
+			poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0,
+					duration_, x1, v1, a1);
+			for (int i = 1; i < getNumPoints() - 1; ++i)
+			{
+				(*this)(i, j) = poly(i * discretization_);
+			}
+
+			/*
 			// interpolate between waypoints
 			for (int k = 0; k < num_constraint_points - 1; ++k)
 			{
@@ -593,12 +619,12 @@ void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 					double value = poly(i);
 					(*this)(i, j) = value;
 				}
-
 			}
+			*/
 		}
 		++group_joint_index;
 	}
-	printTrajectory();
+	//printTrajectory();
 }
 
 void ItompCIOTrajectory::fillInMinJerkCartesianTrajectory(

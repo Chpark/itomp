@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 300
+max_iterations: 2000
 max_iterations_after_collision_free: 1
 num_trajectories: 4
 
@@ -25,7 +25,7 @@ temp: [1000.0, 1000.0, 0.0]
 
 print_planning_info: true
 
-animate_path: true
+animate_path: false
 animate_endeffector: true
 animate_endeffector_segment:
   lower_body: [tcp_1_link, tcp_2_link]
@@ -64,7 +64,7 @@ num_contacts: 0
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://kuka_description/env/s_bench2.dae
+environment_model: package://kuka_description/env/s_bench1.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 

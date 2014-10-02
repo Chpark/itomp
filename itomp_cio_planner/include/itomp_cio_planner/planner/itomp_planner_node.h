@@ -57,6 +57,7 @@ private:
   void printPlanningInfoSummary();
 
   double planning_start_time_;
+  int planning_count_;
 
   Eigen::MatrixXd start_point_velocities_;
   Eigen::MatrixXd start_point_accelerations_;

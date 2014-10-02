@@ -6,9 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /MotionPlanning1
+        - /MotionPlanning1/Scene Robot1
         - /Image1
       Splitter Ratio: 0.4375
-    Tree Height: 510
+    Tree Height: 837
   - Class: rviz/Help
     Name: Help
   - Class: rviz/Views
@@ -58,50 +59,62 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           link_kinect:
             Alpha: 1
             Show Axes: false
@@ -111,6 +124,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           segment_0:
             Alpha: 1
             Show Axes: false
@@ -198,50 +212,62 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_1_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_2_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_0:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           finger_middle_link_3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           link_kinect:
             Alpha: 1
             Show Axes: false
@@ -251,6 +277,7 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+            Value: true
           segment_0:
             Alpha: 1
             Show Axes: false
@@ -306,6 +333,13 @@ Visualization Manager:
       Queue Size: 2
       Transport Hint: raw
       Value: true
+    - Class: rviz/Axes
+      Enabled: false
+      Length: 1
+      Name: Axes
+      Radius: 0.1
+      Reference Frame: <Fixed Frame>
+      Value: false
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -321,22 +355,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 4.37006
+      Distance: 2.6207
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.619842
-        Y: 0.623101
-        Z: -4.91738e-07
+        X: 0.395133
+        Y: -0.112797
+        Z: -2.53319e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.379797
+      Pitch: 0.564797
       Target Frame: segment_0
       Value: XYOrbit (rviz)
-      Yaw: 0.296767
+      Yaw: 1.56177
     Saved: ~
 Window Geometry:
   Displays:
@@ -350,7 +384,7 @@ Window Geometry:
     collapsed: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000001e7000003dafc0200000006fb000000100044006900730070006c006100790073010000002800000293000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000002780000018a0000017400fffffffb0000000a0049006d00610067006501000002c1000001410000001600ffffff00000552000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000001e7000003dafc0200000006fb000000100044006900730070006c0061007900730000000028000003da000000dd00fffffffb0000000800480065006c00700000000342000000bb0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e006700000002780000018a0000017400fffffffb0000000a0049006d006100670065030000008e000000a300000420000003340000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855
