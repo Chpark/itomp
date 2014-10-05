@@ -20,7 +20,7 @@
 
 using namespace std;
 
-const int M = 32;
+const int M = 8;
 
 namespace move_itomp
 {
@@ -149,9 +149,14 @@ void MoveItomp::run(const std::string& group_name)
 	robot_state::RobotState& start_state =
 			planning_scene_->getCurrentStateNonConst();
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup(group_name_);
-
+			start_state.getJointModelGroup("gripper");
 	std::map<std::string, double> values;
+	joint_model_group->getVariableDefaultPositions("close", values);
+	start_state.setVariablePositions(values);
+	start_state.update();
+
+	joint_model_group = start_state.getJointModelGroup(group_name_);
+
 	joint_model_group->getVariableDefaultPositions("idle", values);
 	start_state.setVariablePositions(values);
 	start_state.update();
@@ -166,7 +171,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	int benchmark = (group_name_ == "lower_body") ? 1 : 2;
 
-	for (int trial = 0; trial < 10; ++trial)
+	for (int trial = 0; trial < 1; ++trial)
 	{
 		display_trajectory.trajectory.clear();
 
@@ -189,11 +194,11 @@ void MoveItomp::run(const std::string& group_name)
 			for (int i = 0; i < 6; ++i)
 			{
 				for (int j = 0; j < 3; ++j)
-					EE_CONSTRAINTS[i][j] *= 10.0;
+					EE_CONSTRAINTS[i][j] *= 1.0;
 
-				EE_CONSTRAINTS[i][0] -= 5.4;
-				EE_CONSTRAINTS[i][1] -= 1.9;
-				EE_CONSTRAINTS[i][2] -= 4.16;
+				EE_CONSTRAINTS[i][0] -= 5.4 * 0.1;
+				EE_CONSTRAINTS[i][1] -= 1.9 * 0.1;
+				EE_CONSTRAINTS[i][2] -= 4.16 * 0.1;
 
 				EE_CONSTRAINTS[i][0] = -EE_CONSTRAINTS[i][0];
 				EE_CONSTRAINTS[i][1] = -EE_CONSTRAINTS[i][1];
@@ -217,11 +222,16 @@ void MoveItomp::run(const std::string& group_name)
 					"tcp_1_link")->getJointOriginTransform().inverse();
 			Eigen::Affine3d transform_2_inv = robot_model_->getLinkModel(
 					"tcp_2_link")->getJointOriginTransform().inverse();
+			Eigen::Affine3d transform_3_inv = robot_model_->getLinkModel(
+					"tcp_3_link")->getJointOriginTransform().inverse();
 
 			for (int i = 0; i < 6; ++i)
 			{
+				/*
 				goal_transform[i] = goal_transform[i]
 						* ((i % 2 == 0) ? transform_1_inv : transform_2_inv);
+						*/
+				goal_transform[i] = goal_transform[i] * transform_3_inv;
 			}
 
 			start_state.update();
@@ -234,7 +244,7 @@ void MoveItomp::run(const std::string& group_name)
 				computeIKState(states[i], goal_transform[i]);
 			}
 
-			for (int i = 0; i < 1; ++i)
+			for (int i = 0; i < 6; ++i)
 			{
 				ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -387,6 +397,13 @@ void MoveItomp::run(const std::string& group_name)
 			{ 3.3, -2, 10.0, 0.5, 0.5, 0.5, 0.5 },
 			{ 3.3, -2, 7.0, 0.5, 0.5, 0.5, 0.5 } };
 
+			for (int i = 0; i < num_waypoints; ++i)
+			{
+				EE_CONSTRAINTS[i][0] *= 0.1;
+				EE_CONSTRAINTS[i][1] *= 0.1;
+				EE_CONSTRAINTS[i][2] *= 0.1;
+			}
+
 			Eigen::Affine3d goal_transform[num_waypoints];
 			for (int i = 0; i < num_waypoints; ++i)
 			{
@@ -406,17 +423,6 @@ void MoveItomp::run(const std::string& group_name)
 			ros::WallDuration sleep_t(0.001);
 			sleep_t.sleep();
 
-			// transform from tcp to arm end-effector
-			Eigen::Affine3d transform_1_inv = robot_model_->getLinkModel(
-					"tcp_1_link")->getJointOriginTransform().inverse();
-			Eigen::Affine3d transform_2_inv = robot_model_->getLinkModel(
-					"tcp_2_link")->getJointOriginTransform().inverse();
-
-			for (int i = 0; i < num_waypoints; ++i)
-			{
-				//goal_transform[i] = goal_transform[i] * transform_2_inv;
-			}
-
 			start_state.update();
 			ROS_ASSERT(isStateCollide(start_state) == false);
 
@@ -428,7 +434,8 @@ void MoveItomp::run(const std::string& group_name)
 				computeIKState(states[i], goal_transform[i]);
 			}
 
-			for (int i = 0; i < 1/*num_waypoints - 1*/; ++i)
+			//for (int i = 0; i < 1; ++i)
+			for (int i = 0; i < num_waypoints - 1; ++i)
 			{
 				ROS_INFO("*** Planning Sequence %d ***", i);
 
@@ -469,7 +476,7 @@ void MoveItomp::run(const std::string& group_name)
 				goal_pose.pose.orientation.y = rot.y();
 				goal_pose.pose.orientation.z = rot.z();
 				goal_pose.pose.orientation.w = rot.w();
-				std::string endeffector_name = "tcp_2_link"; //"end_effector_link";
+				std::string endeffector_name = "tcp_3_link"; //"end_effector_link";
 
 				req2.trajectory_constraints.constraints.clear();
 				int traj_constraint_begin = 0;
@@ -928,7 +935,7 @@ bool MoveItomp::isStateCollide(const robot_state::RobotState& state)
 
 	collision_detection::CollisionRequest collision_request;
 	collision_detection::CollisionResult collision_result;
-	collision_request.verbose = false;
+	collision_request.verbose = true;
 	collision_request.contacts = true;
 
 	planning_scene_->checkCollisionUnpadded(collision_request, collision_result,
@@ -1100,7 +1107,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle node_handle("~");
 
 	move_itomp::MoveItomp* move_itomp = new move_itomp::MoveItomp(node_handle);
-	//move_itomp->run("lower_body_tcp2");
+	//move_itomp->run("lower_body_tcp3");
 	move_itomp->run("lower_body");
 	delete move_itomp;
 

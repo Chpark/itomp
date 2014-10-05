@@ -583,7 +583,7 @@ void ItompCIOTrajectory::fillInMinJerk(int trajectory_index,
 			ecl::QuinticPolynomial poly;
 			poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0,
 					duration_, x1, v1, a1);
-			for (int i = 1; i < getNumPoints() - 1; ++i)
+			for (int i = 1; i < getNumPoints(); ++i)
 			{
 				(*this)(i, j) = poly(i * discretization_);
 			}

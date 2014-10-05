@@ -32,6 +32,31 @@
         <joint name="joint_tool" />
         <joint name="joint_tcp_2" />
     </group>
+    <group name="gripper">
+        <joint name="wrist" />
+        <joint name="palm_finger_1_joint" />
+        <joint name="finger_1_joint_1" />
+        <joint name="finger_1_joint_2" />
+        <joint name="finger_1_joint_3" />
+        <joint name="palm_finger_2_joint" />
+        <joint name="finger_2_joint_1" />
+        <joint name="finger_2_joint_2" />
+        <joint name="finger_2_joint_3" />
+        <joint name="palm_finger_middle_joint" />
+        <joint name="finger_middle_joint_1" />
+        <joint name="finger_middle_joint_2" />
+        <joint name="finger_middle_joint_3" />
+    </group>
+    <group name="lower_body_tcp3">
+        <joint name="joint_0" />
+        <joint name="joint_1" />
+        <joint name="joint_2" />
+        <joint name="joint_3" />
+        <joint name="joint_4" />
+        <joint name="joint_5" />
+        <joint name="joint_6" />
+        <joint name="joint_tcp_3" />
+    </group>
     <!--GROUP STATES: Purpose: Define a named state for a particular group, in terms of joint values. This is useful to define states like 'folded arms'-->
     <group_state name="idle" group="lower_body">
         <joint name="joint_0" value="0" />
@@ -69,11 +94,189 @@
         <joint name="joint_5" value="0.707" />
         <joint name="joint_6" value="0" />
     </group_state>
+    <group_state name="open" group="gripper">
+        <joint name="finger_1_joint_1" value="0" />
+        <joint name="finger_2_joint_1" value="0" />
+        <joint name="finger_middle_joint_1" value="0" />
+    </group_state>
+    <group_state name="close" group="gripper">
+        <joint name="finger_1_joint_1" value="0" />
+        <joint name="finger_2_joint_1" value="0" />
+        <joint name="finger_middle_joint_1" value="0.8" />
+    </group_state>
     <!--END EFFECTOR: Purpose: Represent information about an end effector.-->
     <end_effector name="ee" parent_link="segment_7" group="ee_group" parent_group="lower_body" />
     <!--VIRTUAL JOINT: Purpose: this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="joint_kuka_root" type="fixed" parent_frame="root_link" child_link="kuka_root" />
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
+    <disable_collisions link1="finger_1_link_0" link2="finger_1_link_1" reason="Adjacent" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_1_link_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_1_link_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_2_link_0" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_2_link_1" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_2_link_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_2_link_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_middle_link_0" reason="Default" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_1_link_0" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_1_link_0" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="palm" reason="Adjacent" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_1" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_1_link_0" link2="segment_7" reason="Default" />
+    <disable_collisions link1="finger_1_link_0" link2="tool" reason="Default" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_1_link_2" reason="Adjacent" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_1_link_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_2_link_0" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_2_link_1" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_2_link_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_2_link_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_middle_link_0" reason="User" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_1_link_1" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_1_link_1" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="palm" reason="Default" />
+    <disable_collisions link1="finger_1_link_1" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="segment_7" reason="Never" />
+    <disable_collisions link1="finger_1_link_1" link2="tool" reason="Default" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_1_link_3" reason="Adjacent" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_2_link_0" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_2_link_1" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_2_link_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_2_link_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_middle_link_0" reason="User" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_1_link_2" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_1_link_2" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="palm" reason="User" />
+    <disable_collisions link1="finger_1_link_2" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="segment_7" reason="Never" />
+    <disable_collisions link1="finger_1_link_2" link2="tool" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_2_link_0" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_2_link_1" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_2_link_2" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_2_link_3" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_middle_link_0" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="palm" reason="User" />
+    <disable_collisions link1="finger_1_link_3" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="segment_7" reason="Never" />
+    <disable_collisions link1="finger_1_link_3" link2="tool" reason="User" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_2_link_1" reason="Adjacent" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_2_link_2" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_2_link_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_middle_link_0" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_middle_link_1" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_middle_link_2" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="finger_middle_link_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="palm" reason="Adjacent" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_2" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="segment_7" reason="Never" />
+    <disable_collisions link1="finger_2_link_0" link2="tool" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_2_link_2" reason="Adjacent" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_2_link_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_middle_link_0" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_2_link_1" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_2_link_1" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="palm" reason="Default" />
+    <disable_collisions link1="finger_2_link_1" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_2_link_1" link2="tool" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="finger_2_link_3" reason="Adjacent" />
+    <disable_collisions link1="finger_2_link_2" link2="finger_middle_link_0" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_2_link_2" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_2_link_2" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_2_link_2" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="palm" reason="User" />
+    <disable_collisions link1="finger_2_link_2" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_2_link_2" link2="tool" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="finger_middle_link_0" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="finger_middle_link_1" reason="User" />
+    <disable_collisions link1="finger_2_link_3" link2="finger_middle_link_2" reason="User" />
+    <disable_collisions link1="finger_2_link_3" link2="finger_middle_link_3" reason="User" />
+    <disable_collisions link1="finger_2_link_3" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="palm" reason="User" />
+    <disable_collisions link1="finger_2_link_3" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_2_link_3" link2="tool" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="finger_middle_link_1" reason="Adjacent" />
+    <disable_collisions link1="finger_middle_link_0" link2="finger_middle_link_2" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="finger_middle_link_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="palm" reason="Adjacent" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_2" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="segment_7" reason="Never" />
+    <disable_collisions link1="finger_middle_link_0" link2="tool" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="finger_middle_link_2" reason="Adjacent" />
+    <disable_collisions link1="finger_middle_link_1" link2="finger_middle_link_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="palm" reason="Default" />
+    <disable_collisions link1="finger_middle_link_1" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_middle_link_1" link2="tool" reason="Default" />
+    <disable_collisions link1="finger_middle_link_2" link2="finger_middle_link_3" reason="Adjacent" />
+    <disable_collisions link1="finger_middle_link_2" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="segment_6" reason="Never" />
+    <disable_collisions link1="finger_middle_link_2" link2="tool" reason="User" />
+    <disable_collisions link1="finger_middle_link_3" link2="kuka_root" reason="Never" />
+    <disable_collisions link1="finger_middle_link_3" link2="link_kinect" reason="Never" />
+    <disable_collisions link1="finger_middle_link_3" link2="palm" reason="User" />
+    <disable_collisions link1="finger_middle_link_3" link2="segment_3" reason="Never" />
+    <disable_collisions link1="finger_middle_link_3" link2="segment_4" reason="Never" />
+    <disable_collisions link1="finger_middle_link_3" link2="segment_5" reason="Never" />
+    <disable_collisions link1="finger_middle_link_3" link2="tool" reason="User" />
     <disable_collisions link1="kuka_root" link2="link_kinect" reason="Never" />
     <disable_collisions link1="kuka_root" link2="segment_0" reason="Adjacent" />
     <disable_collisions link1="kuka_root" link2="segment_1" reason="Never" />
@@ -84,6 +287,7 @@
     <disable_collisions link1="kuka_root" link2="segment_6" reason="Never" />
     <disable_collisions link1="kuka_root" link2="segment_7" reason="Never" />
     <disable_collisions link1="kuka_root" link2="tool" reason="Never" />
+    <disable_collisions link1="link_kinect" link2="palm" reason="Never" />
     <disable_collisions link1="link_kinect" link2="segment_0" reason="Adjacent" />
     <disable_collisions link1="link_kinect" link2="segment_1" reason="Never" />
     <disable_collisions link1="link_kinect" link2="segment_2" reason="Never" />
@@ -93,6 +297,13 @@
     <disable_collisions link1="link_kinect" link2="segment_6" reason="Never" />
     <disable_collisions link1="link_kinect" link2="segment_7" reason="Never" />
     <disable_collisions link1="link_kinect" link2="tool" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_2" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_3" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_4" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_5" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_6" reason="Never" />
+    <disable_collisions link1="palm" link2="segment_7" reason="Adjacent" />
+    <disable_collisions link1="palm" link2="tool" reason="Default" />
     <disable_collisions link1="segment_0" link2="segment_1" reason="Adjacent" />
     <disable_collisions link1="segment_0" link2="segment_2" reason="Never" />
     <disable_collisions link1="segment_0" link2="segment_4" reason="Never" />

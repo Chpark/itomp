@@ -1372,7 +1372,7 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 
 		const int END_EFFECTOR_SEGMENT_INDEX =
 				robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
-						"tcp_2_link");
+						"tcp_3_link");
 
 		data_->costAccumulator_.is_last_trajectory_valid_ = true;
 

@@ -10,6 +10,8 @@ Panels:
         - /MotionPlanning1/Scene Geometry1
         - /MotionPlanning1/Scene Robot1
         - /MotionPlanning1/Planned Path1
+        - /RobotState1
+        - /RobotState1/Links1/tcp_3_link1
         - /Marker1
         - /Marker1/Namespaces1
         - /Axes1
@@ -65,6 +67,66 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          finger_1_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           goal_1_link:
             Alpha: 1
             Show Axes: false
@@ -95,6 +157,11 @@ Visualization Manager:
             Show Trail: false
             Value: true
           link_kinect:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          palm:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -147,11 +214,14 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          tcp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           tool:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
         Loop Animation: false
         Robot Alpha: 0.5
         Show Robot Collision: false
@@ -199,6 +269,66 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          finger_1_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_1_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_2_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_0:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_1:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_2:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          finger_middle_link_3:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
           goal_1_link:
             Alpha: 1
             Show Axes: false
@@ -229,6 +359,11 @@ Visualization Manager:
             Show Trail: false
             Value: true
           link_kinect:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
+            Value: true
+          palm:
             Alpha: 1
             Show Axes: false
             Show Trail: false
@@ -281,11 +416,14 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
+          tcp_3_link:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           tool:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
         Robot Alpha: 0.5
         Show Robot Collision: false
         Show Robot Visual: false
@@ -293,7 +431,7 @@ Visualization Manager:
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: false
+      Enabled: true
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -304,6 +442,66 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        finger_1_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         goal_1_link:
           Alpha: 1
           Show Axes: false
@@ -334,6 +532,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         link_kinect:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        palm:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -386,23 +589,26 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        tcp_3_link:
+          Alpha: 1
+          Show Axes: true
+          Show Trail: false
         tool:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
       Name: RobotState
       Robot Alpha: 0.5
       Robot Description: robot_description
       Robot State Topic: /move_itomp/display_start_state
       Show All Links: true
       Show Highlights: true
-      Value: false
+      Value: true
       Visual Enabled: true
     - Attached Body Color: 150; 50; 150
       Class: moveit_rviz_plugin/RobotState
       Collision Enabled: false
-      Enabled: false
+      Enabled: true
       Links:
         All Links Enabled: true
         Expand Joint Details: false
@@ -413,6 +619,66 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        finger_1_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_1_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_2_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        finger_middle_link_3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
         goal_1_link:
           Alpha: 1
           Show Axes: false
@@ -443,6 +709,11 @@ Visualization Manager:
           Show Trail: false
           Value: true
         link_kinect:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        palm:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -495,18 +766,21 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+        tcp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         tool:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
       Name: RobotState
       Robot Alpha: 0.5
       Robot Description: robot_description
       Robot State Topic: /move_itomp/display_goal_state
       Show All Links: true
       Show Highlights: true
-      Value: false
+      Value: true
       Visual Enabled: true
     - Class: rviz/Marker
       Enabled: true
@@ -515,6 +789,17 @@ Visualization Manager:
       Namespaces:
         environment: true
         itomp_endeffector: true
+        wp_0: false
+        wp_10: false
+        wp_100: true
+        wp_20: false
+        wp_30: false
+        wp_40: false
+        wp_50: true
+        wp_60: false
+        wp_70: false
+        wp_80: false
+        wp_90: false
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -547,22 +832,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 27.5051
+      Distance: 2.33646
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.56824
-        Y: 3.60453
-        Z: -3.79944e-05
+        X: 0.610458
+        Y: -0.0661767
+        Z: -2.38419e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.249798
+      Pitch: 0.580398
       Target Frame: kuka_root
       Value: XYOrbit (rviz)
-      Yaw: 4.87688
+      Yaw: 4.29032
     Saved: ~
 Window Geometry:
   Displays:
@@ -574,9 +859,9 @@ Window Geometry:
   Hide Right Dock: false
   Motion Planning:
     collapsed: false
-  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073020000042d0000005e000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000100000000000002a2000003dafc0200000005fb000000100044006900730070006c006100790073020000042d00000496000002a2000003dafb0000000800480065006c00700000000028000003da0000007600fffffffb0000000a0056006900650077007300000003b0000000b0000000b000fffffffb0000000c00430061006d00650072006100000002ff000001610000000000000000fb0000001e004d006f00740069006f006e00200050006c0061006e006e0069006e00670000000028000003da0000017400ffffff0000073f000003da00000001000000020000000100000002fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Views:
     collapsed: false
   Width: 1855
   X: 1978
-  Y: 24
+  Y: -1056

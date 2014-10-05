@@ -5,7 +5,7 @@ max_iterations_after_collision_free: 1
 num_trajectories: 4
 
 smoothness_cost_weight: 0.00001
-obstacle_cost_weight: 1.0
+obstacle_cost_weight: 100.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
@@ -25,11 +25,12 @@ temp: [1000.0, 1000.0, 0.0]
 
 print_planning_info: true
 
-animate_path: false
+animate_path: true
 animate_endeffector: true
 animate_endeffector_segment:
-  lower_body: [tcp_1_link, tcp_2_link]
+  lower_body: [tcp_3_link, tcp_2_link]
   lower_body_tcp2: [tcp_2_link]
+  lower_body_tcp3: [tcp_3_link]
   torso: torso_x_link
   head: head_endeffector_link
   left_arm: left_hand_endeffector_link
@@ -64,7 +65,7 @@ num_contacts: 0
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://kuka_description/env/s_bench1.dae
+environment_model: package://kuka_description/env/s_bench1s.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 
