@@ -146,16 +146,11 @@ void MoveItomp::run(const std::string& group_name)
 					req.workspace_parameters.max_corner.z = 10.0;
 
 	// Set start_state
+	std::map<std::string, double> values;
 	robot_state::RobotState& start_state =
 			planning_scene_->getCurrentStateNonConst();
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup("gripper");
-	std::map<std::string, double> values;
-	joint_model_group->getVariableDefaultPositions("close", values);
-	start_state.setVariablePositions(values);
-	start_state.update();
-
-	joint_model_group = start_state.getJointModelGroup(group_name_);
+			start_state.getJointModelGroup(group_name_);
 
 	joint_model_group->getVariableDefaultPositions("idle", values);
 	start_state.setVariablePositions(values);
@@ -204,6 +199,13 @@ void MoveItomp::run(const std::string& group_name)
 				EE_CONSTRAINTS[i][1] = -EE_CONSTRAINTS[i][1];
 			}
 
+			for (int i = 0; i < 6; ++i)
+			{
+				Eigen::Vector3d pos(EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
+				drawEndeffectorPosition(i, pos);
+			}
+			sleep_time.sleep();
+
 			Eigen::Affine3d goal_transform[6];
 			for (int i = 0; i < 6; ++i)
 			{
@@ -227,11 +229,11 @@ void MoveItomp::run(const std::string& group_name)
 
 			for (int i = 0; i < 6; ++i)
 			{
-				/*
+
 				goal_transform[i] = goal_transform[i]
 						* ((i % 2 == 0) ? transform_1_inv : transform_2_inv);
-						*/
-				goal_transform[i] = goal_transform[i] * transform_3_inv;
+
+				//goal_transform[i] = goal_transform[i] * transform_3_inv;
 			}
 
 			start_state.update();
@@ -392,10 +394,13 @@ void MoveItomp::run(const std::string& group_name)
 			///
 			double EE_CONSTRAINTS[][7] =
 			{
-			{ 3.3, 2, 7.0, 0.5, 0.5, 0.5, 0.5 },
-			{ 3.3, 2, 10.0, 0.5, 0.5, 0.5, 0.5 },
-			{ 3.3, -2, 10.0, 0.5, 0.5, 0.5, 0.5 },
-			{ 3.3, -2, 7.0, 0.5, 0.5, 0.5, 0.5 } };
+			{ 3.3, 4, 7.0, 0.5, 0.5, 0.5, 0.5 },
+			{ 3.3, 4, 10.0, 0.5, 0.5, 0.5, 0.5 },
+			{ 3.3, 0, 10.0, 0.5, 0.5, 0.5, 0.5 },
+			{ 3.3, 0, 7, 0.5, 0.5, 0.5, 0.5 }, };
+			// 0.5, 0.5, 0.5, 0.5 right
+			// -0.5, 0.5, -0.5, 0.5 left
+			// INV_SQRT_2, 0.0, INV_SQRT_2, 0.0 bottom
 
 			for (int i = 0; i < num_waypoints; ++i)
 			{
@@ -439,9 +444,21 @@ void MoveItomp::run(const std::string& group_name)
 			{
 				ROS_INFO("*** Planning Sequence %d ***", i);
 
-				robot_state::RobotState& from_state = states[i];
+				robot_state::RobotState from_state = states[i];
 				robot_state::RobotState& to_state = states[(i + 1)
 						% num_waypoints];
+
+				// use the last configuration of prev trajectory
+				if (i != 0)
+				{
+					int num_joints = from_state.getVariableCount();
+					std::vector<double> positions(num_joints);
+					const robot_state::RobotState& last_state =
+							res.trajectory_->getLastWayPoint();
+					from_state.setVariablePositions(
+							last_state.getVariablePositions());
+					from_state.update();
+				}
 
 				displayStates(from_state, to_state);
 				sleep_time.sleep();
@@ -476,7 +493,7 @@ void MoveItomp::run(const std::string& group_name)
 				goal_pose.pose.orientation.y = rot.y();
 				goal_pose.pose.orientation.z = rot.z();
 				goal_pose.pose.orientation.w = rot.w();
-				std::string endeffector_name = "tcp_3_link"; //"end_effector_link";
+				std::string endeffector_name = "tcp_2_link"; //"end_effector_link";
 
 				req2.trajectory_constraints.constraints.clear();
 				int traj_constraint_begin = 0;
@@ -496,17 +513,6 @@ void MoveItomp::run(const std::string& group_name)
 					res.getMessage(response);
 
 					//printTrajectory(response.trajectory);
-
-					// use the last configuration of prev trajectory
-					{
-						int num_joints = from_state.getVariableCount();
-						std::vector<double> positions(num_joints);
-						const robot_state::RobotState& last_state =
-								res.trajectory_->getLastWayPoint();
-						to_state.setVariablePositions(
-								last_state.getVariablePositions());
-						to_state.update();
-					}
 
 					moveit_msgs::JointConstraint jc;
 					int num_joints =
@@ -541,7 +547,7 @@ void MoveItomp::run(const std::string& group_name)
 					traj_constraint_begin += num_points;
 				}
 
-				req2.trajectory_constraints.constraints.clear();
+				//req2.trajectory_constraints.constraints.clear();
 				moveit_msgs::PositionConstraint pc;
 				pc.target_point_offset.x = EE_CONSTRAINTS[i][0];
 				pc.target_point_offset.y = EE_CONSTRAINTS[i][1];
@@ -551,8 +557,15 @@ void MoveItomp::run(const std::string& group_name)
 				pc.target_point_offset.y = EE_CONSTRAINTS[i + 1][1];
 				pc.target_point_offset.z = EE_CONSTRAINTS[i + 1][2];
 				req2.path_constraints.position_constraints.push_back(pc);
+				moveit_msgs::OrientationConstraint oc;
+				oc.orientation.x = EE_CONSTRAINTS[i][3];
+				oc.orientation.y = EE_CONSTRAINTS[i][4];
+				oc.orientation.z = EE_CONSTRAINTS[i][5];
+				oc.orientation.w = EE_CONSTRAINTS[i][6];
+				req2.path_constraints.orientation_constraints.push_back(oc);
 				plan(req2, res, from_state, to_state);
 				req2.path_constraints.position_constraints.clear();
+				req2.path_constraints.orientation_constraints.clear();
 				res.getMessage(response);
 
 				int n = res.trajectory_->getWayPointCount();
@@ -601,13 +614,18 @@ void MoveItomp::run(const std::string& group_name)
 		/*
 		 for (int j = 0; j < display_trajectory.trajectory.size(); ++j)
 		 {
-		 for (int i = 0; i < display_trajectory.trajectory[j].joint_trajectory.points.size(); ++i)
-		 printf("%d %d : %f\n", j, i, display_trajectory.trajectory[j].joint_trajectory.points[i].time_from_start.toSec());
+		 for (int i = 0;
+		 i
+		 < display_trajectory.trajectory[j].joint_trajectory.points.size();
+		 ++i)
+		 printf("%d %d : %f\n", j, i,
+		 display_trajectory.trajectory[j].joint_trajectory.points[i].time_from_start.toSec());
 		 }
-		 int num_trajectories = display_trajectory.trajectory.size();
-		 for (int i = 0; i < num_trajectories; ++i)
-		 printTrajectory(display_trajectory.trajectory[i]);
 		 */
+		int num_trajectories = display_trajectory.trajectory.size();
+		for (int i = 0; i < num_trajectories; ++i)
+			printTrajectory(display_trajectory.trajectory[i]);
+
 	}
 
 	itomp_planner_instance_.reset();
@@ -723,7 +741,7 @@ void MoveItomp::plan(planning_interface::MotionPlanRequest& req,
 	planning_scene_->getCurrentStateNonConst().update();
 
 	// goal state
-	std::vector<double> tolerance_pose(3, 0.01);
+	std::vector<double> tolerance_pose(3, 0.0001);
 	std::vector<double> tolerance_angle(3, 0.01);
 	moveit_msgs::Constraints pose_goal =
 			kinematic_constraints::constructGoalConstraints(endeffector_link,
@@ -924,9 +942,9 @@ bool MoveItomp::isStateCollide(const robot_state::RobotState& state)
 	msg.ns = "collision";
 	msg.type = visualization_msgs::Marker::SPHERE_LIST;
 	msg.action = visualization_msgs::Marker::ADD;
-	msg.scale.x = 0.2;
-	msg.scale.y = 0.2;
-	msg.scale.z = 0.2;
+	msg.scale.x = 0.02;
+	msg.scale.y = 0.02;
+	msg.scale.z = 0.02;
 	msg.color.a = 1.0;
 	msg.color.r = 1.0;
 	msg.color.g = 1.0;
@@ -997,6 +1015,7 @@ void MoveItomp::computeIKState(robot_state::RobotState& ik_state,
 		for (int i = 0; i < ik_state.getVariableCount(); ++i)
 			printf("%f ", pos[i]);
 		printf("\n");
+
 		if (found_ik)
 			break;
 
@@ -1044,11 +1063,59 @@ void MoveItomp::printTrajectory(const moveit_msgs::RobotTrajectory &traj)
 
 }
 
+void MoveItomp::drawEndeffectorPosition(int id, const Eigen::Vector3d& position)
+{
+	const double trajectory_color_diff = 0.33;
+	const double scale = 0.01;
+	const int marker_step = 1;
+
+	visualization_msgs::Marker::_color_type BLUE, LIGHT_YELLOW;
+	visualization_msgs::Marker::_color_type RED, LIGHT_RED;
+	RED.a = 1.0;
+	RED.r = 1.0;
+	RED.g = 0.0;
+	RED.b = 0.0;
+	BLUE.a = 1.0;
+	BLUE.r = 0.5;
+	BLUE.g = 0.5;
+	BLUE.b = 1.0;
+	LIGHT_RED = RED;
+	LIGHT_RED.g = 0.5;
+	LIGHT_RED.b = 0.5;
+	LIGHT_YELLOW = BLUE;
+	LIGHT_YELLOW.b = 0.5;
+
+	visualization_msgs::Marker msg;
+	msg.header.frame_id = robot_model_->getModelFrame();
+	msg.header.stamp = ros::Time::now();
+	msg.ns = "cartesian_traj";
+	msg.type = visualization_msgs::Marker::CUBE_LIST;
+	msg.action = visualization_msgs::Marker::ADD;
+
+	msg.scale.x = scale;
+	msg.scale.y = scale;
+	msg.scale.z = scale;
+
+	msg.id = id;
+	msg.color = BLUE;
+
+	msg.points.resize(0);
+	geometry_msgs::Point point;
+	point.x = position(0);
+	point.y = position(1);
+	point.z = position(2);
+	msg.points.push_back(point);
+
+	visualization_msgs::MarkerArray ma;
+	ma.markers.push_back(msg);
+	vis_marker_array_publisher_.publish(ma);
+}
+
 void MoveItomp::drawPath(int id, const Eigen::Vector3d& from,
 		const Eigen::Vector3d& to)
 {
 	const double trajectory_color_diff = 0.33;
-	const double scale = 0.05;
+	const double scale = 0.005;
 	const int marker_step = 1;
 
 	visualization_msgs::Marker::_color_type BLUE, LIGHT_YELLOW;
@@ -1107,7 +1174,7 @@ int main(int argc, char **argv)
 	ros::NodeHandle node_handle("~");
 
 	move_itomp::MoveItomp* move_itomp = new move_itomp::MoveItomp(node_handle);
-	//move_itomp->run("lower_body_tcp3");
+	//move_itomp->run("lower_body_tcp2");
 	move_itomp->run("lower_body");
 	delete move_itomp;
 

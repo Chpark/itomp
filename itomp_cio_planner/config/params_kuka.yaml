@@ -5,7 +5,7 @@ max_iterations_after_collision_free: 1
 num_trajectories: 4
 
 smoothness_cost_weight: 0.00001
-obstacle_cost_weight: 100.0
+obstacle_cost_weight: 1.0
 torque_cost_weight: 0.0
 state_validity_cost_weight: 0.0
 endeffector_velocity_cost_weight: 0.0
@@ -28,7 +28,7 @@ print_planning_info: true
 animate_path: true
 animate_endeffector: true
 animate_endeffector_segment:
-  lower_body: [tcp_3_link, tcp_2_link]
+  lower_body: [tcp_1_link, tcp_2_link]
   lower_body_tcp2: [tcp_2_link]
   lower_body_tcp3: [tcp_3_link]
   torso: torso_x_link

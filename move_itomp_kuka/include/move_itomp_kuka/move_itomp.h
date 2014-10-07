@@ -46,6 +46,7 @@ protected:
 	void printTrajectory(const moveit_msgs::RobotTrajectory &traj);
 
 	void drawPath(int id, const Eigen::Vector3d& from, const Eigen::Vector3d& to);
+	void drawEndeffectorPosition(int id, const Eigen::Vector3d& position);
 
 	ros::NodeHandle node_handle_;
 	robot_model::RobotModelPtr robot_model_;

@@ -1269,7 +1269,9 @@ void EvaluationManager::computeCollisionCosts(int begin, int end)
 			depthSum += contact.depth;
 
 			// for debug
-			//ROS_INFO("Collision between %s and %s : %f", contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
+			//ROS_INFO("[%d] Collision between %s and %s : %f", i, contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
+
+			last_trajectory_collision_free_ = false;
 		}
 		collision_result[thread_num].clear();
 		data_->stateCollisionCost_[i] = depthSum;
@@ -1360,6 +1362,64 @@ void EvaluationManager::computeFTRs(int begin, int end)
 
 }
 
+void EvaluationManager::printDebugInfo()
+{
+	if (PlanningParameters::getInstance()->getCartesianTrajectoryCostWeight()
+			== 0.0)
+		return;
+
+	if (data_->cartesian_waypoints_.size() != 0)
+	{
+		// position constraint
+
+		const int END_EFFECTOR_SEGMENT_INDEX =
+				robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
+						"tcp_2_link");
+
+		data_->costAccumulator_.is_last_trajectory_valid_ = true;
+
+		const double rotation_weight = 0.0;
+
+		int num_vars_free = 100;
+
+		if (data_->cartesian_waypoints_.size() == 0)
+			return;
+
+		KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
+		KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
+		KDL::Vector dir = (end_pos - start_pos);
+		double dir_max = dir.Normalize();
+
+		double max_dist = 0;
+
+		// TODO: fix
+		int point_index = 6;
+		for (int i = point_index; i < point_index + num_vars_free; ++i)
+		{
+			KDL::Frame& frame =
+					data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
+
+			double proj_dist = KDL::dot(dir, (frame.p - start_pos));
+			KDL::Vector proj_pt = proj_dist * dir;
+			if (proj_dist < 0)
+				proj_pt = KDL::Vector::Zero();
+			else if (proj_dist > dir_max)
+				proj_pt = dir_max * dir;
+
+			KDL::Vector distToLine = (frame.p - start_pos) - proj_pt;
+			double distance = distToLine.Norm();
+
+			printf("[%d] dist: %f (%f %f %f)\n", i, distance, frame.p.x(),
+					frame.p.y(), frame.p.z());
+
+			if (distance > max_dist)
+				max_dist = distance;
+		}
+		printf("Max dist : %f\n", max_dist);
+
+	}
+}
+
 void EvaluationManager::computeCartesianTrajectoryCosts()
 {
 	if (PlanningParameters::getInstance()->getCartesianTrajectoryCostWeight()
@@ -1372,9 +1432,9 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 
 		const int END_EFFECTOR_SEGMENT_INDEX =
 				robot_model_->getForwardKinematicsSolver()->segmentNameToIndex(
-						"tcp_3_link");
+						"tcp_2_link");
 
-		data_->costAccumulator_.is_last_trajectory_valid_ = true;
+		//data_->costAccumulator_.is_last_trajectory_valid_ = true;
 
 		const double rotation_weight = 0.0;
 
@@ -1389,27 +1449,35 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 		KDL::Vector start_pos = data_->cartesian_waypoints_[0].p;
 		KDL::Vector end_pos = data_->cartesian_waypoints_[1].p;
 		KDL::Vector dir = (end_pos - start_pos);
-		dir.Normalize();
+		double dir_max = dir.Normalize();
 
 		// TODO: fix
-		int point_index = 5;
+		int point_index = 6;
 		for (int i = point_index; i < point_index + num_vars_free; ++i)
 		{
 			KDL::Frame& frame =
 					data_->segment_frames_[i][END_EFFECTOR_SEGMENT_INDEX];
-			KDL::Vector distToLine = (frame.p - start_pos)
-					- KDL::dot(dir, (frame.p - start_pos)) * dir;
+
+			double proj_dist = KDL::dot(dir, (frame.p - start_pos));
+			KDL::Vector proj_pt = proj_dist * dir;
+			if (proj_dist < 0)
+				proj_pt = KDL::Vector::Zero();
+			else if (proj_dist > dir_max)
+				proj_pt = dir_max * dir;
+
+			KDL::Vector distToLine = (frame.p - start_pos) - proj_pt;
 			double distance = distToLine.Norm();
 
 			double cost = distance;
 
-			if (distance > 0.05)
-				data_->costAccumulator_.is_last_trajectory_valid_ = false;
+			if (distance > 0.005)
+				last_trajectory_collision_free_ = false;
+			//data_->costAccumulator_.is_last_trajectory_valid_ = false;
 
 			data_->stateCartesianTrajectoryCost_[i] = cost * cost;
 
 			//if (distance > 0.1)
-				//ROS_INFO("error : %d dist : %f", i, distance);
+			//ROS_INFO("error : %d dist : %f", i, distance);
 		}
 
 	}
@@ -1446,7 +1514,8 @@ void EvaluationManager::computeCartesianTrajectoryCosts()
 			// TODO: ?
 			if (angle > 5.0 * M_PI / 180.0)
 			{
-				data_->costAccumulator_.is_last_trajectory_valid_ = false;
+				//data_->costAccumulator_.is_last_trajectory_valid_ = false;
+				last_trajectory_collision_free_ = false;
 				cost = angle * angle;
 			}
 			else

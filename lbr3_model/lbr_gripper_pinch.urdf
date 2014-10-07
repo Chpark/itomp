@@ -5,17 +5,6 @@
        xmlns:xacro="http://playerstage.sourceforge.net/gazebo/xmlschema/#interface"
        name="lbr3">
 
- <link name="kuka_root">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
- </link>
-
-
  <link name="link_kinect">
     <visual>
       <geometry>
@@ -33,7 +22,7 @@
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_0_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_0_collision_s.dae" />
 			</geometry>
 	</collision>
   </link>
@@ -46,7 +35,7 @@
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_1_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_1_collision_s.dae" />
 			</geometry>
 		</collision> 
   </link>
@@ -59,7 +48,7 @@
     </visual>
 	<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_2_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_2_collision_s.dae"/>
 			</geometry>
 		</collision>
   </link>
@@ -72,7 +61,7 @@
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_3_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_3_collision_s.dae"/>
 			</geometry>
 		</collision> 
   </link>
@@ -85,7 +74,7 @@
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_4_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_4_collision_s.dae"/>
 			</geometry>
 		</collision> -->
   </link>
@@ -98,7 +87,7 @@
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_5_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_5_collision_s.dae"/>
 			</geometry>
 		</collision> 
   </link>
@@ -111,7 +100,7 @@
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_6_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_6_collision_s.dae"/>
 			</geometry>
 		</collision>
   </link>
@@ -124,11 +113,11 @@
     </visual>
 		<collision>
 			<geometry>
-				<mesh filename="package://lbr3_model/cad/segment_7_collision.dae" scale="0.001 0.001 0.001"/>
+				<mesh filename="package://lbr3_model/cad/segment_7_collision_s.dae"/>
 			</geometry>
 		</collision>
   </link>
-
+<!--
   <link name="finger_1_link_0">
     <visual>
       <origin rpy="0 0 0" xyz="0.020 0 0"/>
@@ -176,11 +165,6 @@
     </inertial>
   </link>
   <link name="finger_1_link_2">
-    <!--
-			NOTE: This link has an offset in the z-direction based on the models that were
-			used to generate grap-it poses.  With the offset below the model appears visually
-			correct, but it is suspect. -->
-			
     <visual>
       <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
       <geometry>
@@ -270,11 +254,6 @@
     </inertial>
   </link>
   <link name="finger_2_link_2">
-    <!--
-			NOTE: This link has an offset in the z-direction based on the models that were
-			used to generate grap-it poses.  With the offset below the model appears visually
-			correct, but it is suspect. -->
-			
     <visual>
       <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
       <geometry>
@@ -363,11 +342,6 @@
     </inertial>
   </link>
   <link name="finger_middle_link_2">
-    <!--
-			NOTE: This link has an offset in the z-direction based on the models that were
-			used to generate grap-it poses.  With the offset below the model appears visually
-			correct, but it is suspect. -->
-			
     <visual>
       <origin rpy="0 0 0" xyz="0.039 0 0.0075"/>
       <geometry>
@@ -433,7 +407,7 @@
     <inertia ixx="0.006012" ixy="0.000079" ixz="-0.00024" iyy="0.012892" iyz="0" izz="0.002435"/>
   </inertial>
   </link>
-
+-->
   <!-- ################################### JOINTS ############################### -->
 
   <joint name="kinect_depth_joint" type="fixed">
@@ -499,19 +473,7 @@
     <origin xyz="0 0 .0795"/>
   </joint>
 
-
-
-  <joint name="joint_root" type="fixed">
-    <parent link="kuka_root"/>
-    <child link="segment_0"/>
-    <axis xyz="0 0 1"/>
-    <origin rpy="0 0 0" xyz="0 0 0"/>
-  </joint>
-
-
-
   <link name="tool">
-<!--
     <visual>
       <geometry>
         <mesh filename="package://kuka_description/cad/tool.dae" scale="0.001 0.001 0.001"/>
@@ -519,10 +481,9 @@
     </visual>
     <collision>
       <geometry>
-        <mesh filename="package://kuka_description/cad/tool.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://kuka_description/cad/tool_s.dae"/>
       </geometry>
     </collision>
--->
   </link>
  <link name="end_effector_link">
   </link>
@@ -585,49 +546,49 @@
   </joint>
 
   <joint name="joint_goal_1" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_1_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="1.570796 0 1.570796" xyz="3.4 1.4 7.84"/>
   </joint>
 
   <joint name="joint_goal_2" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_2_link"/>
     <axis xyz="0 0 1"/>
-    <origin rpy="-1.570796 0 -1.570796" xyz="2.0 1.0 12.0"/>
+    <origin rpy="0 -1.570796 3.141592" xyz="2.0 1.0 12.0"/>
   </joint>
 
   <joint name="joint_goal_3" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_3_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="-1.570796 0 -1.570796" xyz="2.0 1.5 12.0"/>
   </joint>
 
   <joint name="joint_goal_4" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_4_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="-1.570796 0 0" xyz="2.0 2.0 8.5"/>
   </joint>
 
   <joint name="joint_goal_5" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_5_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="-1.570796 0 3.141592" xyz="1.5 2.0 8.5"/>
   </joint>
 
   <joint name="joint_goal_6" type="fixed">
-    <parent link="kuka_root"/>
+    <parent link="segment_0"/>
     <child link="goal_6_link"/>
     <axis xyz="0 0 1"/>
     <origin rpy="-1.570796 0 3.141592" xyz="1.0 2.0 8.5"/>
   </joint>
 
 <!-- ###################### GRIPPER JOINTS #################### -->
-
+<!--
   <joint name="finger_middle_joint_1" type="revolute">
     <parent link="finger_middle_link_0"/>
     <child link="finger_middle_link_1"/>

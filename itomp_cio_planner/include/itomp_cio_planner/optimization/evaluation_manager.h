@@ -85,6 +85,8 @@ public:
   void setData(EvaluationData* data);
   void setDataToDefault();
 
+  void printDebugInfo();
+
 private:
   double evaluate(DERIVATIVE_VARIABLE_TYPE variable_type, int point_index, int joint_index);
 

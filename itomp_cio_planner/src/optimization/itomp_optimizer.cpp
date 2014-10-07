@@ -106,7 +106,10 @@ bool ItompOptimizer::optimize()
 
 			++iteration_;
 
-			evaluation_manager_.render(trajectory_index_, is_best_trajectory);
+			evaluation_manager_.render(trajectory_index_, is_updated && is_best_trajectory);
+
+			if (is_updated && is_best_trajectory)
+				evaluation_manager_.printDebugInfo();
 		}
 	}
 	//evaluation_manager_.postprocess_ik();
@@ -114,7 +117,12 @@ bool ItompOptimizer::optimize()
 	group_trajectory_.getTrajectory() = best_group_trajectory_;
 	group_trajectory_.getContactTrajectory() = best_group_contact_trajectory_;
 	evaluation_manager_.updateFullTrajectory();
-	//evaluation_manager_.evaluate();
+
+	if (best_cost_manager_->getBestCostTrajectoryIndex() == trajectory_index_)
+	{
+		evaluation_manager_.evaluate();
+		evaluation_manager_.printDebugInfo();
+	}
 
 	evaluation_manager_.render(trajectory_index_,
 			best_cost_manager_->getBestCostTrajectoryIndex()

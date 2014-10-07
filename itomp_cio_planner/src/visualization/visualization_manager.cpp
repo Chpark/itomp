@@ -623,7 +623,7 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = reference_frame_;
 	msg.header.stamp = ros::Time::now();
-	msg.ns = "itomp_endeffector";
+	msg.ns = best ? "itomp_best_endeffector" : "itomp_endeffector";
 	msg.type = visualization_msgs::Marker::SPHERE_LIST;
 	msg.action = visualization_msgs::Marker::ADD;
 
@@ -639,7 +639,7 @@ void VisualizationManager::animateEndeffector(int trajectory_index,
 		if (index != 0)
 			break;
 
-		msg.id = trajectory_index * animate_endeffector_segment_numbers_.size()
+		msg.id = (best ? 0 : trajectory_index) * animate_endeffector_segment_numbers_.size()
 				+ index;
 
 		msg.color = best ? (index == 0 ? YELLOW : LIGHT_YELLOW) : (index == 0 ? RED : LIGHT_RED);
@@ -802,9 +802,12 @@ void VisualizationManager::animatePath(int trajectory_index,
 
 	std::vector<std::string> link_names =
 			robot_model_->getRobotModel()->getJointModelGroup("lower_body")->getLinkModelNames();
+	/*
 	std::vector<std::string> link_names2 =
 			robot_model_->getRobotModel()->getJointModelGroup("gripper")->getLinkModelNames();
 	link_names.insert(link_names.end(), link_names2.begin(), link_names2.end());
+	*/
+	link_names.push_back("tool");
 
 	std_msgs::ColorRGBA WHITE, YELLOW, RED;
 	WHITE.a = 1.0;

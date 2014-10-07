@@ -397,7 +397,7 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName,
 		*(trajectories_[i].get()) = *(trajectory_.get());
 
 
-		if (i != 0 && trajectory_constraints.constraints.size() != 0)
+		if (trajectory_constraints.constraints.size() != 0)
 		{
 			trajectories_[i]->fillInMinJerk(i, groupJointsKDLIndices, group,
 					trajectory_constraints, start_point_velocities_.row(0),
@@ -405,7 +405,7 @@ void ItompPlannerNode::fillGroupJointTrajectory(const string& groupName,
 		}
 
 		// else !!!
-		else if (true) //path_constraints.position_constraints.size() == 0)
+		else if (path_constraints.position_constraints.size() == 0)
 		{
 			trajectories_[i]->fillInMinJerk(groupJointsKDLIndices,
 					start_point_velocities_.row(0),
