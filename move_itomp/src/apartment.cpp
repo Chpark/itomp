@@ -549,6 +549,7 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                     {
                         waypoint[h] = strtod(endptr, &endptr);
                     }
+                    waypoint[2] -= 1.6;
                     waypoints.push_back(waypoint);
                 }
             }
