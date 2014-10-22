@@ -15,6 +15,9 @@
  </link>
 
  <link name="segment_0">
+ </link>
+
+  <link name="segment_00">
     <visual>
       <geometry>
         <mesh filename="package://lbr3_model/cad/segment_0.dae" scale="0.001 0.001 0.001"/>
@@ -26,6 +29,14 @@
 			</geometry>
 	</collision>
   </link>
+
+  <joint name="joint_segment_0" type="fixed">
+    <parent link="segment_0"/>
+    <child link="segment_00"/>
+    <axis xyz="0 0 1"/>
+    <origin xyz="0.3 0 0"/>
+  </joint>
+
 
  <link name="segment_1">
     <visual>
@@ -419,7 +430,7 @@
 
   <joint name="joint_0" type="revolute">
     <limit lower="-2.96705972839031" upper="2.96705972839031" effort="176" velocity="1.31" />
-    <parent link="segment_0"/> 
+    <parent link="segment_00"/> 
     <child link="segment_1"/>
     <axis xyz="0 0 1"/>
     <origin xyz="0 0 .1105"/>

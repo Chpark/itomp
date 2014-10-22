@@ -47,6 +47,7 @@ protected:
 
 	void drawPath(int id, const Eigen::Vector3d& from, const Eigen::Vector3d& to);
 	void drawEndeffectorPosition(int id, const Eigen::Vector3d& position);
+	void renderPRMGraph(robot_state::RobotState& state);
 
 	ros::NodeHandle node_handle_;
 	robot_model::RobotModelPtr robot_model_;

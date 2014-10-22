@@ -65,7 +65,7 @@ num_contacts: 0
 contact_variable_initial_values: [0.2, 0.2, 0.0, 0.0]
 contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
 
-environment_model: package://kuka_description/env/s_bench1s.dae
+environment_model: package://kuka_description/env/s_bench1s_t.dae
 environment_model_position: [0.0, 0.0, 0.0]
 environment_model_scale: 1.0
 

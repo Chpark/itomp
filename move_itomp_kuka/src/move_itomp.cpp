@@ -17,6 +17,7 @@
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
 #include <move_itomp_kuka/move_itomp.h>
+#include <fstream>
 
 using namespace std;
 
@@ -58,6 +59,7 @@ void MoveItomp::run(const std::string& group_name)
 
 	collision_detection::AllowedCollisionMatrix& acm =
 			planning_scene_->getAllowedCollisionMatrixNonConst();
+	acm.setEntry("environment", "segment_00", true);
 	acm.setEntry("environment", "segment_0", true);
 	acm.setEntry("environment", "segment_1", true);
 
@@ -122,7 +124,7 @@ void MoveItomp::run(const std::string& group_name)
 	display_publisher_ = node_handle_.advertise<moveit_msgs::DisplayTrajectory>(
 			"/move_group/display_planned_path", 1, true);
 	vis_marker_array_publisher_ = node_handle_.advertise<
-			visualization_msgs::MarkerArray>("visualization_marker_array", 10,
+			visualization_msgs::MarkerArray>("visualization_marker_array", 100,
 			true);
 
 	loadStaticScene();
@@ -162,6 +164,9 @@ void MoveItomp::run(const std::string& group_name)
 	goal_state.setVariablePositions(values);
 	goal_state.update();
 
+	renderPRMGraph(start_state);
+	sleep_time.sleep();
+
 	const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
 	int benchmark = (group_name_ == "lower_body") ? 1 : 2;
@@ -200,9 +205,15 @@ void MoveItomp::run(const std::string& group_name)
 			}
 
 			for (int i = 0; i < 6; ++i)
+				EE_CONSTRAINTS[i][0] += 0.3;
+
+			for (int i = 0; i < 6; ++i)
 			{
-				Eigen::Vector3d pos(EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
+				Eigen::Vector3d pos(EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1],
+						EE_CONSTRAINTS[i][2]);
 				drawEndeffectorPosition(i, pos);
+				ROS_INFO(
+						"effector pos %d: %f %f %f", i, EE_CONSTRAINTS[i][0], EE_CONSTRAINTS[i][1], EE_CONSTRAINTS[i][2]);
 			}
 			sleep_time.sleep();
 
@@ -890,16 +901,17 @@ void MoveItomp::displayStates(robot_state::RobotState& start_state,
 	for (unsigned int i = 0; i < link_model_names.size(); ++i)
 	{
 		std_msgs::ColorRGBA color;
+
+		color.a = 0.5;
+		color.r = 0.0;
+		color.g = 1.0;
+		color.b = 0.5;
 		/*
-		 color.a = 0.5;
-		 color.r = 0.0;
-		 color.g = 1.0;
-		 color.b = 0.5;
+		 color.a = 1.0;
+		 color.r = 1.0;
+		 color.g = 0.333;
+		 color.b = 0.0;
 		 */
-		color.a = 1.0;
-		color.r = 1.0;
-		color.g = 0.333;
-		color.b = 0.0;
 		moveit_msgs::ObjectColor obj_color;
 		obj_color.id = link_model_names[i];
 		obj_color.color = color;
@@ -1066,7 +1078,7 @@ void MoveItomp::printTrajectory(const moveit_msgs::RobotTrajectory &traj)
 void MoveItomp::drawEndeffectorPosition(int id, const Eigen::Vector3d& position)
 {
 	const double trajectory_color_diff = 0.33;
-	const double scale = 0.01;
+	const double scale = 0.02;
 	const int marker_step = 1;
 
 	visualization_msgs::Marker::_color_type BLUE, LIGHT_YELLOW;
@@ -1161,6 +1173,94 @@ void MoveItomp::drawPath(int id, const Eigen::Vector3d& from,
 
 	visualization_msgs::MarkerArray ma;
 	ma.markers.push_back(msg);
+	vis_marker_array_publisher_.publish(ma);
+}
+
+void MoveItomp::renderPRMGraph(robot_state::RobotState& state)
+{
+	const double trajectory_color_diff = 0.33;
+	const double scale = 0.005, scale2 = 0.001;
+	;
+	const int marker_step = 1;
+
+	visualization_msgs::MarkerArray ma;
+	visualization_msgs::Marker::_color_type BLUE, GREEN, LIGHT_YELLOW;
+	BLUE.a = 1.0;
+	BLUE.r = 1.0;
+	BLUE.g = 1.0;
+	BLUE.b = 1.0;
+	LIGHT_YELLOW = BLUE;
+	LIGHT_YELLOW.b = 0.5;
+	GREEN.a = 0.1;
+	GREEN.r = 0.5;
+	GREEN.b = 0.5;
+	GREEN.g = 1.0;
+
+	visualization_msgs::Marker msg;
+	msg.header.frame_id = robot_model_->getModelFrame();
+	msg.header.stamp = ros::Time::now();
+	msg.ns = "prm_vertices";
+	msg.type = visualization_msgs::Marker::SPHERE_LIST;
+	msg.action = visualization_msgs::Marker::ADD;
+
+	msg.scale.x = scale;
+	msg.scale.y = scale;
+	msg.scale.z = scale;
+
+	msg.id = 0;
+	msg.color = LIGHT_YELLOW;
+
+	msg.points.resize(0);
+	geometry_msgs::Point point;
+
+	std::ifstream ifs("vertex.txt");
+	double data[7];
+
+	for (int c = 0; c < 2000; ++c)
+	{
+		for (int i = 0; i < 7; ++i)
+			ifs >> data[i];
+		state.setVariablePositions(data);
+		state.updateLinkTransforms();
+		const Eigen::Affine3d& transform = state.getGlobalLinkTransform(
+				"tcp_1_link");
+
+		point.x = transform.translation()(0);
+		point.y = transform.translation()(1);
+		point.z = transform.translation()(2);
+		msg.points.push_back(point);
+	}
+
+	ifs.close();
+	ma.markers.push_back(msg);
+
+	msg.id = 1;
+	msg.points.resize(0);
+	msg.type = visualization_msgs::Marker::LINE_LIST;
+	msg.scale.x = scale2;
+	msg.scale.y = scale2;
+	msg.scale.z = scale2;
+	msg.color = GREEN;
+
+	ifs.open("edge.txt");
+	for (int c = 0; c < 23746; ++c)
+	{
+		for (int i = 0; i < 7; ++i)
+			ifs >> data[i];
+		state.setVariablePositions(data);
+		state.updateLinkTransforms();
+		const Eigen::Affine3d& transform = state.getGlobalLinkTransform(
+				"tcp_1_link");
+
+		point.x = transform.translation()(0);
+		point.y = transform.translation()(1);
+		point.z = transform.translation()(2);
+		msg.points.push_back(point);
+	}
+
+	ifs.close();
+	ma.markers.push_back(msg);
+
 	vis_marker_array_publisher_.publish(ma);
 }
 
