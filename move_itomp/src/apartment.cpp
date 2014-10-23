@@ -25,7 +25,8 @@ const double INV_SQRT_2 = 1.0 / std::sqrt((long double) 2.0);
 
 void loadStaticScene(ros::NodeHandle& node_handle,
 		planning_scene::PlanningScenePtr& planning_scene,
-		robot_model::RobotModelPtr& robot_model)
+		robot_model::RobotModelPtr& robot_model,
+		ros::Publisher& planning_scene_diff_publisher)
 {
 	std::string environment_file;
 	std::vector<double> environment_position;
@@ -75,23 +76,13 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		collision_object.meshes.push_back(mesh);
 		collision_object.mesh_poses.push_back(pose);
 
-		shape_msgs::SolidPrimitive primitive;
-		primitive.type = primitive.BOX;
-		primitive.dimensions.resize(3);
-		primitive.dimensions[0] = 2.0;
-		primitive.dimensions[1] = 1.0;
-		primitive.dimensions[2] = 1.0;
-		pose.position.x = 0;
-		pose.position.y = 6.0;
-		pose.position.z = -0.45;
-		collision_object.primitive_poses.push_back(pose);
-		collision_object.primitives.push_back(primitive);
-
 		collision_object.operation = collision_object.ADD;
 		moveit_msgs::PlanningScene planning_scene_msg;
 		planning_scene_msg.world.collision_objects.push_back(collision_object);
 		planning_scene_msg.is_diff = true;
 		planning_scene->setPlanningSceneDiffMsg(planning_scene_msg);
+
+		planning_scene_diff_publisher.publish(planning_scene_msg);
 	}
 }
 
@@ -154,17 +145,6 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		msg.color.g = 0.5;
 		msg.color.b = 0.5;
 		msg.mesh_resource = environment_file;
-		ma.markers.push_back(msg);
-
-		msg.ns = "environment2";
-		msg.type = visualization_msgs::Marker::CUBE;
-		msg.id = 0;
-		msg.pose.position.x = 0;
-		msg.pose.position.y = 6.0;
-		msg.pose.position.z = -0.45;
-		msg.scale.x = 2.0;
-		msg.scale.y = 1.0;
-		msg.scale.z = 1.0;
 		ma.markers.push_back(msg);
 
 		ros::WallDuration(1.0).sleep();
@@ -589,6 +569,16 @@ int main(int argc, char **argv)
 	planning_scene::PlanningScenePtr planning_scene(
 			new planning_scene::PlanningScene(robot_model));
 
+	ros::Publisher planning_scene_diff_publisher;
+	planning_scene_diff_publisher = node_handle.advertise<
+			moveit_msgs::PlanningScene>("/planning_scene", 1);
+	while (planning_scene_diff_publisher.getNumSubscribers() < 1)
+	{
+		ros::WallDuration sleep_t(0.5);
+		sleep_t.sleep();
+		ROS_INFO("Waiting planning_scene subscribers");
+	}
+
 	boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
 	planning_interface::PlannerManagerPtr planner_instance;
 	std::string planner_plugin_name;
@@ -626,13 +616,13 @@ int main(int argc, char **argv)
 				"Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
 	}
 
-	loadStaticScene(node_handle, planning_scene, robot_model);
+	loadStaticScene(node_handle, planning_scene, robot_model, planning_scene_diff_publisher);
 
 	/* Sleep a little to allow time to startup rviz, etc. */
 	ros::WallDuration sleep_time(1.0);
 	sleep_time.sleep();
 
-	renderStaticScene(node_handle, planning_scene, robot_model);
+	//renderStaticScene(node_handle, planning_scene, robot_model);
 
 	// We will now create a motion plan request
 	// specifying the desired pose of the end-effector as input.
@@ -661,13 +651,18 @@ int main(int argc, char **argv)
         hierarchy.push_back("base_revolute_joint_y");
         hierarchy.push_back("base_revolute_joint_x");
         Eigen::VectorXd vec1;
+		start_trans = Eigen::VectorXd(6);
         start_trans = Eigen::VectorXd(6); start_trans << 0.0, 1.0, 0.0,0,0,0;
         goal_trans =  Eigen::VectorXd(6); goal_trans << 0.0, 2.5, 0.0,0,0,0;
+		goal_trans << 0.0, 2.5, 0.0, 0, 0, 0;
         vec1 = Eigen::VectorXd(6); vec1 << 0.0, 1.5, 1.0,0,0,0;
+		vec1 << 0.0, 1.5, 1.0, 0, 0, 0;
         waypoints.push_back(vec1);
         vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.0, 2.0,0,0,0;
+		vec1 << 0.0, 2.0, 2.0, 0, 0, 0;
         waypoints.push_back(vec1);
         vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.5, 1.0,0,0,0;
+		vec1 << 0.0, 2.5, 1.0, 0, 0, 0;
         waypoints.push_back(vec1);
     }
     else
