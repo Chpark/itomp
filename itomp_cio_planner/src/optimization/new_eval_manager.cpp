@@ -473,7 +473,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 		}
 		printf("\n");
 
-		for (int i = 0; i < evaluation_cost_matrix_.rows(); ++i)
+		for (int i = 0; i < evaluation_cost_matrix_.rows(); i += full_trajectory_->getNumKeyframeIntervalPoints())
 		{
 			printf("[%d] ", i);
 			for (int c = 0; c < cost_functions.size(); ++c)
@@ -485,7 +485,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 		}
 
 		printf("Contact active forces\n");
-		for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+		for (int i = 0; i < full_trajectory_->getNumPoints(); i += full_trajectory_->getNumKeyframeIntervalPoints())
 		{
 			const Eigen::VectorXd& r = full_trajectory_->getComponentTrajectory(
 					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
@@ -556,9 +556,13 @@ void NewEvalManager::initializeContactVariables()
 		return;
 
 	std::vector<int> init_points;
+	/*
 	init_points.push_back(0);
 	if (!full_trajectory_->hasFreeEndPoint())
 		init_points.push_back(full_trajectory_->getNumPoints() - 1);
+		*/
+	for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+		init_points.push_back(i);
 
 	for (int p = 0; p < init_points.size(); ++p)
 	{
