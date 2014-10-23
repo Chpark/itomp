@@ -32,7 +32,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 		const Eigen::Vector3d& orientation_in, Eigen::Vector3d& position_out,
 		Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal) const
 {
-	double min_dist = position_in(2) - (-0.227936);
+	double min_dist = position_in(2) - 0;
 
 	// ground
 	position_out = Eigen::Vector3d(position_in(0), position_in(1), -0.227936);
@@ -44,19 +44,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	Eigen::Vector3d y_axis = orientation_in_mat.col(1);
 	Eigen::Vector3d normal_in = orientation_in_mat.col(2);
 
-	if (position_in(0) < -4.4)
-	{
-
-	}
-	else if (position_in(0) < -4.0)
-	{
-		position_out(2) = 1.2;
-	}
-	else if (position_in(0) < -3.0)
-	{
-		position_out(2) = 0.5;
-	}
-
+	position_out(2) = 0.0;
 
 	getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
 
@@ -161,7 +149,10 @@ void GroundManager::initializeStaticScene()
 				tri.points_[1] = position2;
 				tri.points_[2] = position3;
 				tri.normal_ = normal;
-				triangles_.push_back(tri);
+
+				// only triangles that normal.z > 0.5 can be contact surface
+				if (tri.normal_(2) > 0.5)
+					triangles_.push_back(tri);
 			}
 		}
 	}
