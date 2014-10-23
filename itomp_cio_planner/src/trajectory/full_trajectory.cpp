@@ -491,14 +491,14 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 		int j = *it;
 
 		bool has_constraints = false;
-        int constraint_index = -1;
+		int constraint_index = -1;
 		for (int k = 0;
 				k
 						< trajectory_constraints.constraints[0].joint_constraints.size();
 				++k)
-        {
+		{
 
-            if (trajectory_constraints.constraints[0].joint_constraints[k].joint_name
+			if (trajectory_constraints.constraints[0].joint_constraints[k].joint_name
 					== planning_group->group_joints_[group_joint_index].joint_name_)
 			{
 
@@ -508,7 +508,7 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 		}
 
 		if (!has_constraints)
-        {
+		{
 			double x0 = trajectory_[TRAJECTORY_TYPE_POSITION](0, j);
 			double v0 = trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j);
 			double a0 = trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j);
@@ -536,7 +536,7 @@ void FullTrajectory::fillInMinJerk(const std::set<int>& groupJointsKDLIndices,
 			}
 		}
 		else
-        {
+		{
 			// interpolate between waypoints
 			for (int k = 0; k <= num_constraint_points; ++k)
 			{
@@ -804,17 +804,15 @@ void FullTrajectory::interpolateContactVariables()
 				x1, v1, a1);
 		for (int i = 1; i < getNumPoints() - 1; ++i)
 		{
-			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(0);
-			//i * discretization_);
+			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(i * discretization_);
 			if (has_velocity_)
 			{
 				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(
-						0);
-				//i * discretization_);
+						i * discretization_);
 			}
 			if (has_acceleration_)
 				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
-						poly.dderivative(0); //i * discretization_);
+						poly.dderivative(i * discretization_);
 		}
 	}
 }
