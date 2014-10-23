@@ -37,17 +37,16 @@ bool TrajectoryCostSmoothness::evaluate(
 	const Eigen::MatrixXd mat_vel = trajectory->getComponentTrajectory(
 			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
 			Trajectory::TRAJECTORY_TYPE_VELOCITY);
-	for (int i = 0; i < 6/*mat_vel.cols()*/; ++i)
+	for (int i = 0; i < mat_vel.cols(); ++i)
 	{
-		value = mat_vel(point, i);
+		value = mat_acc(point, i);
 		cost += value * value;
 	}
 
 	// normalize cost (independent to # of joints)
-	/*
 	 cost /= trajectory->getComponentSize(
-	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-	 */
+			 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+
 
 	/*
 	 const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
