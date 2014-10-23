@@ -198,7 +198,7 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 			robot_model_->getMoveitRobotModel()->getLinkModelNames();
 	std_msgs::ColorRGBA color = colors_[WHITE];
 	color.a = 0.1;
-	ros::Duration dur(100.0);
+	ros::Duration dur(3600.0);
 
 	for (int point = full_trajectory->getKeyframeStartIndex();
 			point < full_trajectory->getNumPoints();
