@@ -40,7 +40,7 @@ public:
 			int& full_point_begin, int& full_point_end, bool first);
 
 	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
-			int type, int point, double* out, double eps, double* d_p, double* d_m);
+			int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;
@@ -55,6 +55,8 @@ public:
 	const ItompPlanningGroupConstPtr& getPlanningGroup() const;
 	const ItompRobotModelConstPtr& getItompRobotModel() const;
 	const robot_state::RobotStatePtr& getRobotState(int point) const;
+
+	bool debug_;
 
 private:
 	void initializeContactVariables();

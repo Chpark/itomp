@@ -97,8 +97,11 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 	const double self_collision_scale = 0.1;
 
+#pragma omp critical
 	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
 			*robot_state);
+
+	int thread_index = omp_get_thread_num();
 
 	const collision_detection::CollisionResult::ContactMap& contact_map =
 			collision_result.contacts;
@@ -110,9 +113,21 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		if (contact.body_type_1 != collision_detection::BodyTypes::WORLD_OBJECT
 				&& contact.body_type_2
 						!= collision_detection::BodyTypes::WORLD_OBJECT)
+		{
 			cost += self_collision_scale * contact.depth;
+
+			if (evaluation_manager->debug_)
+				printf("%d [%d] s-collision : %s %s : %f\n", thread_index, point,
+					contact.body_name_1.c_str(), contact.body_name_2.c_str(), self_collision_scale * contact.depth);
+		}
 		else
+		{
 			cost += contact.depth;
+
+			if (evaluation_manager->debug_)
+				printf("%d [%d]   collision : %s %s : %f\n", thread_index, point,
+					contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
+		}
 	}
 	collision_result.clear();
 

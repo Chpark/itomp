@@ -26,7 +26,7 @@ NewEvalManager::NewEvalManager() :
 				std::numeric_limits<double>::max()), ref_evaluation_manager_(
 				NULL)
 {
-
+	debug_ = false;
 }
 
 NewEvalManager::~NewEvalManager()
@@ -122,8 +122,10 @@ double NewEvalManager::evaluate()
 
 void NewEvalManager::computeDerivatives(
 		const std::vector<Eigen::MatrixXd>& parameters, int type, int point,
-		double* out, double eps, double* d_p, double* d_m)
+		double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der)
 {
+	//debug_ = true;
+
 	setParameters(parameters);
 	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
 			planning_group_);
@@ -138,20 +140,42 @@ void NewEvalManager::computeDerivatives(
 		int begin, end;
 
 		evaluateParameterPoint(value + eps, type, point, i, begin, end, true);
-		const double delta_plus = evaluation_cost_matrix_.block(begin, 0,
-				end - begin, num_cost_functions).sum();
+		const double delta_plus = (
+				evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
+
+		if (cost_der)
+		{
+			for (int j = 0; j < num_cost_functions; ++j)
+			{
+				double dp = evaluation_cost_matrix_.block(begin, j, end - begin, 1).sum();
+				(*cost_der)[j][i] = dp;
+			}
+		}
 
 		evaluateParameterPoint(value - eps, type, point, i, begin, end, false);
-		const double delta_minus = evaluation_cost_matrix_.block(begin, 0,
-				end - begin, num_cost_functions).sum();
+		const double delta_minus = (
+				evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
+
 
 		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
 
 		*(d_p + i) = delta_plus;
 		*(d_m + i) = delta_minus;
 
+		if (cost_der)
+		{
+			for (int j = 0; j < num_cost_functions; ++j)
+			{
+				double dp = (*cost_der)[j][i];
+				double dm = evaluation_cost_matrix_.block(begin, j, end - begin, 1).sum();
+				(*cost_der)[j][i] = (dp - dm) / (2 * eps);
+			}
+		}
+
 		full_trajectory_->restoreBackupTrajectories();
 	}
+
+	//debug_ = false;
 }
 
 void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
@@ -473,6 +497,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 		}
 		printf("\n");
 
+		/*
 		for (int i = 0; i < evaluation_cost_matrix_.rows(); i += full_trajectory_->getNumKeyframeIntervalPoints())
 		{
 			printf("[%d] ", i);
@@ -507,32 +532,10 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
 				printf("%.7f ", force_sum.norm() * contact_variable);
 			}
-			/*
-			 for (int c = 0; c < num_contacts; ++c)
-			 {
-			 printf("%.7f(%.7f) ", r(c * 7),
-			 contact_variables_[i][c].getVariable());
-
-			 }
-			 for (int c = 0; c < num_contacts; ++c)
-			 {
-			 double contact_variable =
-			 contact_variables_[i][c].getVariable();
-			 Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
-
-			 for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
-			 force_sum += contact_variables_[i][c].getPointForce(j);
-
-			 const double k_1 = (c < 2) ? 1e-6 : 1e-4;
-			 const double active_force = force_sum.norm() * contact_variable;
-
-			 printf("%.7f(%.7f) ", force_sum.norm() * contact_variable,
-			 k_1 * active_force * active_force);
-			 }
-			 */
 
 			printf("\n");
 		}
+		*/
 	}
 
 }
