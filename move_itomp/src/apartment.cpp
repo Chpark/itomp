@@ -494,6 +494,7 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
     std::vector<std::string> res;
     bool hierarchy = false;
     bool motion = false;
+    double offset [3] = {0,0,0};
     std::ifstream myfile (filepath.c_str());
     if (myfile.is_open())
     {
@@ -504,6 +505,19 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
             if(line.find("HIERARCHY") != std::string::npos)
             {
                 hierarchy = true;
+            }
+            else if(line.find("OFFSET ") != std::string::npos)
+            {
+                hierarchy = false;
+                line = line.substr(7);
+                char *endptr;
+                int h = 0;
+                offset[h++] = strtod(line.c_str(), &endptr);
+                for(; h< 3; ++h)
+                {
+                    double tg = strtod(endptr, &endptr);
+                    offset[h] = tg; // strtod(endptr, &endptr);
+                }
             }
             else if(line.find("MOTION") != std::string::npos)
             {
@@ -528,6 +542,10 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                     for(; h< res.size(); ++h)
                     {
                         waypoint[h] = strtod(endptr, &endptr);
+                    }
+                    for(int i =0; i<3; ++i)
+                    {
+                        waypoint[i] += offset[i];
                     }
                     waypoint[2] -= 1.2;
                     waypoints.push_back(waypoint);
