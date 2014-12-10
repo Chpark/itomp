@@ -448,6 +448,36 @@ moveit_msgs::Constraints setRootJointConstraint(
 	return c;
 }
 
+moveit_msgs::Constraints setContactPointConstraint(
+        const std::vector<std::string>& hierarchy,
+        const Eigen::MatrixXd& transform)
+{
+    moveit_msgs::Constraints c;
+    for(int i=0; i< transform.rows();++i) // rows is number of contacts
+    {
+        moveit_msgs::JointConstraint activeContact; // TODO Should I use something else ?
+        moveit_msgs::PositionConstraint pc;
+        moveit_msgs::OrientationConstraint oc;
+        std::stringstream ss; ss << "contact_" << i;
+        std::string str = ss.str();
+        activeContact.joint_name = str;
+        activeContact.position = transform(i,0);
+        pc.link_name = str;
+        pc.target_point_offset.x = transform(i,1);
+        pc.target_point_offset.y = transform(i,2);
+        pc.target_point_offset.z = transform(i,3);
+        oc.link_name = str;
+        oc.orientation.x = transform(i,4);
+        oc.orientation.y = transform(i,5);
+        oc.orientation.z = transform(i,6);
+        oc.orientation.w = transform(i,7);
+        c.position_constraints.push_back(pc);
+        c.orientation_constraints.push_back(oc);
+        c.joint_constraints.push_back(activeContact);
+    }
+    return c;
+}
+
 void setWalkingStates(robot_state::RobotState& start_state,
         robot_state::RobotState& goal_state, Eigen::VectorXd& start_transf,
         Eigen::VectorXd& goal_transf, const std::vector<std::string>& hierarchy)
@@ -489,12 +519,16 @@ void setWalkingStates(robot_state::RobotState& start_state,
 // Frames:	16
 // Frame Time: 1
 // "X Y Z Rx Ry Rz J1 J2... Jn" one line per state
-std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& waypoints, const std::string& filepath)
+// "CONTACT EFFECTORS N"  N is the number of effectors
+// "hasContact X Y Z qx qy qz qw" hasContact 0 or 1, times number effectors one line per state
+std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& waypoints, std::vector<Eigen::MatrixXd>& contactPoints, const std::string& filepath)
 {
     std::vector<std::string> res;
     bool hierarchy = false;
     bool motion = false;
+    bool contacts = false;
     double offset [3] = {0,0,0};
+    int nbEffectors = 0;
     std::ifstream myfile (filepath.c_str());
     if (myfile.is_open())
     {
@@ -527,6 +561,14 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
             {
                  motion = true;
             }
+            else if(line.find("CONTACT EFFECTORS ") != std::string::npos)
+            {
+                 motion = false;
+                 contacts = true;
+                 line = line.substr(18);
+                 char *endptr;
+                 nbEffectors = (int)strtod(line.c_str(), &endptr);
+            }
             else if(!line.empty())
             {
                 if(hierarchy)
@@ -550,6 +592,26 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                     waypoint[2] -= 1.2;
                     waypoints.push_back(waypoint);
                 }
+                else if(contacts)
+                {
+                    Eigen::MatrixXd contactPoint(nbEffectors, 8);
+                    for(int i=0; i< nbEffectors; ++i)
+                    {
+                        char *endptr;
+                        int h = 0;
+                        contactPoint(i,h++) = strtod(line.c_str(), &endptr);
+                        for(; h< 8; ++h)
+                        {
+                            contactPoint(i,h) = strtod(endptr, &endptr);
+                        }
+                        for(int k =1; k<4; ++k)
+                        {
+                            contactPoint(i,k) += offset[k];
+                        }
+                        contactPoint(i,3) -= 1.2;
+                    }
+                    contactPoints.push_back(contactPoint);
+                }
             }
         }
         myfile.close();
@@ -557,6 +619,10 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
     else
     {
         std::cout << "can not find initial path file" << filepath << std::endl;
+    }
+    if(!(contactPoints.empty() || waypoints.size() == contactPoints.size()))
+    {
+        std::cout << "Error in initial path file: not same number of contacts and frames" << filepath << std::endl;
     }
     return res;
 }
@@ -657,6 +723,7 @@ int main(int argc, char **argv)
 
 	// set trajectory constraints
     std::vector<Eigen::VectorXd> waypoints;
+    std::vector<Eigen::MatrixXd> contactPoints;
     std::vector<std::string> hierarchy;
 	// internal waypoints between start and goal
 
@@ -682,10 +749,11 @@ int main(int argc, char **argv)
         vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.5, 1.0,0,0,0;
 		vec1 << 0.0, 2.5, 1.0, 0, 0, 0;
         waypoints.push_back(vec1);
+// TODO Contacts ?
     }
     else
     {
-        hierarchy = InitTrajectoryFromFile(waypoints, initialpath);
+        hierarchy = InitTrajectoryFromFile(waypoints, contactPoints, initialpath);
         start_trans = waypoints.front();
         goal_trans =  waypoints.back();
     }
@@ -695,8 +763,12 @@ int main(int argc, char **argv)
 	{
 		moveit_msgs::Constraints configuration_constraint =
                 setRootJointConstraint(hierarchy, waypoints[i]);
+        moveit_msgs::Constraints contact_constraint =
+                setContactPointConstraint(hierarchy, contactPoints[i]);
         req.trajectory_constraints.constraints.push_back(
-				configuration_constraint);
+                configuration_constraint);
+        /*req.trajectory_constraints.constraints.push_back(
+                contact_constraint);*/
 	}
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],
