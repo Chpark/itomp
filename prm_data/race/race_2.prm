@@ -60,6 +60,8 @@ right_foot_cp_2_joint
 right_foot_cp_3_joint
 right_foot_cp_4_joint
 
+OFFSET -14.32382 0.08186 -6.1675
+
 MOTION
 Frames:	57
 Frame Time: 1
