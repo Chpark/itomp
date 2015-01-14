@@ -101,6 +101,13 @@ NewEvalManager* NewEvalManager::createClone() const
 	return new_manager;
 }
 
+void NewEvalManager::updateFromParameterTrajectory()
+{
+	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
+			planning_group_);
+	parameter_modified_ = false;
+}
+
 double NewEvalManager::evaluate()
 {
 	if (parameter_modified_)
@@ -288,6 +295,10 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			contact_variables_[point][i].ComputeProjectedPointPositions(
 					proj_position, proj_orientation, rbdl_models_[point],
 					planning_group_->contact_points_[i]);
+
+			if (point == 4)
+				ROS_INFO("[%d] CP %d : (%f %f %f)", point,
+					i, contact_position(0), contact_position(1), contact_position(2));
 		}
 
 		// compute external forces

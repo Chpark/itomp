@@ -9,6 +9,7 @@
 #include "optimization_search_strategies.h"
 #include "optimization_stop_strategies.h"
 #include "optimization_line_search.h"
+#include <itomp_cio_planner/util/jacobian.h>
 
 namespace dlib
 {
@@ -203,6 +204,9 @@ namespace dlib
         while(stop_strategy.should_continue_search(x, f_value, g) && f_value > min_f)
         {
             s = search_strategy.get_next_direction(x, f_value, g);
+
+            // project s to the null space of contact positions
+            Jacobian::projectToNullSpace(x, s);
 
             double alpha = line_search(
                         make_line_search_function(f,x,s, f_value),

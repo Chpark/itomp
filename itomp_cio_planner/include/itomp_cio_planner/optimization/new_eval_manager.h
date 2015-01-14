@@ -48,6 +48,8 @@ public:
 
 	void render();
 
+	void updateFromParameterTrajectory();
+
 	NewEvalManager* createClone() const;
 
 	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;

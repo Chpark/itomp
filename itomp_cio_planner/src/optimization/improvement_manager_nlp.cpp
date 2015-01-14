@@ -6,6 +6,7 @@
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
 #include <functional>
+#include <itomp_cio_planner/util/jacobian.h>
 
 using namespace Eigen;
 
@@ -284,7 +285,9 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 {
-	addNoiseToVariables(variables);
+	//addNoiseToVariables(variables);
+
+	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
 			dlib::objective_delta_stop_strategy(eps_,

@@ -17,6 +17,8 @@ public:
 	virtual ~ParameterTrajectory();
 
 	int getNumJoints() const;
+	const std::vector<int>& getGroupToFullJointIndices() const;
+
 protected:
 	int num_joints_;
 	std::vector<int> group_to_full_joint_indices;
@@ -31,6 +33,11 @@ ITOMP_DEFINE_SHARED_POINTERS(ParameterTrajectory);
 inline int ParameterTrajectory::getNumJoints() const
 {
 	return num_joints_;
+}
+
+inline const std::vector<int>& ParameterTrajectory::getGroupToFullJointIndices() const
+{
+	return group_to_full_joint_indices;
 }
 
 }
