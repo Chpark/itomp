@@ -55,6 +55,8 @@ src/optimization/new_eval_manager.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
 src/rom/ROM.cpp
+src/collision/collision_world_fcl_derivatives.cpp
+src/collision/collision_robot_fcl_derivatives.cpp
 )
 target_link_libraries(itomp dlib)
 set(LIBRARY_INPUT_PATH ${PROJECT_SOURCE_DIR}/lib)

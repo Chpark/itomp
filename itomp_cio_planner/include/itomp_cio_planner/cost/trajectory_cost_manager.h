@@ -15,14 +15,14 @@ public:
 
 	void buildActiveCostFunctions(const NewEvalManager* evaluation_manager);
 
-	const std::vector<TrajectoryCostConstPtr>& getCostFunctionVector() const;
+	std::vector<TrajectoryCostPtr>& getCostFunctionVector();
 	int getNumActiveCostFunctions();
 
 protected:
-	std::vector<TrajectoryCostConstPtr> cost_function_vector_;
+	std::vector<TrajectoryCostPtr> cost_function_vector_;
 };
 
-inline const std::vector<TrajectoryCostConstPtr>& TrajectoryCostManager::getCostFunctionVector() const
+inline std::vector<TrajectoryCostPtr>& TrajectoryCostManager::getCostFunctionVector()
 {
 	return cost_function_vector_;
 }

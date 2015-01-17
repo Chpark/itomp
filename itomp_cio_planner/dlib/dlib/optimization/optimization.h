@@ -217,10 +217,12 @@ namespace dlib
                         search_strategy.get_max_line_search_iterations());
 
             // Take the search step indicated by the above line search
-            //x += alpha*s;
+            x += alpha*s;
+            /*
             s *= alpha;
             Jacobian::projectToNullSpace(x, s);
             x += s;
+            */
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");

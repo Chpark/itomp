@@ -16,6 +16,23 @@ class TrajectoryCost##C : public TrajectoryCost \
 								int point, double& cost) const;\
 };
 
+#define ITOMP_TRAJECTORY_COST_DECL_WITH_PRE_POST_EVALUATION(C) \
+class TrajectoryCost##C : public TrajectoryCost \
+{\
+	public:\
+		TrajectoryCost##C(int index, std::string name, double weight,\
+						  const NewEvalManager* evaluation_manager) : TrajectoryCost(index, name, weight)\
+		{ \
+			initialize(evaluation_manager); \
+		} \
+		virtual ~TrajectoryCost##C() {} \
+		virtual void initialize(const NewEvalManager* evaluation_manager);\
+		virtual void preEvaluate(const NewEvalManager* evaluation_manager);\
+		virtual void postEvaluate(const NewEvalManager* evaluation_manager);\
+		virtual bool evaluate(const NewEvalManager* evaluation_manager, \
+								int point, double& cost) const;\
+};
+
 #define ITOMP_TRAJECTORY_COST_ADD(C) \
 if (PlanningParameters::getInstance()->get##C##CostWeight() > 0.0) \
 { \

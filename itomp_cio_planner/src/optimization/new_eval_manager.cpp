@@ -101,13 +101,6 @@ NewEvalManager* NewEvalManager::createClone() const
 	return new_manager;
 }
 
-void NewEvalManager::updateFromParameterTrajectory()
-{
-	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
-			planning_group_);
-	parameter_modified_ = false;
-}
-
 double NewEvalManager::evaluate()
 {
 	if (parameter_modified_)
@@ -121,8 +114,21 @@ double NewEvalManager::evaluate()
 			full_trajectory_->getNumPoints());
 	//performInverseDynamics(0, full_trajectory_->getNumPoints());
 
+	std::vector<TrajectoryCostPtr>& cost_functions =
+				TrajectoryCostManager::getInstance()->getCostFunctionVector();
+	for (int c = 0; c < cost_functions.size(); ++c)
+	{
+		cost_functions[c]->preEvaluate(this);
+	}
+
 	last_trajectory_feasible_ = evaluatePointRange(0,
 			full_trajectory_->getNumPoints(), evaluation_cost_matrix_);
+
+	for (int c = 0; c < cost_functions.size(); ++c)
+	{
+		cost_functions[c]->postEvaluate(this);
+	}
+
 
 	return getTrajectoryCost();
 }
@@ -196,15 +202,15 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 	//performInverseDynamics(full_point_begin, full_point_end);
 
 	evaluatePointRange(full_point_begin, full_point_end,
-			evaluation_cost_matrix_);
+			evaluation_cost_matrix_, type, element);
 }
 
 bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
-		Eigen::MatrixXd& cost_matrix)
+		Eigen::MatrixXd& cost_matrix, int type, int element)
 {
 	bool is_feasible = true;
 
-	const std::vector<TrajectoryCostConstPtr>& cost_functions =
+	const std::vector<TrajectoryCostPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
 	// cost weight changed
@@ -212,23 +218,23 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 		cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),
 				cost_functions.size());
 
-	/*
-	 if (point_begin == 0)
-	 ++point_begin;
-	 if (point_end == full_trajectory_->getNumPoints()
-	 && !full_trajectory_->hasFreeEndPoint())
-	 --point_end;
-	 */
-
-	for (int i = point_begin; i < point_end; ++i)
+	for (int c = 0; c < cost_functions.size(); ++c)
 	{
-		for (int c = 0; c < cost_functions.size(); ++c)
+		if (cost_functions[c]->isInvariant(this, type, element))
 		{
-			double cost = 0.0;
+			for (int i = point_begin; i < point_end; ++i)
+				cost_matrix(i, c) = 0.0;
+		}
+		else
+		{
+			for (int i = point_begin; i < point_end; ++i)
+			{
+				double cost = 0.0;
 
-			is_feasible &= cost_functions[c]->evaluate(this, i, cost);
+				is_feasible &= cost_functions[c]->evaluate(this, i, cost);
 
-			cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
+				cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
+			}
 		}
 	}
 	is_feasible = false;
@@ -295,10 +301,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			contact_variables_[point][i].ComputeProjectedPointPositions(
 					proj_position, proj_orientation, rbdl_models_[point],
 					planning_group_->contact_points_[i]);
-
-			if (point == 4)
-				ROS_INFO("[%d] CP %d : (%f %f %f)", point,
-					i, contact_position(0), contact_position(1), contact_position(2));
 		}
 
 		// compute external forces
@@ -482,7 +484,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-	const std::vector<TrajectoryCostConstPtr>& cost_functions =
+	const std::vector<TrajectoryCostPtr>& cost_functions =
 			TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
 	if (!details || !is_best)

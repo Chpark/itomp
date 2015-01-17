@@ -2,6 +2,8 @@
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/util/exponential_map.h>
 #include <itomp_cio_planner/rom/ROM.h>
+#include <itomp_cio_planner/collision/collision_world_fcl_derivatives.h>
+#include <itomp_cio_planner/collision/collision_robot_fcl_derivatives.h>
 #include <ros/package.h>
 
 namespace itomp_cio_planner
@@ -66,74 +68,211 @@ bool TrajectoryCostSmoothness::evaluate(
 	return true;
 }
 
-ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Obstacle)
+void TrajectoryCostObstacle::initialize(
+		const NewEvalManager* evaluation_manager)
+{
+	// create collision manager for env
+}
+
+void TrajectoryCostObstacle::preEvaluate(
+		const NewEvalManager* evaluation_manager)
+{
+	return;
+
+	int num_points = evaluation_manager->getFullTrajectory()->getNumPoints();
+	if (collision_world_derivatives.size() < num_points)
+		collision_world_derivatives.resize(num_points);
+	if (collision_robot_derivatives.size() < num_points)
+		collision_robot_derivatives.resize(num_points);
+
+	const FullTrajectoryConstPtr trajectory =
+			evaluation_manager->getFullTrajectory();
+	const planning_scene::PlanningSceneConstPtr planning_scene =
+			evaluation_manager->getPlanningScene();
+	const collision_detection::WorldPtr world(
+			new collision_detection::World(*planning_scene->getWorld().get()));
+
+	for (int point = 0; point < num_points; ++point)
+	{
+		collision_world_derivatives[point].reset(
+				new CollisionWorldFCLDerivatives(
+						dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene->getCollisionWorld().get()),
+						world));
+		collision_robot_derivatives[point].reset(
+				new CollisionRobotFCLDerivatives(
+						dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene->getCollisionRobotUnpadded().get())));
+
+		robot_state::RobotStatePtr robot_state =
+				evaluation_manager->getRobotState(point);
+		const Eigen::MatrixXd mat = trajectory->getTrajectory(
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+		robot_state->setVariablePositions(mat.data());
+
+		robot_state->updateCollisionBodyTransforms();
+		collision_robot_derivatives[point]->constructInternalFCLObject(
+				const_cast<const robot_state::RobotState&>(*robot_state));
+	}
+}
+void TrajectoryCostObstacle::postEvaluate(
+		const NewEvalManager* evaluation_manager)
+{
+
+}
+
+bool TrajectoryCostObstacle::isInvariant(
+		const NewEvalManager* evaluation_manager, int type, int element) const
+{
+	if (type == -1 && element == -1)
+		return false;
+
+	return type != 0
+			|| element
+					>= evaluation_manager->getParameterTrajectory()->getNumJoints();
+}
+
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;
-	cost = 0;
 
-	const FullTrajectoryConstPtr trajectory =
-			evaluation_manager->getFullTrajectory();
-	robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(
-			point);
-	const planning_scene::PlanningSceneConstPtr planning_scene =
-			evaluation_manager->getPlanningScene();
-
-	ROS_ASSERT(
-			robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
-
-	collision_detection::CollisionRequest collision_request;
-	collision_detection::CollisionResult collision_result;
-	collision_request.verbose = false;
-	collision_request.contacts = true;
-	collision_request.max_contacts = 1000;
-
-	const Eigen::MatrixXd mat = trajectory->getTrajectory(
-			Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-	robot_state->setVariablePositions(mat.data());
-
-	const double self_collision_scale = 0.1;
-
+	double costs[2];
 #pragma omp critical
-	planning_scene->checkCollisionUnpadded(collision_request, collision_result,
-			*robot_state);
-
-	int thread_index = omp_get_thread_num();
-
-	const collision_detection::CollisionResult::ContactMap& contact_map =
-			collision_result.contacts;
-	for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-			contact_map.begin(); it != contact_map.end(); ++it)
+	for (int i = 0; i < 1; ++i)
 	{
-		const collision_detection::Contact& contact = it->second[0];
 
-		if (contact.body_type_1 != collision_detection::BodyTypes::WORLD_OBJECT
-				&& contact.body_type_2
-						!= collision_detection::BodyTypes::WORLD_OBJECT)
+		cost = 0;
+
+		const FullTrajectoryConstPtr trajectory =
+				evaluation_manager->getFullTrajectory();
+		robot_state::RobotStatePtr robot_state =
+				evaluation_manager->getRobotState(point);
+		const planning_scene::PlanningSceneConstPtr planning_scene =
+				evaluation_manager->getPlanningScene();
+
+		ROS_ASSERT(
+				robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+
+		collision_detection::CollisionRequest collision_request;
+		collision_detection::CollisionResult collision_result;
+		collision_request.verbose = false;
+		collision_request.contacts = true;
+		collision_request.max_contacts = 1000;
+		collision_request.distance = false;
+
+		const Eigen::MatrixXd mat = trajectory->getTrajectory(
+				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+		robot_state->setVariablePositions(mat.data());
+
+		const double self_collision_scale = 0.1;
+
+		if (i == 0)
 		{
-			cost += self_collision_scale * contact.depth;
+			//#pragma omp critical
+			planning_scene->checkCollisionUnpadded(collision_request,
+					collision_result, *robot_state);
 
-			if (evaluation_manager->debug_)
-				printf("%d [%d] s-collision : %s %s : %f\n", thread_index, point,
-					contact.body_name_1.c_str(), contact.body_name_2.c_str(), self_collision_scale * contact.depth);
+			int thread_index = omp_get_thread_num();
+
+			const collision_detection::CollisionResult::ContactMap& contact_map =
+					collision_result.contacts;
+			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+					contact_map.begin(); it != contact_map.end(); ++it)
+			{
+				const collision_detection::Contact& contact = it->second[0];
+
+				if (contact.body_type_1
+						!= collision_detection::BodyTypes::WORLD_OBJECT
+						&& contact.body_type_2
+								!= collision_detection::BodyTypes::WORLD_OBJECT)
+				{
+					cost += self_collision_scale * contact.depth;
+
+					if (evaluation_manager->debug_)
+						printf("%d [%d] s-collision : %s %s : %f\n",
+								thread_index, point,
+								contact.body_name_1.c_str(),
+								contact.body_name_2.c_str(),
+								self_collision_scale * contact.depth);
+				}
+				else
+				{
+					cost += contact.depth;
+
+					if (evaluation_manager->debug_)
+						printf("%d [%d]   collision : %s %s : %f\n",
+								thread_index, point,
+								contact.body_name_1.c_str(),
+								contact.body_name_2.c_str(), contact.depth);
+				}
+			}
+
+			collision_result.clear();
 		}
 		else
 		{
-			cost += contact.depth;
+			robot_state->updateCollisionBodyTransforms();
 
-			if (evaluation_manager->debug_)
-				printf("%d [%d]   collision : %s %s : %f\n", thread_index, point,
-					contact.body_name_1.c_str(), contact.body_name_2.c_str(), contact.depth);
+			collision_robot_derivatives[point]->constructInternalFCLObject(
+					const_cast<const robot_state::RobotState&>(*robot_state));
+
+#pragma omp critical
+			collision_world_derivatives[point]->checkRobotCollision(
+					collision_request, collision_result,
+					*collision_robot_derivatives[point],
+					const_cast<const robot_state::RobotState&>(*robot_state),
+					planning_scene->getAllowedCollisionMatrix());
+
+			const collision_detection::CollisionResult::ContactMap& contact_map =
+					collision_result.contacts;
+			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+					contact_map.begin(); it != contact_map.end(); ++it)
+			{
+				const collision_detection::Contact& contact = it->second[0];
+				cost += contact.depth;
+			}
+
+			collision_result.clear();
+
+#pragma omp critical
+			collision_robot_derivatives[point]->checkSelfCollision(
+					collision_request, collision_result,
+					const_cast<const robot_state::RobotState&>(*robot_state),
+					planning_scene->getAllowedCollisionMatrix());
+			/*
+			 collision_robot.checkSelfCollision(collision_request,
+			 collision_result,
+			 const_cast<const robot_state::RobotState&>(*robot_state),
+			 planning_scene->getAllowedCollisionMatrix());
+			 */
+
+			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+					contact_map.begin(); it != contact_map.end(); ++it)
+			{
+				const collision_detection::Contact& contact = it->second[0];
+				cost += self_collision_scale * contact.depth;
+			}
+
 		}
-	}
-	collision_result.clear();
 
-	is_feasible = (cost == 0.0);
+		is_feasible = (cost == 0.0);
+
+		costs[i] = cost;
+
+	}
+
+	/*
+	 double diff = std::abs(costs[0] - costs[1]);
+	 if (diff > 0.000001)
+	 ROS_INFO("[%d] obstacle cost invalid : %f %f (%.14f", point, costs[0], costs[1], costs[0] - costs[1]);
+	 */
 
 	TIME_PROFILER_END_TIMER(Obstacle);
+
+	// create robot state collision manager for waypoint point
+
+	// check collision
 
 	return is_feasible;
 }
@@ -334,7 +473,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 		{
 			force_sum += contact_variables[i].getPointForce(c);
 		}
-		const double k_1 = 1e-6;//(i < 2) ? 1e-6 : 1e-4;
+		const double k_1 = 1e-6; //(i < 2) ? 1e-6 : 1e-4;
 		const double active_force = force_sum.norm() * contact_variable;
 		cost += k_1 * active_force * active_force;
 	}
@@ -507,21 +646,22 @@ std::vector<rom::ROM> roms_;
 
 void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 {
-    // load rom files
-    // right_arm
-    std::string source(ros::package::getPath("itomp_cio_planner") + "/config/rom/");
-    std::string rightArmRom(source + "rightarm_itomp.rom");
-    std::string rightLegRom(source + "right_ankle_itomp.rom");
-    std::string leftArmRom(source + "left_arm_itomp.rom");
-    std::string leftLegRom(source + "left_ankle_itomp.rom");
-    roms_.push_back(rom::ROMFromFile(rightArmRom));
-    roms_.push_back(rom::ROMFromFile(rightLegRom));
-    roms_.push_back(rom::ROMFromFile(leftArmRom));
-    roms_.push_back(rom::ROMFromFile(leftLegRom));
+	// load rom files
+	// right_arm
+	std::string source(
+			ros::package::getPath("itomp_cio_planner") + "/config/rom/");
+	std::string rightArmRom(source + "rightarm_itomp.rom");
+	std::string rightLegRom(source + "right_ankle_itomp.rom");
+	std::string leftArmRom(source + "left_arm_itomp.rom");
+	std::string leftLegRom(source + "left_ankle_itomp.rom");
+	roms_.push_back(rom::ROMFromFile(rightArmRom));
+	roms_.push_back(rom::ROMFromFile(rightLegRom));
+	roms_.push_back(rom::ROMFromFile(leftArmRom));
+	roms_.push_back(rom::ROMFromFile(leftLegRom));
 }
 
-bool TrajectoryCostROM::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
+		int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -529,39 +669,59 @@ bool TrajectoryCostROM::evaluate(
 	TIME_PROFILER_START_TIMER(ROM);
 
 	const FullTrajectoryConstPtr full_trajectory =
-				evaluation_manager->getFullTrajectory();
+			evaluation_manager->getFullTrajectory();
 
 	// joint angle vector q at waypoint 'point'
 	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-                FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
 
 	// implement
-    // first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
-    double x,y,z;
-    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_z_joint"));
-    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_y_joint"));
-    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_x_joint"));
+	// first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
+	double x, y, z;
+	z = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_arm_z_joint"));
+	y = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_arm_y_joint"));
+	x = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_arm_x_joint"));
 
-    cost += roms_[0].ResidualRadius(z, y, x);
+	cost += roms_[0].ResidualRadius(z, y, x);
 
+	z = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_leg_z_joint"));
+	y = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_leg_y_joint"));
+	x = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_right_leg_x_joint"));
+	cost += roms_[1].ResidualRadius(z, y, x);
 
+	z = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_arm_z_joint"));
+	y = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_arm_y_joint"));
+	x = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_arm_x_joint"));
+	cost += roms_[2].ResidualRadius(z, y, x);
 
-    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_z_joint"));
-    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_y_joint"));
-    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_x_joint"));
-    cost += roms_[1].ResidualRadius(z, y, x);
-
-
-    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_z_joint"));
-    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_y_joint"));
-    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_x_joint"));
-    cost += roms_[2].ResidualRadius(z, y, x);
-
-
-    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_z_joint"));
-    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_y_joint"));
-    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_x_joint"));
-    cost += roms_[3].ResidualRadius(z, y, x);
+	z = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_leg_z_joint"));
+	y = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_leg_y_joint"));
+	x = q(
+			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
+					"upper_left_leg_x_joint"));
+	cost += roms_[3].ResidualRadius(z, y, x);
 
 	TIME_PROFILER_END_TIMER(ROM);
 

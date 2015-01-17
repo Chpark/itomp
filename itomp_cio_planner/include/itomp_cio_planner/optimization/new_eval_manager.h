@@ -69,7 +69,7 @@ private:
 	void setParameterModified();
 
 	bool evaluatePointRange(int point_begin, int point_end,
-			Eigen::MatrixXd& cost_matrix);
+			Eigen::MatrixXd& cost_matrix, int type = -1, int element = -1);
 
 	bool isDerivative() const;
 
