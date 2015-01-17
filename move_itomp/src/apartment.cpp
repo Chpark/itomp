@@ -369,6 +369,49 @@ void doPlan(const std::string& group_name,
 	}
 }
 
+void displayInitialWaypoints(robot_state::RobotState& state, ros::NodeHandle& node_handle,
+		robot_model::RobotModelPtr& robot_model, const std::vector<std::string>& hierarchy,
+		const std::vector<Eigen::VectorXd>& waypoints)
+{
+	static ros::Publisher vis_marker_array_publisher = node_handle.advertise<
+			visualization_msgs::MarkerArray>("/move_itomp/visualization_marker_array",
+			10);
+
+	visualization_msgs::MarkerArray ma;
+	std::vector<std::string> link_names = robot_model->getLinkModelNames();
+	std_msgs::ColorRGBA color;
+	color.a = 0.5;
+	color.r = 1.0;
+	color.g = 1.0;
+	color.b = 0.0;
+	ros::Duration dur(3600.0);
+
+	std::map<std::string, double> values;
+	double jointValue = 0.0;
+	const robot_state::JointModelGroup* joint_model_group =
+			state.getJointModelGroup("whole_body");
+
+	joint_model_group->getVariableDefaultPositions("standup", values);
+	state.setVariablePositions(values);
+
+	for (int point = 0; point < waypoints.size(); ++point)
+	{
+		ma.markers.clear();
+
+		int id = 0;
+		for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
+			cit != hierarchy.end(); ++cit, ++id)
+		{
+			jointValue = waypoints[point](id);
+			state.setJointPositions(*cit, &jointValue);
+		}
+
+		std::string ns = "init_" + boost::lexical_cast<std::string>(point);
+		state.getRobotMarkers(ma, link_names, color, ns, dur);
+		vis_marker_array_publisher.publish(ma);
+	}
+}
+
 void displayStates(robot_state::RobotState& start_state,
 		robot_state::RobotState& goal_state, ros::NodeHandle& node_handle,
 		robot_model::RobotModelPtr& robot_model)
@@ -430,10 +473,10 @@ void displayStates(robot_state::RobotState& start_state,
 }
 
 moveit_msgs::Constraints setRootJointConstraint(
+		moveit_msgs::Constraints& c,
         const std::vector<std::string>& hierarchy,
         const Eigen::VectorXd& transform)
 {
-	moveit_msgs::Constraints c;
     moveit_msgs::JointConstraint jc;
     moveit_msgs::OrientationConstraint oc;
 
@@ -449,10 +492,10 @@ moveit_msgs::Constraints setRootJointConstraint(
 }
 
 moveit_msgs::Constraints setContactPointConstraint(
+		moveit_msgs::Constraints& c,
         const std::vector<std::string>& hierarchy,
         const Eigen::MatrixXd& transform)
 {
-    moveit_msgs::Constraints c;
     for(int i=0; i< transform.rows();++i) // rows is number of contacts
     {
         moveit_msgs::JointConstraint activeContact; // TODO Should I use something else ?
@@ -477,6 +520,19 @@ moveit_msgs::Constraints setContactPointConstraint(
     }
     return c;
 }
+
+moveit_msgs::Constraints setRootJointAndContactPointConstraints(
+        const std::vector<std::string>& hierarchy,
+        const Eigen::VectorXd& joint_transform,
+        const Eigen::MatrixXd& contacts)
+{
+        moveit_msgs::Constraints c;
+
+        setRootJointConstraint(c, hierarchy, joint_transform);
+        setContactPointConstraint(c, hierarchy, contacts);
+        return c;
+}
+
 
 void setWalkingStates(robot_state::RobotState& start_state,
         robot_state::RobotState& goal_state, Eigen::VectorXd& start_transf,
@@ -594,23 +650,27 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                 }
                 else if(contacts)
                 {
-                    Eigen::MatrixXd contactPoint(nbEffectors, 8);
-                    for(int i=0; i< nbEffectors; ++i)
-                    {
-                        char *endptr;
-                        int h = 0;
-                        contactPoint(i,h++) = strtod(line.c_str(), &endptr);
-                        for(; h< 8; ++h)
-                        {
-                            contactPoint(i,h) = strtod(endptr, &endptr);
-                        }
-                        for(int k =1; k<4; ++k)
-                        {
-                            contactPoint(i,k) += offset[k];
-                        }
-                        contactPoint(i,3) -= 1.2;
-                    }
-                    contactPoints.push_back(contactPoint);
+                	Eigen::MatrixXd contactPoint(nbEffectors, 8);
+					char *endptr;
+					for(int i=0; i< nbEffectors; ++i)
+					{
+						int h = 0;
+						if (i == 0)
+								contactPoint(i,h++) = strtod(line.c_str(), &endptr);
+						else
+								contactPoint(i,h++) = strtod(endptr, &endptr);
+
+						for(; h< 8; ++h)
+						{
+							contactPoint(i,h) = strtod(endptr, &endptr);
+						}
+						for(int k =1; k<4; ++k)
+						{
+							contactPoint(i,k) += offset[k];
+						}
+						contactPoint(i,3) -= 1.2;
+					}
+					contactPoints.push_back(contactPoint);
                 }
             }
         }
@@ -761,15 +821,13 @@ int main(int argc, char **argv)
             start_trans, goal_trans, hierarchy);
 	for (int i = 0; i < waypoints.size(); ++i)
 	{
-		moveit_msgs::Constraints configuration_constraint =
-                setRootJointConstraint(hierarchy, waypoints[i]);
-        moveit_msgs::Constraints contact_constraint =
-                setContactPointConstraint(hierarchy, contactPoints[i]);
-        req.trajectory_constraints.constraints.push_back(
-                configuration_constraint);
-        /*req.trajectory_constraints.constraints.push_back(
-                contact_constraint);*/
+		moveit_msgs::Constraints constraint =
+				setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
+		req.trajectory_constraints.constraints.push_back(constraint);
 	}
+	robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
+	displayInitialWaypoints(rs, node_handle, robot_model,
+			hierarchy, waypoints);
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],
 				node_handle, robot_model);
