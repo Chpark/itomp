@@ -28,6 +28,8 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 include(${PROJECT_SOURCE_DIR}/dlib/dlib/cmake)
 
+file(GLOB_RECURSE ITOMP_HEADER_FILES RELATIVE ${PROJECT_SOURCE_DIR} *.h)
+
 rosbuild_add_library(itomp
 src/planner/itomp_planner_node.cpp
 src/planner/planning_info_manager.cpp
@@ -57,13 +59,14 @@ src/optimization/improvement_manager_nlp.cpp
 src/rom/ROM.cpp
 src/collision/collision_world_fcl_derivatives.cpp
 src/collision/collision_robot_fcl_derivatives.cpp
+${ITOMP_HEADER_FILES}
 )
 target_link_libraries(itomp dlib)
 set(LIBRARY_INPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
-target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblevmar.a)
-target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libf2c.a)
-target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblapack.a)
-target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libblas.a)
+#target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblevmar.a)
+#target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libf2c.a)
+#target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/liblapack.a)
+#target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/libblas.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/librbdl.a)
 target_link_libraries(itomp ${LIBRARY_INPUT_PATH}/librbdl_urdfreader.a)
 
