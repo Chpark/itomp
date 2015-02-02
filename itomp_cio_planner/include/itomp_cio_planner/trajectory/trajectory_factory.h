@@ -26,11 +26,11 @@ public:
 	void initialize(TRAJECTORY_FACTORY_TYPE type);
 
 	FullTrajectory* CreateFullTrajectory(
-			const ItompRobotModelConstPtr& robot_model, double duration,
-			double discretization, double keyframe_interval);
+		const ItompRobotModelConstPtr& robot_model, double duration,
+		double discretization, double keyframe_interval);
 	ParameterTrajectory* CreateParameterTrajectory(
-			const FullTrajectoryConstPtr& full_trajectory,
-			const ItompPlanningGroupConstPtr& planning_group);
+		const FullTrajectoryConstPtr& full_trajectory,
+		const ItompPlanningGroupConstPtr& planning_group);
 
 protected:
 	TRAJECTORY_FACTORY_TYPE type_;

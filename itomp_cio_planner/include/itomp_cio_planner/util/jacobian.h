@@ -18,79 +18,80 @@ class Node;
 Eigen::MatrixXd PseudoInverseDLS(const Eigen::MatrixXd& J, double eps);
 void PseudoInverseSVDDLS(const Eigen::MatrixXd& J, const Eigen::JacobiSVD<Eigen::MatrixXd>& svdOfJ, Eigen::MatrixXd& Jinv);
 
-class Jacobian {
+class Jacobian
+{
 
 public:
-     Jacobian();
+	Jacobian();
 	~Jacobian();
 
 private:
 
 public:
-    void  SetJacobian(const Eigen::MatrixXd& jacobian);
-    void  ComputeAll(); // recomputes everything but the jacobian
-    void  ComputeJacobian();
-    const Eigen::MatrixXd& GetNullspace();
-    const Eigen::MatrixXd& GetJacobian();
-    const Eigen::MatrixXd& GetJacobianInverse();
-    const Eigen::MatrixXd& GetJacobianProduct();
-    const Eigen::MatrixXd& GetJacobianProductInverse();
-    void GetEllipsoidAxes(Eigen::Vector3d& /*u1*/, Eigen::Vector3d& /*u2*/, Eigen::Vector3d& /*u3*/);
-    void GetEllipsoidAxes(Eigen::Vector3d& /*u1*/, Eigen::Vector3d& /*u2*/, Eigen::Vector3d& /*u3*/, double& /*sig1*/, double& /*sig2*/, double& /*sig3*/);
+	void  SetJacobian(const Eigen::MatrixXd& jacobian);
+	void  ComputeAll(); // recomputes everything but the jacobian
+	void  ComputeJacobian();
+	const Eigen::MatrixXd& GetNullspace();
+	const Eigen::MatrixXd& GetJacobian();
+	const Eigen::MatrixXd& GetJacobianInverse();
+	const Eigen::MatrixXd& GetJacobianProduct();
+	const Eigen::MatrixXd& GetJacobianProductInverse();
+	void GetEllipsoidAxes(Eigen::Vector3d& /*u1*/, Eigen::Vector3d& /*u2*/, Eigen::Vector3d& /*u3*/);
+	void GetEllipsoidAxes(Eigen::Vector3d& /*u1*/, Eigen::Vector3d& /*u2*/, Eigen::Vector3d& /*u3*/, double& /*sig1*/, double& /*sig2*/, double& /*sig3*/);
 
-    void  GetNullspace(const Eigen::MatrixXd /*pseudoId*/, Eigen::MatrixXd& /*result*/);
+	void  GetNullspace(const Eigen::MatrixXd /*pseudoId*/, Eigen::MatrixXd& /*result*/);
 
-    // temporary
-    static void GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorXd& a);
-    template <typename T>
+	// temporary
+	static void GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorXd& a);
+	template <typename T>
 	static void projectToNullSpace(T& x, T& s)
-    {
-    	int parameter_length = x.size();
+	{
+		int parameter_length = x.size();
 
-    	const itomp_cio_planner::ParameterTrajectoryConstPtr parameter_trajectory =
-    			evaluation_manager_->getParameterTrajectory();
-    	const itomp_cio_planner::FullTrajectoryConstPtr full_trajectory =
-    	    	evaluation_manager_->getFullTrajectory();
+		const itomp_cio_planner::ParameterTrajectoryConstPtr parameter_trajectory =
+			evaluation_manager_->getParameterTrajectory();
+		const itomp_cio_planner::FullTrajectoryConstPtr full_trajectory =
+			evaluation_manager_->getFullTrajectory();
 
-    	int num_parameter_types = parameter_trajectory->hasVelocity() ? 2 : 1;
-    	int num_parameter_points = parameter_trajectory->getNumPoints();
-    	int num_parameter_elements = parameter_trajectory->getNumElements();
-    	int num_variables = num_parameter_elements * num_parameter_points * num_parameter_types;
+		int num_parameter_types = parameter_trajectory->hasVelocity() ? 2 : 1;
+		int num_parameter_points = parameter_trajectory->getNumPoints();
+		int num_parameter_elements = parameter_trajectory->getNumElements();
+		int num_variables = num_parameter_elements * num_parameter_points * num_parameter_types;
 
-    	if (parameter_length != num_variables)
-    		return;
+		if (parameter_length != num_variables)
+			return;
 
-    	std::vector<Eigen::MatrixXd> parameters(itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_NUM,
-    			Eigen::MatrixXd(num_parameter_points, num_parameter_elements));
-    	evaluation_manager_->setParameters(parameters);
-    	evaluation_manager_->updateFromParameterTrajectory();
+		std::vector<Eigen::MatrixXd> parameters(itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_NUM,
+												Eigen::MatrixXd(num_parameter_points, num_parameter_elements));
+		evaluation_manager_->setParameters(parameters);
+		evaluation_manager_->updateFromParameterTrajectory();
 
-    	int num_full_joints = full_trajectory->getComponentSize(
-    			itomp_cio_planner::FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+		int num_full_joints = full_trajectory->getComponentSize(
+								  itomp_cio_planner::FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
-    	const std::vector<int>& group_to_full_joint_indices = parameter_trajectory->getGroupToFullJointIndices();
-    	for (int i = 0; i < num_parameter_points; ++i)
-    	{
-    		int parameter_traj_index = full_trajectory->getKeyframeStartIndex()
-    				+ i * full_trajectory->getNumKeyframeIntervalPoints();
+		const std::vector<int>& group_to_full_joint_indices = parameter_trajectory->getGroupToFullJointIndices();
+		for (int i = 0; i < num_parameter_points; ++i)
+		{
+			int parameter_traj_index = full_trajectory->getKeyframeStartIndex()
+									   + i * full_trajectory->getNumKeyframeIntervalPoints();
 
-    		Eigen::VectorXd q = full_trajectory->getTrajectory(
-    				itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_POSITION).block(
-    						parameter_traj_index, 0, 1, num_full_joints).transpose();
-    		Eigen::VectorXd a(num_full_joints);
-    		for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
+			Eigen::VectorXd q = full_trajectory->getTrajectory(
+									itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_POSITION).block(
+									parameter_traj_index, 0, 1, num_full_joints).transpose();
+			Eigen::VectorXd a(num_full_joints);
+			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
 			{
 				// copy from s to a
 				a(group_to_full_joint_indices[j]) = s(i * num_parameter_elements + j);
 			}
-    		GetProjection(i, q, a);
+			GetProjection(i, q, a);
 
-    		/*
-    		printf("From : ");
-    		for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-    			printf("%f ", s(i * num_parameter_elements + j));
-    		printf("\n");
-    		printf("To   : ");
+			/*
+			printf("From : ");
+			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
+				printf("%f ", s(i * num_parameter_elements + j));
+			printf("\n");
+			printf("To   : ");
 			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
 				printf("%f ", a(group_to_full_joint_indices[j]));
 			printf("\n");
@@ -100,14 +101,14 @@ public:
 			printf("\n");
 			*/
 
-    		for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-    		{
-    			// copy from a to s
-    			s(i * num_parameter_elements + j) = a(group_to_full_joint_indices[j]);
-    		}
-    	}
+			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
+			{
+				// copy from a to s
+				s(i * num_parameter_elements + j) = a(group_to_full_joint_indices[j]);
+			}
+		}
 
-    }
+	}
 
 private:
 	void ComputeSVD();
@@ -121,17 +122,17 @@ private:
 	void Invalidate();
 
 private:
-    Eigen::MatrixXd jacobianProductInverse_;
-    Eigen::MatrixXd jacobianProduct_;
-    Eigen::MatrixXd jacobian_;
-    Eigen::MatrixXd jacobianInverse_;
-    Eigen::MatrixXd jacobianInverseNoDls_;
-    Eigen::MatrixXd Identitymin_;
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd_;
-    Eigen::JacobiSVD<Eigen::MatrixXd> svdProduct_;
+	Eigen::MatrixXd jacobianProductInverse_;
+	Eigen::MatrixXd jacobianProduct_;
+	Eigen::MatrixXd jacobian_;
+	Eigen::MatrixXd jacobianInverse_;
+	Eigen::MatrixXd jacobianInverseNoDls_;
+	Eigen::MatrixXd Identitymin_;
+	Eigen::JacobiSVD<Eigen::MatrixXd> svd_;
+	Eigen::JacobiSVD<Eigen::MatrixXd> svdProduct_;
 
 public:
-    static itomp_cio_planner::NewEvalManager* evaluation_manager_;
+	static itomp_cio_planner::NewEvalManager* evaluation_manager_;
 };
 
 inline Eigen::MatrixXd PseudoInverseDLS(const Eigen::MatrixXd& J, double eps)

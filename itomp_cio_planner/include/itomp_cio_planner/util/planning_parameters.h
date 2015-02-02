@@ -177,7 +177,7 @@ inline int PlanningParameters::getUpdateIndex() const
 }
 
 inline void PlanningParameters::setTrajectoryDuration(
-		double trajectory_duration)
+	double trajectory_duration)
 {
 	trajectory_duration_ = trajectory_duration;
 }

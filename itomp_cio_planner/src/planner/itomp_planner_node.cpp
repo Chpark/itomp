@@ -18,7 +18,7 @@ namespace itomp_cio_planner
 {
 
 ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model) :
-		robot_model_(model)
+	robot_model_(model)
 {
 
 }
@@ -36,14 +36,14 @@ bool ItompPlannerNode::init()
 	NewVizManager::getInstance()->initialize(itomp_robot_model_);
 
 	TrajectoryFactory::getInstance()->initialize(
-			TrajectoryFactory::TRAJECTORY_CIO);
+		TrajectoryFactory::TRAJECTORY_CIO);
 
 	trajectory_.reset(
-			TrajectoryFactory::getInstance()->CreateFullTrajectory(
-					itomp_robot_model_,
-					PlanningParameters::getInstance()->getTrajectoryDuration(),
-					PlanningParameters::getInstance()->getTrajectoryDiscretization(),
-					PlanningParameters::getInstance()->getPhaseDuration()));
+		TrajectoryFactory::getInstance()->CreateFullTrajectory(
+			itomp_robot_model_,
+			PlanningParameters::getInstance()->getTrajectoryDuration(),
+			PlanningParameters::getInstance()->getTrajectoryDiscretization(),
+			PlanningParameters::getInstance()->getPhaseDuration()));
 
 	ROS_INFO("Initialized ITOMP planning service...");
 
@@ -51,9 +51,9 @@ bool ItompPlannerNode::init()
 }
 
 bool ItompPlannerNode::planTrajectory(
-		const planning_scene::PlanningSceneConstPtr& planning_scene,
-		const planning_interface::MotionPlanRequest &req,
-		planning_interface::MotionPlanResponse &res)
+	const planning_scene::PlanningSceneConstPtr& planning_scene,
+	const planning_interface::MotionPlanRequest &req,
+	planning_interface::MotionPlanResponse &res)
 {
 	// reload parameters
 	PlanningParameters::getInstance()->initFromNodeHandle();
@@ -62,15 +62,15 @@ bool ItompPlannerNode::planTrajectory(
 		return false;
 
 	double trajectory_start_time =
-			req.start_state.joint_state.header.stamp.toSec();
+		req.start_state.joint_state.header.stamp.toSec();
 	robot_state::RobotStatePtr initial_robot_state =
-			planning_scene->getCurrentStateUpdated(req.start_state);
+		planning_scene->getCurrentStateUpdated(req.start_state);
 
 	// generate planning group list
 	vector<string> planning_group_names = getPlanningGroups(req.group_name);
 	planning_info_manager_.reset(
-			PlanningParameters::getInstance()->getNumTrials(),
-			planning_group_names.size());
+		PlanningParameters::getInstance()->getNumTrials(),
+		planning_group_names.size());
 
 	for (int c = 0; c < PlanningParameters::getInstance()->getNumTrials(); ++c)
 	{
@@ -80,7 +80,7 @@ bool ItompPlannerNode::planTrajectory(
 
 		// initialize trajectory with start state
 		trajectory_->setStartState(req.start_state.joint_state,
-				itomp_robot_model_, true);
+								   itomp_robot_model_, true);
 
 		// for each planning group
 		for (unsigned int i = 0; i != planning_group_names.size(); ++i)
@@ -88,25 +88,25 @@ bool ItompPlannerNode::planTrajectory(
 			ros::WallTime create_time = ros::WallTime::now();
 
 			const ItompPlanningGroupConstPtr planning_group =
-					itomp_robot_model_->getPlanningGroup(
-							planning_group_names[i]);
+				itomp_robot_model_->getPlanningGroup(
+					planning_group_names[i]);
 
 			/// optimize
 			trajectory_->setGroupGoalState(
-					getGoalStateFromGoalConstraints(itomp_robot_model_, req),
-					planning_group, itomp_robot_model_, req.trajectory_constraints, req.path_constraints,
-					true);
+				getGoalStateFromGoalConstraints(itomp_robot_model_, req),
+				planning_group, itomp_robot_model_, req.trajectory_constraints, req.path_constraints,
+				true);
 
 			optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_,
-					itomp_robot_model_, planning_scene, planning_group, planning_start_time,
-					trajectory_start_time, req.path_constraints);
+						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
+						 trajectory_start_time, req.path_constraints);
 
 			optimizer_->optimize();
 
 			planning_info_manager_.write(c, i, optimizer_->getPlanningInfo());
 
 			ROS_INFO(
-					"Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
+				"Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
 		}
 	}
 	planning_info_manager_.printSummary();
@@ -118,36 +118,36 @@ bool ItompPlannerNode::planTrajectory(
 }
 
 bool ItompPlannerNode::validateRequest(
-		const planning_interface::MotionPlanRequest &req)
+	const planning_interface::MotionPlanRequest &req)
 {
 	ROS_INFO(
-			"Received planning request ... planning group : %s", req.group_name.c_str());
+		"Received planning request ... planning group : %s", req.group_name.c_str());
 	ROS_INFO(
-			"Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
+		"Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
 
 	// check goal constraint
 	ROS_INFO("Validate planning request goal state ...");
 	sensor_msgs::JointState goal_joint_state = jointConstraintsToJointState(
-			req.goal_constraints);
+				req.goal_constraints);
 	if (goal_joint_state.name.size() != goal_joint_state.position.size())
 	{
 		ROS_ERROR("Invalid goal");
 		return false;
 	}
 	ROS_INFO(
-			"Goal constraint has %d/%d joints", goal_joint_state.name.size(), req.start_state.joint_state.name.size());
+		"Goal constraint has %d/%d joints", goal_joint_state.name.size(), req.start_state.joint_state.name.size());
 
 	for (unsigned int i = 0; i < goal_joint_state.name.size(); i++)
 	{
 		ROS_INFO(
-				"%s : %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
+			"%s : %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
 	}
 
 	return true;
 }
 
 std::vector<std::string> ItompPlannerNode::getPlanningGroups(
-		const string& group_name) const
+	const string& group_name) const
 {
 	std::vector<std::string> plannning_groups;
 
@@ -167,16 +167,16 @@ std::vector<std::string> ItompPlannerNode::getPlanningGroups(
 }
 
 void ItompPlannerNode::fillInResult(
-		const robot_state::RobotStatePtr& robot_state,
-		const std::vector<std::string>& planning_groups,
-		planning_interface::MotionPlanResponse &res)
+	const robot_state::RobotStatePtr& robot_state,
+	const std::vector<std::string>& planning_groups,
+	planning_interface::MotionPlanResponse &res)
 {
 	int num_all_joints = robot_state->getVariableCount();
 
 	ROS_ASSERT(num_all_joints == trajectory_->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
 
 	res.trajectory_ = boost::make_shared<robot_trajectory::RobotTrajectory>(
-			itomp_robot_model_->getMoveitRobotModel(), "");
+						  itomp_robot_model_->getMoveitRobotModel(), "");
 
 	robot_state::RobotState ks = *robot_state;
 	std::vector<double> positions(num_all_joints);
@@ -200,7 +200,7 @@ void ItompPlannerNode::fillInResult(
 	if (PlanningParameters::getInstance()->getPrintPlanningInfo())
 	{
 		const std::vector<std::string>& joint_names =
-				res.trajectory_->getFirstWayPoint().getVariableNames();
+			res.trajectory_->getFirstWayPoint().getVariableNames();
 		for (int j = 0; j < num_all_joints; j++)
 			printf("%s ", joint_names[j].c_str());
 		printf("\n");
@@ -209,7 +209,7 @@ void ItompPlannerNode::fillInResult(
 			for (int j = 0; j < num_all_joints; j++)
 			{
 				printf("%f ",
-						res.trajectory_->getWayPoint(i).getVariablePosition(j));
+					   res.trajectory_->getWayPoint(i).getVariablePosition(j));
 			}
 			printf("\n");
 		}

@@ -31,8 +31,8 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 }
 
 void ImprovementManagerNLP::initialize(
-		const NewEvalManagerPtr& evaluation_manager,
-		const ItompPlanningGroupConstPtr& planning_group)
+	const NewEvalManagerPtr& evaluation_manager,
+	const ItompPlanningGroupConstPtr& planning_group)
 {
 	start_time_ = ros::Time::now();
 
@@ -47,17 +47,18 @@ void ImprovementManagerNLP::initialize(
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
 
-	TIME_PROFILER_INIT(getROSWallTime, num_threads_);TIME_PROFILER_ADD_ENTRY(FK);
+	TIME_PROFILER_INIT(getROSWallTime, num_threads_);
+	TIME_PROFILER_ADD_ENTRY(FK);
 
 	const ParameterTrajectoryConstPtr& parameter_trajectory =
-			evaluation_manager_->getParameterTrajectory();
+		evaluation_manager_->getParameterTrajectory();
 	num_parameter_types_ = parameter_trajectory->hasVelocity() ? 2 : 1;
 	num_parameter_points_ = parameter_trajectory->getNumPoints();
 	num_parameter_elements_ = parameter_trajectory->getNumElements();
 	int num_points = evaluation_manager_->getFullTrajectory()->getNumPoints();
 
 	int num_costs =
-			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+		TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	derivatives_evaluation_manager_.resize(num_threads_);
 	evaluation_parameters_.resize(num_threads_);
@@ -65,15 +66,15 @@ void ImprovementManagerNLP::initialize(
 	for (int i = 0; i < num_threads_; ++i)
 	{
 		derivatives_evaluation_manager_[i].reset(
-				evaluation_manager->createClone());
+			evaluation_manager->createClone());
 
 		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
-				Eigen::MatrixXd(num_parameter_points_,
-						num_parameter_elements_));
+										 Eigen::MatrixXd(num_parameter_points_,
+												 num_parameter_elements_));
 		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_points, num_costs);
 	}
 	best_parameter_.resize(Trajectory::TRAJECTORY_TYPE_NUM,
-			Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
+						   Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
 }
 
 bool ImprovementManagerNLP::updatePlanningParameters()
@@ -89,7 +90,7 @@ bool ImprovementManagerNLP::updatePlanningParameters()
 void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
 	int num_variables = num_parameter_elements_ * num_parameter_points_
-			* num_parameter_types_;
+						* num_parameter_types_;
 
 	column_vector variables(num_variables);
 
@@ -107,8 +108,8 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 }
 
 void ImprovementManagerNLP::writeToOptimizationVariables(
-		column_vector& variables,
-		const std::vector<Eigen::MatrixXd>& evaluation_parameter)
+	column_vector& variables,
+	const std::vector<Eigen::MatrixXd>& evaluation_parameter)
 {
 	int write_index = 0;
 
@@ -125,8 +126,8 @@ void ImprovementManagerNLP::writeToOptimizationVariables(
 }
 
 void ImprovementManagerNLP::readFromOptimizationVariables(
-		const column_vector& variables,
-		std::vector<Eigen::MatrixXd>& evaluation_parameter)
+	const column_vector& variables,
+	std::vector<Eigen::MatrixXd>& evaluation_parameter)
 {
 	int read_index = 0;
 
@@ -156,7 +157,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	if (evaluation_count_ % 100 == 0)
 	{
 		printf("Elapsed (in eval) : %f\n",
-				(ros::Time::now() - start_time_).toSec());
+			   (ros::Time::now() - start_time_).toSec());
 	}
 
 	if (cost < best_cost_)
@@ -169,7 +170,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 }
 
 column_vector ImprovementManagerNLP::derivative_ref(
-		const column_vector& variables)
+	const column_vector& variables)
 {
 	column_vector der(variables.size());
 	column_vector e = variables;
@@ -226,7 +227,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	TIME_PROFILER_START_ITERATION;
 
 	int num_cost_functions =
-			TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+		TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	std::vector<column_vector> der(num_cost_functions + 1);
 	for (int i = 0; i < 1/*der.size()*/; ++i)
@@ -241,18 +242,18 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 	int parameter_index = 0;
 	for (int k = 0; k < num_parameter_types_; ++k)
 	{
-#pragma omp parallel for
+		#pragma omp parallel for
 		for (int j = 0; j < num_parameter_points_; ++j)
 		{
 			int thread_index = omp_get_thread_num();
 			int thread_variable_index = parameter_index
-					+ j * num_parameter_elements_;
+										+ j * num_parameter_elements_;
 
 			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
-					evaluation_parameters_[thread_index], k, j,
-					der[0].begin() + thread_variable_index, eps_,
-					delta_plus_vec.begin() + thread_variable_index,
-					delta_minus_vec.begin() + thread_variable_index, NULL);//&cost_der);
+				evaluation_parameters_[thread_index], k, j,
+				der[0].begin() + thread_variable_index, eps_,
+				delta_plus_vec.begin() + thread_variable_index,
+				delta_minus_vec.begin() + thread_variable_index, NULL);//&cost_der);
 #ifdef VALIDATE_DERIVATIVE
 			for (int i = 0; i < num_cost_functions; ++i)
 			{
@@ -290,11 +291,11 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-			dlib::objective_delta_stop_strategy(eps_,
-					PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
-			boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-			boost::bind(&ImprovementManagerNLP::derivative, this, _1),
-			variables, 0.0);
+				   dlib::objective_delta_stop_strategy(eps_,
+						   PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
+				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
+				   variables, 0.0);
 
 	evaluation_manager_->setParameters(best_parameter_);
 	evaluation_manager_->evaluate();
@@ -306,7 +307,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
 	int num_variables = variables.size();
 	MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
-			MatrixXd::Identity(num_variables, num_variables));
+										 MatrixXd::Identity(num_variables, num_variables));
 	VectorXd noise = VectorXd::Zero(num_variables);
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)

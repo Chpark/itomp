@@ -24,15 +24,15 @@
 const double INV_SQRT_2 = 1.0 / std::sqrt((long double) 2.0);
 
 void loadStaticScene(ros::NodeHandle& node_handle,
-		planning_scene::PlanningScenePtr& planning_scene,
-		robot_model::RobotModelPtr& robot_model,
-		ros::Publisher& planning_scene_diff_publisher)
+                     planning_scene::PlanningScenePtr& planning_scene,
+                     robot_model::RobotModelPtr& robot_model,
+                     ros::Publisher& planning_scene_diff_publisher)
 {
 	std::string environment_file;
 	std::vector<double> environment_position;
 
 	node_handle.param<std::string>("/itomp_planner/environment_model",
-			environment_file, "");
+                                   environment_file, "");
 
 	if (!environment_file.empty())
 	{
@@ -41,7 +41,7 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		{
 			XmlRpc::XmlRpcValue segment;
 			node_handle.getParam("/itomp_planner/environment_model_position",
-					segment);
+                                 segment);
 			if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
 			{
 				int size = segment.size();
@@ -62,7 +62,7 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		pose.position.y = environment_position[1];
 		pose.position.z = environment_position[2];
 		ROS_INFO(
-				"Env col pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
+            "Env col pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
 		pose.orientation.x = 0.0;
 		pose.orientation.y = 0.0;
 		pose.orientation.z = 0.0;
@@ -87,19 +87,19 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 }
 
 void renderStaticScene(ros::NodeHandle& node_handle,
-		planning_scene::PlanningScenePtr& planning_scene,
-		robot_model::RobotModelPtr& robot_model)
+                       planning_scene::PlanningScenePtr& planning_scene,
+                       robot_model::RobotModelPtr& robot_model)
 {
 	std::string environment_file;
 	std::vector<double> environment_position;
 
 	static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
-			visualization_msgs::MarkerArray>("visualization_marker_array", 10);
+            visualization_msgs::MarkerArray>("visualization_marker_array", 10);
 
 	ros::WallDuration(1.0).sleep();
 
 	node_handle.param<std::string>("/itomp_planner/environment_model",
-			environment_file, "");
+                                   environment_file, "");
 
 	if (!environment_file.empty())
 	{
@@ -108,7 +108,7 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		{
 			XmlRpc::XmlRpcValue segment;
 			node_handle.getParam("/itomp_planner/environment_model_position",
-					segment);
+                                 segment);
 			if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
 			{
 				int size = segment.size();
@@ -135,7 +135,7 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 		msg.pose.position.y = environment_position[1];
 		msg.pose.position.z = environment_position[2];
 		ROS_INFO(
-				"Env render pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
+            "Env render pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
 		msg.pose.orientation.x = 0.0;
 		msg.pose.orientation.y = 0.0;
 		msg.pose.orientation.z = 0.0;
@@ -153,11 +153,11 @@ void renderStaticScene(ros::NodeHandle& node_handle,
 }
 
 void renderHierarchicalTrajectory(
-		robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
-		ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model)
+    robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+    ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model)
 {
 	static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
-			visualization_msgs::MarkerArray>("itomp_planner/trajectory", 10);
+            visualization_msgs::MarkerArray>("itomp_planner/trajectory", 10);
 	visualization_msgs::MarkerArray ma;
 	std::vector<std::string> link_names = robot_model->getLinkModelNames();
 	std_msgs::ColorRGBA color;
@@ -195,15 +195,15 @@ void renderHierarchicalTrajectory(
 	std::map<std::string, std::vector<std::string> > group_links_map;
 
 	group_links_map["lower_body"] = robot_model->getJointModelGroup(
-			"lower_body")->getLinkModelNames();
+                                        "lower_body")->getLinkModelNames();
 	group_links_map["torso"] =
-			robot_model->getJointModelGroup("torso")->getLinkModelNames();
+        robot_model->getJointModelGroup("torso")->getLinkModelNames();
 	group_links_map["head"] =
-			robot_model->getJointModelGroup("head")->getLinkModelNames();
+        robot_model->getJointModelGroup("head")->getLinkModelNames();
 	group_links_map["left_arm"] =
-			robot_model->getJointModelGroup("left_arm")->getLinkModelNames();
+        robot_model->getJointModelGroup("left_arm")->getLinkModelNames();
 	group_links_map["right_arm"] =
-			robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
+        robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
 
 	group_links_map["object"].clear();
 	if (robot_model->hasLinkModel("right_hand_object_link"))
@@ -216,11 +216,11 @@ void renderHierarchicalTrajectory(
 		robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(i);
 
 		for (std::map<std::string, std::vector<std::string> >::iterator it =
-				group_links_map.begin(); it != group_links_map.end(); ++it)
+                    group_links_map.begin(); it != group_links_map.end(); ++it)
 		{
 			std::string ns = "robot_" + it->first;
 			state->getRobotMarkers(ma, group_links_map[it->first],
-					colorMap[it->first], ns, dur);
+                                   colorMap[it->first], ns, dur);
 		}
 		vis_marker_array_publisher_.publish(ma);
 
@@ -232,14 +232,14 @@ void renderHierarchicalTrajectory(
 	{
 		ma.markers.clear();
 		robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(
-				num_waypoints - 1);
+                                               num_waypoints - 1);
 
 		for (std::map<std::string, std::vector<std::string> >::iterator it =
-				group_links_map.begin(); it != group_links_map.end(); ++it)
+                    group_links_map.begin(); it != group_links_map.end(); ++it)
 		{
 			std::string ns = "robot_" + it->first;
 			state->getRobotMarkers(ma, group_links_map[it->first],
-					colorMap[it->first], ns, dur);
+                                   colorMap[it->first], ns, dur);
 		}
 		vis_marker_array_publisher_.publish(ma);
 
@@ -251,15 +251,15 @@ void renderHierarchicalTrajectory(
 }
 
 void renderEnvironment(const std::string& environment_file,
-		robot_model::RobotModelPtr& robot_model, const std::string& ns,
-		std_msgs::ColorRGBA& color)
+                       robot_model::RobotModelPtr& robot_model, const std::string& ns,
+                       std_msgs::ColorRGBA& color)
 {
 	return;
 
 	ros::NodeHandle node_handle;
 	ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
-			visualization_msgs::MarkerArray>(
-			"move_itomp/visualization_marker_array", 10);
+            visualization_msgs::MarkerArray>(
+                "move_itomp/visualization_marker_array", 10);
 	visualization_msgs::MarkerArray ma;
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = robot_model->getModelFrame();
@@ -291,13 +291,13 @@ void renderEnvironment(const std::string& environment_file,
 }
 
 void visualizeResult(planning_interface::MotionPlanResponse& res,
-		ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
+                     ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
 {
 	// Visualize the result
 	// ^^^^^^^^^^^^^^^^^^^^
 	static ros::Publisher display_publisher = node_handle.advertise<
-			moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path",
-			1, true);
+            moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path",
+                                            1, true);
 	moveit_msgs::DisplayTrajectory display_trajectory;
 
 	ROS_INFO("Visualizing the trajectory");
@@ -305,7 +305,7 @@ void visualizeResult(planning_interface::MotionPlanResponse& res,
 
 	for (int i = 0; i < repeat_last; ++i)
 		res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(),
-				5000);
+                                           5000);
 	res.getMessage(response);
 
 	display_trajectory.trajectory_start = response.trajectory_start;
@@ -316,15 +316,15 @@ void visualizeResult(planning_interface::MotionPlanResponse& res,
 }
 
 void doPlan(const std::string& group_name,
-		planning_interface::MotionPlanRequest& req,
-		planning_interface::MotionPlanResponse& res,
-		robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state,
-		planning_scene::PlanningScenePtr& planning_scene,
-		planning_interface::PlannerManagerPtr& planner_instance)
+            planning_interface::MotionPlanRequest& req,
+            planning_interface::MotionPlanResponse& res,
+            robot_state::RobotState& start_state,
+            robot_state::RobotState& goal_state,
+            planning_scene::PlanningScenePtr& planning_scene,
+            planning_interface::PlannerManagerPtr& planner_instance)
 {
 	const robot_state::JointModelGroup* joint_model_group =
-			goal_state.getJointModelGroup("whole_body");
+        goal_state.getJointModelGroup("whole_body");
 
 	// Copy from start_state to req.start_state
 	unsigned int num_joints = start_state.getVariableCount();
@@ -333,34 +333,34 @@ void doPlan(const std::string& group_name,
 	req.start_state.joint_state.velocity.resize(num_joints);
 	req.start_state.joint_state.effort.resize(num_joints);
 	memcpy(&req.start_state.joint_state.position[0],
-			start_state.getVariablePositions(), sizeof(double) * num_joints);
+           start_state.getVariablePositions(), sizeof(double) * num_joints);
 	if (start_state.hasVelocities())
 		memcpy(&req.start_state.joint_state.velocity[0],
-				start_state.getVariableVelocities(),
-				sizeof(double) * num_joints);
+               start_state.getVariableVelocities(),
+               sizeof(double) * num_joints);
 	else
 		memset(&req.start_state.joint_state.velocity[0], 0,
-				sizeof(double) * num_joints);
+               sizeof(double) * num_joints);
 	if (start_state.hasAccelerations())
 		memcpy(&req.start_state.joint_state.effort[0],
-				start_state.getVariableAccelerations(),
-				sizeof(double) * num_joints);
+               start_state.getVariableAccelerations(),
+               sizeof(double) * num_joints);
 	else
 		memset(&req.start_state.joint_state.effort[0], 0,
-				sizeof(double) * num_joints);
+               sizeof(double) * num_joints);
 
 	req.group_name = group_name;
 	moveit_msgs::Constraints joint_goal =
-			kinematic_constraints::constructGoalConstraints(goal_state,
-					joint_model_group);
+        kinematic_constraints::constructGoalConstraints(goal_state,
+                joint_model_group);
 	req.goal_constraints.push_back(joint_goal);
 
 	// We now construct a planning context that encapsulate the scene,
 	// the request and the response. We call the planner using this
 	// planning context
 	planning_interface::PlanningContextPtr context =
-			planner_instance->getPlanningContext(planning_scene, req,
-					res.error_code_);
+        planner_instance->getPlanningContext(planning_scene, req,
+                res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)
 	{
@@ -370,12 +370,12 @@ void doPlan(const std::string& group_name,
 }
 
 void displayInitialWaypoints(robot_state::RobotState& state, ros::NodeHandle& node_handle,
-		robot_model::RobotModelPtr& robot_model, const std::vector<std::string>& hierarchy,
-		const std::vector<Eigen::VectorXd>& waypoints)
+                             robot_model::RobotModelPtr& robot_model, const std::vector<std::string>& hierarchy,
+                             const std::vector<Eigen::VectorXd>& waypoints)
 {
 	static ros::Publisher vis_marker_array_publisher = node_handle.advertise<
-			visualization_msgs::MarkerArray>("/move_itomp/visualization_marker_array",
-			10);
+            visualization_msgs::MarkerArray>("/move_itomp/visualization_marker_array",
+                    10);
 
 	visualization_msgs::MarkerArray ma;
 	std::vector<std::string> link_names = robot_model->getLinkModelNames();
@@ -389,7 +389,7 @@ void displayInitialWaypoints(robot_state::RobotState& state, ros::NodeHandle& no
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 	const robot_state::JointModelGroup* joint_model_group =
-			state.getJointModelGroup("whole_body");
+        state.getJointModelGroup("whole_body");
 
 	joint_model_group->getVariableDefaultPositions("standup", values);
 	state.setVariablePositions(values);
@@ -400,7 +400,7 @@ void displayInitialWaypoints(robot_state::RobotState& state, ros::NodeHandle& no
 
 		int id = 0;
 		for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
-			cit != hierarchy.end(); ++cit, ++id)
+                cit != hierarchy.end(); ++cit, ++id)
 		{
 			jointValue = waypoints[point](id);
 			state.setJointPositions(*cit, &jointValue);
@@ -413,28 +413,28 @@ void displayInitialWaypoints(robot_state::RobotState& state, ros::NodeHandle& no
 }
 
 void displayStates(robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state, ros::NodeHandle& node_handle,
-		robot_model::RobotModelPtr& robot_model)
+                   robot_state::RobotState& goal_state, ros::NodeHandle& node_handle,
+                   robot_model::RobotModelPtr& robot_model)
 {
 	static ros::Publisher start_state_display_publisher = node_handle.advertise<
-			moveit_msgs::DisplayRobotState>("/move_itomp/display_start_state",
-			1, true);
+            moveit_msgs::DisplayRobotState>("/move_itomp/display_start_state",
+                                            1, true);
 	static ros::Publisher goal_state_display_publisher = node_handle.advertise<
-			moveit_msgs::DisplayRobotState>("/move_itomp/display_goal_state", 1,
-			true);
+            moveit_msgs::DisplayRobotState>("/move_itomp/display_goal_state", 1,
+                                            true);
 
 	int num_variables = start_state.getVariableNames().size();
 
 	moveit_msgs::DisplayRobotState disp_start_state;
 	disp_start_state.state.joint_state.header.frame_id =
-			robot_model->getModelFrame();
+        robot_model->getModelFrame();
 	disp_start_state.state.joint_state.name = start_state.getVariableNames();
 	disp_start_state.state.joint_state.position.resize(num_variables);
 	memcpy(&disp_start_state.state.joint_state.position[0],
-			start_state.getVariablePositions(), sizeof(double) * num_variables);
+           start_state.getVariablePositions(), sizeof(double) * num_variables);
 	disp_start_state.highlight_links.clear();
 	const std::vector<std::string>& link_model_names =
-			robot_model->getLinkModelNames();
+        robot_model->getLinkModelNames();
 	for (int i = 0; i < link_model_names.size(); ++i)
 	{
 		std_msgs::ColorRGBA color;
@@ -451,11 +451,11 @@ void displayStates(robot_state::RobotState& start_state,
 
 	moveit_msgs::DisplayRobotState disp_goal_state;
 	disp_goal_state.state.joint_state.header.frame_id =
-			robot_model->getModelFrame();
+        robot_model->getModelFrame();
 	disp_goal_state.state.joint_state.name = goal_state.getVariableNames();
 	disp_goal_state.state.joint_state.position.resize(num_variables);
 	memcpy(&disp_goal_state.state.joint_state.position[0],
-			goal_state.getVariablePositions(), sizeof(double) * num_variables);
+           goal_state.getVariablePositions(), sizeof(double) * num_variables);
 	disp_goal_state.highlight_links.clear();
 	for (int i = 0; i < link_model_names.size(); ++i)
 	{
@@ -473,16 +473,16 @@ void displayStates(robot_state::RobotState& start_state,
 }
 
 moveit_msgs::Constraints setRootJointConstraint(
-		moveit_msgs::Constraints& c,
-        const std::vector<std::string>& hierarchy,
-        const Eigen::VectorXd& transform)
+    moveit_msgs::Constraints& c,
+    const std::vector<std::string>& hierarchy,
+    const Eigen::VectorXd& transform)
 {
     moveit_msgs::JointConstraint jc;
     moveit_msgs::OrientationConstraint oc;
 
     int id = 0;
     for(std::vector<std::string>::const_iterator cit= hierarchy.begin();
-        cit != hierarchy.end(); ++cit, ++id)
+            cit != hierarchy.end(); ++cit, ++id)
     {
         jc.joint_name = *cit;
         jc.position = transform(id);
@@ -492,16 +492,17 @@ moveit_msgs::Constraints setRootJointConstraint(
 }
 
 moveit_msgs::Constraints setContactPointConstraint(
-		moveit_msgs::Constraints& c,
-        const std::vector<std::string>& hierarchy,
-        const Eigen::MatrixXd& transform)
+    moveit_msgs::Constraints& c,
+    const std::vector<std::string>& hierarchy,
+    const Eigen::MatrixXd& transform)
 {
-    for(int i=0; i< transform.rows();++i) // rows is number of contacts
+    for(int i=0; i< transform.rows(); ++i) // rows is number of contacts
     {
         moveit_msgs::JointConstraint activeContact; // TODO Should I use something else ?
         moveit_msgs::PositionConstraint pc;
         moveit_msgs::OrientationConstraint oc;
-        std::stringstream ss; ss << "contact_" << i;
+        std::stringstream ss;
+        ss << "contact_" << i;
         std::string str = ss.str();
         activeContact.joint_name = str;
         activeContact.position = transform(i,0);
@@ -522,33 +523,33 @@ moveit_msgs::Constraints setContactPointConstraint(
 }
 
 moveit_msgs::Constraints setRootJointAndContactPointConstraints(
-        const std::vector<std::string>& hierarchy,
-        const Eigen::VectorXd& joint_transform,
-        const Eigen::MatrixXd& contacts)
+    const std::vector<std::string>& hierarchy,
+    const Eigen::VectorXd& joint_transform,
+    const Eigen::MatrixXd& contacts)
 {
-        moveit_msgs::Constraints c;
+    moveit_msgs::Constraints c;
 
-        setRootJointConstraint(c, hierarchy, joint_transform);
-        setContactPointConstraint(c, hierarchy, contacts);
-        return c;
+    setRootJointConstraint(c, hierarchy, joint_transform);
+    setContactPointConstraint(c, hierarchy, contacts);
+    return c;
 }
 
 
 void setWalkingStates(robot_state::RobotState& start_state,
-        robot_state::RobotState& goal_state, Eigen::VectorXd& start_transf,
-        Eigen::VectorXd& goal_transf, const std::vector<std::string>& hierarchy)
+                      robot_state::RobotState& goal_state, Eigen::VectorXd& start_transf,
+                      Eigen::VectorXd& goal_transf, const std::vector<std::string>& hierarchy)
 {
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup("whole_body");
+        start_state.getJointModelGroup("whole_body");
 
 	joint_model_group->getVariableDefaultPositions("standup", values);
 	start_state.setVariablePositions(values);
     int id = 0;
     for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
-        cit != hierarchy.end(); ++cit, ++id)
+            cit != hierarchy.end(); ++cit, ++id)
     {
         jointValue = start_transf(id);
         start_state.setJointPositions(*cit, &jointValue);
@@ -560,7 +561,7 @@ void setWalkingStates(robot_state::RobotState& start_state,
 
     id = 0;
     for(std::vector<std::string>::const_iterator cit = hierarchy.begin();
-        cit != hierarchy.end(); ++cit, ++id)
+            cit != hierarchy.end(); ++cit, ++id)
     {
         jointValue = goal_transf(id);
         goal_state.setJointPositions(*cit, &jointValue);
@@ -611,19 +612,19 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
             }
             else if(line.find("MOTION") != std::string::npos)
             {
-                 hierarchy = false;
+                hierarchy = false;
             }
             else if(line.find("Frame Time") != std::string::npos)
             {
-                 motion = true;
+                motion = true;
             }
             else if(line.find("CONTACT EFFECTORS ") != std::string::npos)
             {
-                 motion = false;
-                 contacts = true;
-                 line = line.substr(18);
-                 char *endptr;
-                 nbEffectors = (int)strtod(line.c_str(), &endptr);
+                motion = false;
+                contacts = true;
+                line = line.substr(18);
+                char *endptr;
+                nbEffectors = (int)strtod(line.c_str(), &endptr);
             }
             else if(!line.empty())
             {
@@ -650,15 +651,15 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                 }
                 else if(contacts)
                 {
-                	Eigen::MatrixXd contactPoint(nbEffectors, 8);
+                    Eigen::MatrixXd contactPoint(nbEffectors, 8);
 					char *endptr;
 					for(int i=0; i< nbEffectors; ++i)
 					{
 						int h = 0;
 						if (i == 0)
-								contactPoint(i,h++) = strtod(line.c_str(), &endptr);
+                            contactPoint(i,h++) = strtod(line.c_str(), &endptr);
 						else
-								contactPoint(i,h++) = strtod(endptr, &endptr);
+                            contactPoint(i,h++) = strtod(endptr, &endptr);
 
 						for(; h< 8; ++h)
 						{
@@ -707,15 +708,15 @@ int main(int argc, char **argv)
 	ros::NodeHandle node_handle("~");
 
 	robot_model_loader::RobotModelLoader robot_model_loader(
-			"robot_description");
+        "robot_description");
 	robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
 
 	planning_scene::PlanningScenePtr planning_scene(
-			new planning_scene::PlanningScene(robot_model));
+        new planning_scene::PlanningScene(robot_model));
 
 	ros::Publisher planning_scene_diff_publisher;
 	planning_scene_diff_publisher = node_handle.advertise<
-			moveit_msgs::PlanningScene>("/planning_scene", 1);
+                                    moveit_msgs::PlanningScene>("/planning_scene", 1);
 	while (planning_scene_diff_publisher.getNumSubscribers() < 1)
 	{
 		ros::WallDuration sleep_t(0.5);
@@ -732,32 +733,34 @@ int main(int argc, char **argv)
 	try
 	{
 		planner_plugin_loader.reset(
-				new pluginlib::ClassLoader<planning_interface::PlannerManager>(
-						"moveit_core", "planning_interface::PlannerManager"));
-	} catch (pluginlib::PluginlibException& ex)
+            new pluginlib::ClassLoader<planning_interface::PlannerManager>(
+                "moveit_core", "planning_interface::PlannerManager"));
+    }
+    catch (pluginlib::PluginlibException& ex)
 	{
 		ROS_FATAL_STREAM(
-				"Exception while creating planning plugin loader " << ex.what());
+            "Exception while creating planning plugin loader " << ex.what());
 	}
 	try
 	{
 		planner_instance.reset(
-				planner_plugin_loader->createUnmanagedInstance(
-						planner_plugin_name));
+            planner_plugin_loader->createUnmanagedInstance(
+                planner_plugin_name));
 		if (!planner_instance->initialize(robot_model,
-				node_handle.getNamespace()))
+                                          node_handle.getNamespace()))
 			ROS_FATAL_STREAM("Could not initialize planner instance");
 		ROS_INFO_STREAM(
-				"Using planning interface '" << planner_instance->getDescription() << "'");
-	} catch (pluginlib::PluginlibException& ex)
+            "Using planning interface '" << planner_instance->getDescription() << "'");
+    }
+    catch (pluginlib::PluginlibException& ex)
 	{
 		const std::vector<std::string> &classes =
-				planner_plugin_loader->getDeclaredClasses();
+            planner_plugin_loader->getDeclaredClasses();
 		std::stringstream ss;
 		for (std::size_t i = 0; i < classes.size(); ++i)
 			ss << classes[i] << " ";
 		ROS_ERROR_STREAM(
-				"Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
+            "Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
 	}
 
 	loadStaticScene(node_handle, planning_scene, robot_model, planning_scene_diff_publisher);
@@ -797,16 +800,21 @@ int main(int argc, char **argv)
         hierarchy.push_back("base_revolute_joint_x");
         Eigen::VectorXd vec1;
 		start_trans = Eigen::VectorXd(6);
-        start_trans = Eigen::VectorXd(6); start_trans << 0.0, 1.0, 0.0,0,0,0;
-        goal_trans =  Eigen::VectorXd(6); goal_trans << 0.0, 2.5, 0.0,0,0,0;
+        start_trans = Eigen::VectorXd(6);
+        start_trans << 0.0, 1.0, 0.0,0,0,0;
+        goal_trans =  Eigen::VectorXd(6);
+        goal_trans << 0.0, 2.5, 0.0,0,0,0;
 		goal_trans << 0.0, 2.5, 0.0, 0, 0, 0;
-        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 1.5, 1.0,0,0,0;
+        vec1 = Eigen::VectorXd(6);
+        vec1 << 0.0, 1.5, 1.0,0,0,0;
 		vec1 << 0.0, 1.5, 1.0, 0, 0, 0;
         waypoints.push_back(vec1);
-        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.0, 2.0,0,0,0;
+        vec1 = Eigen::VectorXd(6);
+        vec1 << 0.0, 2.0, 2.0,0,0,0;
 		vec1 << 0.0, 2.0, 2.0, 0, 0, 0;
         waypoints.push_back(vec1);
-        vec1 = Eigen::VectorXd(6); vec1 << 0.0, 2.5, 1.0,0,0,0;
+        vec1 = Eigen::VectorXd(6);
+        vec1 << 0.0, 2.5, 1.0,0,0,0;
 		vec1 << 0.0, 2.5, 1.0, 0, 0, 0;
         waypoints.push_back(vec1);
 // TODO Contacts ?
@@ -818,22 +826,22 @@ int main(int argc, char **argv)
         goal_trans =  waypoints.back();
     }
     setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
-            start_trans, goal_trans, hierarchy);
+                     start_trans, goal_trans, hierarchy);
 	for (int i = 0; i < waypoints.size(); ++i)
 	{
 		moveit_msgs::Constraints constraint =
-				setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
+            setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
 		req.trajectory_constraints.constraints.push_back(constraint);
 	}
 	robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
 	displayInitialWaypoints(rs, node_handle, robot_model,
-			hierarchy, waypoints);
+                            hierarchy, waypoints);
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],
-				node_handle, robot_model);
+                  node_handle, robot_model);
 
 	doPlan("whole_body", req, res, robot_states[state_index],
-			robot_states[state_index + 1], planning_scene, planner_instance);
+           robot_states[state_index + 1], planning_scene, planner_instance);
 
 
 	visualizeResult(res, node_handle, 0, 1.0);

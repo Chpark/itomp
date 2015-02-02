@@ -9,7 +9,7 @@ class PerformanceProfiler: public Singleton<PerformanceProfiler>
 {
 public:
 	PerformanceProfiler() :
-			num_threads_(1), get_time_func_(NULL)
+		num_threads_(1), get_time_func_(NULL)
 	{
 	}
 	virtual ~PerformanceProfiler()

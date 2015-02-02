@@ -15,12 +15,12 @@ template<class T>
 class Singleton
 {
 public:
-        virtual ~Singleton(void) {}
-        static T* getInstance();
+	virtual ~Singleton(void) {}
+	static T* getInstance();
 
 protected:
-        Singleton(void) {}
-        static T* instance_;
+	Singleton(void) {}
+	static T* instance_;
 };
 
 template<class T>
@@ -29,9 +29,9 @@ T* Singleton<T>::instance_ = NULL;
 template<class T>
 T* Singleton<T>::getInstance()
 {
-        if (instance_ == NULL)
-                instance_ = new T;
-        return instance_;
+	if (instance_ == NULL)
+		instance_ = new T;
+	return instance_;
 }
 }
 

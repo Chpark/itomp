@@ -22,8 +22,11 @@ public:
 	virtual void preEvaluate(const NewEvalManager* evaluation_manager) {}
 	virtual void postEvaluate(const NewEvalManager* evaluation_manager) {}
 	virtual bool evaluate(const NewEvalManager* evaluation_manager, int point,
-			double& cost) const = 0;
-	virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const { return false; }
+						  double& cost) const = 0;
+	virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const
+	{
+		return false;
+	}
 
 	int getIndex() const;
 	const std::string& getName() const;
@@ -70,23 +73,23 @@ ITOMP_TRAJECTORY_COST_DECL(FrictionCone)
 
 class TrajectoryCostObstacle : public TrajectoryCost
 {
-	public:
-		TrajectoryCostObstacle(int index, std::string name, double weight,
-						  const NewEvalManager* evaluation_manager) : TrajectoryCost(index, name, weight)
-		{
-			initialize(evaluation_manager);
-		}
-		virtual ~TrajectoryCostObstacle() {}
-		virtual void initialize(const NewEvalManager* evaluation_manager);
-		virtual void preEvaluate(const NewEvalManager* evaluation_manager);
-		virtual void postEvaluate(const NewEvalManager* evaluation_manager);
-		virtual bool evaluate(const NewEvalManager* evaluation_manager,
-								int point, double& cost) const;
-		virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const;
+public:
+	TrajectoryCostObstacle(int index, std::string name, double weight,
+						   const NewEvalManager* evaluation_manager) : TrajectoryCost(index, name, weight)
+	{
+		initialize(evaluation_manager);
+	}
+	virtual ~TrajectoryCostObstacle() {}
+	virtual void initialize(const NewEvalManager* evaluation_manager);
+	virtual void preEvaluate(const NewEvalManager* evaluation_manager);
+	virtual void postEvaluate(const NewEvalManager* evaluation_manager);
+	virtual bool evaluate(const NewEvalManager* evaluation_manager,
+						  int point, double& cost) const;
+	virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const;
 
-	protected:
-		std::vector<CollisionWorldFCLDerivativesPtr> collision_world_derivatives;
-		std::vector<CollisionRobotFCLDerivativesPtr> collision_robot_derivatives;
+protected:
+	std::vector<CollisionWorldFCLDerivativesPtr> collision_world_derivatives;
+	std::vector<CollisionRobotFCLDerivativesPtr> collision_robot_derivatives;
 };
 
 }

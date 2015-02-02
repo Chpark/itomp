@@ -6,7 +6,7 @@ itomp_cio_planner::NewEvalManager* Jacobian::evaluation_manager_ = NULL;
 
 Jacobian::Jacobian()
 {
-    ComputeJacobian();
+	ComputeJacobian();
 }
 
 Jacobian::~Jacobian()
@@ -22,8 +22,11 @@ void Jacobian::SetJacobian(const Eigen::MatrixXd& jacobian)
 
 void Jacobian::Invalidate()
 {
-	computeInverse_ = true; computeProduct_ = true; computeProductInverse_ = true;
-	computeJacSVD_ = true; computeNullSpace_ = true;
+	computeInverse_ = true;
+	computeProduct_ = true;
+	computeProductInverse_ = true;
+	computeJacSVD_ = true;
+	computeNullSpace_ = true;
 }
 
 namespace
@@ -46,32 +49,32 @@ namespace
 void Jacobian::ComputeJacobian()
 {
 	/*
-    Eigen::Matrix4d toRootCoordinates = Eigen::Matrix4d::Identity();
-    toRootCoordinates.block<3,3>(0,0) = root->toLocalRotation;
-    toRootCoordinates.block<3,1>(0,3) = -root->position;
-    Eigen::Matrix4d toWorldCoordinates = toRootCoordinates;
-    toWorldCoordinates.inverse();
+	Eigen::Matrix4d toRootCoordinates = Eigen::Matrix4d::Identity();
+	toRootCoordinates.block<3,3>(0,0) = root->toLocalRotation;
+	toRootCoordinates.block<3,1>(0,3) = -root->position;
+	Eigen::Matrix4d toWorldCoordinates = toRootCoordinates;
+	toWorldCoordinates.inverse();
 	Invalidate();
-    int dim = planner::GetNumChildren(root);
-    std::vector<Node*> effectors = planner::GetEffectors(root, true);
-    jacobian_ = Eigen::MatrixXd(3 * effectors.size(), dim);
-    // Traverse this to find all end effectors
-    for(int i=0; i!=effectors.size(); ++i)
-    {
-        Node* nodeEffector = effectors[i];
-        Node* currentNode = nodeEffector;
-        Eigen::Vector3d effectorPos = nodeEffector->position;
-        do
-        {
-            currentNode = currentNode->parent;
-            Eigen::Vector3d siMinuspj = effectorPos -
-                    currentNode->position; //);
-            Eigen::Vector3d vj = ComputeRotationAxis(currentNode, root);//root->toLocalRotation * currentNode->axis; // ComputeRotationAxis(currentNode); //currentNode->toWorldRotation * currentNode->axis;
-            jacobian_.block<3,1>(3*i,currentNode->id - root->id) = vj.cross(siMinuspj);
-        }
-        while(currentNode->id != root->id);
-    }
-    */
+	int dim = planner::GetNumChildren(root);
+	std::vector<Node*> effectors = planner::GetEffectors(root, true);
+	jacobian_ = Eigen::MatrixXd(3 * effectors.size(), dim);
+	// Traverse this to find all end effectors
+	for(int i=0; i!=effectors.size(); ++i)
+	{
+	    Node* nodeEffector = effectors[i];
+	    Node* currentNode = nodeEffector;
+	    Eigen::Vector3d effectorPos = nodeEffector->position;
+	    do
+	    {
+	        currentNode = currentNode->parent;
+	        Eigen::Vector3d siMinuspj = effectorPos -
+	                currentNode->position; //);
+	        Eigen::Vector3d vj = ComputeRotationAxis(currentNode, root);//root->toLocalRotation * currentNode->axis; // ComputeRotationAxis(currentNode); //currentNode->toWorldRotation * currentNode->axis;
+	        jacobian_.block<3,1>(3*i,currentNode->id - root->id) = vj.cross(siMinuspj);
+	    }
+	    while(currentNode->id != root->id);
+	}
+	*/
 }
 
 void Jacobian::GetEllipsoidAxes(Eigen::Vector3d &u1, Eigen::Vector3d &u2, Eigen::Vector3d &u3)
@@ -125,26 +128,26 @@ const Eigen::MatrixXd& Jacobian::GetNullspace()
 {
 	if(computeNullSpace_)
 	{
-        computeNullSpace_ = false;
+		computeNullSpace_ = false;
 		Eigen::MatrixXd id = Eigen::MatrixXd::Identity(jacobian_.cols(), jacobian_.cols());
-        ComputeSVD();
+		ComputeSVD();
 		Eigen::MatrixXd res = Eigen::MatrixXd::Zero(id.rows(), id.cols());
 		for(int i =0; i < svd_.matrixV().cols(); ++ i)
 		{
 			Eigen::VectorXd v = svd_.matrixV().col(i);
 			res += v * v.transpose();
 		}
-        Identitymin_ = id - res;
+		Identitymin_ = id - res;
 	}
 	return Identitymin_;
 }
 
 void Jacobian::GetNullspace(const Eigen::MatrixXd pseudoId, Eigen::MatrixXd& result)
 {
-		GetNullspace(); // computing inverse jacobian
+	GetNullspace(); // computing inverse jacobian
 
-		Eigen::MatrixXd id = Eigen::MatrixXd::Identity(Identitymin_.rows(), Identitymin_.cols());
-        result = pseudoId - (id + Identitymin_);
+	Eigen::MatrixXd id = Eigen::MatrixXd::Identity(Identitymin_.rows(), Identitymin_.cols());
+	result = pseudoId - (id + Identitymin_);
 }
 
 const Eigen::MatrixXd& Jacobian::GetJacobianProduct()
@@ -162,7 +165,7 @@ const Eigen::MatrixXd &Jacobian::GetJacobianProductInverse()
 	if(computeProductInverse_)
 	{
 		computeProductInverse_ = false;
-        Eigen::JacobiSVD<Eigen::MatrixXd> svd = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobianProduct_, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		Eigen::JacobiSVD<Eigen::MatrixXd> svd = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobianProduct_, Eigen::ComputeFullU | Eigen::ComputeFullV);
 		PseudoInverseSVDDLS(jacobianProduct_, svd, jacobianProductInverse_);
 	}
 	return jacobianProductInverse_;
@@ -188,7 +191,7 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
 	{
 		int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
 		itomp_cio_planner::CalcFullJacobian(const_cast<RigidBodyDynamics::Model&>(evaluation_manager_->getRBDLModel(point)), q, rbdl_body_id,
-				Eigen::Vector3d::Zero(), jacobian, true);
+											Eigen::Vector3d::Zero(), jacobian, true);
 		jacobianMerged.block(3 * i, 0, 3, q.rows()) = jacobian.block(0, 0, 3, q.rows());
 	}
 	j.SetJacobian(jacobianMerged);

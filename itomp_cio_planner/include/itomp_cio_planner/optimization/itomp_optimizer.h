@@ -16,12 +16,12 @@ class ItompOptimizer
 {
 public:
 	ItompOptimizer(int trajectory_index,
-			const FullTrajectoryPtr& full_trajectory,
-			const ItompRobotModelConstPtr& robot_model,
-			const planning_scene::PlanningSceneConstPtr& planning_scene,
-			const ItompPlanningGroupConstPtr& planning_group,
-			double planning_start_time, double trajectory_start_time,
-			const moveit_msgs::Constraints& path_constraints);
+				   const FullTrajectoryPtr& full_trajectory,
+				   const ItompRobotModelConstPtr& robot_model,
+				   const planning_scene::PlanningSceneConstPtr& planning_scene,
+				   const ItompPlanningGroupConstPtr& planning_group,
+				   double planning_start_time, double trajectory_start_time,
+				   const moveit_msgs::Constraints& path_constraints);
 	virtual ~ItompOptimizer();
 
 	bool optimize();
@@ -30,11 +30,11 @@ public:
 
 private:
 	void initialize(const FullTrajectoryPtr& full_trajectory,
-			const ItompRobotModelConstPtr& robot_model,
-			const planning_scene::PlanningSceneConstPtr& planning_scene,
-			const ItompPlanningGroupConstPtr& planning_group,
-			double trajectory_start_time,
-			const moveit_msgs::Constraints& path_constraints);
+					const ItompRobotModelConstPtr& robot_model,
+					const planning_scene::PlanningSceneConstPtr& planning_scene,
+					const ItompPlanningGroupConstPtr& planning_group,
+					double trajectory_start_time,
+					const moveit_msgs::Constraints& path_constraints);
 
 	bool updateBestTrajectory();
 

@@ -112,7 +112,7 @@ inline const ItompPlanningGroupConstPtr& ItompRobotModel::getPlanningGroup(const
 
 inline int ItompRobotModel::getNumJoints() const
 {
-  return num_rbdl_joints_;
+	return num_rbdl_joints_;
 }
 
 inline int ItompRobotModel::getNumKDLJoints() const
@@ -185,7 +185,7 @@ inline const robot_model::RobotModelConstPtr& ItompRobotModel::getMoveitRobotMod
 
 inline const RigidBodyDynamics::Model& ItompRobotModel::getRBDLRobotModel() const
 {
-  return rbdl_robot_model_;
+	return rbdl_robot_model_;
 }
 
 }

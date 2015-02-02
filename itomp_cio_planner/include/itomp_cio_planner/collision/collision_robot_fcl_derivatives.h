@@ -56,44 +56,44 @@ ITOMP_DEFINE_SHARED_POINTERS(CollisionRobotFCLDerivatives);
 
 inline void CollisionRobotFCLDerivatives::checkSelfCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state1, const robot_state::RobotState &state2) const
 {
-  logError("FCL continuous collision checking not yet implemented");
+	logError("FCL continuous collision checking not yet implemented");
 }
 inline void CollisionRobotFCLDerivatives::checkSelfCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state1, const robot_state::RobotState &state2, const collision_detection::AllowedCollisionMatrix &acm) const
 {
-  logError("FCL continuous collision checking not yet implemented");
+	logError("FCL continuous collision checking not yet implemented");
 }
 
 inline void CollisionRobotFCLDerivatives::checkOtherCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state,
-								 const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state) const
+		const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state) const
 {
 	logError("CollisionRobotFCLDerivatives::checkOtherCollision should not be called.");
 }
 inline void CollisionRobotFCLDerivatives::checkOtherCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state,
-								 const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state,
-								 const collision_detection::AllowedCollisionMatrix &acm) const
+		const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state,
+		const collision_detection::AllowedCollisionMatrix &acm) const
 {
 	logError("CollisionRobotFCLDerivatives::checkOtherCollision should not be called.");
 }
 inline void CollisionRobotFCLDerivatives::checkOtherCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state1, const robot_state::RobotState &state2,
-								 const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state1, const robot_state::RobotState &other_state2) const
+		const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state1, const robot_state::RobotState &other_state2) const
 {
 	logError("CollisionRobotFCLDerivatives::checkOtherCollision should not be called.");
 }
 inline void CollisionRobotFCLDerivatives::checkOtherCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state1, const robot_state::RobotState &state2,
-								 const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state1, const robot_state::RobotState &other_state2,
-								 const collision_detection::AllowedCollisionMatrix &acm) const
+		const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state1, const robot_state::RobotState &other_state2,
+		const collision_detection::AllowedCollisionMatrix &acm) const
 {
 	logError("CollisionRobotFCLDerivatives::checkOtherCollision should not be called.");
 }
 
 inline double CollisionRobotFCLDerivatives::distanceOther(const robot_state::RobotState &state,
-							 const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state) const
+		const collision_detection::CollisionRobot &other_robot, const robot_state::RobotState &other_state) const
 {
 	logError("CollisionRobotFCLDerivatives::distanceOther should not be called.");
 	return 0.0;
 }
 inline double CollisionRobotFCLDerivatives::distanceOther(const robot_state::RobotState &state, const collision_detection::CollisionRobot &other_robot,
-							 const robot_state::RobotState &other_state, const collision_detection::AllowedCollisionMatrix &acm) const
+		const robot_state::RobotState &other_state, const collision_detection::AllowedCollisionMatrix &acm) const
 {
 	logError("CollisionRobotFCLDerivatives::distanceOther should not be called.");
 	return 0.0;

@@ -15,7 +15,7 @@ class ITOMPPlannerManager: public planning_interface::PlannerManager
 public:
 
 	ITOMPPlannerManager() :
-			planning_interface::PlannerManager()
+		planning_interface::PlannerManager()
 	{
 	}
 
@@ -50,11 +50,11 @@ public:
 	}
 
 	virtual planning_interface::PlanningContextPtr getPlanningContext(
-			const planning_scene::PlanningSceneConstPtr& planning_scene,
-			const planning_interface::MotionPlanRequest &req, moveit_msgs::MoveItErrorCodes &error_code) const
+		const planning_scene::PlanningSceneConstPtr& planning_scene,
+		const planning_interface::MotionPlanRequest &req, moveit_msgs::MoveItErrorCodes &error_code) const
 	{
-	  context_->setPlanningScene(planning_scene);
-	  context_->setMotionPlanRequest(req);
+		context_->setPlanningScene(planning_scene);
+		context_->setMotionPlanRequest(req);
 
 		return context_;
 	}

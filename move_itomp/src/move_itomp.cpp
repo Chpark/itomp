@@ -52,8 +52,8 @@ const std::string GROUP_NAME = "lower_body";
 const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 
 void renderHierarchicalTrajectory(
-		robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
-		ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model)
+    robot_trajectory::RobotTrajectoryPtr& robot_trajectory,
+    ros::NodeHandle& node_handle, robot_model::RobotModelPtr& robot_model)
 {
 	static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
 			visualization_msgs::MarkerArray>("itomp_planner/trajectory", 10);
@@ -94,15 +94,15 @@ void renderHierarchicalTrajectory(
 	std::map<std::string, std::vector<std::string> > group_links_map;
 
 	group_links_map["lower_body"] = robot_model->getJointModelGroup(
-			"lower_body")->getLinkModelNames();
+                                        "lower_body")->getLinkModelNames();
 	group_links_map["torso"] =
-			robot_model->getJointModelGroup("torso")->getLinkModelNames();
+        robot_model->getJointModelGroup("torso")->getLinkModelNames();
 	group_links_map["head"] =
-			robot_model->getJointModelGroup("head")->getLinkModelNames();
+        robot_model->getJointModelGroup("head")->getLinkModelNames();
 	group_links_map["left_arm"] =
-			robot_model->getJointModelGroup("left_arm")->getLinkModelNames();
+        robot_model->getJointModelGroup("left_arm")->getLinkModelNames();
 	group_links_map["right_arm"] =
-			robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
+        robot_model->getJointModelGroup("right_arm")->getLinkModelNames();
 
 	group_links_map["object"].clear();
 	if (robot_model->hasLinkModel("right_hand_object_link"))
@@ -115,11 +115,11 @@ void renderHierarchicalTrajectory(
 		robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(i);
 
 		for (std::map<std::string, std::vector<std::string> >::iterator it =
-				group_links_map.begin(); it != group_links_map.end(); ++it)
+                    group_links_map.begin(); it != group_links_map.end(); ++it)
 		{
 			std::string ns = "robot_" + it->first;
 			state->getRobotMarkers(ma, group_links_map[it->first],
-					colorMap[it->first], ns, dur);
+                                   colorMap[it->first], ns, dur);
 		}
 		vis_marker_array_publisher_.publish(ma);
 
@@ -131,14 +131,14 @@ void renderHierarchicalTrajectory(
 	{
 		ma.markers.clear();
 		robot_state::RobotStatePtr state = robot_trajectory->getWayPointPtr(
-				num_waypoints - 1);
+                                               num_waypoints - 1);
 
 		for (std::map<std::string, std::vector<std::string> >::iterator it =
-				group_links_map.begin(); it != group_links_map.end(); ++it)
+                    group_links_map.begin(); it != group_links_map.end(); ++it)
 		{
 			std::string ns = "robot_" + it->first;
 			state->getRobotMarkers(ma, group_links_map[it->first],
-					colorMap[it->first], ns, dur);
+                                   colorMap[it->first], ns, dur);
 		}
 		vis_marker_array_publisher_.publish(ma);
 
@@ -150,13 +150,13 @@ void renderHierarchicalTrajectory(
 }
 
 void renderEnvironment(const std::string& environment_file,
-		robot_model::RobotModelPtr& robot_model, const std::string& ns,
-		std_msgs::ColorRGBA& color)
+                       robot_model::RobotModelPtr& robot_model, const std::string& ns,
+                       std_msgs::ColorRGBA& color)
 {
 	ros::NodeHandle node_handle;
 	ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<
 			visualization_msgs::MarkerArray>(
-			"itomp_planner/visualization_marker_array", 10);
+                "itomp_planner/visualization_marker_array", 10);
 	visualization_msgs::MarkerArray ma;
 	visualization_msgs::Marker msg;
 	msg.header.frame_id = robot_model->getModelFrame();
@@ -188,13 +188,13 @@ void renderEnvironment(const std::string& environment_file,
 }
 
 void computeIKState(robot_state::RobotState& ik_state,
-		const std::string& group_name, double x, double y, double z, double qx,
-		double qy, double qz, double qw)
+                    const std::string& group_name, double x, double y, double z, double qx,
+                    double qy, double qz, double qw)
 {
 	// compute waypoint ik solutions
 
 	const robot_state::JointModelGroup* joint_model_group =
-			ik_state.getJointModelGroup(group_name);
+        ik_state.getJointModelGroup(group_name);
 
 	int num_joints = ik_state.getVariableCount();
 
@@ -208,7 +208,7 @@ void computeIKState(robot_state::RobotState& ik_state,
 	kinematics::KinematicsQueryOptions options;
 	options.return_approximate_solution = false;
 	bool found_ik = ik_state.setFromIK(joint_model_group, end_effector_state,
-			10, 0.1, moveit::core::GroupStateValidityCallbackFn(), options);
+                                       10, 0.1, moveit::core::GroupStateValidityCallbackFn(), options);
 	if (found_ik)
 	{
 		//ROS_INFO("IK solution found");
@@ -220,13 +220,13 @@ void computeIKState(robot_state::RobotState& ik_state,
 }
 
 void visualizeResult(planning_interface::MotionPlanResponse& res,
-		ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
+                     ros::NodeHandle& node_handle, int repeat_last, double sleep_time)
 {
 	// Visualize the result
 	// ^^^^^^^^^^^^^^^^^^^^
 	static ros::Publisher display_publisher = node_handle.advertise<
 			moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path",
-			1, true);
+                                            1, true);
 	moveit_msgs::DisplayTrajectory display_trajectory;
 
 	ROS_INFO("Visualizing the trajectory");
@@ -234,7 +234,7 @@ void visualizeResult(planning_interface::MotionPlanResponse& res,
 
 	for (int i = 0; i < repeat_last; ++i)
 		res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(),
-				5000);
+                                           5000);
 	res.getMessage(response);
 
 	display_trajectory.trajectory_start = response.trajectory_start;
@@ -245,17 +245,17 @@ void visualizeResult(planning_interface::MotionPlanResponse& res,
 }
 
 void doPlan(const std::string& group_name,
-		planning_interface::MotionPlanRequest& req,
-		planning_interface::MotionPlanResponse& res,
-		robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state,
-		planning_scene::PlanningScenePtr& planning_scene,
-		planning_interface::PlannerManagerPtr& planner_instance)
+            planning_interface::MotionPlanRequest& req,
+            planning_interface::MotionPlanResponse& res,
+            robot_state::RobotState& start_state,
+            robot_state::RobotState& goal_state,
+            planning_scene::PlanningScenePtr& planning_scene,
+            planning_interface::PlannerManagerPtr& planner_instance)
 {
 	req.allowed_planning_time = 60.0;
 
 	const robot_state::JointModelGroup* joint_model_group =
-			goal_state.getJointModelGroup("whole_body");
+        goal_state.getJointModelGroup("whole_body");
 
 	// Copy from start_state to req.start_state
 	unsigned int num_joints = start_state.getVariableCount();
@@ -264,34 +264,34 @@ void doPlan(const std::string& group_name,
 	req.start_state.joint_state.velocity.resize(num_joints);
 	req.start_state.joint_state.effort.resize(num_joints);
 	memcpy(&req.start_state.joint_state.position[0],
-			start_state.getVariablePositions(), sizeof(double) * num_joints);
+           start_state.getVariablePositions(), sizeof(double) * num_joints);
 	if (start_state.hasVelocities())
 		memcpy(&req.start_state.joint_state.velocity[0],
-				start_state.getVariableVelocities(),
-				sizeof(double) * num_joints);
+               start_state.getVariableVelocities(),
+               sizeof(double) * num_joints);
 	else
 		memset(&req.start_state.joint_state.velocity[0], 0,
-				sizeof(double) * num_joints);
+               sizeof(double) * num_joints);
 	if (start_state.hasAccelerations())
 		memcpy(&req.start_state.joint_state.effort[0],
-				start_state.getVariableAccelerations(),
-				sizeof(double) * num_joints);
+               start_state.getVariableAccelerations(),
+               sizeof(double) * num_joints);
 	else
 		memset(&req.start_state.joint_state.effort[0], 0,
-				sizeof(double) * num_joints);
+               sizeof(double) * num_joints);
 
 	req.group_name = group_name;
 	moveit_msgs::Constraints joint_goal =
-			kinematic_constraints::constructGoalConstraints(goal_state,
-					joint_model_group);
+        kinematic_constraints::constructGoalConstraints(goal_state,
+                joint_model_group);
 	req.goal_constraints.push_back(joint_goal);
 
 	// We now construct a planning context that encapsulate the scene,
 	// the request and the response. We call the planner using this
 	// planning context
 	planning_interface::PlanningContextPtr context =
-			planner_instance->getPlanningContext(planning_scene, req,
-					res.error_code_);
+        planner_instance->getPlanningContext(planning_scene, req,
+                res.error_code_);
 	context->solve(res);
 	if (res.error_code_.val != res.error_code_.SUCCESS)
 	{
@@ -301,28 +301,28 @@ void doPlan(const std::string& group_name,
 }
 
 void displayStates(robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state, ros::NodeHandle& node_handle,
-		robot_model::RobotModelPtr& robot_model)
+                   robot_state::RobotState& goal_state, ros::NodeHandle& node_handle,
+                   robot_model::RobotModelPtr& robot_model)
 {
 	static ros::Publisher start_state_display_publisher = node_handle.advertise<
 			moveit_msgs::DisplayRobotState>("/move_itomp/display_start_state",
-			1, true);
+                                            1, true);
 	static ros::Publisher goal_state_display_publisher = node_handle.advertise<
 			moveit_msgs::DisplayRobotState>("/move_itomp/display_goal_state", 1,
-			true);
+                                            true);
 
 	int num_variables = start_state.getVariableNames().size();
 
 	moveit_msgs::DisplayRobotState disp_start_state;
 	disp_start_state.state.joint_state.header.frame_id =
-			robot_model->getModelFrame();
+        robot_model->getModelFrame();
 	disp_start_state.state.joint_state.name = start_state.getVariableNames();
 	disp_start_state.state.joint_state.position.resize(num_variables);
 	memcpy(&disp_start_state.state.joint_state.position[0],
-			start_state.getVariablePositions(), sizeof(double) * num_variables);
+           start_state.getVariablePositions(), sizeof(double) * num_variables);
 	disp_start_state.highlight_links.clear();
 	const std::vector<std::string>& link_model_names =
-			robot_model->getLinkModelNames();
+        robot_model->getLinkModelNames();
 	for (int i = 0; i < link_model_names.size(); ++i)
 	{
 		std_msgs::ColorRGBA color;
@@ -339,11 +339,11 @@ void displayStates(robot_state::RobotState& start_state,
 
 	moveit_msgs::DisplayRobotState disp_goal_state;
 	disp_goal_state.state.joint_state.header.frame_id =
-			robot_model->getModelFrame();
+        robot_model->getModelFrame();
 	disp_goal_state.state.joint_state.name = goal_state.getVariableNames();
 	disp_goal_state.state.joint_state.position.resize(num_variables);
 	memcpy(&disp_goal_state.state.joint_state.position[0],
-			goal_state.getVariablePositions(), sizeof(double) * num_variables);
+           goal_state.getVariablePositions(), sizeof(double) * num_variables);
 	disp_goal_state.highlight_links.clear();
 	for (int i = 0; i < link_model_names.size(); ++i)
 	{
@@ -361,14 +361,14 @@ void displayStates(robot_state::RobotState& start_state,
 }
 
 void setWalkingStates(robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state, Eigen::Vector3d& start_trans,
-		Eigen::Vector3d& goal_trans, double start_rot = 0, double end_rot = 0)
+                      robot_state::RobotState& goal_state, Eigen::Vector3d& start_trans,
+                      Eigen::Vector3d& goal_trans, double start_rot = 0, double end_rot = 0)
 {
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup("whole_body");
+        start_state.getJointModelGroup("whole_body");
 
 	joint_model_group->getVariableDefaultPositions("standup", values);
 	start_state.setVariablePositions(values);
@@ -396,15 +396,15 @@ void setWalkingStates(robot_state::RobotState& start_state,
 }
 
 void setDoorOpeningStates(robot_state::RobotState& pre_state,
-		robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state,
-		robot_state::RobotState& post_state)
+                          robot_state::RobotState& start_state,
+                          robot_state::RobotState& goal_state,
+                          robot_state::RobotState& post_state)
 {
 	std::map<std::string, double> values;
 	double jointValue = 0.0;
 
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup("whole_body");
+        start_state.getJointModelGroup("whole_body");
 
 	// pre state
 	joint_model_group->getVariableDefaultPositions("standup", values);
@@ -423,7 +423,7 @@ void setDoorOpeningStates(robot_state::RobotState& pre_state,
 
 	const double INV_SQRT_2 = 1.0 / sqrt(2.0);
 	computeIKState(start_state, "right_arm", -0.5, -0.065, 1.6, INV_SQRT_2,
-			-INV_SQRT_2, 0, 0);
+                   -INV_SQRT_2, 0, 0);
 
 	// Now, setup a goal state
 	goal_state = start_state;
@@ -446,15 +446,15 @@ void setDoorOpeningStates(robot_state::RobotState& pre_state,
 }
 
 void setDrawerStates(robot_state::RobotState& pre_state,
-		robot_state::RobotState& start_state,
-		robot_state::RobotState& goal_state,
-		robot_state::RobotState& post_state)
+                     robot_state::RobotState& start_state,
+                     robot_state::RobotState& goal_state,
+                     robot_state::RobotState& post_state)
 {
 	double jointValue = 0.0;
 
 	// Set start_state
 	const robot_state::JointModelGroup* joint_model_group =
-			start_state.getJointModelGroup("whole_body");
+        start_state.getJointModelGroup("whole_body");
 	std::map<std::string, double> values;
 
 	joint_model_group->getVariableDefaultPositions("stand", values);
@@ -477,19 +477,19 @@ void setDrawerStates(robot_state::RobotState& pre_state,
 	start_state.updateLinkTransforms();
 	Eigen::Matrix3d mat;
 	Eigen::Affine3d transform = start_state.getFrameTransform(
-			"right_hand_endeffector_link");
+                                    "right_hand_endeffector_link");
 	{
 		Eigen::Affine3d transform = start_state.getFrameTransform(
-				"right_hand_endeffector_link");
+                                        "right_hand_endeffector_link");
 		Eigen::Quaternion<double> rot(0.33, 0, sqrt(1.0 - 0.33 * 0.33), 0);
 		mat = rot.toRotationMatrix();
 		transform.linear() = mat;
 		kinematics::KinematicsQueryOptions options;
 		options.return_approximate_solution = false;
 		const robot_state::JointModelGroup* joint_model_group =
-				start_state.getJointModelGroup("right_arm");
+            start_state.getJointModelGroup("right_arm");
 		bool found_ik = start_state.setFromIK(joint_model_group, transform, 10,
-				0.1, moveit::core::GroupStateValidityCallbackFn(), options);
+                                              0.1, moveit::core::GroupStateValidityCallbackFn(), options);
 		if (found_ik)
 		{
 			ROS_INFO("IK solution found");
@@ -511,15 +511,15 @@ void setDrawerStates(robot_state::RobotState& pre_state,
 	goal_state.updateLinkTransforms();
 	{
 		Eigen::Affine3d transform = goal_state.getFrameTransform(
-				"right_hand_endeffector_link");
+                                        "right_hand_endeffector_link");
 		transform.translation()(0) += 0.2;
 		transform.linear() = mat;
 		kinematics::KinematicsQueryOptions options;
 		options.return_approximate_solution = false;
 		const robot_state::JointModelGroup* joint_model_group =
-				goal_state.getJointModelGroup("right_arm");
+            goal_state.getJointModelGroup("right_arm");
 		bool found_ik = goal_state.setFromIK(joint_model_group, transform, 10,
-				0.1, moveit::core::GroupStateValidityCallbackFn(), options);
+                                             0.1, moveit::core::GroupStateValidityCallbackFn(), options);
 		if (found_ik)
 		{
 			ROS_INFO("IK solution found");
@@ -560,14 +560,14 @@ int main(int argc, char **argv)
 	//
 	// .. _RobotModelLoader: http://docs.ros.org/api/moveit_ros_planning/html/classrobot__model__loader_1_1RobotModelLoader.html
 	robot_model_loader::RobotModelLoader robot_model_loader(
-			"robot_description");
+        "robot_description");
 	robot_model::RobotModelPtr robot_model = robot_model_loader.getModel();
 
 	// Using the :moveit_core:`RobotModel`, we can construct a
 	// :planning_scene:`PlanningScene` that maintains the state of
 	// the world (including the robot).
 	planning_scene::PlanningScenePtr planning_scene(
-			new planning_scene::PlanningScene(robot_model));
+        new planning_scene::PlanningScene(robot_model));
 
 	// We will now construct a loader to load a planner, by name.
 	// Note that we are using the ROS pluginlib library here.
@@ -583,32 +583,34 @@ int main(int argc, char **argv)
 	try
 	{
 		planner_plugin_loader.reset(
-				new pluginlib::ClassLoader<planning_interface::PlannerManager>(
-						"moveit_core", "planning_interface::PlannerManager"));
-	} catch (pluginlib::PluginlibException& ex)
+            new pluginlib::ClassLoader<planning_interface::PlannerManager>(
+                "moveit_core", "planning_interface::PlannerManager"));
+    }
+    catch (pluginlib::PluginlibException& ex)
 	{
 		ROS_FATAL_STREAM(
-				"Exception while creating planning plugin loader " << ex.what());
+            "Exception while creating planning plugin loader " << ex.what());
 	}
 	try
 	{
 		planner_instance.reset(
-				planner_plugin_loader->createUnmanagedInstance(
-						planner_plugin_name));
+            planner_plugin_loader->createUnmanagedInstance(
+                planner_plugin_name));
 		if (!planner_instance->initialize(robot_model,
-				node_handle.getNamespace()))
+                                          node_handle.getNamespace()))
 			ROS_FATAL_STREAM("Could not initialize planner instance");
 		ROS_INFO_STREAM(
-				"Using planning interface '" << planner_instance->getDescription() << "'");
-	} catch (pluginlib::PluginlibException& ex)
+            "Using planning interface '" << planner_instance->getDescription() << "'");
+    }
+    catch (pluginlib::PluginlibException& ex)
 	{
 		const std::vector<std::string> &classes =
-				planner_plugin_loader->getDeclaredClasses();
+            planner_plugin_loader->getDeclaredClasses();
 		std::stringstream ss;
 		for (std::size_t i = 0; i < classes.size(); ++i)
 			ss << classes[i] << " ";
 		ROS_ERROR_STREAM(
-				"Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
+            "Exception while loading planner '" << planner_plugin_name << "': " << ex.what() << std::endl << "Available plugins: " << ss.str());
 	}
 
 	/* Sleep a little to allow time to startup rviz, etc. */
@@ -621,18 +623,18 @@ int main(int argc, char **argv)
 	color.g = 0.5;
 	color.b = 0.5;
 	renderEnvironment("package://move_itomp/meshes/merged_empty.dae",
-			robot_model, "environment", color);
+                      robot_model, "environment", color);
 	color.r = 1.0;
 	color.g = 1.0;
 	color.b = 1.0;
 	renderEnvironment("package://move_itomp/meshes/drawer2.dae", robot_model,
-			"drawer", color);
+                      "drawer", color);
 	renderEnvironment("package://move_itomp/meshes/drawer2_opened.dae",
-			robot_model, "drawer_opened", color);
+                      robot_model, "drawer_opened", color);
 	renderEnvironment("package://move_itomp/meshes/door.dae", robot_model,
-			"door", color);
+                      "door", color);
 	renderEnvironment("package://move_itomp/meshes/door_opened.dae",
-			robot_model, "door_opened", color);
+                      robot_model, "door_opened", color);
 
 	// We will now create a motion plan request
 	// specifying the desired pose of the end-effector as input.
@@ -653,13 +655,13 @@ int main(int argc, char **argv)
 		Eigen::Vector3d start_trans(-0.55, -2.7, -0.6);
 		Eigen::Vector3d goal_trans(-0.55, -0.5, 0);
 		setWalkingStates(robot_states[state_index],
-				robot_states[state_index + 1], start_trans, goal_trans);
+                         robot_states[state_index + 1], start_trans, goal_trans);
 		doPlan("lower_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 		renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);
 	}
-		break;
+    break;
 
 	case 1:
 		// move hand
@@ -671,14 +673,14 @@ int main(int argc, char **argv)
 
 		// opening a door states
 		setDoorOpeningStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                             robot_states[state_index + 1], robot_states[state_index + 2],
+                             robot_states[state_index + 3]);
 
 		doPlan("right_arm", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 2: // open door
 	{
@@ -689,14 +691,14 @@ int main(int argc, char **argv)
 
 		// opening a door states
 		setDoorOpeningStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                             robot_states[state_index + 1], robot_states[state_index + 2],
+                             robot_states[state_index + 3]);
 
 		++state_index;
 
 		doPlan("lower_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 		{
 			// hack
 			double x = 0.5; // - 0.05;
@@ -709,27 +711,27 @@ int main(int argc, char **argv)
 					-INV_SQRT_2, 0);
 			const Eigen::Quaternion<double> rot_end(0, 0, 1, 0);
 			double start_y =
-					res.trajectory_->getFirstWayPoint().getVariablePosition(1);
+                res.trajectory_->getFirstWayPoint().getVariablePosition(1);
 			double end_y =
-					res.trajectory_->getLastWayPoint().getVariablePosition(1);
+                res.trajectory_->getLastWayPoint().getVariablePosition(1);
 
 			const robot_state::JointModelGroup* joint_model_group2 =
-					res.trajectory_->getFirstWayPoint().getJointModelGroup(
-							"right_arm");
+                res.trajectory_->getFirstWayPoint().getJointModelGroup(
+                    "right_arm");
 			const std::vector<std::string> joint_model_names =
-					joint_model_group2->getJointModelNames();
+                joint_model_group2->getJointModelNames();
 
 			std::map<std::string, double> joint_val_map;
 			for (int i = 0; i < num_waypoints; ++i)
 			{
 				robot_state::RobotStatePtr state =
-						res.trajectory_->getWayPointPtr(i);
+                    res.trajectory_->getWayPointPtr(i);
 				double cy = state->getVariablePosition(1);
 				//double t = (double)i / (num_waypoints - 1);
 				double t = (cy - start_y) / (end_y - start_y);
 				//ROS_INFO("T : %f", t);
 				double theta_interp = theta_start
-						+ t * (theta_end - theta_start);
+                                      + t * (theta_end - theta_start);
 
 				double x = cos(theta_interp) * radius;
 				double y = sin(theta_interp) * radius;
@@ -742,7 +744,7 @@ int main(int argc, char **argv)
 				}
 
 				computeIKState(*state, "right_arm", x, y, 1.6, q.x(), q.y(),
-						q.z(), q.w());
+                               q.z(), q.w());
 
 				for (int j = 0; j < joint_model_names.size(); ++j)
 				{
@@ -753,7 +755,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-		break;
+    break;
 
 	case 3: // move hand
 	{
@@ -764,16 +766,16 @@ int main(int argc, char **argv)
 
 		// opening a door states
 		setDoorOpeningStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                             robot_states[state_index + 1], robot_states[state_index + 2],
+                             robot_states[state_index + 3]);
 
 		state_index += 2;
 
 		doPlan("right_arm", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 4: //walking
 	{
@@ -782,12 +784,12 @@ int main(int argc, char **argv)
 		Eigen::Vector3d start_trans(-0.55, 0.5, 0);
 		Eigen::Vector3d goal_trans(-0.55, 3.5, 0);
 		setWalkingStates(robot_states[state_index],
-				robot_states[state_index + 1], start_trans, goal_trans, 0, 0);
+                         robot_states[state_index + 1], start_trans, goal_trans, 0, 0);
 		doPlan("lower_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 5: // walking
 	{
@@ -796,14 +798,14 @@ int main(int argc, char **argv)
 		Eigen::Vector3d start_trans(-0.55, 3.5, 0);
 		Eigen::Vector3d goal_trans(-2.71, 5.3 - 0.23, 0);
 		setWalkingStates(robot_states[state_index],
-				robot_states[state_index + 1], start_trans, goal_trans, 0,
-				M_PI * 0.5);
+                         robot_states[state_index + 1], start_trans, goal_trans, 0,
+                         M_PI * 0.5);
 
 		doPlan("decomposed_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 6: // move hand
 	{
@@ -812,14 +814,14 @@ int main(int argc, char **argv)
 		robot_states.push_back(robot_states.back());
 		robot_states.push_back(robot_states.back());
 		setDrawerStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                        robot_states[state_index + 1], robot_states[state_index + 2],
+                        robot_states[state_index + 3]);
 
 		doPlan("decomposed_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 7: // pull drawer
 	{
@@ -828,16 +830,16 @@ int main(int argc, char **argv)
 		robot_states.push_back(robot_states.back());
 		robot_states.push_back(robot_states.back());
 		setDrawerStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                        robot_states[state_index + 1], robot_states[state_index + 2],
+                        robot_states[state_index + 3]);
 
 		++state_index;
 
 		doPlan("right_arm", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 
 	case 8: // move hand
 	{
@@ -846,20 +848,20 @@ int main(int argc, char **argv)
 		robot_states.push_back(robot_states.back());
 		robot_states.push_back(robot_states.back());
 		setDrawerStates(robot_states[state_index],
-				robot_states[state_index + 1], robot_states[state_index + 2],
-				robot_states[state_index + 3]);
+                        robot_states[state_index + 1], robot_states[state_index + 2],
+                        robot_states[state_index + 3]);
 
 		state_index += 2;
 
 		doPlan("decomposed_body", req, res, robot_states[state_index],
-				robot_states[state_index + 1], planning_scene,
-				planner_instance);
+               robot_states[state_index + 1], planning_scene,
+               planner_instance);
 	}
-		break;
+    break;
 	}
 
 	displayStates(robot_states[state_index], robot_states[state_index + 1],
-			node_handle, robot_model);
+                  node_handle, robot_model);
 
 	//visualizeResult(res, node_handle, 0, 1.0);
 	renderHierarchicalTrajectory(res.trajectory_, node_handle, robot_model);

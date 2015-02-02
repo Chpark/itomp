@@ -6,10 +6,10 @@ namespace itomp_cio_planner
 {
 
 ParameterTrajectory::ParameterTrajectory(
-		const FullTrajectoryConstPtr& full_trajectory,
-		const ItompPlanningGroupConstPtr& planning_group) :
-		Trajectory(full_trajectory->discretization_,
-				full_trajectory->has_velocity_, false)
+	const FullTrajectoryConstPtr& full_trajectory,
+	const ItompPlanningGroupConstPtr& planning_group) :
+	Trajectory(full_trajectory->discretization_,
+			   full_trajectory->has_velocity_, false)
 {
 	duration_ = full_trajectory->duration_;
 	num_points_ = full_trajectory->num_keyframes_;
@@ -18,12 +18,12 @@ ParameterTrajectory::ParameterTrajectory(
 	int i = 0;
 	for (; i < num_elements_; ++i)
 		group_to_full_joint_indices[i] =
-				planning_group->group_joints_[i].rbdl_joint_index_;
+			planning_group->group_joints_[i].rbdl_joint_index_;
 
 	num_elements_ += full_trajectory->getComponentSize(
-			FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION)
-			+ full_trajectory->getComponentSize(
-					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE);
+						 FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION)
+					 + full_trajectory->getComponentSize(
+						 FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE);
 }
 
 ParameterTrajectory::~ParameterTrajectory()

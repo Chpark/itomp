@@ -43,12 +43,12 @@ ITOMP_DEFINE_SHARED_POINTERS(CollisionWorldFCLDerivatives);
 
 inline void CollisionWorldFCLDerivatives::checkRobotCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const collision_detection::CollisionRobot &robot, const robot_state::RobotState &state1, const robot_state::RobotState &state2) const
 {
-  logError("FCL continuous collision checking not yet implemented");
+	logError("FCL continuous collision checking not yet implemented");
 }
 
 inline void CollisionWorldFCLDerivatives::checkRobotCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const collision_detection::CollisionRobot &robot, const robot_state::RobotState &state1, const robot_state::RobotState &state2, const collision_detection::AllowedCollisionMatrix &acm) const
 {
-  logError("FCL continuous collision checking not yet implemented");
+	logError("FCL continuous collision checking not yet implemented");
 }
 
 inline void CollisionWorldFCLDerivatives::checkWorldCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const collision_detection::CollisionWorld &other_world) const

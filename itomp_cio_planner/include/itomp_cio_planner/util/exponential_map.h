@@ -9,11 +9,11 @@ namespace exponential_map
 {
 Eigen::Vector3d RotationToExponentialMap(const Eigen::Matrix3d& matrix);
 Eigen::Matrix3d ExponentialMapToRotation(
-		const Eigen::Vector3d& exponential_rotation);
+	const Eigen::Vector3d& exponential_rotation);
 
 Eigen::Vector3d QuaternionToExponentialMap(const Eigen::Quaterniond& quaternion);
 Eigen::Quaterniond ExponentialMapToQuaternion(
-		const Eigen::Vector3d& exponential_rotation);
+	const Eigen::Vector3d& exponential_rotation);
 }
 }
 

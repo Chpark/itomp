@@ -21,10 +21,10 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 {
 	ros::NodeHandle node_handle;
 	vis_marker_array_publisher_ = node_handle.advertise<
-			visualization_msgs::MarkerArray>(
-			"itomp_planner/visualization_marker_array", 10);
+								  visualization_msgs::MarkerArray>(
+									  "itomp_planner/visualization_marker_array", 10);
 	vis_marker_publisher_ = node_handle.advertise<visualization_msgs::Marker>(
-			"itomp_planner/visualization_marker", 10);
+								"itomp_planner/visualization_marker", 10);
 
 	robot_model_ = robot_model;
 	reference_frame_ = robot_model->getReferenceFrame();
@@ -40,14 +40,14 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 }
 
 void NewVizManager::setPlanningGroup(
-		const ItompPlanningGroupConstPtr& planning_group)
+	const ItompPlanningGroupConstPtr& planning_group)
 {
 	planning_group_ = planning_group;
 
 	const multimap<string, string>& endeffector_names =
-			PlanningParameters::getInstance()->getGroupEndeffectorNames();
+		PlanningParameters::getInstance()->getGroupEndeffectorNames();
 	std::pair<multimap<string, string>::const_iterator,
-			multimap<string, string>::const_iterator> ret =
+		multimap<string, string>::const_iterator> ret =
 			endeffector_names.equal_range(planning_group_->name_);
 	endeffector_rbdl_indices_.clear();
 	for (multimap<string, string>::const_iterator it = ret.first;
@@ -55,8 +55,8 @@ void NewVizManager::setPlanningGroup(
 	{
 		string endeffector_name = it->second;
 		unsigned int rbdl_link_index =
-				robot_model_->getRBDLRobotModel().GetBodyId(
-						endeffector_name.c_str());
+			robot_model_->getRBDLRobotModel().GetBodyId(
+				endeffector_name.c_str());
 		endeffector_rbdl_indices_.push_back(rbdl_link_index);
 	}
 }
@@ -70,14 +70,14 @@ void NewVizManager::renderOneTime()
 void NewVizManager::renderEnvironment()
 {
 	string environment_file =
-			PlanningParameters::getInstance()->getEnvironmentModel();
+		PlanningParameters::getInstance()->getEnvironmentModel();
 	if (environment_file.empty())
 		return;
 
 	vector<double> environment_position =
-			PlanningParameters::getInstance()->getEnvironmentModelPosition();
+		PlanningParameters::getInstance()->getEnvironmentModelPosition();
 	double scale =
-			PlanningParameters::getInstance()->getEnvironmentModelScale();
+		PlanningParameters::getInstance()->getEnvironmentModelScale();
 	environment_position.resize(3, 0);
 
 	visualization_msgs::MarkerArray ma;
@@ -118,8 +118,8 @@ void NewVizManager::renderGround()
 }
 
 void NewVizManager::animateEndeffectors(
-		const FullTrajectoryConstPtr& full_trajectory,
-		const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
+	const FullTrajectoryConstPtr& full_trajectory,
+	const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
 {
 	const double scale_keyframe = 0.03;
 	const double scale_line = 0.005;
@@ -186,7 +186,7 @@ void NewVizManager::animateEndeffectors(
 }
 
 void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
-		const robot_state::RobotStatePtr& robot_state, bool is_best)
+								const robot_state::RobotStatePtr& robot_state, bool is_best)
 {
 	if (!is_best)
 		return;
@@ -195,7 +195,7 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 
 	visualization_msgs::MarkerArray ma;
 	std::vector<std::string> link_names =
-			robot_model_->getMoveitRobotModel()->getLinkModelNames();
+		robot_model_->getMoveitRobotModel()->getLinkModelNames();
 	std_msgs::ColorRGBA color = colors_[WHITE];
 	color.a = 0.1;
 	ros::Duration dur(3600.0);
@@ -206,7 +206,7 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 	{
 		ma.markers.clear();
 		const Eigen::MatrixXd mat = full_trajectory->getTrajectory(
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 		robot_state->setVariablePositions(mat.data());
 		std::string ns = "kf_" + boost::lexical_cast<std::string>(point);
 		robot_state->getRobotMarkers(ma, link_names, color, ns, dur);
@@ -215,9 +215,9 @@ void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
 }
 
 void NewVizManager::animateContactForces(
-		const FullTrajectoryConstPtr& full_trajectory,
-		const std::vector<std::vector<ContactVariables> >& contact_variables,
-		bool is_best, bool keyframe_only)
+	const FullTrajectoryConstPtr& full_trajectory,
+	const std::vector<std::vector<ContactVariables> >& contact_variables,
+	bool is_best, bool keyframe_only)
 {
 	const double scale_line = 0.005;
 	const double scale_keyframe = 0.03;
@@ -280,10 +280,10 @@ void NewVizManager::animateContactForces(
 			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 			{
 				Eigen::Vector3d point_position =
-						contact_variables[point][i].projected_point_positions_[c];
+					contact_variables[point][i].projected_point_positions_[c];
 
 				Eigen::Vector3d contact_force =
-						contact_variables[point][i].getPointForce(c);
+					contact_variables[point][i].getPointForce(c);
 				contact_force *= contact_v;
 
 				point_from.x = point_position(0);

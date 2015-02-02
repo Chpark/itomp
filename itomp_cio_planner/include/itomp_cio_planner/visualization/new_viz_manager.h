@@ -27,12 +27,12 @@ public:
 	void renderOneTime();
 
 	void animateEndeffectors(const FullTrajectoryConstPtr& full_trajectory,
-			const std::vector<RigidBodyDynamics::Model>& models, bool is_best);
+							 const std::vector<RigidBodyDynamics::Model>& models, bool is_best);
 	void animatePath(const FullTrajectoryConstPtr& full_trajectory,
-			const robot_state::RobotStatePtr& robot_state, bool is_best);
+					 const robot_state::RobotStatePtr& robot_state, bool is_best);
 	void animateContactForces(const FullTrajectoryConstPtr& full_trajectory,
-			const std::vector<std::vector<ContactVariables> >& contact_variables,
-			bool is_best, bool keyframe_only = false);
+							  const std::vector<std::vector<ContactVariables> >& contact_variables,
+							  bool is_best, bool keyframe_only = false);
 
 	ros::Publisher& getVisualizationMarkerPublisher();
 	ros::Publisher& getVisualizationMarkerArrayPublisher();

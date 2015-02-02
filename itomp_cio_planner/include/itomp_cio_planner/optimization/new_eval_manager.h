@@ -23,11 +23,11 @@ public:
 	virtual ~NewEvalManager();
 
 	void initialize(const FullTrajectoryPtr& full_trajectory,
-			const ItompRobotModelConstPtr& robot_model,
-			const planning_scene::PlanningSceneConstPtr& planning_scene,
-			const ItompPlanningGroupConstPtr& planning_group,
-			double planning_start_time, double trajectory_start_time,
-			const moveit_msgs::Constraints& path_constraints);
+					const ItompRobotModelConstPtr& robot_model,
+					const planning_scene::PlanningSceneConstPtr& planning_scene,
+					const ItompPlanningGroupConstPtr& planning_group,
+					double planning_start_time, double trajectory_start_time,
+					const moveit_msgs::Constraints& path_constraints);
 
 	const FullTrajectoryConstPtr& getFullTrajectory() const;
 	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
@@ -37,10 +37,10 @@ public:
 
 	double evaluate();
 	void evaluateParameterPoint(double value, int type, int point, int element,
-			int& full_point_begin, int& full_point_end, bool first);
+								int& full_point_begin, int& full_point_end, bool first);
 
 	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
-			int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
+							int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;
@@ -69,7 +69,7 @@ private:
 	void setParameterModified();
 
 	bool evaluatePointRange(int point_begin, int point_end,
-			Eigen::MatrixXd& cost_matrix, int type = -1, int element = -1);
+							Eigen::MatrixXd& cost_matrix, int type = -1, int element = -1);
 
 	bool isDerivative() const;
 

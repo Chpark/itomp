@@ -8,10 +8,10 @@ namespace itomp_cio_planner
 {
 
 Trajectory::Trajectory(double discretization, bool has_velocity,
-		bool has_acceleration) :
-		discretization_(discretization), has_velocity_(has_velocity), has_acceleration_(
-				has_acceleration), duration_(0.0), num_points_(0), num_elements_(
-				0)
+					   bool has_acceleration) :
+	discretization_(discretization), has_velocity_(has_velocity), has_acceleration_(
+		has_acceleration), duration_(0.0), num_points_(0), num_elements_(
+			0)
 {
 
 }
@@ -26,13 +26,13 @@ void Trajectory::allocate()
 	ROS_ASSERT(num_points_ != 0 && num_elements_ != 0);
 
 	trajectory_[TRAJECTORY_TYPE_POSITION] = Eigen::MatrixXd(num_points_,
-			num_elements_);
+											num_elements_);
 	trajectory_[TRAJECTORY_TYPE_POSITION].setZero(num_points_, num_elements_);
 
 	if (has_velocity_)
 	{
 		trajectory_[TRAJECTORY_TYPE_VELOCITY] = Eigen::MatrixXd(num_points_,
-				num_elements_);
+												num_elements_);
 		trajectory_[TRAJECTORY_TYPE_VELOCITY].setZero(num_points_,
 				num_elements_);
 	}
@@ -47,7 +47,7 @@ void Trajectory::allocate()
 }
 
 void Trajectory::printTrajectory(bool position, bool velocity,
-		bool acceleration) const
+								 bool acceleration) const
 {
 	if (position)
 	{

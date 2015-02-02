@@ -12,13 +12,13 @@ Eigen::Vector3d RotationToExponentialMap(const Eigen::Matrix3d& matrix)
 }
 
 Eigen::Matrix3d ExponentialMapToRotation(
-		const Eigen::Vector3d& exponential_rotation)
+	const Eigen::Vector3d& exponential_rotation)
 {
 	return ExponentialMapToQuaternion(exponential_rotation).toRotationMatrix();
 }
 
 Eigen::Vector3d QuaternionToExponentialMap(
-		const Eigen::Quaterniond& quaternion)
+	const Eigen::Quaterniond& quaternion)
 {
 	Eigen::Vector3d vec = quaternion.vec();
 	if (vec.norm() < 1e-7)
@@ -30,7 +30,7 @@ Eigen::Vector3d QuaternionToExponentialMap(
 }
 
 Eigen::Quaterniond ExponentialMapToQuaternion(
-		const Eigen::Vector3d& exponential_rotation)
+	const Eigen::Vector3d& exponential_rotation)
 {
 	double angle = 0.5 * exponential_rotation.norm();
 	Eigen::Quaterniond quaternion;

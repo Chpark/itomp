@@ -22,7 +22,7 @@ GroundManager::~GroundManager()
 }
 
 void GroundManager::initialize(
-		const planning_scene::PlanningSceneConstPtr& planning_scene)
+	const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	planning_scene_ = planning_scene;
 	initializeStaticScene();
@@ -39,7 +39,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	normal = Eigen::Vector3d(0, 0, 1);
 
 	Eigen::Matrix3d orientation_in_mat =
-			exponential_map::ExponentialMapToRotation(orientation_in);
+		exponential_map::ExponentialMapToRotation(orientation_in);
 	Eigen::Vector3d x_axis = orientation_in_mat.col(0);
 	Eigen::Vector3d y_axis = orientation_in_mat.col(1);
 	Eigen::Vector3d normal_in = orientation_in_mat.col(2);
@@ -65,7 +65,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	orientation_out_mat.col(1) = proj_y_axis;
 	orientation_out_mat.col(2) = normal;
 	orientation_out = exponential_map::RotationToExponentialMap(
-			orientation_out_mat);
+						  orientation_out_mat);
 }
 
 bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
@@ -82,7 +82,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 			continue;
 
 		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
-				triangle.points_[2], position_in);
+									 triangle.points_[2], position_in);
 		double distance = (position_in - projection).norm();
 		if (distance < current_min_distance)
 		{
@@ -102,17 +102,17 @@ void GroundManager::initializeStaticScene()
 	triangles_.clear();
 
 	const collision_detection::WorldConstPtr& world =
-			planning_scene_->getWorld();
+		planning_scene_->getWorld();
 	std::vector<std::string> object_ids = world->getObjectIds();
 	for (int i = 0; i < object_ids.size(); ++i)
 	{
 		collision_detection::World::ObjectConstPtr obj = world->getObject(
-				object_ids[i]);
+					object_ids[i]);
 		for (int j = 0; j < obj->shapes_.size(); ++j)
 		{
 			shapes::ShapeConstPtr shape = obj->shapes_[j];
 			const shapes::Mesh* mesh =
-					dynamic_cast<const shapes::Mesh*>(shape.get());
+				dynamic_cast<const shapes::Mesh*>(shape.get());
 			if (mesh == NULL)
 				continue;
 
@@ -123,14 +123,14 @@ void GroundManager::initializeStaticScene()
 				int triangle_vertex2 = mesh->triangles[3 * k + 1];
 				int triangle_vertex3 = mesh->triangles[3 * k + 2];
 				Eigen::Vector3d position1(mesh->vertices[3 * triangle_vertex1],
-						mesh->vertices[3 * triangle_vertex1 + 1],
-						mesh->vertices[3 * triangle_vertex1 + 2]);
+										  mesh->vertices[3 * triangle_vertex1 + 1],
+										  mesh->vertices[3 * triangle_vertex1 + 2]);
 				Eigen::Vector3d position2(mesh->vertices[3 * triangle_vertex2],
-						mesh->vertices[3 * triangle_vertex2 + 1],
-						mesh->vertices[3 * triangle_vertex2 + 2]);
+										  mesh->vertices[3 * triangle_vertex2 + 1],
+										  mesh->vertices[3 * triangle_vertex2 + 2]);
 				Eigen::Vector3d position3(mesh->vertices[3 * triangle_vertex3],
-						mesh->vertices[3 * triangle_vertex3 + 1],
-						mesh->vertices[3 * triangle_vertex3 + 2]);
+										  mesh->vertices[3 * triangle_vertex3 + 1],
+										  mesh->vertices[3 * triangle_vertex3 + 2]);
 				position1 = transform * position1;
 				position2 = transform * position2;
 				position3 = transform * position3;

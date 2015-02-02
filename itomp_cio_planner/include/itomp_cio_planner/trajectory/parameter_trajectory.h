@@ -13,7 +13,7 @@ class ParameterTrajectory: public Trajectory
 public:
 	// Construct a trajectory for a planning group
 	ParameterTrajectory(const FullTrajectoryConstPtr& full_trajectory,
-			const ItompPlanningGroupConstPtr& planning_group);
+						const ItompPlanningGroupConstPtr& planning_group);
 	virtual ~ParameterTrajectory();
 
 	int getNumJoints() const;

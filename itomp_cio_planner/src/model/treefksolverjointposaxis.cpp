@@ -49,11 +49,11 @@ TreeFkSolverJointPosAxis::TreeFkSolverJointPosAxis(const Tree& tree,
 	segment_names_.clear();
 	assignSegmentNumber(tree_.getRootSegment());
 	std::map<std::string, int>::iterator reference_frame_it =
-			segment_name_to_index_.find(reference_frame);
+		segment_name_to_index_.find(reference_frame);
 	if (reference_frame_it == segment_name_to_index_.end())
 	{
 		cout << "TreeFkSolverJointPosAxis: Reference frame " << reference_frame
-				<< " could not be found! Forward kinematics will be performed in world frame.";
+			 << " could not be found! Forward kinematics will be performed in world frame.";
 	}
 	else
 	{
@@ -68,8 +68,8 @@ TreeFkSolverJointPosAxis::~TreeFkSolverJointPosAxis()
 }
 
 int TreeFkSolverJointPosAxis::JntToCart(const JntArray& q_in, std::vector<
-		Vector>& joint_pos, std::vector<Vector>& joint_axis,
-		std::vector<Frame>& segment_frames) const
+										Vector>& joint_pos, std::vector<Vector>& joint_axis,
+										std::vector<Frame>& segment_frames) const
 {
 	joint_pos.resize(num_joints_);
 	joint_axis.resize(num_joints_);
@@ -77,7 +77,7 @@ int TreeFkSolverJointPosAxis::JntToCart(const JntArray& q_in, std::vector<
 
 	// start the recursion
 	treeRecursiveFK(q_in, joint_pos, joint_axis, segment_frames,
-			Frame::Identity(), tree_.getRootSegment(), 0);
+					Frame::Identity(), tree_.getRootSegment(), 0);
 
 	// get the inverse reference frame:
 	Frame inv_ref_frame = segment_frames[reference_frame_index_].Inverse();
@@ -112,9 +112,9 @@ int TreeFkSolverJointPosAxis::treeRecursiveFK(const JntArray& q_in,
 		int q_nr = this_segment->second.q_nr;
 		jnt_p = q_in(q_nr);
 		joint_pos[q_nr] = this_frame
-				* this_segment->second.segment.getJoint().JointOrigin();
+						  * this_segment->second.segment.getJoint().JointOrigin();
 		joint_axis[q_nr] = this_frame.M
-				* this_segment->second.segment.getJoint().JointAxis();
+						   * this_segment->second.segment.getJoint().JointAxis();
 	}
 
 	// do the FK:
@@ -124,15 +124,15 @@ int TreeFkSolverJointPosAxis::treeRecursiveFK(const JntArray& q_in,
 
 	// get poses of child segments
 	for (vector<SegmentMap::const_iterator>::const_iterator child =
-			this_segment->second.children.begin(); child
+				this_segment->second.children.begin(); child
 			!= this_segment->second.children.end(); child++)
 		segment_nr = treeRecursiveFK(q_in, joint_pos, joint_axis,
-				segment_frames, this_frame, *child, segment_nr);
+									 segment_frames, this_frame, *child, segment_nr);
 	return segment_nr;
 }
 
 void TreeFkSolverJointPosAxis::assignSegmentNumber(
-		const SegmentMap::const_iterator this_segment)
+	const SegmentMap::const_iterator this_segment)
 {
 	int num = segment_names_.size();
 	segment_names_.push_back(this_segment->first);
@@ -140,7 +140,7 @@ void TreeFkSolverJointPosAxis::assignSegmentNumber(
 
 	// add the child segments recursively
 	for (vector<SegmentMap::const_iterator>::const_iterator child =
-			this_segment->second.children.begin(); child
+				this_segment->second.children.begin(); child
 			!= this_segment->second.children.end(); child++)
 	{
 		assignSegmentNumber(*child);

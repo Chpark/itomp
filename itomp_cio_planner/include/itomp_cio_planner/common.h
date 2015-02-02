@@ -30,7 +30,7 @@
 
 inline int safeDoubleToInt(double a)
 {
-  return (int) (a + 1E-7);
+	return (int) (a + 1E-7);
 }
 
 const int NUM_ENDEFFECTOR_CONTACT_POINTS = 4;

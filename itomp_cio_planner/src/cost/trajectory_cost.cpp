@@ -10,7 +10,7 @@ namespace itomp_cio_planner
 {
 
 TrajectoryCost::TrajectoryCost(int index, std::string name, double weight) :
-		index_(index), name_(name), weight_(weight)
+	index_(index), name_(name), weight_(weight)
 {
 
 }
@@ -22,23 +22,23 @@ TrajectoryCost::~TrajectoryCost()
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Smoothness)
 bool TrajectoryCostSmoothness::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(Smoothness);
 
 	const FullTrajectoryConstPtr trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 	ROS_ASSERT(trajectory->hasAcceleration());
 
 	cost = 0;
 	double value;
 
 	const Eigen::MatrixXd mat_acc = trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-			Trajectory::TRAJECTORY_TYPE_ACCELERATION);
+										FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+										Trajectory::TRAJECTORY_TYPE_ACCELERATION);
 	const Eigen::MatrixXd mat_vel = trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-			Trajectory::TRAJECTORY_TYPE_VELOCITY);
+										FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
+										Trajectory::TRAJECTORY_TYPE_VELOCITY);
 	for (int i = 0; i < mat_vel.cols(); ++i)
 	{
 		value = mat_acc(point, i);
@@ -46,8 +46,8 @@ bool TrajectoryCostSmoothness::evaluate(
 	}
 
 	// normalize cost (independent to # of joints)
-	 cost /= trajectory->getComponentSize(
-			 FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+	cost /= trajectory->getComponentSize(
+				FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 
 
 	/*
@@ -69,13 +69,13 @@ bool TrajectoryCostSmoothness::evaluate(
 }
 
 void TrajectoryCostObstacle::initialize(
-		const NewEvalManager* evaluation_manager)
+	const NewEvalManager* evaluation_manager)
 {
 	// create collision manager for env
 }
 
 void TrajectoryCostObstacle::preEvaluate(
-		const NewEvalManager* evaluation_manager)
+	const NewEvalManager* evaluation_manager)
 {
 	return;
 
@@ -86,73 +86,73 @@ void TrajectoryCostObstacle::preEvaluate(
 		collision_robot_derivatives.resize(num_points);
 
 	const FullTrajectoryConstPtr trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 	const planning_scene::PlanningSceneConstPtr planning_scene =
-			evaluation_manager->getPlanningScene();
+		evaluation_manager->getPlanningScene();
 	const collision_detection::WorldPtr world(
-			new collision_detection::World(*planning_scene->getWorld().get()));
+		new collision_detection::World(*planning_scene->getWorld().get()));
 
 	for (int point = 0; point < num_points; ++point)
 	{
 		collision_world_derivatives[point].reset(
-				new CollisionWorldFCLDerivatives(
-						dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene->getCollisionWorld().get()),
-						world));
+			new CollisionWorldFCLDerivatives(
+				dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene->getCollisionWorld().get()),
+				world));
 		collision_robot_derivatives[point].reset(
-				new CollisionRobotFCLDerivatives(
-						dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene->getCollisionRobotUnpadded().get())));
+			new CollisionRobotFCLDerivatives(
+				dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene->getCollisionRobotUnpadded().get())));
 
 		robot_state::RobotStatePtr robot_state =
-				evaluation_manager->getRobotState(point);
+			evaluation_manager->getRobotState(point);
 		const Eigen::MatrixXd mat = trajectory->getTrajectory(
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 		robot_state->setVariablePositions(mat.data());
 
 		robot_state->updateCollisionBodyTransforms();
 		collision_robot_derivatives[point]->constructInternalFCLObject(
-				const_cast<const robot_state::RobotState&>(*robot_state));
+			const_cast<const robot_state::RobotState&>(*robot_state));
 	}
 }
 void TrajectoryCostObstacle::postEvaluate(
-		const NewEvalManager* evaluation_manager)
+	const NewEvalManager* evaluation_manager)
 {
 
 }
 
 bool TrajectoryCostObstacle::isInvariant(
-		const NewEvalManager* evaluation_manager, int type, int element) const
+	const NewEvalManager* evaluation_manager, int type, int element) const
 {
 	if (type == -1 && element == -1)
 		return false;
 
 	return type != 0
-			|| element
-					>= evaluation_manager->getParameterTrajectory()->getNumJoints();
+		   || element
+		   >= evaluation_manager->getParameterTrajectory()->getNumJoints();
 }
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+									  int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;
 
 	double costs[2];
-#pragma omp critical
+	#pragma omp critical
 	for (int i = 0; i < 1; ++i)
 	{
 
 		cost = 0;
 
 		const FullTrajectoryConstPtr trajectory =
-				evaluation_manager->getFullTrajectory();
+			evaluation_manager->getFullTrajectory();
 		robot_state::RobotStatePtr robot_state =
-				evaluation_manager->getRobotState(point);
+			evaluation_manager->getRobotState(point);
 		const planning_scene::PlanningSceneConstPtr planning_scene =
-				evaluation_manager->getPlanningScene();
+			evaluation_manager->getPlanningScene();
 
 		ROS_ASSERT(
-				robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+			robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
 
 		collision_detection::CollisionRequest collision_request;
 		collision_detection::CollisionResult collision_result;
@@ -162,7 +162,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		collision_request.distance = false;
 
 		const Eigen::MatrixXd mat = trajectory->getTrajectory(
-				Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 		robot_state->setVariablePositions(mat.data());
 
 		const double self_collision_scale = 0.1;
@@ -171,30 +171,30 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		{
 			//#pragma omp critical
 			planning_scene->checkCollisionUnpadded(collision_request,
-					collision_result, *robot_state);
+												   collision_result, *robot_state);
 
 			int thread_index = omp_get_thread_num();
 
 			const collision_detection::CollisionResult::ContactMap& contact_map =
-					collision_result.contacts;
+				collision_result.contacts;
 			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-					contact_map.begin(); it != contact_map.end(); ++it)
+						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
 
 				if (contact.body_type_1
 						!= collision_detection::BodyTypes::WORLD_OBJECT
 						&& contact.body_type_2
-								!= collision_detection::BodyTypes::WORLD_OBJECT)
+						!= collision_detection::BodyTypes::WORLD_OBJECT)
 				{
 					cost += self_collision_scale * contact.depth;
 
 					if (evaluation_manager->debug_)
 						printf("%d [%d] s-collision : %s %s : %f\n",
-								thread_index, point,
-								contact.body_name_1.c_str(),
-								contact.body_name_2.c_str(),
-								self_collision_scale * contact.depth);
+							   thread_index, point,
+							   contact.body_name_1.c_str(),
+							   contact.body_name_2.c_str(),
+							   self_collision_scale * contact.depth);
 				}
 				else
 				{
@@ -202,9 +202,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 					if (evaluation_manager->debug_)
 						printf("%d [%d]   collision : %s %s : %f\n",
-								thread_index, point,
-								contact.body_name_1.c_str(),
-								contact.body_name_2.c_str(), contact.depth);
+							   thread_index, point,
+							   contact.body_name_1.c_str(),
+							   contact.body_name_2.c_str(), contact.depth);
 				}
 			}
 
@@ -215,19 +215,19 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 			robot_state->updateCollisionBodyTransforms();
 
 			collision_robot_derivatives[point]->constructInternalFCLObject(
-					const_cast<const robot_state::RobotState&>(*robot_state));
+				const_cast<const robot_state::RobotState&>(*robot_state));
 
-#pragma omp critical
+			#pragma omp critical
 			collision_world_derivatives[point]->checkRobotCollision(
-					collision_request, collision_result,
-					*collision_robot_derivatives[point],
-					const_cast<const robot_state::RobotState&>(*robot_state),
-					planning_scene->getAllowedCollisionMatrix());
+				collision_request, collision_result,
+				*collision_robot_derivatives[point],
+				const_cast<const robot_state::RobotState&>(*robot_state),
+				planning_scene->getAllowedCollisionMatrix());
 
 			const collision_detection::CollisionResult::ContactMap& contact_map =
-					collision_result.contacts;
+				collision_result.contacts;
 			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-					contact_map.begin(); it != contact_map.end(); ++it)
+						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
 				cost += contact.depth;
@@ -235,11 +235,11 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 			collision_result.clear();
 
-#pragma omp critical
+			#pragma omp critical
 			collision_robot_derivatives[point]->checkSelfCollision(
-					collision_request, collision_result,
-					const_cast<const robot_state::RobotState&>(*robot_state),
-					planning_scene->getAllowedCollisionMatrix());
+				collision_request, collision_result,
+				const_cast<const robot_state::RobotState&>(*robot_state),
+				planning_scene->getAllowedCollisionMatrix());
 			/*
 			 collision_robot.checkSelfCollision(collision_request,
 			 collision_result,
@@ -248,7 +248,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 			 */
 
 			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-					contact_map.begin(); it != contact_map.end(); ++it)
+						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
 				cost += self_collision_scale * contact.depth;
@@ -279,7 +279,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Validity)
 bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+									  int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -291,7 +291,7 @@ bool TrajectoryCostValidity::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(ContactInvariant);
 
@@ -299,9 +299,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 	cost = 0;
 
 	const FullTrajectoryConstPtr full_trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 	const ItompPlanningGroupConstPtr& planning_group =
-			evaluation_manager->getPlanningGroup();
+		evaluation_manager->getPlanningGroup();
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
 			point);
 
@@ -309,13 +309,13 @@ bool TrajectoryCostContactInvariant::evaluate(
 	double negative_cost = 1.0;
 
 	const std::vector<ContactVariables>& contact_variables =
-			evaluation_manager->contact_variables_[point];
+		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
-				model.X_base[rbdl_body_id];
+			model.X_base[rbdl_body_id];
 
 		double raw_contact_variable = contact_variables[i].getRawVariable();
 		if (raw_contact_variable > 0.0)
@@ -326,19 +326,19 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 		Eigen::Vector3d body_position = contact_body_transform.r;
 		Eigen::Vector3d body_orientation =
-				exponential_map::RotationToExponentialMap(
-						contact_body_transform.E);
+			exponential_map::RotationToExponentialMap(
+				contact_body_transform.E);
 
 		Eigen::Vector3d position_diff = body_position
-				- contact_variables[i].projected_position_;
+										- contact_variables[i].projected_position_;
 		Eigen::Vector3d orientation_diff = body_orientation
-				- contact_variables[i].projected_orientation_;
+										   - contact_variables[i].projected_orientation_;
 
 		double position_diff_cost = position_diff.squaredNorm()
-				+ orientation_diff.squaredNorm();
+									+ orientation_diff.squaredNorm();
 
 		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm()
-				* 10;
+											* 10;
 
 		const double k1 = 0.01; //10.0;
 		const double k2 = 3; //3.0;
@@ -358,7 +358,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(PhysicsViolation)
 bool TrajectoryCostPhysicsViolation::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -389,7 +389,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(GoalPose)
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+									  int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(GoalPose);
 
@@ -400,7 +400,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 	goal_foot_pos[2] = Eigen::Vector3d(0.0, 2.0, 1.12);
 
 	Eigen::Vector3d goal_ori = exponential_map::RotationToExponentialMap(
-			Eigen::Matrix3d::Identity());
+								   Eigen::Matrix3d::Identity());
 
 	bool is_feasible = true;
 	cost = 0;
@@ -414,19 +414,19 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 
 		// TODO
 		body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId(
-				"left_foot_endeffector_link");
+						  "left_foot_endeffector_link");
 		body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId(
-				"right_foot_endeffector_link");
+						  "right_foot_endeffector_link");
 		body_ids[2] = evaluation_manager->getRBDLModel(point).GetBodyId(
-				"pelvis_link");
+						  "pelvis_link");
 		//std::cout << "bodyid2 : " << body_ids[2] << std::endl;
 		body_ids[2] = 6;
 		cur_foot_pos[0] =
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
+			evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
 		cur_foot_pos[1] =
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
+			evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
 		cur_foot_pos[2] =
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].r;
+			evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].r;
 
 		cost += (goal_foot_pos[0] - cur_foot_pos[0]).squaredNorm();
 		cost += (goal_foot_pos[1] - cur_foot_pos[1]).squaredNorm();
@@ -434,11 +434,11 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 
 		Eigen::Vector3d cur_ori[3];
 		cur_ori[0] = exponential_map::RotationToExponentialMap(
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].E);
+						 evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].E);
 		cur_ori[1] = exponential_map::RotationToExponentialMap(
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].E);
+						 evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].E);
 		cur_ori[2] = exponential_map::RotationToExponentialMap(
-				evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].E);
+						 evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].E);
 
 		cost += (goal_ori - cur_ori[0]).squaredNorm();
 		//cost += (goal_ori - cur_ori[1]).squaredNorm();
@@ -452,7 +452,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(COM)
 bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+								 int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -463,7 +463,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 
 	// TODO: contact regulation cost for foot contacts
 	const std::vector<ContactVariables>& contact_variables =
-			evaluation_manager->contact_variables_[point];
+		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
@@ -485,7 +485,7 @@ bool TrajectoryCostCOM::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(EndeffectorVelocity)
 bool TrajectoryCostEndeffectorVelocity::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -494,14 +494,14 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 	TIME_PROFILER_START_TIMER(EndeffectorVelocity);
 
 	const std::vector<ContactVariables>& contact_variables =
-			evaluation_manager->contact_variables_[point];
+		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		unsigned int rbdl_body_id =
-				evaluation_manager->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
+			evaluation_manager->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
 		double squared_norm =
-				evaluation_manager->rbdl_models_[point].v[rbdl_body_id].squaredNorm();
+			evaluation_manager->rbdl_models_[point].v[rbdl_body_id].squaredNorm();
 		cost += squared_norm;
 	}
 
@@ -512,7 +512,7 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Torque)
 bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+									int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -543,7 +543,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(RVO)
 bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+								 int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -555,7 +555,7 @@ bool TrajectoryCostRVO::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FTR)
 bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+								 int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -563,14 +563,14 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	TIME_PROFILER_START_TIMER(FTR);
 
 	const FullTrajectoryConstPtr full_trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 	const ItompPlanningGroupConstPtr& planning_group =
-			evaluation_manager->getPlanningGroup();
+		evaluation_manager->getPlanningGroup();
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
 			point);
 
 	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+								   FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
 
 	// TODO:
 	const char* endeffector_chain_group_names[] =
@@ -581,31 +581,31 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	positions.resize(num_joints);
 
 	robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(
-			point);
+				point);
 	robot_state->setVariablePositions(q.data());
 
 	const std::vector<ContactVariables>& contact_variables =
-			evaluation_manager->contact_variables_[point];
+		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		std::string chain_name = endeffector_chain_group_names[i];
 		Eigen::MatrixXd jacobianFull =
-				(robot_state->getJacobian(
-						evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
-								chain_name)));
+			(robot_state->getJacobian(
+				 evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
+					 chain_name)));
 		Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3,
-				jacobianFull.cols());
+								   jacobianFull.cols());
 		Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
 
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
-				model.X_base[rbdl_body_id];
+			model.X_base[rbdl_body_id];
 
 		Eigen::Vector3d orientation =
-				contact_variables[i].projected_orientation_;
+			contact_variables[i].projected_orientation_;
 		Eigen::Vector3d contact_normal =
-				orientation.block(0, 2, 3, 1).transpose();
+			orientation.block(0, 2, 3, 1).transpose();
 		Eigen::Vector3d contact_force_sum = Eigen::Vector3d::Zero();
 		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 		{
@@ -618,10 +618,10 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 		{
 			direction.normalize();
 			double ftr = 1
-					/ std::sqrt(
-							direction.transpose()
-									* (jacobian * jacobian_transpose)
-									* direction);
+						 / std::sqrt(
+							 direction.transpose()
+							 * (jacobian * jacobian_transpose)
+							 * direction);
 			KDL::Vector position, unused, normal;
 
 			ftr *= -direction.dot(contact_normal);
@@ -649,7 +649,7 @@ void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 	// load rom files
 	// right_arm
 	std::string source(
-			ros::package::getPath("itomp_cio_planner") + "/config/rom/");
+		ros::package::getPath("itomp_cio_planner") + "/config/rom/");
 	std::string rightArmRom(source + "rightarm_itomp.rom");
 	std::string rightLegRom(source + "right_ankle_itomp.rom");
 	std::string leftArmRom(source + "left_arm_itomp.rom");
@@ -661,7 +661,7 @@ void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 }
 
 bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
-		int point, double& cost) const
+								 int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -669,58 +669,58 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
 	TIME_PROFILER_START_TIMER(ROM);
 
 	const FullTrajectoryConstPtr full_trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 
 	// joint angle vector q at waypoint 'point'
 	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-			FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+								   FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
 
 	// implement
 	// first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
 	double x, y, z;
 	z = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_arm_z_joint"));
+				"upper_right_arm_z_joint"));
 	y = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_arm_y_joint"));
+				"upper_right_arm_y_joint"));
 	x = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_arm_x_joint"));
+				"upper_right_arm_x_joint"));
 
 	cost += roms_[0].ResidualRadius(z, y, x);
 
 	z = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_leg_z_joint"));
+				"upper_right_leg_z_joint"));
 	y = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_leg_y_joint"));
+				"upper_right_leg_y_joint"));
 	x = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_right_leg_x_joint"));
+				"upper_right_leg_x_joint"));
 	cost += roms_[1].ResidualRadius(z, y, x);
 
 	z = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_arm_z_joint"));
+				"upper_left_arm_z_joint"));
 	y = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_arm_y_joint"));
+				"upper_left_arm_y_joint"));
 	x = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_arm_x_joint"));
+				"upper_left_arm_x_joint"));
 	cost += roms_[2].ResidualRadius(z, y, x);
 
 	z = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_leg_z_joint"));
+				"upper_left_leg_z_joint"));
 	y = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_leg_y_joint"));
+				"upper_left_leg_y_joint"));
 	x = q(
 			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-					"upper_left_leg_x_joint"));
+				"upper_left_leg_x_joint"));
 	cost += roms_[3].ResidualRadius(z, y, x);
 
 	TIME_PROFILER_END_TIMER(ROM);
@@ -730,7 +730,7 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(CartesianTrajectory);
 bool TrajectoryCostCartesianTrajectory::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -742,7 +742,7 @@ bool TrajectoryCostCartesianTrajectory::evaluate(
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Singularity)
 bool TrajectoryCostSingularity::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
@@ -754,7 +754,7 @@ bool TrajectoryCostSingularity::evaluate(
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FrictionCone)
 bool TrajectoryCostFrictionCone::evaluate(
-		const NewEvalManager* evaluation_manager, int point, double& cost) const
+	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(FrictionCone);
 
@@ -762,23 +762,23 @@ bool TrajectoryCostFrictionCone::evaluate(
 	cost = 0;
 
 	const FullTrajectoryConstPtr full_trajectory =
-			evaluation_manager->getFullTrajectory();
+		evaluation_manager->getFullTrajectory();
 	const ItompPlanningGroupConstPtr& planning_group =
-			evaluation_manager->getPlanningGroup();
+		evaluation_manager->getPlanningGroup();
 	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
 			point);
 
 	const std::vector<ContactVariables>& contact_variables =
-			evaluation_manager->contact_variables_[point];
+		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		double contact_variable = contact_variables[i].getVariable();
 
 		Eigen::Matrix3d orientation = exponential_map::ExponentialMapToRotation(
-				contact_variables[i].projected_orientation_);
+										  contact_variables[i].projected_orientation_);
 		Eigen::Vector3d contact_normal =
-				orientation.block(0, 2, 3, 1).transpose();
+			orientation.block(0, 2, 3, 1).transpose();
 
 		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 		{

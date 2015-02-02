@@ -12,27 +12,27 @@ namespace itomp_cio_planner
 {
 
 ItompOptimizer::ItompOptimizer(int trajectory_index,
-		const FullTrajectoryPtr& full_trajectory,
-		const ItompRobotModelConstPtr& robot_model,
-		const planning_scene::PlanningSceneConstPtr& planning_scene,
-		const ItompPlanningGroupConstPtr& planning_group,
-		double planning_start_time, double trajectory_start_time,
-		const moveit_msgs::Constraints& path_constraints) :
-		trajectory_index_(trajectory_index), planning_start_time_(
-				planning_start_time), iteration_(-1), best_parameter_cost_(
-				std::numeric_limits<double>::max()), is_best_parameter_feasible_(
+							   const FullTrajectoryPtr& full_trajectory,
+							   const ItompRobotModelConstPtr& robot_model,
+							   const planning_scene::PlanningSceneConstPtr& planning_scene,
+							   const ItompPlanningGroupConstPtr& planning_group,
+							   double planning_start_time, double trajectory_start_time,
+							   const moveit_msgs::Constraints& path_constraints) :
+	trajectory_index_(trajectory_index), planning_start_time_(
+		planning_start_time), iteration_(-1), best_parameter_cost_(
+			std::numeric_limits<double>::max()), is_best_parameter_feasible_(
 				false), best_parameter_iteration_(-1)
 {
 	initialize(full_trajectory, robot_model, planning_scene, planning_group,
-			trajectory_start_time, path_constraints);
+			   trajectory_start_time, path_constraints);
 }
 
 void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
-		const ItompRobotModelConstPtr& robot_model,
-		const planning_scene::PlanningSceneConstPtr& planning_scene,
-		const ItompPlanningGroupConstPtr& planning_group,
-		double trajectory_start_time,
-		const moveit_msgs::Constraints& path_constraints)
+								const ItompRobotModelConstPtr& robot_model,
+								const planning_scene::PlanningSceneConstPtr& planning_scene,
+								const ItompPlanningGroupConstPtr& planning_group,
+								double trajectory_start_time,
+								const moveit_msgs::Constraints& path_constraints)
 {
 	improvement_manager_ = boost::make_shared<ImprovementManagerNLP>();
 	//improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
@@ -42,8 +42,8 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();
 	evaluation_manager_->initialize(full_trajectory, robot_model,
-			planning_scene, planning_group, planning_start_time_,
-			trajectory_start_time, path_constraints);
+									planning_scene, planning_group, planning_start_time_,
+									trajectory_start_time, path_constraints);
 	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
 	best_parameter_trajectory_.resize(Trajectory::TRAJECTORY_TYPE_NUM);
@@ -73,7 +73,7 @@ bool ItompOptimizer::optimize()
 
 	int iteration_after_feasible_solution = 0;
 	int num_max_iterations = 1;
-			//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
+	//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
@@ -109,9 +109,9 @@ bool ItompOptimizer::optimize()
 	double elpsed_time = (ros::WallTime::now() - start_time).toSec();
 
 	ROS_INFO(
-			"Terminated after %d iterations, using path from iteration %d", iteration_, best_parameter_iteration_);
+		"Terminated after %d iterations, using path from iteration %d", iteration_, best_parameter_iteration_);
 	ROS_INFO(
-			"We think trajectory %d is feasible: %s", trajectory_index_, (is_best_parameter_feasible_ ? "True" : "False"));
+		"We think trajectory %d is feasible: %s", trajectory_index_, (is_best_parameter_feasible_ ? "True" : "False"));
 	ROS_INFO("Optimization core finished in %f sec", elpsed_time);
 
 	planning_info_.time = elpsed_time;

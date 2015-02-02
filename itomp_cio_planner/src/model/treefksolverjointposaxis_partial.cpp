@@ -43,20 +43,20 @@ namespace KDL
 {
 
 TreeFkSolverJointPosAxisPartial::TreeFkSolverJointPosAxisPartial(
-		const Tree& tree, const std::string& reference_frame,
-		const std::vector<bool>& active_joints) :
+	const Tree& tree, const std::string& reference_frame,
+	const std::vector<bool>& active_joints) :
 	tree_(tree), reference_frame_(reference_frame), active_joints_(
-			active_joints)
+		active_joints)
 {
 	segment_names_.clear();
 	assignSegmentNumber(tree_.getRootSegment());
 	std::map<std::string, int>::iterator reference_frame_it =
-			segment_name_to_index_.find(reference_frame);
+		segment_name_to_index_.find(reference_frame);
 	if (reference_frame_it == segment_name_to_index_.end())
 	{
 		cout << "TreeFkSolverJointPosAxisPartial: Reference frame "
-				<< reference_frame
-				<< " could not be found! Forward kinematics will be performed in world frame.";
+			 << reference_frame
+			 << " could not be found! Forward kinematics will be performed in world frame.";
 	}
 	else
 	{
@@ -90,7 +90,7 @@ int TreeFkSolverJointPosAxisPartial::JntToCartFull(const JntArray& q_in,
 
 	// start the recursion
 	treeRecursiveFK(q_in, joint_pos, joint_axis, segment_frames,
-			Frame::Identity(), tree_.getRootSegment(), 0, -1, false);
+					Frame::Identity(), tree_.getRootSegment(), 0, -1, false);
 
 	// get the inverse reference frame:
 	Frame inv_ref_frame = segment_frames[reference_frame_index_].Inverse();
@@ -133,8 +133,8 @@ int TreeFkSolverJointPosAxisPartial::JntToCartPartial(const JntArray& q_in,
 		}
 
 		segment_frames[segment_nr]
-				= segment_frames[segment_parent_frame_nr_[segment_nr]]
-						* parent_segment->segment.pose(jnt_p);
+			= segment_frames[segment_parent_frame_nr_[segment_nr]]
+			  * parent_segment->segment.pose(jnt_p);
 	}
 
 	// now solve for joint positions and axes:
@@ -145,9 +145,9 @@ int TreeFkSolverJointPosAxisPartial::JntToCartPartial(const JntArray& q_in,
 			Frame& frame = segment_frames[joint_parent_frame_nr_[i]];
 			const TreeElement* parent_segment = joint_parent_[i];
 			joint_pos[i] = frame
-					* parent_segment->segment.getJoint().JointOrigin();
+						   * parent_segment->segment.getJoint().JointOrigin();
 			joint_axis[i] = frame.M
-					* parent_segment->segment.getJoint().JointAxis();
+							* parent_segment->segment.getJoint().JointAxis();
 		}
 	}
 	return 0;
@@ -170,9 +170,9 @@ int TreeFkSolverJointPosAxisPartial::treeRecursiveFK(const JntArray& q_in,
 		joint_parent_frame_nr_[q_nr] = parent_segment_nr;
 		joint_parent_[q_nr] = &(this_segment->second);
 		joint_pos[q_nr] = this_frame
-				* this_segment->second.segment.getJoint().JointOrigin();
+						  * this_segment->second.segment.getJoint().JointOrigin();
 		joint_axis[q_nr] = this_frame.M
-				* this_segment->second.segment.getJoint().JointAxis();
+						   * this_segment->second.segment.getJoint().JointAxis();
 		if (active && active_joints_[q_nr])
 			joint_calc_pos_axis_[q_nr] = true;
 		if (active_joints_[q_nr])
@@ -196,16 +196,16 @@ int TreeFkSolverJointPosAxisPartial::treeRecursiveFK(const JntArray& q_in,
 
 	// get poses of child segments
 	for (vector<SegmentMap::const_iterator>::const_iterator child =
-			this_segment->second.children.begin(); child
+				this_segment->second.children.begin(); child
 			!= this_segment->second.children.end(); child++)
 		segment_nr = treeRecursiveFK(q_in, joint_pos, joint_axis,
-				segment_frames, this_frame, *child, segment_nr, par_seg_nr,
-				active);
+									 segment_frames, this_frame, *child, segment_nr, par_seg_nr,
+									 active);
 	return segment_nr;
 }
 
 void TreeFkSolverJointPosAxisPartial::assignSegmentNumber(
-		const SegmentMap::const_iterator this_segment)
+	const SegmentMap::const_iterator this_segment)
 {
 	int num = segment_names_.size();
 	segment_names_.push_back(this_segment->first);
@@ -213,7 +213,7 @@ void TreeFkSolverJointPosAxisPartial::assignSegmentNumber(
 
 	// add the child segments recursively
 	for (vector<SegmentMap::const_iterator>::const_iterator child =
-			this_segment->second.children.begin(); child
+				this_segment->second.children.begin(); child
 			!= this_segment->second.children.end(); child++)
 	{
 		assignSegmentNumber(*child);

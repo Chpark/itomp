@@ -36,10 +36,10 @@ public:
 	/////////////////////
 
 	void ComputeProjectedPointPositions(
-			const Eigen::Vector3d& projected_position,
-			const Eigen::Vector3d& projected_orientation,
-			const RigidBodyDynamics::Model& model,
-			const ContactPoint& contact_point);
+		const Eigen::Vector3d& projected_position,
+		const Eigen::Vector3d& projected_orientation,
+		const RigidBodyDynamics::Model& model,
+		const ContactPoint& contact_point);
 
 	// from FK
 	Eigen::Vector3d projected_position_;
@@ -94,12 +94,12 @@ inline void ContactVariables::setPointForce(int point_index,
 		const Eigen::Vector3d& point_force)
 {
 	serialized_forces_.block(3 * point_index, 0, 3, 1) =
-			point_force;
+		point_force;
 }
 inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
 {
 	Eigen::Vector3d force =
-			serialized_forces_.block(3 * point_index, 0, 3, 1);
+		serialized_forces_.block(3 * point_index, 0, 3, 1);
 	double scale = 150 * 100;
 	force *= scale;
 	if (force(2) < 0.0)
@@ -109,21 +109,21 @@ inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
 }
 
 inline void ContactVariables::ComputeProjectedPointPositions(
-		const Eigen::Vector3d& projected_position,
-		const Eigen::Vector3d& projected_orientation,
-		const RigidBodyDynamics::Model& model,
-		const ContactPoint& contact_point)
+	const Eigen::Vector3d& projected_position,
+	const Eigen::Vector3d& projected_orientation,
+	const RigidBodyDynamics::Model& model,
+	const ContactPoint& contact_point)
 {
 	projected_position_ = projected_position;
 	projected_orientation_ = projected_orientation;
 	for (int i = 0; i < NUM_ENDEFFECTOR_CONTACT_POINTS; ++i)
 	{
 		RigidBodyDynamics::Math::SpatialTransform x_base_lambda(
-				exponential_map::ExponentialMapToRotation(
-						projected_orientation), projected_position);
+			exponential_map::ExponentialMapToRotation(
+				projected_orientation), projected_position);
 		RigidBodyDynamics::Math::SpatialTransform x_base =
-				model.X_lambda[contact_point.getContactPointRBDLIds(i)]
-						* x_base_lambda;
+			model.X_lambda[contact_point.getContactPointRBDLIds(i)]
+			* x_base_lambda;
 
 		projected_point_positions_[i] = x_base.r;
 

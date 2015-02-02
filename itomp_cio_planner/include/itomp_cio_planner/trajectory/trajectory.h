@@ -32,14 +32,14 @@ public:
 
 	// Construct a trajectory
 	Trajectory(double discretization,
-			bool has_velocity = false, bool has_acceleration = false);
+			   bool has_velocity = false, bool has_acceleration = false);
 
 	virtual ~Trajectory();
 
 	double& operator()(int traj_point, int element, TRAJECTORY_TYPE type =
-			TRAJECTORY_TYPE_POSITION);
+						   TRAJECTORY_TYPE_POSITION);
 	double operator()(int traj_point, int element, TRAJECTORY_TYPE type =
-			TRAJECTORY_TYPE_POSITION) const;
+						  TRAJECTORY_TYPE_POSITION) const;
 
 	Eigen::MatrixXd::RowXpr getTrajectoryPoint(int traj_point,
 			TRAJECTORY_TYPE type = TRAJECTORY_TYPE_POSITION);
@@ -54,11 +54,11 @@ public:
 	int getNumElements() const;
 
 	Eigen::MatrixXd& getTrajectory(TRAJECTORY_TYPE type =
-			TRAJECTORY_TYPE_POSITION);
+									   TRAJECTORY_TYPE_POSITION);
 	const Eigen::MatrixXd& getTrajectory(TRAJECTORY_TYPE type =
 			TRAJECTORY_TYPE_POSITION) const;
 	void setTrajectory(const Eigen::MatrixXd& trajectory, TRAJECTORY_TYPE type =
-			TRAJECTORY_TYPE_POSITION);
+						   TRAJECTORY_TYPE_POSITION);
 
 	virtual void printTrajectory(bool position = true, bool velocity = true, bool acceleration = true) const;
 
@@ -81,13 +81,13 @@ ITOMP_DEFINE_SHARED_POINTERS(Trajectory);
 ///////////////////////// inline functions follow //////////////////////
 
 inline double& Trajectory::operator()(int traj_point, int element,
-		TRAJECTORY_TYPE type)
+									  TRAJECTORY_TYPE type)
 {
 	return trajectory_[type](traj_point, element);
 }
 
 inline double Trajectory::operator()(int traj_point, int element,
-		TRAJECTORY_TYPE type) const
+									 TRAJECTORY_TYPE type) const
 {
 	return trajectory_[type](traj_point, element);
 }
@@ -99,7 +99,7 @@ inline Eigen::MatrixXd::RowXpr Trajectory::getTrajectoryPoint(int traj_point,
 }
 
 inline Eigen::MatrixXd::ConstRowXpr Trajectory::getTrajectoryPoint(
-		int traj_point, TRAJECTORY_TYPE type) const
+	int traj_point, TRAJECTORY_TYPE type) const
 {
 	return trajectory_[type].row(traj_point);
 }
@@ -140,13 +140,13 @@ inline Eigen::MatrixXd& Trajectory::getTrajectory(TRAJECTORY_TYPE type)
 }
 
 inline const Eigen::MatrixXd& Trajectory::getTrajectory(
-		TRAJECTORY_TYPE type) const
+	TRAJECTORY_TYPE type) const
 {
 	return trajectory_[type];
 }
 
 inline void Trajectory::setTrajectory(const Eigen::MatrixXd& trajectory,
-		TRAJECTORY_TYPE type)
+									  TRAJECTORY_TYPE type)
 {
 	trajectory_[type] = trajectory;
 }
