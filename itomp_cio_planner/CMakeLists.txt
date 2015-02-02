@@ -8,8 +8,8 @@ include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
 #  RelWithDebInfo : w/ debug symbols, w/ optimization
 #  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
 #set(ROS_BUILD_TYPE RelWithDebInfo)
-set(ROS_BUILD_TYPE Release)
-#set(ROS_BUILD_TYPE Debug)
+#set(ROS_BUILD_TYPE Release)
+set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
 
@@ -41,6 +41,10 @@ src/trajectory/trajectory.cpp
 src/trajectory/full_trajectory.cpp
 src/trajectory/parameter_trajectory.cpp
 src/trajectory/trajectory_factory.cpp
+src/trajectory/new_trajectory.cpp
+src/trajectory/element_trajectory.cpp
+src/trajectory/composite_trajectory.cpp
+src/trajectory/itomp_trajectory.cpp
 src/cost/trajectory_cost.cpp
 src/cost/trajectory_cost_manager.cpp
 src/contact/contact_point.cpp

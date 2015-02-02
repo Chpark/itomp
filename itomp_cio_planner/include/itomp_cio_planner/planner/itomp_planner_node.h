@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/planner/planning_info_manager.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
@@ -40,10 +41,11 @@ private:
 	ItompRobotModelPtr itomp_robot_model_;
 
 	FullTrajectoryPtr trajectory_;
+    ItompTrajectoryPtr itomp_trajectory_;
 	ItompOptimizerPtr optimizer_;
 	PlanningInfoManager planning_info_manager_;
 };
-ITOMP_DEFINE_SHARED_POINTERS(ItompPlannerNode);
+ITOMP_DEFINE_SHARED_POINTERS(ItompPlannerNode)
 
 }
 

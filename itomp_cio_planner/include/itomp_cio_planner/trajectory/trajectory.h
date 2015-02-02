@@ -76,7 +76,7 @@ protected:
 	Eigen::MatrixXd trajectory_[TRAJECTORY_TYPE_NUM]; /**< Storage for the actual trajectory */
 
 };
-ITOMP_DEFINE_SHARED_POINTERS(Trajectory);
+ITOMP_DEFINE_SHARED_POINTERS(Trajectory)
 
 ///////////////////////// inline functions follow //////////////////////
 
