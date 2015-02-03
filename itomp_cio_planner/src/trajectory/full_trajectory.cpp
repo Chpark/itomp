@@ -737,48 +737,37 @@ void FullTrajectory::restoreBackupTrajectories()
 					backup_point_begin_, backup_element_, point_length, 1);
 }
 
-void FullTrajectory::setContactVariables(int point,
-		const std::vector<ContactVariables>& contact_variables)
+void FullTrajectory::setContactVariables(int point,	const std::vector<ContactVariables>& contact_variables)
 {
 	Eigen::MatrixXd::RowXpr row = getTrajectoryPoint(point);
-	int position_start =
-		component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
-	int force_start =
-		component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
+    int position_start = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+    int force_start = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
 
 	for (int i = 0; i < num_contacts_; ++i)
 	{
-		row.block(0, position_start + i * 7, 1, 7) =
-			contact_variables[i].serialized_position_.transpose();
-		row.block(0, force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1,
-				  3 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
-					  contact_variables[i].serialized_forces_.transpose();
+        row.block(0, position_start + i * 7, 1, 7) = contact_variables[i].serialized_position_.transpose();
+        row.block(0, force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
+            contact_variables[i].serialized_forces_.transpose();
 	}
 }
 
-void FullTrajectory::getContactVariables(int point,
-		std::vector<ContactVariables>& contact_variables)
+void FullTrajectory::getContactVariables(int point,	std::vector<ContactVariables>& contact_variables)
 {
 	Eigen::MatrixXd::RowXpr row = getTrajectoryPoint(point);
-	int position_start =
-		component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
-	int force_start =
-		component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
+    int position_start = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+    int force_start = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_FORCE];
 
 	for (int i = 0; i < num_contacts_; ++i)
 	{
-		contact_variables[i].serialized_position_ = row.block(0,
-				position_start + i * 7, 1, 7).transpose();
-		contact_variables[i].serialized_forces_ = row.block(0,
-				force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1,
-				3 * NUM_ENDEFFECTOR_CONTACT_POINTS).transpose();
+        contact_variables[i].serialized_position_ = row.block(0, position_start + i * 7, 1, 7).transpose();
+        contact_variables[i].serialized_forces_ =
+            row.block(0, force_start + i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS).transpose();
 	}
 }
 
 void FullTrajectory::interpolateContactVariables()
 {
-	int start =
-		component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
+    int start =	component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION];
 	int end = component_start_indices_[FullTrajectory::TRAJECTORY_COMPONENT_NUM];
 	for (int j = start; j < end; ++j)
 	{
@@ -786,33 +775,21 @@ void FullTrajectory::interpolateContactVariables()
 		double v0 = trajectory_[TRAJECTORY_TYPE_VELOCITY](0, j);
 		double a0 = trajectory_[TRAJECTORY_TYPE_ACCELERATION](0, j);
 
-		double x1 = trajectory_[TRAJECTORY_TYPE_POSITION](getNumPoints() - 1,
-					j);
-		double v1 =
-			has_velocity_ ?
-			trajectory_[TRAJECTORY_TYPE_VELOCITY](
-				getNumPoints() - 1, j) :
-			0.0;
-		double a1 =
-			has_acceleration_ ?
-			trajectory_[TRAJECTORY_TYPE_ACCELERATION](
-				getNumPoints() - 1, j) :
-			0.0;
+        double x1 = trajectory_[TRAJECTORY_TYPE_POSITION](getNumPoints() - 1, j);
+        double v1 = has_velocity_ ? trajectory_[TRAJECTORY_TYPE_VELOCITY](getNumPoints() - 1, j) : 0.0;
+        double a1 =	has_acceleration_ ? trajectory_[TRAJECTORY_TYPE_ACCELERATION](getNumPoints() - 1, j) : 0.0;
 
 		ecl::QuinticPolynomial poly;
-		poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
-				x1, v1, a1);
+        poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_, x1, v1, a1);
 		for (int i = 1; i < getNumPoints() - 1; ++i)
 		{
 			trajectory_[TRAJECTORY_TYPE_POSITION](i, j) = poly(i * discretization_);
 			if (has_velocity_)
 			{
-				trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(
-							i * discretization_);
+                trajectory_[TRAJECTORY_TYPE_VELOCITY](i, j) = poly.derivative(i * discretization_);
 			}
 			if (has_acceleration_)
-				trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) =
-					poly.dderivative(i * discretization_);
+                trajectory_[TRAJECTORY_TYPE_ACCELERATION](i, j) = poly.dderivative(i * discretization_);
 		}
 	}
 }

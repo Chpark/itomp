@@ -30,9 +30,8 @@ ImprovementManagerNLP::~ImprovementManagerNLP()
 
 }
 
-void ImprovementManagerNLP::initialize(
-	const NewEvalManagerPtr& evaluation_manager,
-	const ItompPlanningGroupConstPtr& planning_group)
+void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manager,
+                                       const ItompPlanningGroupConstPtr& planning_group)
 {
 	start_time_ = ros::Time::now();
 
@@ -50,15 +49,13 @@ void ImprovementManagerNLP::initialize(
 	TIME_PROFILER_INIT(getROSWallTime, num_threads_);
 	TIME_PROFILER_ADD_ENTRY(FK);
 
-	const ParameterTrajectoryConstPtr& parameter_trajectory =
-		evaluation_manager_->getParameterTrajectory();
+    const ParameterTrajectoryConstPtr& parameter_trajectory = evaluation_manager_->getParameterTrajectory();
 	num_parameter_types_ = parameter_trajectory->hasVelocity() ? 2 : 1;
 	num_parameter_points_ = parameter_trajectory->getNumPoints();
 	num_parameter_elements_ = parameter_trajectory->getNumElements();
 	int num_points = evaluation_manager_->getFullTrajectory()->getNumPoints();
 
-	int num_costs =
-		TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+    int num_costs =	TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	derivatives_evaluation_manager_.resize(num_threads_);
 	evaluation_parameters_.resize(num_threads_);
@@ -66,13 +63,10 @@ void ImprovementManagerNLP::initialize(
 	for (int i = 0; i < num_threads_; ++i)
 	{
         derivatives_evaluation_manager_[i].reset(new NewEvalManager(*evaluation_manager));
-		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
-										 Eigen::MatrixXd(num_parameter_points_,
-												 num_parameter_elements_));
+        evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM, Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
 		evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_points, num_costs);
 	}
-	best_parameter_.resize(Trajectory::TRAJECTORY_TYPE_NUM,
-						   Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
+    best_parameter_.resize(Trajectory::TRAJECTORY_TYPE_NUM, Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
 }
 
 bool ImprovementManagerNLP::updatePlanningParameters()
@@ -87,8 +81,7 @@ bool ImprovementManagerNLP::updatePlanningParameters()
 
 void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
-	int num_variables = num_parameter_elements_ * num_parameter_points_
-						* num_parameter_types_;
+    int num_variables = num_parameter_elements_ * num_parameter_points_ * num_parameter_types_;
 
 	column_vector variables(num_variables);
 

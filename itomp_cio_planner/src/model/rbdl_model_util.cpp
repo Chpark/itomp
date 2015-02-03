@@ -12,8 +12,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 									 RigidBodyDynamics::Math::VectorNd &Tau,
 									 std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
 {
-	SpatialVector spatial_gravity(0., 0., 0., model.gravity[0],
-								  model.gravity[1], model.gravity[2]);
+    SpatialVector spatial_gravity(0., 0., 0., model.gravity[0], model.gravity[1], model.gravity[2]);
 
 	unsigned int i;
 
