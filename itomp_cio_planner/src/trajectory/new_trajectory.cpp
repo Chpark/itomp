@@ -11,6 +11,14 @@ NewTrajectory::NewTrajectory(const std::string& name, unsigned int num_points)
 
 }
 
+NewTrajectory::NewTrajectory(const NewTrajectory& trajectory)
+    : name_(trajectory.name_),
+      num_points_(trajectory.num_points_),
+      num_elements_(trajectory.num_elements_)
+{
+
+}
+
 NewTrajectory::~NewTrajectory()
 {
 

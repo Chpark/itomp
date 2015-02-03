@@ -13,9 +13,21 @@ ElementTrajectory::ElementTrajectory(const std::string& name, unsigned int num_p
     allocate();
 }
 
+ElementTrajectory::ElementTrajectory(const ElementTrajectory& trajectory)
+    : NewTrajectory(trajectory),
+      trajectory_data_(trajectory.trajectory_data_)
+{
+
+}
+
 ElementTrajectory::~ElementTrajectory()
 {
 
+}
+
+ElementTrajectory* ElementTrajectory::clone() const
+{
+    return new ElementTrajectory(*this);
 }
 
 void ElementTrajectory::allocate()

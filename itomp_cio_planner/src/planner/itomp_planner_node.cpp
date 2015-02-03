@@ -98,7 +98,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             itomp_trajectory_->setGoalState(getGoalStateFromGoalConstraints(itomp_robot_model_, req), planning_group,
                                             itomp_robot_model_, req.trajectory_constraints);
 
-			optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_,
+            optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
 						 trajectory_start_time, req.path_constraints);
 

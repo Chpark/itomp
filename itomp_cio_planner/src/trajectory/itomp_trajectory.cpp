@@ -28,9 +28,37 @@ ItompTrajectory::ItompTrajectory(const std::string& name, unsigned int num_point
     }
 }
 
+ItompTrajectory::ItompTrajectory(const ItompTrajectory& trajectory)
+    : CompositeTrajectory(trajectory),
+      num_keyframes_(trajectory.num_keyframes_),
+      keyframe_interval_(trajectory.keyframe_interval_),
+      duration_(trajectory.duration_),
+      discretization_(trajectory.discretization_),
+      parameter_to_index_map_(trajectory.parameter_to_index_map_)
+{
+    for (int i = 0; i < COMPONENT_TYPE_NUM; ++i)
+    {
+        CompositeTrajectoryPtr component = boost::static_pointer_cast<CompositeTrajectory>(getComponent(i));
+        for (unsigned int s = 0; s < SUB_COMPONENT_TYPE_NUM; ++s)
+        {
+            element_trajectories_[i][s] = boost::static_pointer_cast<ElementTrajectory>(component->getComponent(s));
+        }
+    }
+
+    for (int i = 0; i < COMPONENT_TYPE_NUM; ++i)
+    {
+        backup_trajectory_[i] = trajectory.backup_trajectory_[i];
+    }
+}
+
 ItompTrajectory::~ItompTrajectory()
 {
 
+}
+
+ItompTrajectory* ItompTrajectory::clone() const
+{
+    return new ItompTrajectory(*this);
 }
 
 void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,

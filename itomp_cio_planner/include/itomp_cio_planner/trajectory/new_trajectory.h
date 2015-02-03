@@ -12,8 +12,10 @@ class NewTrajectory
 public:
     // Construct a trajectory
     NewTrajectory(const std::string& name, unsigned int num_points);
+    NewTrajectory(const NewTrajectory& trajectory);
 
     virtual ~NewTrajectory();
+    virtual NewTrajectory* clone() const = 0;
 
     unsigned int getNumPoints() const;
     unsigned int getNumElements() const;
@@ -22,10 +24,9 @@ public:
     virtual void printTrajectory() const = 0;
 
 protected:
-    unsigned int num_elements_; /**< Number of elements in each trajectory point */
-    unsigned int num_points_; /**< Number of points in the trajectory */
-
     std::string name_;
+    unsigned int num_points_; /**< Number of points in the trajectory */
+    unsigned int num_elements_; /**< Number of elements in each trajectory point */
 };
 ITOMP_DEFINE_SHARED_POINTERS(NewTrajectory)
 

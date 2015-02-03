@@ -3,6 +3,7 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
 #include <itomp_cio_planner/optimization/improvement_manager.h>
@@ -17,6 +18,7 @@ class ItompOptimizer
 public:
 	ItompOptimizer(int trajectory_index,
 				   const FullTrajectoryPtr& full_trajectory,
+                   const ItompTrajectoryPtr& itomp_trajectory,
 				   const ItompRobotModelConstPtr& robot_model,
 				   const planning_scene::PlanningSceneConstPtr& planning_scene,
 				   const ItompPlanningGroupConstPtr& planning_group,
@@ -30,6 +32,7 @@ public:
 
 private:
 	void initialize(const FullTrajectoryPtr& full_trajectory,
+                    const ItompTrajectoryPtr& itomp_trajectory,
 					const ItompRobotModelConstPtr& robot_model,
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
@@ -53,7 +56,7 @@ private:
 
 	PlanningInfo planning_info_;
 };
-ITOMP_DEFINE_SHARED_POINTERS(ItompOptimizer);
+ITOMP_DEFINE_SHARED_POINTERS(ItompOptimizer)
 
 ////////////////////////////////////////////////////////////////////////////////
 

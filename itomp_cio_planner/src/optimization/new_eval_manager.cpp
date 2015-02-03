@@ -21,12 +21,42 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
+NewEvalManagerConstPtr NewEvalManager::ref_evaluation_manager_;
+
 NewEvalManager::NewEvalManager() :
-	last_trajectory_feasible_(false), parameter_modified_(true), best_cost_(
-		std::numeric_limits<double>::max()), ref_evaluation_manager_(
-			NULL)
+    last_trajectory_feasible_(false),
+    parameter_modified_(true),
+    best_cost_(std::numeric_limits<double>::max())
 {
-	debug_ = false;
+    if (!ref_evaluation_manager_)
+        ref_evaluation_manager_.reset(this);
+}
+
+NewEvalManager::NewEvalManager(const NewEvalManager& manager)
+    : robot_model_(manager.robot_model_),
+      planning_scene_(manager.planning_scene_),
+      planning_group_(manager.planning_group_),
+      planning_start_time_(manager.planning_start_time_),
+      trajectory_start_time_(manager.trajectory_start_time_),
+      last_trajectory_feasible_(manager.last_trajectory_feasible_),
+      parameter_modified_(manager.parameter_modified_),
+      best_cost_(manager.best_cost_),
+      rbdl_models_(manager.rbdl_models_),
+      tau_(manager.tau_),
+      external_forces_(manager.external_forces_),
+      contact_variables_(manager.contact_variables_),
+      evaluation_cost_matrix_(manager.evaluation_cost_matrix_)
+{
+    full_trajectory_.reset(manager.full_trajectory_->createClone());
+    full_trajectory_const_ = full_trajectory_;
+    parameter_trajectory_.reset(TrajectoryFactory::getInstance()->CreateParameterTrajectory(full_trajectory_, planning_group_));
+    parameter_trajectory_const_ = parameter_trajectory_;
+    itomp_trajectory_.reset(new ItompTrajectory(*manager.getTrajectory()));
+    itomp_trajectory_const_ = itomp_trajectory_;
+
+    robot_state_.resize(itomp_trajectory_->getNumPoints());
+    for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
+        robot_state_[i].reset(new robot_state::RobotState(*manager.robot_state_[i]));
 }
 
 NewEvalManager::~NewEvalManager()
@@ -34,14 +64,47 @@ NewEvalManager::~NewEvalManager()
 
 }
 
+NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
+{
+    robot_model_ = manager.robot_model_;
+    planning_scene_ = manager.planning_scene_;
+    planning_group_ = manager.planning_group_;
+    planning_start_time_ = manager.planning_start_time_;
+    trajectory_start_time_ = manager.trajectory_start_time_;
+    last_trajectory_feasible_ = manager.last_trajectory_feasible_;
+    parameter_modified_ = manager.parameter_modified_;
+    best_cost_ = manager.best_cost_;
+    rbdl_models_ = manager.rbdl_models_;
+    tau_ = manager.tau_;
+    external_forces_ = manager.external_forces_;
+    contact_variables_ = manager.contact_variables_;
+    evaluation_cost_matrix_ = manager.evaluation_cost_matrix_;
+
+    // allocate
+    full_trajectory_.reset(manager.full_trajectory_->createClone());
+    full_trajectory_const_ = full_trajectory_;
+    parameter_trajectory_.reset(TrajectoryFactory::getInstance()->CreateParameterTrajectory(full_trajectory_, planning_group_));
+    parameter_trajectory_const_ = parameter_trajectory_;
+    itomp_trajectory_.reset(new ItompTrajectory(*manager.getTrajectory()));
+    itomp_trajectory_const_ = itomp_trajectory_;
+
+    robot_state_.resize(itomp_trajectory_->getNumPoints());
+    for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
+        robot_state_[i].reset(new robot_state::RobotState(*manager.robot_state_[i]));
+
+    return *this;
+}
+
 void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
+                                const ItompTrajectoryPtr& itomp_trajectory,
 								const ItompRobotModelConstPtr& robot_model,
 								const planning_scene::PlanningSceneConstPtr& planning_scene,
 								const ItompPlanningGroupConstPtr& planning_group,
 								double planning_start_time, double trajectory_start_time,
 								const moveit_msgs::Constraints& path_constraints)
 {
-	full_trajectory_ = full_trajectory;
+    full_trajectory_const_ = full_trajectory_ = full_trajectory;
+    itomp_trajectory_const_ = itomp_trajectory_ = itomp_trajectory;
 
 	robot_model_ = robot_model;
 	planning_scene_ = planning_scene;
@@ -74,31 +137,11 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	parameter_trajectory_.reset(
 		TrajectoryFactory::getInstance()->CreateParameterTrajectory(
 			full_trajectory_, planning_group));
+    parameter_trajectory_const_ = parameter_trajectory_;
+
+    itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
 
 	// TODO : path_constraints
-}
-
-NewEvalManager* NewEvalManager::createClone() const
-{
-	// swallow copy
-	NewEvalManager* new_manager = new NewEvalManager(*this);
-
-	// create new trajectories
-	new_manager->full_trajectory_.reset(full_trajectory_->createClone());
-	new_manager->parameter_trajectory_.reset(
-		TrajectoryFactory::getInstance()->CreateParameterTrajectory(
-			new_manager->full_trajectory_, planning_group_));
-	new_manager->parameter_modified_ = false;
-	new_manager->ref_evaluation_manager_ = this;
-
-	// share robot_state_ vector
-	new_manager->robot_state_.resize(full_trajectory_->getNumPoints());
-	for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
-		new_manager->robot_state_[i].reset(
-			new robot_state::RobotState(
-				robot_model_->getMoveitRobotModel()));
-
-	return new_manager;
 }
 
 double NewEvalManager::evaluate()

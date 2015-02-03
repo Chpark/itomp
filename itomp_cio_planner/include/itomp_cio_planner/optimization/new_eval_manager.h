@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <itomp_cio_planner/contact/contact_variables.h>
 #include <kdl/frames.hpp>
@@ -20,9 +21,13 @@ class NewEvalManager
 {
 public:
 	NewEvalManager();
+    NewEvalManager(const NewEvalManager& manager);
 	virtual ~NewEvalManager();
 
+    NewEvalManager& operator=(const NewEvalManager& manager);
+
 	void initialize(const FullTrajectoryPtr& full_trajectory,
+                    const ItompTrajectoryPtr& itomp_trajectory,
 					const ItompRobotModelConstPtr& robot_model,
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
@@ -31,6 +36,7 @@ public:
 
 	const FullTrajectoryConstPtr& getFullTrajectory() const;
 	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
+    const ItompTrajectoryConstPtr& getTrajectory() const;
 
 	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
 	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
@@ -50,15 +56,11 @@ public:
 
 	void updateFromParameterTrajectory();
 
-	NewEvalManager* createClone() const;
-
 	const planning_scene::PlanningSceneConstPtr& getPlanningScene() const;
 	const RigidBodyDynamics::Model& getRBDLModel(int point) const;
 	const ItompPlanningGroupConstPtr& getPlanningGroup() const;
 	const ItompRobotModelConstPtr& getItompRobotModel() const;
 	const robot_state::RobotStatePtr& getRobotState(int point) const;
-
-	bool debug_;
 
 private:
 	void initializeContactVariables();
@@ -73,20 +75,17 @@ private:
 
 	bool isDerivative() const;
 
-	FullTrajectoryPtr full_trajectory_;
-	ParameterTrajectoryPtr parameter_trajectory_;
-	mutable FullTrajectoryConstPtr full_trajectory_const_;
-	mutable ParameterTrajectoryConstPtr parameter_trajectory_const_;
+    // shared constant pointer members
+    ItompRobotModelConstPtr robot_model_;
+    planning_scene::PlanningSceneConstPtr planning_scene_;
+    ItompPlanningGroupConstPtr planning_group_;
 
-	ItompRobotModelConstPtr robot_model_;
-	planning_scene::PlanningSceneConstPtr planning_scene_;
-	ItompPlanningGroupConstPtr planning_group_;
-	std::vector<robot_state::RobotStatePtr> robot_state_;
-
+    // non-pointer members
 	double planning_start_time_;
 	double trajectory_start_time_;
-
 	bool last_trajectory_feasible_;
+    bool parameter_modified_;
+    double best_cost_;
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
 	std::vector<Eigen::VectorXd> tau_; // joint forces from inverse dynamics
@@ -95,11 +94,16 @@ private:
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
-	bool parameter_modified_;
+    static NewEvalManagerConstPtr ref_evaluation_manager_;
 
-	double best_cost_;
-
-	const NewEvalManager* ref_evaluation_manager_;
+    // non-shared pointer members
+    FullTrajectoryPtr full_trajectory_;
+    ParameterTrajectoryPtr parameter_trajectory_;
+    FullTrajectoryConstPtr full_trajectory_const_;
+    ParameterTrajectoryConstPtr parameter_trajectory_const_;
+    ItompTrajectoryPtr itomp_trajectory_;
+    ItompTrajectoryConstPtr itomp_trajectory_const_;
+    std::vector<robot_state::RobotStatePtr> robot_state_;
 
 	friend class TrajectoryCostContactInvariant;
 	friend class TrajectoryCostObstacle;
@@ -111,20 +115,23 @@ private:
 	friend class TrajectoryCostEndeffectorVelocity;
 	friend class TrajectoryCostROM;
 };
-ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager);
+ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager)
 
 ////////////////////////////////////////////////////////////////////////////////
 
 inline const FullTrajectoryConstPtr& NewEvalManager::getFullTrajectory() const
 {
-	full_trajectory_const_ = full_trajectory_;
 	return full_trajectory_const_;
 }
 
 inline const ParameterTrajectoryConstPtr& NewEvalManager::getParameterTrajectory() const
 {
-	parameter_trajectory_const_ = parameter_trajectory_;
 	return parameter_trajectory_const_;
+}
+
+inline const ItompTrajectoryConstPtr& NewEvalManager::getTrajectory() const
+{
+    return itomp_trajectory_const_;
 }
 
 inline bool NewEvalManager::isLastTrajectoryFeasible() const

@@ -189,22 +189,26 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 				{
 					cost += self_collision_scale * contact.depth;
 
+                    /*
 					if (evaluation_manager->debug_)
 						printf("%d [%d] s-collision : %s %s : %f\n",
 							   thread_index, point,
 							   contact.body_name_1.c_str(),
 							   contact.body_name_2.c_str(),
 							   self_collision_scale * contact.depth);
+                               */
 				}
 				else
 				{
 					cost += contact.depth;
 
+                    /*
 					if (evaluation_manager->debug_)
 						printf("%d [%d]   collision : %s %s : %f\n",
 							   thread_index, point,
 							   contact.body_name_1.c_str(),
 							   contact.body_name_2.c_str(), contact.depth);
+                               */
 				}
 			}
 

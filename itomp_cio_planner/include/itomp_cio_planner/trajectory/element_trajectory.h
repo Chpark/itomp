@@ -13,8 +13,10 @@ class ElementTrajectory : public NewTrajectory
 public:
     // Construct a trajectory
     ElementTrajectory(const std::string& name, unsigned int num_points, unsigned int num_elements);
+    ElementTrajectory(const ElementTrajectory& trajectory);
 
     virtual ~ElementTrajectory();
+    virtual ElementTrajectory* clone() const;
 
     Eigen::MatrixXd::RowXpr getTrajectoryPoint(int point);
     Eigen::MatrixXd::ConstRowXpr getTrajectoryPoint(int point) const;

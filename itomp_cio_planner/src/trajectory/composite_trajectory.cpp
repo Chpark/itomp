@@ -14,9 +14,24 @@ CompositeTrajectory::CompositeTrajectory(const std::string& name, unsigned int n
         num_elements_ += getComponent(i)->getNumElements();
 }
 
+CompositeTrajectory::CompositeTrajectory(const CompositeTrajectory& trajectory)
+    : NewTrajectory(trajectory)
+{
+    trajectories_.resize(trajectory.getNumComponents());
+    for (unsigned int i = 0; i < getNumComponents(); ++i)
+    {
+        trajectories_[i].reset(trajectory.trajectories_[i]->clone());
+    }
+}
+
 CompositeTrajectory::~CompositeTrajectory()
 {
 
+}
+
+CompositeTrajectory* CompositeTrajectory::clone() const
+{
+    return new CompositeTrajectory(*this);
 }
 
 void CompositeTrajectory::printTrajectory() const

@@ -39,7 +39,9 @@ public:
     typedef dlib::matrix<double, 0, 1> ParameterVector;
     typedef std::vector<ItompTrajectoryIndex> ParameterMap;
 
+    ItompTrajectory(const ItompTrajectory& trajectory);
     virtual ~ItompTrajectory();
+    virtual ItompTrajectory* clone() const;
 
     void computeParameterToTrajectoryIndexMap(const ItompRobotModelConstPtr& robot_model,
                                               const ItompPlanningGroupConstPtr& planning_group);

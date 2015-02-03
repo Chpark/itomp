@@ -13,7 +13,10 @@ class CompositeTrajectory : public NewTrajectory
 public:
     // Construct a trajectory
     CompositeTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components);
+    CompositeTrajectory(const CompositeTrajectory& trajectory);
+
     virtual ~CompositeTrajectory();
+    virtual CompositeTrajectory* clone() const;
 
     NewTrajectoryPtr& getComponent(unsigned int index);
     NewTrajectoryConstPtr getComponent(unsigned int index) const;

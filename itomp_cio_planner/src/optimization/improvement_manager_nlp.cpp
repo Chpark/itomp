@@ -65,9 +65,7 @@ void ImprovementManagerNLP::initialize(
 	evaluation_cost_matrices_.resize(num_threads_);
 	for (int i = 0; i < num_threads_; ++i)
 	{
-		derivatives_evaluation_manager_[i].reset(
-			evaluation_manager->createClone());
-
+        derivatives_evaluation_manager_[i].reset(new NewEvalManager(*evaluation_manager));
 		evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM,
 										 Eigen::MatrixXd(num_parameter_points_,
 												 num_parameter_elements_));
