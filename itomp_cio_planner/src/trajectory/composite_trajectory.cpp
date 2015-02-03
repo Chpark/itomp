@@ -21,7 +21,7 @@ CompositeTrajectory::~CompositeTrajectory()
 
 void CompositeTrajectory::printTrajectory() const
 {
-    ROS_INFO("Trajectory %s", name_.c_str());
+    printf("Trajectory %s\n", name_.c_str());
     for (unsigned int i = 0; i < getNumComponents(); ++i)
     {
         trajectories_[i]->printTrajectory();

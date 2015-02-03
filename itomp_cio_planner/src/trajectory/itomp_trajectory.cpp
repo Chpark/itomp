@@ -110,8 +110,7 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
     // interpolate trajectory
     if (trajectory_constraints.constraints.size() != 0)
     {
-        interpolateInputTrajectory(group_rbdl_indices, planning_group,
-                                   trajectory_constraints);
+        interpolateInputTrajectory(group_rbdl_indices, planning_group, trajectory_constraints);
     }
     else
     {
@@ -218,7 +217,7 @@ void ItompTrajectory::interpolateInputTrajectory(const std::vector<unsigned int>
                 };
                 traj_point[COMPONENT_TYPE_POSITION](rbdl_index) = poly(i * discretization_);
                 traj_point[COMPONENT_TYPE_VELOCITY](rbdl_index) = poly.derivative(i * discretization_);
-                traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) =	poly.dderivative(i * discretization_);
+                traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) = poly.dderivative(i * discretization_);
             }
         }
         else
@@ -240,9 +239,8 @@ void ItompTrajectory::interpolateInputTrajectory(const std::vector<unsigned int>
                 int to = std::min(safeDoubleToInt((k + 1) * waypoint_interval), num_points - 1);
 
                 ecl::QuinticPolynomial poly;
-                poly = ecl::QuinticPolynomial::Interpolation(
-                           from, x0, v0, a0,
-                           to, x1, v1, a1);
+                poly = ecl::QuinticPolynomial::Interpolation(from * discretization_, x0, v0, a0,
+                        to * discretization_, x1, v1, a1);
                 for (int i = from; i <= to; ++i)
                 {
                     Eigen::MatrixXd::RowXpr traj_point[] =
@@ -253,10 +251,12 @@ void ItompTrajectory::interpolateInputTrajectory(const std::vector<unsigned int>
                     };
                     traj_point[COMPONENT_TYPE_POSITION](rbdl_index) = poly(i * discretization_);
                     traj_point[COMPONENT_TYPE_VELOCITY](rbdl_index) = poly.derivative(i * discretization_);
-                    traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) =	poly.dderivative(i * discretization_);
+                    traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) = poly.dderivative(i * discretization_);
                 }
-
             }
+
+            traj_start_point[COMPONENT_TYPE_POSITION](rbdl_index) = trajectory_constraints.constraints[0].joint_constraints[constraint_index].position;
+            traj_goal_point(rbdl_index) = trajectory_constraints.constraints[num_input_waypoints - 1].joint_constraints[constraint_index].position;
         }
     }
 }

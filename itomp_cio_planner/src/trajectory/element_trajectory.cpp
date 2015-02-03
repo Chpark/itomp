@@ -29,15 +29,19 @@ void ElementTrajectory::allocate()
 
 void ElementTrajectory::printTrajectory() const
 {
-    ROS_INFO("Trajectory %s", name_.c_str());
+    printf("Trajectory %s\n", name_.c_str());
+    printf("x : ");
+    for (int i = 0; i < num_elements_; ++i)
+        printf("%d ", i);
+    printf("\n");
     for (int i = 0; i < num_points_; ++i)
     {
-        ROS_INFO("%d : ", i);
+        printf("%d : ", i);
         for (int j = 0; j < num_elements_; ++j)
         {
-            ROS_INFO("%.10f ", trajectory_data_(i, j));
+            printf("%.10f ", trajectory_data_(i, j));
         }
-        ROS_INFO("\n");
+        printf("\n");
     }
 }
 
