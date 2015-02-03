@@ -17,25 +17,19 @@ class ItompPlannerNode
 {
 public:
 	ItompPlannerNode(const robot_model::RobotModelConstPtr& model);
-	virtual ~ItompPlannerNode()
-	{
-	}
+    virtual ~ItompPlannerNode();
 
 	bool init();
 
-	bool planTrajectory(
-		const planning_scene::PlanningSceneConstPtr& planning_scene,
-		const planning_interface::MotionPlanRequest &req,
-		planning_interface::MotionPlanResponse &res);
+    bool planTrajectory(const planning_scene::PlanningSceneConstPtr& planning_scene,
+                        const planning_interface::MotionPlanRequest &req,
+                        planning_interface::MotionPlanResponse &res);
 
 private:
 	bool validateRequest(const planning_interface::MotionPlanRequest &req);
-	std::vector<std::string> getPlanningGroups(
-		const std::string& group_name) const;
-	void
-	fillInResult(const robot_state::RobotStatePtr& robot_state,
-				 const std::vector<std::string>& planning_groups,
-				 planning_interface::MotionPlanResponse &res);
+    std::vector<std::string> getPlanningGroups(const std::string& group_name) const;
+    void fillInResult(const robot_state::RobotStatePtr& robot_state,
+                      planning_interface::MotionPlanResponse &res);
 
 	robot_model::RobotModelConstPtr robot_model_;
 	ItompRobotModelPtr itomp_robot_model_;

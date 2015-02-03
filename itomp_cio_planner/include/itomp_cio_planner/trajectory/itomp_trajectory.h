@@ -50,7 +50,7 @@ public:
             bool backup = true);
 
     void setStartState(const sensor_msgs::JointState& joint_state,
-                       const ItompRobotModelConstPtr& robot_model, bool fill_trajectory);
+                       const ItompRobotModelConstPtr& robot_model);
     void setGoalState(const sensor_msgs::JointState& joint_goal_state,
                       const ItompPlanningGroupConstPtr& planning_group,
                       const ItompRobotModelConstPtr& robot_model,

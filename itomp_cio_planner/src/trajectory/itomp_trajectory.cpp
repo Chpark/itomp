@@ -34,7 +34,7 @@ ItompTrajectory::~ItompTrajectory()
 }
 
 void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
-                                    const ItompRobotModelConstPtr& robot_model, bool fill_trajectory)
+                                    const ItompRobotModelConstPtr& robot_model)
 {
     ROS_INFO("Set the trajectory start state");
 
@@ -63,14 +63,13 @@ void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
         }
     }
 
-    if (fill_trajectory)
+    // fill_trajectory
+    for (int i = 1; i < getNumPoints(); ++i)
     {
-        for (int i = 1; i < getNumPoints(); ++i)
-        {
-            getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i)
-                = traj_start_point[COMPONENT_TYPE_POSITION];
-        }
+        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i)
+            = traj_start_point[COMPONENT_TYPE_POSITION];
     }
+
 }
 
 void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_state,
