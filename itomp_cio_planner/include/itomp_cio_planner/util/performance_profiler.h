@@ -94,7 +94,6 @@ inline void PerformanceProfiler::printIterationTime(bool show_percentage)
         printf("%s : %f\n", it->first.c_str(), elapsed);
         sum += elapsed;
 	}
-	printf("\n");
 }
 
 inline void PerformanceProfiler::printTotalTime(bool show_percentage)
@@ -109,7 +108,6 @@ inline void PerformanceProfiler::printTotalTime(bool show_percentage)
         printf("%s : %f\n", it->first.c_str(), elapsed);
         sum += elapsed;
 	}
-	printf("\n");
 }
 
 // thread-safe

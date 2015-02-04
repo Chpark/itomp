@@ -165,8 +165,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	return cost;
 }
 
-column_vector ImprovementManagerNLP::derivative_ref(
-	const column_vector& variables)
+column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variables)
 {
 	column_vector der(variables.size());
 	column_vector e = variables;
@@ -181,11 +180,13 @@ column_vector ImprovementManagerNLP::derivative_ref(
 		e(i) += eps_;
 		readFromOptimizationVariables(e, evaluation_parameters_[0]);
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
+        evaluation_manager_->setParameters(e);
 		const double delta_plus = evaluation_manager_->evaluate();
 
 		e(i) = old_val - eps_;
 		readFromOptimizationVariables(e, evaluation_parameters_[0]);
 		evaluation_manager_->setParameters(evaluation_parameters_[0]);
+        evaluation_manager_->setParameters(e);
 		double delta_minus = evaluation_manager_->evaluate();
 
 		der(i) = (delta_plus - delta_minus) / (2 * eps_);
@@ -196,43 +197,28 @@ column_vector ImprovementManagerNLP::derivative_ref(
 		delta_minus_vec(i) = delta_minus;
 	}
 
-	printf("Der_ref : ");
-	for (long i = 0; i < variables.size(); ++i)
-		printf("%f ", der(i));
-	printf("\n");
-	printf("Der_ref_p : ");
-	for (long i = 0; i < variables.size(); ++i)
-		printf("%.14f ", delta_plus_vec(i));
-	printf("\n");
-	printf("Der_ref_m : ");
-	for (long i = 0; i < variables.size(); ++i)
-		printf("%.14f ", delta_minus_vec(i));
-	printf("\n");
-
 	return der;
 }
 
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
-	column_vector delta_plus_vec(variables.size());
-	column_vector delta_minus_vec(variables.size());
-
 	// assume evaluate was called before
 
 	TIME_PROFILER_START_ITERATION;
 
-    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
-
-	std::vector<column_vector> der(num_cost_functions + 1);
-	for (int i = 0; i < 1/*der.size()*/; ++i)
-		der[i].set_size(variables.size());
+    column_vector der;
+    der.set_size(variables.size());
 
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
 	for (int i = 1; i < num_threads_; ++i)
 		evaluation_parameters_[i] = evaluation_parameters_[0];
 
-	std::vector<std::vector<double> > cost_der(num_cost_functions, std::vector<double>(num_parameter_elements_));
+    for (int i = 0; i < num_threads_; ++i)
+    {
+        derivatives_evaluation_manager_[i]->setParameters(variables);
+    }
 
+    /*
 	int parameter_index = 0;
 	for (int k = 0; k < num_parameter_types_; ++k)
 	{
@@ -245,51 +231,26 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
 				evaluation_parameters_[thread_index], k, j,
-				der[0].begin() + thread_variable_index, eps_,
+                der.begin() + thread_variable_index, eps_,
 				delta_plus_vec.begin() + thread_variable_index,
 				delta_minus_vec.begin() + thread_variable_index, NULL);//&cost_der);
-#ifdef VALIDATE_DERIVATIVE
-			for (int i = 0; i < num_cost_functions; ++i)
-			{
-				for (int e = 0; e < num_parameter_elements_; ++e)
-					*(der[i + 1].begin() + thread_variable_index + e) = cost_der[i][e];
-			}
-#endif
 		}
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
     }
+    */
 
-    /*
-    // itomp_trajectory
-    for (int i = 0; i < num_threads_; ++i)
-    {
-        derivatives_evaluation_manager_[i]->setParameters(variables);
-    }
+
     #pragma omp parallel for
     for (int i = 0; i < variables.size(); ++i)
     {
         int thread_index = omp_get_thread_num();
-        derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der[0].begin() + i, eps_);
+        derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der.begin() + i, eps_);
     }
-    */
+
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
-//#define VALIDATE_DERIVATIVE
-#ifdef VALIDATE_DERIVATIVE
-// validate
-    printf("[%d] Der : \n", evaluation_count_);
-    for (long i = 0; i < variables.size(); ++i)
-    {
-        printf("%d %f ", i, variables(i));
-        for (int c = 0; c <= num_cost_functions; ++c)
-            printf("%f ", der[c](i));
-        printf("\n");
-    }
-	printf("\n");
-#endif
-
-    return der[0];
+    return der;
 }
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)

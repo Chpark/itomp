@@ -103,6 +103,7 @@ bool ItompOptimizer::optimize()
 				break;
 		}
 	}
+
 	evaluation_manager_->setParameters(best_parameter_trajectory_);
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(iteration_);

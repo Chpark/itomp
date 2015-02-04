@@ -17,13 +17,13 @@ public:
 	TrajectoryCost(int index, std::string name, double weight);
 	virtual ~TrajectoryCost();
 
-	virtual void initialize(const NewEvalManager* evaluation_manager) {};
+    virtual void initialize(const NewEvalManager* evaluation_manager) {}
 
 	virtual void preEvaluate(const NewEvalManager* evaluation_manager) {}
 	virtual void postEvaluate(const NewEvalManager* evaluation_manager) {}
 	virtual bool evaluate(const NewEvalManager* evaluation_manager, int point,
 						  double& cost) const = 0;
-	virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const
+    virtual bool isInvariant(const NewEvalManager* evaluation_manager, const ItompTrajectoryIndex& index) const
 	{
 		return false;
 	}
@@ -85,7 +85,7 @@ public:
 	virtual void postEvaluate(const NewEvalManager* evaluation_manager);
 	virtual bool evaluate(const NewEvalManager* evaluation_manager,
 						  int point, double& cost) const;
-	virtual bool isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const;
+    virtual bool isInvariant(const NewEvalManager* evaluation_manager, const ItompTrajectoryIndex& index) const;
 
 protected:
 	std::vector<CollisionWorldFCLDerivativesPtr> collision_world_derivatives;

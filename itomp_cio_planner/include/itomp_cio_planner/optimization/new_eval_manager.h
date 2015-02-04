@@ -79,6 +79,9 @@ private:
 
 	bool evaluatePointRange(int point_begin, int point_end,
 							Eigen::MatrixXd& cost_matrix, int type = -1, int element = -1);
+    bool evaluatePointRange(int point_begin, int point_end,
+                            Eigen::MatrixXd& cost_matrix,
+                            const ItompTrajectoryIndex& index);
 
 	bool isDerivative() const;
 

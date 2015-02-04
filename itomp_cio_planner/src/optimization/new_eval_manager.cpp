@@ -144,7 +144,6 @@ double NewEvalManager::evaluate()
 	}
 
     performFullForwardKinematicsAndDynamics(0, full_trajectory_->getNumPoints());
-	//performInverseDynamics(0, full_trajectory_->getNumPoints());
 
     std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 	for (int c = 0; c < cost_functions.size(); ++c)
@@ -243,7 +242,6 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 
 	performPartialForwardKinematicsAndDynamics(full_point_begin, full_point_end,
 			element);
-	//performInverseDynamics(full_point_begin, full_point_end);
 
 	evaluatePointRange(full_point_begin, full_point_end,
 					   evaluation_cost_matrix_, type, element);
@@ -258,7 +256,43 @@ void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_ind
 
     performPartialForwardKinematicsAndDynamics(point_begin, point_end, index.element);
 
-    evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index.component, index.element);
+    evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index);
+}
+
+bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
+                                        Eigen::MatrixXd& cost_matrix,
+                                        const ItompTrajectoryIndex& index)
+{
+    bool is_feasible = true;
+
+    const std::vector<TrajectoryCostPtr>& cost_functions =
+        TrajectoryCostManager::getInstance()->getCostFunctionVector();
+
+    // cost weight changed
+    if (cost_functions.size() != cost_matrix.cols())
+        cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),	cost_functions.size());
+
+    for (int c = 0; c < cost_functions.size(); ++c)
+    {
+        if (cost_functions[c]->isInvariant(this, index))
+        {
+            for (int i = point_begin; i < point_end; ++i)
+                cost_matrix(i, c) = 0.0;
+        }
+        else
+        {
+            for (int i = point_begin; i < point_end; ++i)
+            {
+                double cost = 0.0;
+
+                is_feasible &= cost_functions[c]->evaluate(this, i, cost);
+
+                cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
+            }
+        }
+    }
+    is_feasible = false;
+    return is_feasible;
 }
 
 bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
@@ -275,12 +309,14 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 	for (int c = 0; c < cost_functions.size(); ++c)
 	{
+        /*
 		if (cost_functions[c]->isInvariant(this, type, element))
 		{
 			for (int i = point_begin; i < point_end; ++i)
 				cost_matrix(i, c) = 0.0;
 		}
 		else
+        */
 		{
 			for (int i = point_begin; i < point_end; ++i)
 			{
@@ -312,50 +348,38 @@ void NewEvalManager::render()
 	}
 }
 
-void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
-		int point_end)
+void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, int point_end)
 {
 	TIME_PROFILER_START_TIMER(FK);
-
-	if (!full_trajectory_->hasVelocity()
-			|| !full_trajectory_->hasAcceleration())
-		return;
 
 	int num_contacts = planning_group_->getNumContacts();
 
 	for (int point = point_begin; point < point_end; ++point)
 	{
-		const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
-									   FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-									   Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-		const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(
-										   FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-										   Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-		const Eigen::VectorXd& q_ddot =
-			full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-				Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
+        const Eigen::VectorXd& q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_ddot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 		// compute contact variables
-		full_trajectory_->getContactVariables(point, contact_variables_[point]);
+        itomp_trajectory_->getContactVariables(point, contact_variables_[point]);
 		for (int i = 0; i < num_contacts; ++i)
 		{
-			const Eigen::Vector3d contact_position =
-				contact_variables_[point][i].getPosition();
-			const Eigen::Vector3d contact_orientation =
-				contact_variables_[point][i].getOrientation();
+            const Eigen::Vector3d contact_position = contact_variables_[point][i].getPosition();
+            const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
 
 			Eigen::Vector3d contact_normal, proj_position, proj_orientation;
-			GroundManager::getInstance()->getNearestGroundPosition(
-				contact_position, contact_orientation, proj_position,
-				proj_orientation, contact_normal);
+            GroundManager::getInstance()->getNearestGroundPosition(contact_position, contact_orientation,
+                    proj_position, proj_orientation, contact_normal);
 
-			int rbdl_endeffector_id =
-				planning_group_->contact_points_[i].getRBDLBodyId();
+            int rbdl_endeffector_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
-			contact_variables_[point][i].ComputeProjectedPointPositions(
-				proj_position, proj_orientation, rbdl_models_[point],
-				planning_group_->contact_points_[i]);
+            contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
+                    rbdl_models_[point], planning_group_->contact_points_[i]);
 		}
 
 		// compute external forces
@@ -365,22 +389,16 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 
 			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 			{
-				int rbdl_point_id =
-					planning_group_->contact_points_[i].getContactPointRBDLIds(
-						c);
+                int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
 
-				Eigen::Vector3d point_position =
-					contact_variables_[point][i].projected_point_positions_[c];
+                Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
 
-				Eigen::Vector3d contact_force =
-					contact_variables_[point][i].getPointForce(c);
+                Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
 				contact_force *= contact_v;
 
-				Eigen::Vector3d contact_torque = point_position.cross(
-													 contact_force);
+                Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
-				RigidBodyDynamics::Math::SpatialVector& ext_force =
-					external_forces_[point][rbdl_point_id];
+                RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_point_id];
 				for (int j = 0; j < 3; ++j)
 				{
 					ext_force(j) = contact_torque(j);
@@ -389,8 +407,7 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin,
 			}
 		}
 
-		updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot,
-										tau_[point], &external_forces_[point]);
+        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau_[point], &external_forces_[point]);
 	}
 
 	TIME_PROFILER_END_TIMER(FK);
