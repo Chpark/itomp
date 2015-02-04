@@ -34,7 +34,8 @@ ItompTrajectory::ItompTrajectory(const ItompTrajectory& trajectory)
       keyframe_interval_(trajectory.keyframe_interval_),
       duration_(trajectory.duration_),
       discretization_(trajectory.discretization_),
-      parameter_to_index_map_(trajectory.parameter_to_index_map_)
+      parameter_to_index_map_(trajectory.parameter_to_index_map_),
+      full_to_parameter_joint_index_map_(trajectory.full_to_parameter_joint_index_map_)
 {
     for (int i = 0; i < COMPONENT_TYPE_NUM; ++i)
     {
@@ -248,7 +249,7 @@ void ItompTrajectory::interpolateInputJointTrajectory(const std::vector<unsigned
     }
 }
 
-void ItompTrajectory::interpolateKeyframes()
+void ItompTrajectory::interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group)
 {
     if (keyframe_interval_ <= 1)
         return;
@@ -261,32 +262,48 @@ void ItompTrajectory::interpolateKeyframes()
         unsigned int num_sub_component_elements = getElementTrajectory(0, s)->getNumElements();
         for (unsigned int j = 0; j < num_sub_component_elements; ++j)
         {
-            // skip the initial position
-            unsigned int current_point = 1;
             for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
             {
                 ecl::CubicPolynomial poly;
                 unsigned int cur_keyframe_index = k * keyframe_interval_;
                 unsigned int next_keyframe_index = cur_keyframe_index + keyframe_interval_;
 
-                poly = ecl::CubicPolynomial::DerivativeInterpolation(
-                           0.0,
-                           getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j),
-                           getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j),
-                           (double)keyframe_interval_,
-                           getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j),
-                           getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j));
+                double cur_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j);
+                double cur_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j);
+                double next_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j);
+                double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
 
-                for (unsigned int i = 1; i <= keyframe_interval_; ++i)
+                // handle joint limits / wrapping
+                if (s == SUB_COMPONENT_TYPE_JOINT && full_to_parameter_joint_index_map_[j] != -1)
                 {
-                    if (current_point != getNumPoints() - 1)
+                    const ItompRobotJoint& joint = planning_group->group_joints_[full_to_parameter_joint_index_map_[j]];
+                    if (joint.has_joint_limits_)
+                    {
+                        next_pos = std::max(next_pos, joint.joint_limit_min_);
+                        next_pos = std::min(next_pos, joint.joint_limit_max_);
+                    }
+                    if (joint.wrap_around_)
+                    {
+                        while (next_pos - cur_pos > M_PI)
+                            next_pos -= 2 * M_PI;
+                        while (next_pos - cur_pos < -M_PI)
+                            next_pos += 2 * M_PI;
+                    }
+                }
+
+                poly = ecl::CubicPolynomial::DerivativeInterpolation(
+                           (double)cur_keyframe_index * discretization_, cur_pos, cur_vel,
+                           (double)next_keyframe_index * discretization_, next_pos, next_vel);
+
+                for (unsigned int i = cur_keyframe_index + 1; i <= next_keyframe_index; ++i)
+                {
+                    if (i != getNumPoints() - 1)
                     {
                         double t = i * discretization_;
-                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(current_point, j) = poly(t);
-                        getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(current_point, j) = poly.derivative(t);
-                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(current_point, j) = poly.dderivative(t);
+                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
+                        getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
+                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
                     }
-                    ++current_point;
                 }
             }
         }
@@ -308,23 +325,26 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
     unsigned int next_keyframe_index = trajectory_point_end;
 
     poly = ecl::CubicPolynomial::DerivativeInterpolation(
-               (double)cur_keyframe_index,
+               (double)cur_keyframe_index * discretization_,
                getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(cur_keyframe_index, element),
                getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(cur_keyframe_index, element),
-               (double)next_keyframe_index,
+               (double)next_keyframe_index * discretization_,
                getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(next_keyframe_index, element),
                getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(next_keyframe_index, element));
 
-    for (unsigned int i = cur_keyframe_index; i < next_keyframe_index; ++i)
+    for (unsigned int i = cur_keyframe_index + 1; i <= next_keyframe_index; ++i)
     {
-        double t = i * discretization_;
-        getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(i, element) = poly(t);
-        getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(i, element) = poly.derivative(t);
-        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_index)->at(i, element) = poly.dderivative(t);
+        if (i != getNumPoints() - 1)
+        {
+            double t = i * discretization_;
+            getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(i, element) = poly(t);
+            getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(i, element) = poly.derivative(t);
+            getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_index)->at(i, element) = poly.dderivative(t);
+        }
     }
 }
 
-void ItompTrajectory::setParameters(const ParameterVector& parameters)
+void ItompTrajectory::setParameters(const ParameterVector& parameters, const ItompPlanningGroupConstPtr& planning_group)
 {
     unsigned int num_parameters = parameter_to_index_map_.size();
 
@@ -344,7 +364,7 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters)
         Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.indices[2]);
         row(index.indices[3]) = parameters(i, 0);
     }
-    interpolateKeyframes();
+    interpolateKeyframes(planning_group);
 }
 
 void ItompTrajectory::getParameters(ParameterVector& parameters) const
@@ -429,25 +449,31 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
         const ItompPlanningGroupConstPtr& planning_group)
 {
     int num_parameter_joints = planning_group->num_joints_;
-    std::vector<unsigned int> parameter_to_full_joint_indices(num_parameter_joints);
-    for (unsigned int i = 0; i < num_parameter_joints; ++i)
-        parameter_to_full_joint_indices[i] = planning_group->group_joints_[i].rbdl_joint_index_;
-
     unsigned int num_full_joints = robot_model->getNumJoints();
-    unsigned int num_contact_positions = planning_group->getNumContacts() * 7; // var + pos(3) + ori(3)
-    unsigned int num_contact_forces = planning_group->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 3; // n * force(3)
 
-    unsigned int parameter_size = num_keyframes_ * 2 * (num_parameter_joints + num_contact_positions + num_contact_forces);
+    std::vector<unsigned int> parameter_to_full_joint_indices(num_parameter_joints);
+    full_to_parameter_joint_index_map_.resize(num_full_joints, -1);
+
+    for (unsigned int i = 0; i < num_parameter_joints; ++i)
+    {
+        parameter_to_full_joint_indices[i] = planning_group->group_joints_[i].rbdl_joint_index_;
+        full_to_parameter_joint_index_map_[planning_group->group_joints_[i].rbdl_joint_index_] = i;
+    }
+
+    unsigned int num_contact_position_params = planning_group->getNumContacts() * 7; // var + pos(3) + ori(3)
+    unsigned int num_contact_force_params = planning_group->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 3; // n * force(3)
+
+    unsigned int parameter_size = num_keyframes_ * 2 * (num_parameter_joints + num_contact_position_params + num_contact_force_params);
     parameter_to_index_map_.resize(parameter_size);
 
     unsigned int parameter_pos = 0;
-    for (unsigned int i = 0; i < num_keyframes_; ++i)
+    // pos, vel
+    for (unsigned int j = 0; j < 2; ++j)
     {
-        unsigned int keyframe_pos = i * keyframe_interval_;
-
-        // pos, vel
-        for (unsigned int j = 0; j < 2; ++j)
+        for (unsigned int i = 0; i < num_keyframes_; ++i)
         {
+            unsigned int keyframe_pos = i * keyframe_interval_;
+
             // indices for joints
             for (unsigned int k = 0; k < num_parameter_joints; ++k)
             {
@@ -460,25 +486,25 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
             }
 
             // indices for contact pos
-            for (unsigned int k = 0; k < num_contact_positions; ++k)
+            for (unsigned int k = 0; k < num_contact_position_params; ++k)
             {
                 ItompTrajectoryIndex& index = parameter_to_index_map_[parameter_pos++];
 
                 index.indices[0] = j;
                 index.indices[1] = 1;
                 index.indices[2] = keyframe_pos;
-                index.indices[3] = num_full_joints + k;
+                index.indices[3] = k;
             }
 
             // indices for contact forces
-            for (unsigned int k = 0; k < num_contact_positions; ++k)
+            for (unsigned int k = 0; k < num_contact_force_params; ++k)
             {
                 ItompTrajectoryIndex& index = parameter_to_index_map_[parameter_pos++];
 
                 index.indices[0] = j;
                 index.indices[1] = 2;
                 index.indices[2] = keyframe_pos;
-                index.indices[3] = num_full_joints + num_contact_positions + k;
+                index.indices[3] = k;
             }
         }
     }

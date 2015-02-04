@@ -48,7 +48,7 @@ public:
     void computeParameterToTrajectoryIndexMap(const ItompRobotModelConstPtr& robot_model,
             const ItompPlanningGroupConstPtr& planning_group);
 
-    void setParameters(const ParameterVector& parameters);
+    void setParameters(const ParameterVector& parameters, const ItompPlanningGroupConstPtr& planning_group);
     void getParameters(ParameterVector& parameters) const;
 
     void directChangeForDerivativeComputation(unsigned int parameter_index, double value,
@@ -77,7 +77,7 @@ public:
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
                     unsigned int num_keyframes, unsigned int keyframe_interval, double duration, double discretization);
-    void interpolateKeyframes();
+    void interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group);
     void interpolateTrajectory(unsigned int trajectory_point_begin, unsigned int trajectory_point_end,
                                const ItompTrajectoryIndex& index);
 
@@ -91,6 +91,7 @@ protected:
     double discretization_;
 
     ParameterMap parameter_to_index_map_;
+    std::vector<int> full_to_parameter_joint_index_map_;
 
     ElementTrajectoryPtr element_trajectories_[COMPONENT_TYPE_NUM][SUB_COMPONENT_TYPE_NUM];
 

@@ -508,12 +508,12 @@ void NewEvalManager::setParameters(
 
 void NewEvalManager::getParameters(ItompTrajectory::ParameterVector& parameters) const
 {
-    itomp_trajectory_->getParameter(parameters);;
+    itomp_trajectory_->getParameters(parameters);
 }
 
 void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& parameters)
 {
-    itomp_trajectory_->setParameter(parameters);
+    itomp_trajectory_->setParameters(parameters, planning_group_);
 }
 
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)

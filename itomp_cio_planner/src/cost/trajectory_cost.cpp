@@ -74,8 +74,7 @@ void TrajectoryCostObstacle::initialize(
 	// create collision manager for env
 }
 
-void TrajectoryCostObstacle::preEvaluate(
-	const NewEvalManager* evaluation_manager)
+void TrajectoryCostObstacle::preEvaluate(const NewEvalManager* evaluation_manager)
 {
 	return;
 
@@ -85,12 +84,9 @@ void TrajectoryCostObstacle::preEvaluate(
 	if (collision_robot_derivatives.size() < num_points)
 		collision_robot_derivatives.resize(num_points);
 
-	const FullTrajectoryConstPtr trajectory =
-		evaluation_manager->getFullTrajectory();
-	const planning_scene::PlanningSceneConstPtr planning_scene =
-		evaluation_manager->getPlanningScene();
-	const collision_detection::WorldPtr world(
-		new collision_detection::World(*planning_scene->getWorld().get()));
+    const FullTrajectoryConstPtr trajectory = evaluation_manager->getFullTrajectory();
+    const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
+    const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene->getWorld()));
 
 	for (int point = 0; point < num_points; ++point)
 	{
@@ -102,36 +98,28 @@ void TrajectoryCostObstacle::preEvaluate(
 			new CollisionRobotFCLDerivatives(
 				dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene->getCollisionRobotUnpadded().get())));
 
-		robot_state::RobotStatePtr robot_state =
-			evaluation_manager->getRobotState(point);
-		const Eigen::MatrixXd mat = trajectory->getTrajectory(
-										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+        robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
+        const Eigen::MatrixXd mat = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 		robot_state->setVariablePositions(mat.data());
 
 		robot_state->updateCollisionBodyTransforms();
-		collision_robot_derivatives[point]->constructInternalFCLObject(
-			const_cast<const robot_state::RobotState&>(*robot_state));
+        collision_robot_derivatives[point]->constructInternalFCLObject(const_cast<const robot_state::RobotState&>(*robot_state));
 	}
 }
-void TrajectoryCostObstacle::postEvaluate(
-	const NewEvalManager* evaluation_manager)
+void TrajectoryCostObstacle::postEvaluate(const NewEvalManager* evaluation_manager)
 {
 
 }
 
-bool TrajectoryCostObstacle::isInvariant(
-	const NewEvalManager* evaluation_manager, int type, int element) const
+bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manager, int type, int element) const
 {
 	if (type == -1 && element == -1)
 		return false;
 
-	return type != 0
-		   || element
-		   >= evaluation_manager->getParameterTrajectory()->getNumJoints();
+    return type != 0 || element >= evaluation_manager->getParameterTrajectory()->getNumJoints();
 }
 
-bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
-									  int point, double& cost) const
+bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	TIME_PROFILER_START_TIMER(Obstacle);
 
@@ -144,15 +132,11 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 
 		cost = 0;
 
-		const FullTrajectoryConstPtr trajectory =
-			evaluation_manager->getFullTrajectory();
-		robot_state::RobotStatePtr robot_state =
-			evaluation_manager->getRobotState(point);
-		const planning_scene::PlanningSceneConstPtr planning_scene =
-			evaluation_manager->getPlanningScene();
+        const FullTrajectoryConstPtr trajectory = evaluation_manager->getFullTrajectory();
+        robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
+        const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
 
-		ROS_ASSERT(
-			robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+        ROS_ASSERT(robot_state->getVariableCount() == trajectory->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
 
 		collision_detection::CollisionRequest collision_request;
 		collision_detection::CollisionResult collision_result;
@@ -161,8 +145,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		collision_request.max_contacts = 1000;
 		collision_request.distance = false;
 
-		const Eigen::MatrixXd mat = trajectory->getTrajectory(
-										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+        const Eigen::MatrixXd mat = trajectory->getTrajectory(Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
 		robot_state->setVariablePositions(mat.data());
 
 		const double self_collision_scale = 0.1;
@@ -170,8 +153,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 		if (i == 0)
 		{
 			//#pragma omp critical
-			planning_scene->checkCollisionUnpadded(collision_request,
-												   collision_result, *robot_state);
+            planning_scene->checkCollisionUnpadded(collision_request, collision_result, *robot_state);
 
 			int thread_index = omp_get_thread_num();
 
@@ -182,10 +164,8 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager,
 			{
 				const collision_detection::Contact& contact = it->second[0];
 
-				if (contact.body_type_1
-						!= collision_detection::BodyTypes::WORLD_OBJECT
-						&& contact.body_type_2
-						!= collision_detection::BodyTypes::WORLD_OBJECT)
+                if (contact.body_type_1	!= collision_detection::BodyTypes::WORLD_OBJECT
+                        && contact.body_type_2 != collision_detection::BodyTypes::WORLD_OBJECT)
 				{
 					cost += self_collision_scale * contact.depth;
 
