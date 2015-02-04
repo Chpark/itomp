@@ -84,64 +84,32 @@ inline void PerformanceProfiler::startIteration()
 
 inline void PerformanceProfiler::printIterationTime(bool show_percentage)
 {
-	for (std::map<std::string, Entry>::iterator it = entries_.begin();
-			it != entries_.end(); ++it)
-	{
-		printf("%s ", it->first.c_str());
-	}
-	printf("\n");
+    printf("Elapsed Time\n");
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
-		double elpased = it->second.getIterationElapsed();
-		printf("%f ", elpased);
-		sum += elpased;
+        double elapsed = it->second.getIterationElapsed();
+        printf("%s : %f\n", it->first.c_str(), elapsed);
+        sum += elapsed;
 	}
 	printf("\n");
-
-	if (show_percentage)
-	{
-		for (std::map<std::string, Entry>::iterator it = entries_.begin();
-				it != entries_.end(); ++it)
-		{
-			double percentage = it->second.getIterationElapsed() / sum * 100.0;
-			printf("%.2f ", percentage);
-		}
-		printf("\n");
-	}
 }
 
 inline void PerformanceProfiler::printTotalTime(bool show_percentage)
 {
-	for (std::map<std::string, Entry>::iterator it = entries_.begin();
-			it != entries_.end(); ++it)
-	{
-		printf("%s ", it->first.c_str());
-	}
-	printf("\n");
+    printf("Total Elapsed Time\n");
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
-		double elpased = it->second.getTotalElapsed();
-		printf("%f ", elpased);
-		sum += elpased;
+        double elapsed = it->second.getTotalElapsed();
+        printf("%s : %f\n", it->first.c_str(), elapsed);
+        sum += elapsed;
 	}
 	printf("\n");
-
-	if (show_percentage)
-	{
-		for (std::map<std::string, Entry>::iterator it = entries_.begin();
-				it != entries_.end(); ++it)
-		{
-			double percentage = it->second.getTotalElapsed() / sum * 100.0;
-			printf("%.2f ", percentage);
-		}
-		printf("\n");
-	}
 }
 
 // thread-safe

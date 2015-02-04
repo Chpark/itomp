@@ -259,6 +259,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
     }
 
+    /*
     // itomp_trajectory
     for (int i = 0; i < num_threads_; ++i)
     {
@@ -270,6 +271,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         int thread_index = omp_get_thread_num();
         derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der[0].begin() + i, eps_);
     }
+    */
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 

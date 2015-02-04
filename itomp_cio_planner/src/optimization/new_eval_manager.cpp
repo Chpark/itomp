@@ -646,19 +646,12 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	{
 		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
 			   best_cost_);
-		printf("Costs ");
-		for (int c = 0; c < cost_functions.size(); ++c)
-		{
-			printf("%s ", cost_functions[c]->getName().c_str());
-		}
-		printf("\n");
 
-		for (int c = 0; c < cost_functions.size(); ++c)
+        for (int c = 0; c < cost_functions.size(); ++c)
 		{
-			double sub_cost = evaluation_cost_matrix_.col(c).sum();
-			printf("%c=%.7f ", cost_functions[c]->getName().at(0), sub_cost);
+            double sub_cost = evaluation_cost_matrix_.col(c).sum();
+            printf("%s : %.7f\n", cost_functions[c]->getName().c_str(), sub_cost);
 		}
-		printf("\n");
 
 		/*
 		for (int i = 0; i < evaluation_cost_matrix_.rows(); i += full_trajectory_->getNumKeyframeIntervalPoints())
