@@ -21,15 +21,15 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
-NewEvalManagerConstPtr NewEvalManager::ref_evaluation_manager_;
+const NewEvalManager* NewEvalManager::ref_evaluation_manager_ = NULL;
 
 NewEvalManager::NewEvalManager() :
     last_trajectory_feasible_(false),
     parameter_modified_(true),
     best_cost_(std::numeric_limits<double>::max())
 {
-    if (!ref_evaluation_manager_)
-        ref_evaluation_manager_.reset(this);
+    if (ref_evaluation_manager_ == NULL)
+        ref_evaluation_manager_ = this;
 }
 
 NewEvalManager::NewEvalManager(const NewEvalManager& manager)
@@ -61,7 +61,6 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
 
 NewEvalManager::~NewEvalManager()
 {
-
 }
 
 NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
@@ -503,6 +502,91 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 	}
 
 	TIME_PROFILER_END_TIMER(FK);
+}
+
+void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, const ItompTrajectoryIndex& index)
+{
+    TIME_PROFILER_START_TIMER(FK);
+
+    for (int point = point_begin; point < point_end; ++point)
+    {
+        rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
+    }
+
+    bool dynamics_only = (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    int num_contacts = planning_group_->getNumContacts();
+
+    for (int point = point_begin; point < point_end; ++point)
+    {
+        const Eigen::VectorXd& q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+        const Eigen::VectorXd& q_ddot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        if (dynamics_only)
+        {
+            // compute contact variables
+            itomp_trajectory_->getContactVariables(point, contact_variables_[point]);
+            for (int i = 0; i < num_contacts; ++i)
+            {
+                const Eigen::Vector3d contact_position = contact_variables_[point][i].getPosition();
+                const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
+
+                Eigen::Vector3d contact_normal, proj_position, proj_orientation;
+                GroundManager::getInstance()->getNearestGroundPosition(contact_position, contact_orientation,
+                        proj_position, proj_orientation,
+                        contact_normal);
+
+                int rbdl_endeffector_id = planning_group_->contact_points_[i].getRBDLBodyId();
+
+                contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
+                        rbdl_models_[point], planning_group_->contact_points_[i]);
+            }
+
+            // compute external forces
+            for (int i = 0; i < num_contacts; ++i)
+            {
+                double contact_v = contact_variables_[point][i].getVariable();
+
+                for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+                {
+                    int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
+
+                    Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
+
+                    Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
+                    contact_force *= contact_v;
+
+                    Eigen::Vector3d contact_torque = point_position.cross(contact_force);
+
+                    RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_point_id];
+                    for (int j = 0; j < 3; ++j)
+                    {
+                        ext_force(j) = contact_torque(j);
+                        ext_force(j + 3) = contact_force(j);
+                    }
+                }
+            }
+
+            updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau_[point], &external_forces_[point]);
+        }
+        else
+        {
+            contact_variables_[point] = ref_evaluation_manager_->contact_variables_[point];
+            tau_[point] = ref_evaluation_manager_->tau_[point];
+            external_forces_[point] = ref_evaluation_manager_->external_forces_[point];
+
+            updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
+                                               q_ddot, tau_[point], &external_forces_[point],
+                                               planning_group_->group_joints_[index.element].rbdl_affected_body_ids_);
+
+        }
+    }
+
+    TIME_PROFILER_END_TIMER(FK);
 }
 
 void NewEvalManager::getParameters(

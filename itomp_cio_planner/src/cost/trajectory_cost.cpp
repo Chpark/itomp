@@ -68,8 +68,7 @@ bool TrajectoryCostSmoothness::evaluate(
 	return true;
 }
 
-void TrajectoryCostObstacle::initialize(
-	const NewEvalManager* evaluation_manager)
+void TrajectoryCostObstacle::initialize(const NewEvalManager* evaluation_manager)
 {
 	// create collision manager for env
 }
@@ -121,6 +120,14 @@ bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manage
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    /*
+    if (point != 0)
+    {
+        cost = 0.0;
+        return true;
+    }
+    */
+
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;

@@ -25,7 +25,14 @@ ItompPlannerNode::ItompPlannerNode(const robot_model::RobotModelConstPtr& model)
 
 ItompPlannerNode::~ItompPlannerNode()
 {
+    NewVizManager::getInstance()->destroy();
+    TrajectoryFactory::getInstance()->destroy();
+    PlanningParameters::getInstance()->destroy();
 
+    optimizer_.reset();
+    trajectory_.reset();
+    itomp_trajectory_.reset();
+    itomp_robot_model_.reset();
 }
 
 bool ItompPlannerNode::init()

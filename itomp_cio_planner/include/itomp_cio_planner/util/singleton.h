@@ -17,6 +17,7 @@ class Singleton
 public:
 	virtual ~Singleton(void) {}
 	static T* getInstance();
+    static void destroy();
 
 protected:
 	Singleton(void) {}
@@ -33,6 +34,14 @@ T* Singleton<T>::getInstance()
 		instance_ = new T;
 	return instance_;
 }
+
+template<class T>
+void Singleton<T>::destroy()
+{
+    delete instance_;
+    instance_ = NULL;
+}
+
 }
 
 #endif /* SINGLETON_H_ */

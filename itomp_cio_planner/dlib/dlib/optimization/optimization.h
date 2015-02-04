@@ -9,7 +9,7 @@
 #include "optimization_search_strategies.h"
 #include "optimization_stop_strategies.h"
 #include "optimization_line_search.h"
-#include <itomp_cio_planner/util/jacobian.h>
+//#include <itomp_cio_planner/util/jacobian.h>
 
 namespace dlib
 {

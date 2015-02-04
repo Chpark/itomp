@@ -73,6 +73,7 @@ private:
 
 	void performFullForwardKinematicsAndDynamics(int point_begin, int point_end);
 	void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element);
+    void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, const ItompTrajectoryIndex& index);
 
 	void setParameterModified();
 
@@ -100,7 +101,7 @@ private:
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
-    static NewEvalManagerConstPtr ref_evaluation_manager_;
+    static const NewEvalManager* ref_evaluation_manager_;
 
     // non-shared pointer members
     FullTrajectoryPtr full_trajectory_;
@@ -158,11 +159,6 @@ inline double NewEvalManager::getTrajectoryCost() const
 inline const planning_scene::PlanningSceneConstPtr& NewEvalManager::getPlanningScene() const
 {
 	return planning_scene_;
-}
-
-inline bool NewEvalManager::isDerivative() const
-{
-	return ref_evaluation_manager_ != NULL;
 }
 
 inline const ItompPlanningGroupConstPtr& NewEvalManager::getPlanningGroup() const

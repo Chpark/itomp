@@ -27,7 +27,11 @@ ImprovementManagerNLP::ImprovementManagerNLP()
 
 ImprovementManagerNLP::~ImprovementManagerNLP()
 {
+    TrajectoryCostManager::getInstance()->destroy();
+    PerformanceProfiler::getInstance()->destroy();
 
+    for (int i = 0; i < derivatives_evaluation_manager_.size(); ++i)
+        derivatives_evaluation_manager_[i].reset();
 }
 
 void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manager,
@@ -91,7 +95,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 	//if (iteration != 0)
 	//addNoiseToVariables(variables);
 
-	optimize(iteration, variables);
+    optimize(iteration, variables);
 
 	evaluation_manager_->printTrajectoryCost(iteration);
 
