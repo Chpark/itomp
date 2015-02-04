@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/trajectory/composite_trajectory.h>
 #include <itomp_cio_planner/trajectory/element_trajectory.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
+#include <itomp_cio_planner/contact/contact_variables.h>
 #include <sensor_msgs/JointState.h>
 #include <moveit_msgs/TrajectoryConstraints.h>
 #include "dlib/matrix.h"
@@ -34,6 +35,7 @@ public:
         SUB_COMPONENT_TYPE_CONTACT_POSITION,
         SUB_COMPONENT_TYPE_CONTACT_FORCE,
         SUB_COMPONENT_TYPE_NUM,
+        SUB_COMPONENT_TYPE_ALL = SUB_COMPONENT_TYPE_NUM,
     };
 
     typedef dlib::matrix<double, 0, 1> ParameterVector;
@@ -44,7 +46,7 @@ public:
     virtual ItompTrajectory* clone() const;
 
     void computeParameterToTrajectoryIndexMap(const ItompRobotModelConstPtr& robot_model,
-                                              const ItompPlanningGroupConstPtr& planning_group);
+            const ItompPlanningGroupConstPtr& planning_group);
 
     void setFromParameter(ParameterVector& parameter);
     void directChangeForDerivativeComputation(unsigned int parameter_index, double value,
@@ -61,8 +63,14 @@ public:
     ElementTrajectoryPtr& getElementTrajectory(unsigned int component, unsigned int sub_component);
     ElementTrajectoryConstPtr getElementTrajectory(unsigned int component, unsigned int sub_component) const;
 
+    void setContactVariables(int point, const std::vector<ContactVariables>& contact_variables);
+    void getContactVariables(int point, std::vector<ContactVariables>& contact_variables);
+
     void backupTrajectory(const ItompTrajectoryIndex& index);
     void restoreTrajectory();
+
+    void interpolateStartEnd(SUB_COMPONENT_TYPE sub_component_type,
+                             const std::vector<unsigned int>* element_indices = NULL);
 
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
@@ -71,10 +79,9 @@ protected:
     void interpolateTrajectory(unsigned int trajectory_point_begin, unsigned int trajectory_point_end,
                                const ItompTrajectoryIndex& index);
 
-    void interpolateStartEnd(const std::vector<unsigned int>& group_rbdl_indices);
-    void interpolateInputTrajectory(const std::vector<unsigned int>& group_rbdl_indices,
-                                    const ItompPlanningGroupConstPtr& planning_group,
-                                    const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
+    void interpolateInputJointTrajectory(const std::vector<unsigned int>& group_rbdl_indices,
+                                         const ItompPlanningGroupConstPtr& planning_group,
+                                         const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
 
     unsigned int num_keyframes_;
     unsigned int keyframe_interval_;

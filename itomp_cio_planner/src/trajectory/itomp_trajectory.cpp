@@ -138,56 +138,15 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
     // interpolate trajectory
     if (trajectory_constraints.constraints.size() != 0)
     {
-        interpolateInputTrajectory(group_rbdl_indices, planning_group, trajectory_constraints);
+        interpolateInputJointTrajectory(group_rbdl_indices, planning_group, trajectory_constraints);
     }
     else
     {
-        interpolateStartEnd(group_rbdl_indices);
+        interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, &group_rbdl_indices);
     }
 }
 
-void ItompTrajectory::interpolateStartEnd(const std::vector<unsigned int>& group_rbdl_indices)
-{
-    Eigen::MatrixXd::RowXpr traj_start_point[] =
-    {
-        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0),
-        getElementTrajectory(COMPONENT_TYPE_VELOCITY, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0),
-        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0)
-    };
-    unsigned int goal_index = getNumPoints() - 1;
-    Eigen::MatrixXd::RowXpr traj_goal_point = getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(goal_index);
-
-    for (unsigned int j = 0; j < group_rbdl_indices.size(); ++j)
-    {
-        unsigned int rbdl_index = group_rbdl_indices[j];
-
-        double x0 = traj_start_point[COMPONENT_TYPE_POSITION](rbdl_index);
-        double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_index);
-        double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_index);
-
-        double x1 = traj_goal_point(rbdl_index);
-        double v1 = 0.0;
-        double a1 = 0.0;
-
-        ecl::QuinticPolynomial poly;
-        poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_,
-                x1, v1, a1);
-        for (unsigned int i = 1; i < getNumPoints() - 1; ++i)
-        {
-            Eigen::MatrixXd::RowXpr traj_point[] =
-            {
-                getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i),
-                getElementTrajectory(COMPONENT_TYPE_VELOCITY, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i),
-                getElementTrajectory(COMPONENT_TYPE_ACCELERATION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i)
-            };
-            traj_point[COMPONENT_TYPE_POSITION](rbdl_index) = poly(i * discretization_);
-            traj_point[COMPONENT_TYPE_VELOCITY](rbdl_index) = poly.derivative(i * discretization_);
-            traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) =	poly.dderivative(i * discretization_);
-        }
-    }
-}
-
-void ItompTrajectory::interpolateInputTrajectory(const std::vector<unsigned int>& group_rbdl_indices,
+void ItompTrajectory::interpolateInputJointTrajectory(const std::vector<unsigned int>& group_rbdl_indices,
         const ItompPlanningGroupConstPtr& planning_group,
         const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
@@ -504,6 +463,93 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
                 index.indices[2] = keyframe_pos;
                 index.indices[3] = num_full_joints + num_contact_positions + k;
             }
+        }
+    }
+}
+
+void ItompTrajectory::setContactVariables(int point, const std::vector<ContactVariables>& contact_variables)
+{
+    Eigen::MatrixXd::RowXpr point_contact_positions =
+        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_CONTACT_POSITION)->getTrajectoryPoint(point);
+    Eigen::MatrixXd::RowXpr point_contact_forces =
+        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_CONTACT_FORCE)->getTrajectoryPoint(point);
+
+    int num_contacts = contact_variables.size();
+    for (int i = 0; i < num_contacts; ++i)
+    {
+        point_contact_positions.block(0, i * 7, 1, 7) = contact_variables[i].serialized_position_.transpose();
+        point_contact_forces.block(0, i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
+            contact_variables[i].serialized_forces_.transpose();
+    }
+}
+
+void ItompTrajectory::getContactVariables(int point, std::vector<ContactVariables>& contact_variables)
+{
+    Eigen::MatrixXd::RowXpr point_contact_positions =
+        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_CONTACT_POSITION)->getTrajectoryPoint(point);
+    Eigen::MatrixXd::RowXpr point_contact_forces =
+        getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_CONTACT_FORCE)->getTrajectoryPoint(point);
+
+    int num_contacts = contact_variables.size();
+    for (int i = 0; i < num_contacts; ++i)
+    {
+        contact_variables[i].serialized_position_.transpose() = point_contact_positions.block(0, i * 7, 1, 7);
+        contact_variables[i].serialized_forces_.transpose() =
+            point_contact_forces.block(0, i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS);
+    }
+}
+
+void ItompTrajectory::interpolateStartEnd(SUB_COMPONENT_TYPE sub_component_type,
+        const std::vector<unsigned int>* element_indices)
+{
+    if (sub_component_type == SUB_COMPONENT_TYPE_ALL)
+    {
+        interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, element_indices);
+        interpolateStartEnd(SUB_COMPONENT_TYPE_CONTACT_POSITION, element_indices);
+        interpolateStartEnd(SUB_COMPONENT_TYPE_CONTACT_FORCE, element_indices);
+        return;
+    }
+
+    Eigen::MatrixXd::RowXpr traj_start_point[] =
+    {
+        getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(0),
+        getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(0),
+        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(0)
+    };
+    unsigned int goal_index = getNumPoints() - 1;
+    Eigen::MatrixXd::RowXpr traj_goal_point[] =
+    {
+        getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(goal_index),
+        getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(goal_index),
+        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(goal_index)
+    };
+
+    unsigned int elements = element_indices ? element_indices->size() : traj_start_point[0].cols();
+    for (unsigned int j = 0; j < elements; ++j)
+    {
+        unsigned int index = element_indices ? (*element_indices)[j] : j;
+
+        double x0 = traj_start_point[COMPONENT_TYPE_POSITION](index);
+        double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](index);
+        double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](index);
+
+        double x1 = traj_goal_point[COMPONENT_TYPE_POSITION](index);
+        double v1 = traj_goal_point[COMPONENT_TYPE_VELOCITY](index);
+        double a1 = traj_goal_point[COMPONENT_TYPE_ACCELERATION](index);
+
+        ecl::QuinticPolynomial poly;
+        poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration_, x1, v1, a1);
+        for (unsigned int i = 1; i < getNumPoints() - 1; ++i)
+        {
+            Eigen::MatrixXd::RowXpr traj_point[] =
+            {
+                getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(i),
+                getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(i),
+                getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(i)
+            };
+            traj_point[COMPONENT_TYPE_POSITION](index) = poly(i * discretization_);
+            traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative(i * discretization_);
+            traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative(i * discretization_);
         }
     }
 }

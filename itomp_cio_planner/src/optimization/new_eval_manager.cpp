@@ -589,7 +589,6 @@ void NewEvalManager::initializeContactVariables()
     ROS_ASSERT(num_contacts == PlanningParameters::getInstance()->getNumContacts());
 
 	// allocate
-	contact_variables_.clear();
 	contact_variables_.resize(full_trajectory_->getNumPoints());
 	for (int i = 0; i < contact_variables_.size(); ++i)
 	{
@@ -659,8 +658,11 @@ void NewEvalManager::initializeContactVariables()
 		 */
 
 		full_trajectory_->setContactVariables(point, contact_variables_[point]);
+        itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
 	}
 	full_trajectory_->interpolateContactVariables();
+    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
 }
 
 }
