@@ -212,14 +212,12 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
 	column_vector delta_plus_vec(variables.size());
 	column_vector delta_minus_vec(variables.size());
-	double d_p, d_m;
 
 	// assume evaluate was called before
 
 	TIME_PROFILER_START_ITERATION;
 
-	int num_cost_functions =
-		TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	std::vector<column_vector> der(num_cost_functions + 1);
 	for (int i = 0; i < 1/*der.size()*/; ++i)
@@ -255,25 +253,37 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 #endif
 		}
 		parameter_index += num_parameter_points_ * num_parameter_elements_;
-	}
+    }
 
-	TIME_PROFILER_PRINT_ITERATION_TIME();
+    // itomp_trajectory
+    for (int i = 0; i < num_threads_; ++i)
+    {
+        derivatives_evaluation_manager_[i]->setParameters(variables);
+    }
+    #pragma omp parallel for
+    for (int i = 0; i < variables.size(); ++i)
+    {
+        int thread_index = omp_get_thread_num();
+        derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der[0].begin() + i, eps_);
+    }
+
+    TIME_PROFILER_PRINT_ITERATION_TIME();
 
 //#define VALIDATE_DERIVATIVE
 #ifdef VALIDATE_DERIVATIVE
-	// validate
-	printf("[%d] Der : \n", evaluation_count_);
-	for (long i = 0; i < variables.size(); ++i)
-	{
-		printf("%d %f ", i, variables(i));
-		for (int c = 0; c <= num_cost_functions; ++c)
-			printf("%f ", der[c](i));
-		printf("\n");
-	}
+// validate
+    printf("[%d] Der : \n", evaluation_count_);
+    for (long i = 0; i < variables.size(); ++i)
+    {
+        printf("%d %f ", i, variables(i));
+        for (int c = 0; c <= num_cost_functions; ++c)
+            printf("%f ", der[c](i));
+        printf("\n");
+    }
 	printf("\n");
 #endif
 
-	return der[0];
+    return der[0];
 }
 
 void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)

@@ -316,8 +316,8 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
     if (keyframe_interval_ <= 1)
         return;
 
-    unsigned int sub_component_index = index.indices[1];
-    unsigned int element = index.indices[3];
+    unsigned int sub_component_index = index.sub_component;
+    unsigned int element = index.element;
 
     // skip the initial position
     ecl::CubicPolynomial poly;
@@ -356,13 +356,13 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
         ItompTrajectoryIndex index = parameter_to_index_map_[i];
 
         // Do not update joint values of start/goal points
-        if (index.indices[1] == SUB_COMPONENT_TYPE_JOINT &&
-                (index.indices[2] == 0 || index.indices[2] == getNumPoints() - 1))
+        if (index.sub_component == SUB_COMPONENT_TYPE_JOINT &&
+                (index.point == 0 || index.point == getNumPoints() - 1))
             continue;
 
-        ElementTrajectoryPtr& et = getElementTrajectory(index.indices[0], index.indices[1]);
-        Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.indices[2]);
-        row(index.indices[3]) = parameters(i, 0);
+        ElementTrajectoryPtr& et = getElementTrajectory(index.component, index.sub_component);
+        Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.point);
+        row(index.element) = parameters(i, 0);
     }
     interpolateKeyframes(planning_group);
 }
@@ -378,9 +378,9 @@ void ItompTrajectory::getParameters(ParameterVector& parameters) const
     {
         ItompTrajectoryIndex index = parameter_to_index_map_[i];
 
-        ElementTrajectoryConstPtr et = getElementTrajectory(index.indices[0], index.indices[1]);
-        Eigen::MatrixXd::ConstRowXpr row = et->getTrajectoryPoint(index.indices[2]);
-        parameters(i, 0) = row(index.indices[3]);
+        ElementTrajectoryConstPtr et = getElementTrajectory(index.component, index.sub_component);
+        Eigen::MatrixXd::ConstRowXpr row = et->getTrajectoryPoint(index.point);
+        parameters(i, 0) = row(index.element);
     }
 }
 
@@ -392,8 +392,8 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
 
     ItompTrajectoryIndex index = parameter_to_index_map_[parameter_index];
 
-    int point = index.indices[2];
-    int element = index.indices[3];
+    int point = index.point;
+    int element = index.element;
 
     trajectory_point_begin = std::max(0, point - (int)keyframe_interval_);
     trajectory_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
@@ -402,20 +402,20 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
         backupTrajectory(index);
 
     // Do not update joint values of start/goal points
-    if (index.indices[1] == SUB_COMPONENT_TYPE_JOINT &&
-            (index.indices[2] == 0 || index.indices[2] == getNumPoints() - 1))
+    if (index.sub_component == SUB_COMPONENT_TYPE_JOINT &&
+            (index.point == 0 || index.point == getNumPoints() - 1))
         return;
 
     // set value
-    getElementTrajectory(index.indices[0], index.indices[1])->at(point, element) = value;
+    getElementTrajectory(index.component, index.sub_component)->at(point, element) = value;
 
     interpolateTrajectory(trajectory_point_begin, trajectory_point_end, index);
 }
 
 void ItompTrajectory::backupTrajectory(const ItompTrajectoryIndex& index)
 {
-    int point = index.indices[2];
-    int element = index.indices[3];
+    int point = index.point;
+    int element = index.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
     int backup_length = backup_point_end - backup_point_begin;
@@ -423,7 +423,7 @@ void ItompTrajectory::backupTrajectory(const ItompTrajectoryIndex& index)
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)
     {
         backup_trajectory_[i].block(0, 0, backup_length, 1) =
-            getElementTrajectory(i, index.indices[1])->getData().block(
+            getElementTrajectory(i, index.sub_component)->getData().block(
                 backup_point_begin, element, backup_length, 1);
     }
     backup_index_ = index;
@@ -431,15 +431,15 @@ void ItompTrajectory::backupTrajectory(const ItompTrajectoryIndex& index)
 
 void ItompTrajectory::restoreTrajectory()
 {
-    int point = backup_index_.indices[2];
-    int element = backup_index_.indices[3];
+    int point = backup_index_.point;
+    int element = backup_index_.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
     int backup_length = backup_point_end - backup_point_begin;
 
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)
     {
-        getElementTrajectory(i, backup_index_.indices[1])->getData().block(
+        getElementTrajectory(i, backup_index_.sub_component)->getData().block(
             backup_point_begin, element, backup_length, 1) =
                 backup_trajectory_[i].block(0, 0, backup_length, 1);
     }
@@ -479,10 +479,10 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
             {
                 ItompTrajectoryIndex& index = parameter_to_index_map_[parameter_pos++];
 
-                index.indices[0] = j;
-                index.indices[1] = 0;
-                index.indices[2] = keyframe_pos;
-                index.indices[3] = parameter_to_full_joint_indices[k];
+                index.component = j;
+                index.sub_component = 0;
+                index.point = keyframe_pos;
+                index.element = parameter_to_full_joint_indices[k];
             }
 
             // indices for contact pos
@@ -490,10 +490,10 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
             {
                 ItompTrajectoryIndex& index = parameter_to_index_map_[parameter_pos++];
 
-                index.indices[0] = j;
-                index.indices[1] = 1;
-                index.indices[2] = keyframe_pos;
-                index.indices[3] = k;
+                index.component = j;
+                index.sub_component = 1;
+                index.point = keyframe_pos;
+                index.element = k;
             }
 
             // indices for contact forces
@@ -501,10 +501,10 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
             {
                 ItompTrajectoryIndex& index = parameter_to_index_map_[parameter_pos++];
 
-                index.indices[0] = j;
-                index.indices[1] = 2;
-                index.indices[2] = keyframe_pos;
-                index.indices[3] = k;
+                index.component = j;
+                index.sub_component = 2;
+                index.point = keyframe_pos;
+                index.element = k;
             }
         }
     }

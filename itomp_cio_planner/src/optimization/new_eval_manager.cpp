@@ -170,12 +170,10 @@ void NewEvalManager::computeDerivatives(
 	//debug_ = true;
 
 	setParameters(parameters);
-	full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_,
-			planning_group_);
-	parameter_modified_ = false;
+    full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_, planning_group_);
+    parameter_modified_ = false;
 
-	int num_cost_functions =
-		TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
 	for (int i = 0; i < parameter_trajectory_->getNumElements(); ++i)
 	{
@@ -183,8 +181,7 @@ void NewEvalManager::computeDerivatives(
 		int begin, end;
 
 		evaluateParameterPoint(value + eps, type, point, i, begin, end, true);
-		const double delta_plus = (
-									  evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
+        const double delta_plus = (evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
 
 		if (cost_der)
 		{
@@ -196,8 +193,7 @@ void NewEvalManager::computeDerivatives(
 		}
 
 		evaluateParameterPoint(value - eps, type, point, i, begin, end, false);
-		const double delta_minus = (
-									   evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
+        const double delta_minus = (evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
 
 
 		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
@@ -221,6 +217,25 @@ void NewEvalManager::computeDerivatives(
 	//debug_ = false;
 }
 
+void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
+                                        double* derivative_out, double eps)
+{
+    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+
+    unsigned int point_begin, point_end;
+    const double value = parameters(parameter_index, 0);
+
+    evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+    const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+
+    evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+    const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+
+    *derivative_out = (delta_plus - delta_minus) / (2 * eps);
+
+    itomp_trajectory_->restoreTrajectory();
+}
+
 void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 		int element, int& full_point_begin, int& full_point_end, bool first)
 {
@@ -235,6 +250,18 @@ void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
 					   evaluation_cost_matrix_, type, element);
 }
 
+void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_index,
+        unsigned int& point_begin, unsigned int& point_end, bool first)
+{
+    itomp_trajectory_->directChangeForDerivativeComputation(parameter_index, value, point_begin, point_end, first);
+
+    const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
+
+    performPartialForwardKinematicsAndDynamics(point_begin, point_end, index.element);
+
+    evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index.component, index.element);
+}
+
 bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 										Eigen::MatrixXd& cost_matrix, int type, int element)
 {
@@ -245,8 +272,7 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
 
 	// cost weight changed
 	if (cost_functions.size() != cost_matrix.cols())
-		cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),
-											cost_functions.size());
+        cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),	cost_functions.size());
 
 	for (int c = 0; c < cost_functions.size(); ++c)
 	{

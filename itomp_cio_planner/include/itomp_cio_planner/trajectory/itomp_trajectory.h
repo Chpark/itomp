@@ -16,7 +16,11 @@ ITOMP_FORWARD_DECL(ItompTrajectory)
 
 struct ItompTrajectoryIndex
 {
-    unsigned int indices[4]; // [pos/vel/acc, joint/contact pos/contact force, point, element]
+    //unsigned int indices[4]; // [pos/vel/acc, joint/contact pos/contact force, point, element]
+    unsigned int component; // pos/vel/acc
+    unsigned int sub_component; // joint/contact pos/contact force
+    unsigned int point;
+    unsigned int element;
 };
 
 class ItompTrajectory : public CompositeTrajectory
@@ -47,6 +51,7 @@ public:
 
     void computeParameterToTrajectoryIndexMap(const ItompRobotModelConstPtr& robot_model,
             const ItompPlanningGroupConstPtr& planning_group);
+    const ItompTrajectoryIndex& getTrajectoryIndex(unsigned int parameter_index) const;
 
     void setParameters(const ParameterVector& parameters, const ItompPlanningGroupConstPtr& planning_group);
     void getParameters(ParameterVector& parameters) const;
@@ -112,6 +117,11 @@ inline ElementTrajectoryPtr& ItompTrajectory::getElementTrajectory(unsigned int 
 inline ElementTrajectoryConstPtr ItompTrajectory::getElementTrajectory(unsigned int component, unsigned int sub_component) const
 {
     return boost::const_pointer_cast<const ElementTrajectory>(element_trajectories_[component][sub_component]);
+}
+
+inline const ItompTrajectoryIndex& ItompTrajectory::getTrajectoryIndex(unsigned int parameter_index) const
+{
+    return parameter_to_index_map_[parameter_index];
 }
 
 }

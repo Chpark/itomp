@@ -46,9 +46,13 @@ public:
 	double evaluate();
 	void evaluateParameterPoint(double value, int type, int point, int element,
 								int& full_point_begin, int& full_point_end, bool first);
+    void evaluateParameterPointItomp(double value, int parameter_index,
+                                unsigned int& point_begin, unsigned int& point_end, bool first);
 
 	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
 							int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
+    void computeDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
+                            double* derivative_out, double eps);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;
