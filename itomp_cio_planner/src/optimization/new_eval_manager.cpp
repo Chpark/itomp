@@ -506,6 +506,16 @@ void NewEvalManager::setParameters(
 	setParameterModified();
 }
 
+void NewEvalManager::getParameters(ItompTrajectory::ParameterVector& parameters) const
+{
+    itomp_trajectory_->getParameter(parameters);;
+}
+
+void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& parameters)
+{
+    itomp_trajectory_->setParameter(parameters);
+}
+
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
 	double cost = evaluation_cost_matrix_.sum();

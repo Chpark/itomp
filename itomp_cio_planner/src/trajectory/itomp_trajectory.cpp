@@ -324,12 +324,12 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
     }
 }
 
-void ItompTrajectory::setFromParameter(ParameterVector& parameter)
+void ItompTrajectory::setParameters(const ParameterVector& parameters)
 {
     unsigned int num_parameters = parameter_to_index_map_.size();
-    unsigned int goal_index = getNumPoints() - 1;
 
     ROS_ASSERT(num_parameters > 0);
+    ROS_ASSERT(num_parameters == parameters.size());
 
     for (unsigned int i = 0; i < num_parameters; ++i)
     {
@@ -342,9 +342,26 @@ void ItompTrajectory::setFromParameter(ParameterVector& parameter)
 
         ElementTrajectoryPtr& et = getElementTrajectory(index.indices[0], index.indices[1]);
         Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.indices[2]);
-        row(index.indices[3]) = parameter(i, 0);
+        row(index.indices[3]) = parameters(i, 0);
     }
     interpolateKeyframes();
+}
+
+void ItompTrajectory::getParameters(ParameterVector& parameters) const
+{
+    unsigned int num_parameters = parameter_to_index_map_.size();
+
+    ROS_ASSERT(num_parameters > 0);
+    ROS_ASSERT(num_parameters == parameters.size());
+
+    for (unsigned int i = 0; i < num_parameters; ++i)
+    {
+        ItompTrajectoryIndex index = parameter_to_index_map_[i];
+
+        ElementTrajectoryConstPtr et = getElementTrajectory(index.indices[0], index.indices[1]);
+        Eigen::MatrixXd::ConstRowXpr row = et->getTrajectoryPoint(index.indices[2]);
+        parameters(i, 0) = row(index.indices[3]);
+    }
 }
 
 void ItompTrajectory::directChangeForDerivativeComputation(unsigned int parameter_index, double value,

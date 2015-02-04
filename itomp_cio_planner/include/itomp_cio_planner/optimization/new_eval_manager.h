@@ -40,6 +40,8 @@ public:
 
 	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
 	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
+    void getParameters(ItompTrajectory::ParameterVector& parameters) const;
+    void setParameters(const ItompTrajectory::ParameterVector& parameters);
 
 	double evaluate();
 	void evaluateParameterPoint(double value, int type, int point, int element,

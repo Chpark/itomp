@@ -48,7 +48,9 @@ public:
     void computeParameterToTrajectoryIndexMap(const ItompRobotModelConstPtr& robot_model,
             const ItompPlanningGroupConstPtr& planning_group);
 
-    void setFromParameter(ParameterVector& parameter);
+    void setParameters(const ParameterVector& parameters);
+    void getParameters(ParameterVector& parameters) const;
+
     void directChangeForDerivativeComputation(unsigned int parameter_index, double value,
             unsigned int& trajectory_point_begin, unsigned int& trajectory_point_end,
             bool backup = true);

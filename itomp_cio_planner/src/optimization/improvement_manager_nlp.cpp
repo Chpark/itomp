@@ -139,6 +139,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
 	evaluation_manager_->setParameters(evaluation_parameters_[0]);
+    evaluation_manager_->setParameters(variables);
 
 	double cost = evaluation_manager_->evaluate();
 
