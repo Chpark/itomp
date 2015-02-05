@@ -143,22 +143,7 @@
     <child link="head_endeffector_link"/>
   </joint>
 
-  <link name="head_endeffector_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
+  <link name="head_endeffector_link"/>
 
   <joint name="upper_left_leg_z_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -288,17 +273,7 @@
     <child link="left_foot_endeffector_link"/>
   </joint>
 
-  <link name="left_foot_endeffector_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-  </link>
-  
-  
+  <link name="left_foot_endeffector_link"/>
 
   <joint name="upper_right_leg_z_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -427,15 +402,7 @@
     <child link="right_foot_endeffector_link"/>
   </joint>
 
-  <link name="right_foot_endeffector_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-  </link>
+  <link name="right_foot_endeffector_link"/>
 
   <joint name="upper_left_specula_joint" type="continuous">
     <axis xyz="0 0 1"/>
@@ -574,22 +541,7 @@
     <child link="left_hand_endeffector_link"/>
   </joint>
 
-  <link name="left_hand_endeffector_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-
+  <link name="left_hand_endeffector_link"/>
   
   <joint name="upper_right_specula_joint" type="continuous">
     <axis xyz="1 0 0"/>
@@ -728,79 +680,13 @@
     <child link="right_hand_endeffector_link"/>
   </joint>
 
-  <link name="right_hand_endeffector_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <collision>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-    </collision>
-  </link>
-  
-  
-<link name="left_foot_cp_1_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_foot_cp_2_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_foot_cp_3_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_foot_cp_4_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
+  <link name="right_hand_endeffector_link"/>
+
+  <link name="left_foot_cp_1_link"/>
+  <link name="left_foot_cp_2_link"/>
+  <link name="left_foot_cp_3_link"/>
+  <link name="left_foot_cp_4_link"/>
+
   <joint name="left_foot_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
@@ -829,62 +715,12 @@
     <parent link="left_foot_endeffector_link"/>
     <child link="left_foot_cp_4_link"/>
   </joint>
-<link name="right_foot_cp_1_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_foot_cp_2_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_foot_cp_3_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_foot_cp_4_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
+
+  <link name="right_foot_cp_1_link"/>
+  <link name="right_foot_cp_2_link"/>
+  <link name="right_foot_cp_3_link"/>
+  <link name="right_foot_cp_4_link"/>
+
   <joint name="right_foot_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
@@ -914,62 +750,11 @@
     <child link="right_foot_cp_4_link"/>
   </joint>
 
-<link name="left_hand_cp_1_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_hand_cp_2_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_hand_cp_3_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="left_hand_cp_4_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
+  <link name="left_hand_cp_1_link"/>
+  <link name="left_hand_cp_2_link"/>
+  <link name="left_hand_cp_3_link"/>
+  <link name="left_hand_cp_4_link"/>
+
   <joint name="left_hand_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
@@ -998,62 +783,12 @@
     <parent link="left_hand_endeffector_link"/>
     <child link="left_hand_cp_4_link"/>
   </joint>
-<link name="right_hand_cp_1_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_hand_cp_2_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_hand_cp_3_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
-  <link name="right_hand_cp_4_link">
-    <visual>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <geometry>
-        <box size="0.001 0.001 0.001"/>
-      </geometry>
-      <material name="Blue"/>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="0"/>
-      <origin xyz="0 0 0"/>
-    </inertial>
-  </link>
+
+  <link name="right_hand_cp_1_link"/>
+  <link name="right_hand_cp_2_link"/>
+  <link name="right_hand_cp_3_link"/>
+  <link name="right_hand_cp_4_link"/>
+
   <joint name="right_hand_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>

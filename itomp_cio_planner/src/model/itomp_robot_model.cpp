@@ -205,8 +205,12 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		}
 
 		ROS_INFO("RBDL Model Initialized");
+        ROS_INFO("Joints");
 		for (int i = 0; i < rbdl_number_to_joint_name_.size(); ++i)
 			ROS_INFO("[%d] %s", i, rbdl_number_to_joint_name_[i].c_str());
+        ROS_INFO("Links");
+        for (int i = 0; i < rbdl_robot_model_.mBodies.size(); ++i)
+            ROS_INFO("[%d] %s", i, rbdl_robot_model_.GetBodyName(i).c_str());
 	}
 	////////////////////////////////////////////////////////////////////////////
 
