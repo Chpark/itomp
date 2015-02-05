@@ -12,6 +12,8 @@
 #include <ros/publisher.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/robot_state/robot_state.h>
+#include <itomp_cio_planner/collision/collision_world_fcl_derivatives.h>
+#include <itomp_cio_planner/collision/collision_robot_fcl_derivatives.h>
 
 namespace itomp_cio_planner
 {
@@ -68,6 +70,9 @@ public:
 	const ItompRobotModelConstPtr& getItompRobotModel() const;
 	const robot_state::RobotStatePtr& getRobotState(int point) const;
 
+    const CollisionWorldFCLDerivativesPtr& getCollisionWorldFCLDerivatives() const;
+    const CollisionRobotFCLDerivativesPtr& getCollisionRobotFCLDerivatives() const;
+
 private:
 	void initializeContactVariables();
 
@@ -114,6 +119,8 @@ private:
     ItompTrajectoryPtr itomp_trajectory_;
     ItompTrajectoryConstPtr itomp_trajectory_const_;
     std::vector<robot_state::RobotStatePtr> robot_state_;
+    CollisionWorldFCLDerivativesPtr collision_world_derivatives_;
+    CollisionRobotFCLDerivativesPtr collision_robot_derivatives_;
 
 	friend class TrajectoryCostContactInvariant;
 	friend class TrajectoryCostObstacle;
@@ -182,6 +189,16 @@ inline const ItompRobotModelConstPtr& NewEvalManager::getItompRobotModel() const
 inline const robot_state::RobotStatePtr& NewEvalManager::getRobotState(int point) const
 {
 	return robot_state_[point];
+}
+
+inline const CollisionWorldFCLDerivativesPtr& NewEvalManager::getCollisionWorldFCLDerivatives() const
+{
+    return collision_world_derivatives_;
+}
+
+inline const CollisionRobotFCLDerivativesPtr& NewEvalManager::getCollisionRobotFCLDerivatives() const
+{
+    return collision_robot_derivatives_;
 }
 
 }

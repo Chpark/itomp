@@ -57,6 +57,13 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
     robot_state_.resize(itomp_trajectory_->getNumPoints());
     for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
         robot_state_[i].reset(new robot_state::RobotState(*manager.robot_state_[i]));
+
+    const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
+    collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene_->getCollisionWorld()), world));
+    collision_robot_derivatives_.reset(new CollisionRobotFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene_->getCollisionRobotUnpadded())));
+    collision_robot_derivatives_->constructInternalFCLObject(planning_scene_->getCurrentState());
 }
 
 NewEvalManager::~NewEvalManager()
@@ -91,16 +98,23 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
         robot_state_[i].reset(new robot_state::RobotState(*manager.robot_state_[i]));
 
+    const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
+    collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene_->getCollisionWorld()), world));
+    collision_robot_derivatives_.reset(new CollisionRobotFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene_->getCollisionRobotUnpadded())));
+    collision_robot_derivatives_->constructInternalFCLObject(planning_scene_->getCurrentState());
+
     return *this;
 }
 
 void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
                                 const ItompTrajectoryPtr& itomp_trajectory,
-								const ItompRobotModelConstPtr& robot_model,
-								const planning_scene::PlanningSceneConstPtr& planning_scene,
-								const ItompPlanningGroupConstPtr& planning_group,
-								double planning_start_time, double trajectory_start_time,
-								const moveit_msgs::Constraints& path_constraints)
+                                const ItompRobotModelConstPtr& robot_model,
+                                const planning_scene::PlanningSceneConstPtr& planning_scene,
+                                const ItompPlanningGroupConstPtr& planning_group,
+                                double planning_start_time, double trajectory_start_time,
+                                const moveit_msgs::Constraints& path_constraints)
 {
     full_trajectory_const_ = full_trajectory_ = full_trajectory;
     itomp_trajectory_const_ = itomp_trajectory_ = itomp_trajectory;
@@ -133,7 +147,12 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     itomp_trajectory_->interpolateKeyframes(planning_group);
 
-	// TODO : path_constraints
+    const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
+    collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionWorldFCL&>(*planning_scene_->getCollisionWorld()), world));
+    collision_robot_derivatives_.reset(new CollisionRobotFCLDerivatives(
+                                           dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene_->getCollisionRobotUnpadded())));
+    collision_robot_derivatives_->constructInternalFCLObject(planning_scene_->getCurrentState());
 }
 
 double NewEvalManager::evaluate()

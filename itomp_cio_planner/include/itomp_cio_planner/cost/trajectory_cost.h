@@ -5,8 +5,6 @@
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
 #include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/cost/trajectory_cost_helper.h>
-#include <itomp_cio_planner/collision/collision_world_fcl_derivatives.h>
-#include <itomp_cio_planner/collision/collision_robot_fcl_derivatives.h>
 
 namespace itomp_cio_planner
 {
@@ -86,10 +84,6 @@ public:
 	virtual bool evaluate(const NewEvalManager* evaluation_manager,
 						  int point, double& cost) const;
     virtual bool isInvariant(const NewEvalManager* evaluation_manager, const ItompTrajectoryIndex& index) const;
-
-protected:
-	std::vector<CollisionWorldFCLDerivativesPtr> collision_world_derivatives;
-	std::vector<CollisionRobotFCLDerivativesPtr> collision_robot_derivatives;
 };
 
 }

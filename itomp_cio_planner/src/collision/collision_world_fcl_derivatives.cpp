@@ -17,14 +17,7 @@ namespace itomp_cio_planner
 CollisionWorldFCLDerivatives::CollisionWorldFCLDerivatives(const CollisionWorldFCL &other, const WorldPtr& world) :
 	CollisionWorldFCL(other, world)
 {
-	/*
-	fcl::DynamicAABBTreeCollisionManager* m = new fcl::DynamicAABBTreeCollisionManager();
-	manager_.reset(m);
 
-	fcl_objs_ = other.fcl_objs_;
-	for (std::map<std::string, FCLObject>::iterator it = fcl_objs_.begin() ; it != fcl_objs_.end() ; ++it)
-	it->second.registerTo(manager_.get());
-	*/
 }
 
 CollisionWorldFCLDerivatives::~CollisionWorldFCLDerivatives()
