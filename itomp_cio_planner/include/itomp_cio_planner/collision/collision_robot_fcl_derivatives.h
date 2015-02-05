@@ -21,6 +21,7 @@ public:
 
 	CollisionRobotFCLDerivatives(const collision_detection::CollisionRobotFCL &other);
 	void constructInternalFCLObject(const robot_state::RobotState &state);
+    void updateInternalFCLObjectTransforms(const robot_state::RobotState &state);
 
 	virtual void checkSelfCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state) const;
 	virtual void checkSelfCollision(const collision_detection::CollisionRequest &req, collision_detection::CollisionResult &res, const robot_state::RobotState &state, const collision_detection::AllowedCollisionMatrix &acm) const;
@@ -50,7 +51,7 @@ protected:
 	static bool collisionCallback(fcl::CollisionObject *o1, fcl::CollisionObject *o2, void *data);
 	static bool distanceCallback(fcl::CollisionObject* o1, fcl::CollisionObject* o2, void *data, double& min_dist);
 
-	collision_detection::FCLObject fcl_obj_;
+    collision_detection::FCLManager manager_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(CollisionRobotFCLDerivatives);
 
@@ -97,12 +98,6 @@ inline double CollisionRobotFCLDerivatives::distanceOther(const robot_state::Rob
 {
 	logError("CollisionRobotFCLDerivatives::distanceOther should not be called.");
 	return 0.0;
-}
-
-inline void CollisionRobotFCLDerivatives::constructInternalFCLObject(const robot_state::RobotState &state)
-{
-	fcl_obj_.clear();
-	constructFCLObject(state, fcl_obj_);
 }
 
 }

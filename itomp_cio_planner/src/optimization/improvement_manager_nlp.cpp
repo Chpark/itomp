@@ -255,6 +255,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
+    /*
     column_vector der_reference = derivative_ref(variables);
     ROS_INFO("Vaildate computed derivative with reference");
     for (int i = 0; i < variables.size(); ++i)
@@ -263,6 +264,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
             ROS_INFO("Error at %d : %.14f (%.14f vs %.14f)", i, std::abs(der(i) - der_reference(i)),
                      der(i), der_reference(i));
     }
+    */
     ROS_INFO("Done");
 
     return der;

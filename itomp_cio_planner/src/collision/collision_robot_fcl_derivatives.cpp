@@ -7,6 +7,7 @@
 
 #include <itomp_cio_planner/collision/collision_robot_fcl_derivatives.h>
 #include <itomp_cio_planner/collision/collision_common_derivatives.h>
+#include <ros/assert.h>
 
 using namespace collision_detection;
 
@@ -16,6 +17,57 @@ namespace itomp_cio_planner
 CollisionRobotFCLDerivatives::CollisionRobotFCLDerivatives(const CollisionRobotFCL &other)
 	: CollisionRobotFCL(other)
 {
+    fcl::DynamicAABBTreeCollisionManager* m = new fcl::DynamicAABBTreeCollisionManager();
+    manager_.manager_.reset(m);
+}
+
+void CollisionRobotFCLDerivatives::constructInternalFCLObject(const robot_state::RobotState &state)
+{
+    manager_.object_.clear();
+    constructFCLObject(state, manager_.object_);
+
+    manager_.manager_->clear();
+    manager_.object_.registerTo(manager_.manager_.get());
+}
+
+void CollisionRobotFCLDerivatives::updateInternalFCLObjectTransforms(const robot_state::RobotState &state)
+{
+    FCLObject& fcl_obj = manager_.object_;
+
+    std::size_t index = 0;
+    for (std::size_t i = 0 ; i < geoms_.size() ; ++i)
+    {
+        if (geoms_[i] && geoms_[i]->collision_geometry_)
+        {
+            boost::shared_ptr<fcl::CollisionObject>& collision_object = fcl_obj.collision_objects_[index];
+            collision_object->setTransform(transform2fcl(state.getCollisionBodyTransform(geoms_[i]->collision_geometry_data_->ptr.link,
+                                           geoms_[i]->collision_geometry_data_->shape_index)));
+            collision_object->computeAABB();
+            ++index;
+        }
+    }
+    manager_.manager_->update();
+
+    std::vector<const robot_state::AttachedBody*> ab;
+    state.getAttachedBodies(ab);
+    ROS_ASSERT(ab.size() == 0);
+    /*
+    for (std::size_t j = 0 ; j < ab.size() ; ++j)
+    {
+        std::vector<FCLGeometryConstPtr> objs;
+        getAttachedBodyObjects(ab[j], objs);
+        const EigenSTL::vector_Affine3d &ab_t = ab[j]->getGlobalCollisionBodyTransforms();
+        for (std::size_t k = 0 ; k < objs.size() ; ++k)
+            if (objs[k]->collision_geometry_)
+            {
+                fcl::CollisionObject *collObj = new fcl::CollisionObject(objs[k]->collision_geometry_, transform2fcl(ab_t[k]));
+                fcl_obj.collision_objects_.push_back(boost::shared_ptr<fcl::CollisionObject>(collObj));
+                // we copy the shared ptr to the CollisionGeometryData, as this is not stored by the class itself,
+                // and would be destroyed when objs goes out of scope.
+                fcl_obj.collision_geometry_.push_back(objs[k]);
+            }
+    }
+    */
 }
 
 
@@ -43,15 +95,13 @@ double CollisionRobotFCLDerivatives::distanceSelf(const robot_state::RobotState 
 void CollisionRobotFCLDerivatives::checkSelfCollisionDerivativesHelper(const CollisionRequest &req, CollisionResult &res, const robot_state::RobotState &state,
 		const AllowedCollisionMatrix *acm) const
 {
-	FCLManager manager;
-	allocSelfCollisionBroadPhase(state, manager);
 	CollisionData cd(&req, &res, acm);
 	cd.enableGroup(getRobotModel());
 
 	CollisionDataDerivatives cdd;
 	cdd.cd = &cd;
 
-	manager.manager_->collide(&cdd, &CollisionRobotFCLDerivatives::collisionCallback);
+    manager_.manager_->collide(&cdd, &CollisionRobotFCLDerivatives::collisionCallback);
 	if (req.distance)
 		res.distance = distanceSelfDerivativesHelper(state, acm);
 }

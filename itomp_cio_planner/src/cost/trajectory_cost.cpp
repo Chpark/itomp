@@ -77,7 +77,7 @@ void TrajectoryCostObstacle::preEvaluate(const NewEvalManager* evaluation_manage
 {
     TIME_PROFILER_START_TIMER(Obstacle);
 
-	int num_points = evaluation_manager->getFullTrajectory()->getNumPoints();
+    int num_points = evaluation_manager->getTrajectory()->getNumPoints();
 	if (collision_world_derivatives.size() < num_points)
 		collision_world_derivatives.resize(num_points);
 	if (collision_robot_derivatives.size() < num_points)
@@ -102,7 +102,7 @@ void TrajectoryCostObstacle::preEvaluate(const NewEvalManager* evaluation_manage
                                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 		robot_state->setVariablePositions(mat.data());
 
-		robot_state->updateCollisionBodyTransforms();
+        robot_state->updateCollisionBodyTransforms();
         collision_robot_derivatives[point]->constructInternalFCLObject(const_cast<const robot_state::RobotState&>(*robot_state));
 	}
 
@@ -125,8 +125,8 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 	bool is_feasible = true;
 
 	double costs[2];
-	#pragma omp critical
-	for (int i = 0; i < 1; ++i)
+    #pragma omp critical
+    for (int i = 1; i < 2; ++i)
 	{
 
 		cost = 0;
@@ -154,7 +154,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 		if (i == 0)
 		{
-			//#pragma omp critical
+            //#pragma omp critical
             planning_scene->checkCollisionUnpadded(collision_request, collision_result, *robot_state);
 
 			const collision_detection::CollisionResult::ContactMap& contact_map =
@@ -168,27 +168,10 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                         && contact.body_type_2 != collision_detection::BodyTypes::WORLD_OBJECT)
 				{
 					cost += self_collision_scale * contact.depth;
-
-                    /*
-					if (evaluation_manager->debug_)
-						printf("%d [%d] s-collision : %s %s : %f\n",
-                               omp_get_thread_num(), point,
-							   contact.body_name_1.c_str(),
-							   contact.body_name_2.c_str(),
-							   self_collision_scale * contact.depth);
-                               */
 				}
 				else
 				{
 					cost += contact.depth;
-
-                    /*
-					if (evaluation_manager->debug_)
-						printf("%d [%d]   collision : %s %s : %f\n",
-                               omp_get_thread_num(), point,
-							   contact.body_name_1.c_str(),
-							   contact.body_name_2.c_str(), contact.depth);
-                               */
 				}
 			}
 
@@ -196,12 +179,10 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 		}
 		else
 		{
-			robot_state->updateCollisionBodyTransforms();
+            robot_state->updateCollisionBodyTransforms();
+            collision_robot_derivatives[point]->updateInternalFCLObjectTransforms(*robot_state);
 
-            collision_robot_derivatives[point]->constructInternalFCLObject(
-                const_cast<const robot_state::RobotState&>(*robot_state));
-
-			#pragma omp critical
+            //#pragma omp critical
             collision_world_derivatives[point]->checkRobotCollision(collision_request, collision_result,
                     *collision_robot_derivatives[point],
                     const_cast<const robot_state::RobotState&>(*robot_state),
@@ -217,7 +198,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 			collision_result.clear();
 
-			#pragma omp critical
+            //#pragma omp critical
             collision_robot_derivatives[point]->checkSelfCollision(collision_request, collision_result,
                     const_cast<const robot_state::RobotState&>(*robot_state),
                     planning_scene->getAllowedCollisionMatrix());
@@ -235,11 +216,12 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	}
 
-	/*
-	 double diff = std::abs(costs[0] - costs[1]);
-	 if (diff > 0.000001)
-	 ROS_INFO("[%d] obstacle cost invalid : %f %f (%.14f", point, costs[0], costs[1], costs[0] - costs[1]);
-	 */
+    /*
+    double diff = std::abs(costs[0] - costs[1]);
+    if (diff > 0.000001)
+        ROS_INFO("[%d] obstacle cost invalid : %f %f (%.14f", point, costs[0], costs[1], costs[0] - costs[1]);
+        */
+
 
 	TIME_PROFILER_END_TIMER(Obstacle);
 

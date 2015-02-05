@@ -43,8 +43,8 @@ void CollisionWorldFCLDerivatives::checkRobotCollision(const CollisionRequest &r
 
 void CollisionWorldFCLDerivatives::checkRobotCollisionDerivativesHelper(const CollisionRequest &req, CollisionResult &res, const CollisionRobot &robot, const robot_state::RobotState &state, const AllowedCollisionMatrix *acm) const
 {
-	const CollisionRobotFCLDerivatives &robot_fcl = dynamic_cast<const CollisionRobotFCLDerivatives&>(robot);
-	const FCLObject& fcl_obj = robot_fcl.fcl_obj_;
+    const CollisionRobotFCLDerivatives &robot_fcl = static_cast<const CollisionRobotFCLDerivatives&>(robot);
+    const FCLObject& fcl_obj = robot_fcl.manager_.object_;
 
 	CollisionData cd(&req, &res, acm);
 	cd.enableGroup(robot.getRobotModel());
@@ -61,7 +61,7 @@ void CollisionWorldFCLDerivatives::checkRobotCollisionDerivativesHelper(const Co
 
 double CollisionWorldFCLDerivatives::distanceRobotDerivativesHelper(const CollisionRobot &robot, const robot_state::RobotState &state, const AllowedCollisionMatrix *acm) const
 {
-	const CollisionRobotFCLDerivatives& robot_fcl = dynamic_cast<const CollisionRobotFCLDerivatives&>(robot);
+    const CollisionRobotFCLDerivatives& robot_fcl = static_cast<const CollisionRobotFCLDerivatives&>(robot);
 	FCLObject fcl_obj;
 	robot_fcl.constructFCLObject(state, fcl_obj);
 
