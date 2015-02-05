@@ -89,8 +89,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 
 	column_vector variables(num_variables);
 
-	evaluation_manager_->getParameters(evaluation_parameters_[0]);
-	writeToOptimizationVariables(variables, evaluation_parameters_[0]);
+    evaluation_manager_->getParameters(variables);
 
 	//if (iteration != 0)
 	//addNoiseToVariables(variables);
@@ -173,7 +172,8 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
 	column_vector delta_plus_vec(variables.size());
 	column_vector delta_minus_vec(variables.size());
 
-	for (long i = 0; i < variables.size(); ++i)
+    for (long i = 0; i < variables.size(); ++i)
+    //int i = 1656;
 	{
 		const double old_val = e(i);
 
@@ -195,6 +195,11 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
 
 		delta_plus_vec(i) = delta_plus;
 		delta_minus_vec(i) = delta_minus;
+
+        /*
+        ROS_INFO("[%d] der_ref %f (%f %f)", i, e(i), delta_plus, delta_minus);
+        evaluation_manager_->getTrajectory()->printTrajectory();
+        */
 	}
 
 	return der;
@@ -249,6 +254,16 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
+
+    column_vector der_reference = derivative_ref(variables);
+    ROS_INFO("Vaildate computed derivative with reference");
+    for (int i = 0; i < variables.size(); ++i)
+    {
+        if (std::abs(der(i) - der_reference(i)) > eps_)
+            ROS_INFO("Error at %d : %.14f (%.14f vs %.14f)", i, std::abs(der(i) - der_reference(i)),
+                     der(i), der_reference(i));
+    }
+    ROS_INFO("Done");
 
     return der;
 }

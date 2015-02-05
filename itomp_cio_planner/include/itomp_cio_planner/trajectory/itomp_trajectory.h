@@ -78,14 +78,17 @@ public:
 
     void interpolateStartEnd(SUB_COMPONENT_TYPE sub_component_type,
                              const std::vector<unsigned int>* element_indices = NULL);
+    void interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group);
+    void interpolateKeyframes();
+
+    int getParameterJointIndex(int trajectory_index) const;
 
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
                     unsigned int num_keyframes, unsigned int keyframe_interval, double duration, double discretization);
-    void interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group);
+
     void interpolateTrajectory(unsigned int trajectory_point_begin, unsigned int trajectory_point_end,
                                const ItompTrajectoryIndex& index);
-
     void interpolateInputJointTrajectory(const std::vector<unsigned int>& group_rbdl_indices,
                                          const ItompPlanningGroupConstPtr& planning_group,
                                          const moveit_msgs::TrajectoryConstraints& trajectory_constraints);
@@ -122,6 +125,11 @@ inline ElementTrajectoryConstPtr ItompTrajectory::getElementTrajectory(unsigned 
 inline const ItompTrajectoryIndex& ItompTrajectory::getTrajectoryIndex(unsigned int parameter_index) const
 {
     return parameter_to_index_map_[parameter_index];
+}
+
+inline int ItompTrajectory::getParameterJointIndex(int trajectory_index) const
+{
+    return full_to_parameter_joint_index_map_[trajectory_index];
 }
 
 }

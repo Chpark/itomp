@@ -115,20 +115,11 @@ void TrajectoryCostObstacle::postEvaluate(const NewEvalManager* evaluation_manag
 
 bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manager, const ItompTrajectoryIndex& index) const
 {
-    return (index.component != ItompTrajectory::COMPONENT_TYPE_POSITION ||
-            index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    return (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
 }
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    /*
-    if (point != 0)
-    {
-        cost = 0.0;
-        return true;
-    }
-    */
-
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;

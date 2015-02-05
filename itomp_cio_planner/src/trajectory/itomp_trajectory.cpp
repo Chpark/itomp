@@ -238,8 +238,8 @@ void ItompTrajectory::interpolateInputJointTrajectory(const std::vector<unsigned
                         getElementTrajectory(COMPONENT_TYPE_ACCELERATION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(i)
                     };
                     traj_point[COMPONENT_TYPE_POSITION](rbdl_index) = poly(i * discretization_);
-                    traj_point[COMPONENT_TYPE_VELOCITY](rbdl_index) = poly.derivative(i * discretization_);
-                    traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) = poly.dderivative(i * discretization_);
+                    traj_point[COMPONENT_TYPE_VELOCITY](rbdl_index) = 0.0;//poly.derivative(i * discretization_);
+                    traj_point[COMPONENT_TYPE_ACCELERATION](rbdl_index) = 0.0;//poly.dderivative(i * discretization_);
                 }
             }
 
@@ -250,6 +250,69 @@ void ItompTrajectory::interpolateInputJointTrajectory(const std::vector<unsigned
 }
 
 void ItompTrajectory::interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group)
+{
+    // cubic interpolation of pos, vel, acc
+    // update trajectory between (k, k+1]
+    // acc is discontinuous at each keyframe
+    for (unsigned int s = 0; s < SUB_COMPONENT_TYPE_NUM; ++s)
+    {
+        unsigned int num_sub_component_elements = getElementTrajectory(0, s)->getNumElements();
+        for (unsigned int j = 0; j < num_sub_component_elements; ++j)
+        {
+            for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
+            {
+                ecl::CubicPolynomial poly;
+                unsigned int cur_keyframe_index = k * keyframe_interval_;
+                unsigned int next_keyframe_index = cur_keyframe_index + keyframe_interval_;
+
+                double cur_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j);
+                double cur_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j);
+                double next_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j);
+                double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
+
+                // handle joint limits / wrapping
+                bool next_pos_changed = false;
+                if (s == SUB_COMPONENT_TYPE_JOINT && full_to_parameter_joint_index_map_[j] != -1)
+                {
+                    double old_next_pos = next_pos;
+
+                    const ItompRobotJoint& joint = planning_group->group_joints_[full_to_parameter_joint_index_map_[j]];
+                    if (joint.has_joint_limits_)
+                    {
+                        next_pos = std::max(next_pos, joint.joint_limit_min_);
+                        next_pos = std::min(next_pos, joint.joint_limit_max_);
+                    }
+                    if (joint.wrap_around_)
+                    {
+                        while (next_pos - cur_pos > M_PI)
+                            next_pos -= 2 * M_PI;
+                        while (next_pos - cur_pos < -M_PI)
+                            next_pos += 2 * M_PI;
+                    }
+
+                    if (next_pos != old_next_pos)
+                        next_pos_changed = true;
+                }
+
+                poly = ecl::CubicPolynomial::DerivativeInterpolation(
+                           (double)cur_keyframe_index * discretization_, cur_pos, cur_vel,
+                           (double)next_keyframe_index * discretization_, next_pos, next_vel);
+
+                unsigned int interpolation_end = next_pos_changed ? next_keyframe_index : next_keyframe_index - 1;
+                for (unsigned int i = cur_keyframe_index + 1; i <= interpolation_end; ++i)
+                {
+                    double t = i * discretization_;
+                    getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
+                    getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
+                    if (i != next_keyframe_index)
+                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
+                }
+            }
+        }
+    }
+}
+
+void ItompTrajectory::interpolateKeyframes()
 {
     if (keyframe_interval_ <= 1)
         return;
@@ -273,37 +336,16 @@ void ItompTrajectory::interpolateKeyframes(const ItompPlanningGroupConstPtr& pla
                 double next_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j);
                 double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
 
-                // handle joint limits / wrapping
-                if (s == SUB_COMPONENT_TYPE_JOINT && full_to_parameter_joint_index_map_[j] != -1)
-                {
-                    const ItompRobotJoint& joint = planning_group->group_joints_[full_to_parameter_joint_index_map_[j]];
-                    if (joint.has_joint_limits_)
-                    {
-                        next_pos = std::max(next_pos, joint.joint_limit_min_);
-                        next_pos = std::min(next_pos, joint.joint_limit_max_);
-                    }
-                    if (joint.wrap_around_)
-                    {
-                        while (next_pos - cur_pos > M_PI)
-                            next_pos -= 2 * M_PI;
-                        while (next_pos - cur_pos < -M_PI)
-                            next_pos += 2 * M_PI;
-                    }
-                }
-
                 poly = ecl::CubicPolynomial::DerivativeInterpolation(
                            (double)cur_keyframe_index * discretization_, cur_pos, cur_vel,
                            (double)next_keyframe_index * discretization_, next_pos, next_vel);
 
-                for (unsigned int i = cur_keyframe_index + 1; i <= next_keyframe_index; ++i)
+                for (unsigned int i = cur_keyframe_index + 1; i < next_keyframe_index; ++i)
                 {
-                    if (i != getNumPoints() - 1)
-                    {
-                        double t = i * discretization_;
-                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
-                        getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
-                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
-                    }
+                    double t = i * discretization_;
+                    getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
+                    getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
+                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
                 }
             }
         }
@@ -321,20 +363,21 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
 
     // skip the initial position
     ecl::CubicPolynomial poly;
-    unsigned int cur_keyframe_index = trajectory_point_begin;
-    unsigned int next_keyframe_index = trajectory_point_end;
 
-    poly = ecl::CubicPolynomial::DerivativeInterpolation(
-               (double)cur_keyframe_index * discretization_,
-               getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(cur_keyframe_index, element),
-               getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(cur_keyframe_index, element),
-               (double)next_keyframe_index * discretization_,
-               getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(next_keyframe_index, element),
-               getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(next_keyframe_index, element));
-
-    for (unsigned int i = cur_keyframe_index + 1; i <= next_keyframe_index; ++i)
+    for (unsigned int cur_keyframe_index = trajectory_point_begin,
+            next_keyframe_index = cur_keyframe_index + keyframe_interval_;
+            next_keyframe_index <= trajectory_point_end;
+            cur_keyframe_index += keyframe_interval_, next_keyframe_index += keyframe_interval_)
     {
-        if (i != getNumPoints() - 1)
+        poly = ecl::CubicPolynomial::DerivativeInterpolation(
+                   (double)cur_keyframe_index * discretization_,
+                   getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(cur_keyframe_index, element),
+                   getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(cur_keyframe_index, element),
+                   (double)next_keyframe_index * discretization_,
+                   getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(next_keyframe_index, element),
+                   getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(next_keyframe_index, element));
+
+        for (unsigned int i = cur_keyframe_index + 1; i < next_keyframe_index; ++i)
         {
             double t = i * discretization_;
             getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_index)->at(i, element) = poly(t);
@@ -364,7 +407,7 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
         Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.point);
         row(index.element) = parameters(i, 0);
     }
-    interpolateKeyframes(planning_group);
+    interpolateKeyframes();
 }
 
 void ItompTrajectory::getParameters(ParameterVector& parameters) const

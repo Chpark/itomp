@@ -41,19 +41,20 @@ void ElementTrajectory::allocate()
 
 void ElementTrajectory::printTrajectory() const
 {
-    printf("Trajectory %s\n", name_.c_str());
-    printf("x : ");
+    cout.precision(std::numeric_limits<double>::digits10);
+    cout << "Trajectory " << name_ << std::endl;
+    cout << "x : ";
     for (int i = 0; i < num_elements_; ++i)
-        printf("%d ", i);
-    printf("\n");
+        cout << i << " ";
+    cout << std::endl;
     for (int i = 0; i < num_points_; ++i)
     {
-        printf("%d : ", i);
+        cout << i << " : ";
         for (int j = 0; j < num_elements_; ++j)
         {
-            printf("%.10f ", trajectory_data_(i, j));
+            cout << fixed << trajectory_data_(i, j) << " ";
         }
-        printf("\n");
+        cout << std::endl;
     }
 }
 

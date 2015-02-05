@@ -131,6 +131,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
     parameter_trajectory_const_ = parameter_trajectory_;
 
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
+    itomp_trajectory_->interpolateKeyframes(planning_group);
 
 	// TODO : path_constraints
 }
@@ -231,6 +232,19 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
 
     *derivative_out = (delta_plus - delta_minus) / (2 * eps);
 
+    /*
+    ItompTrajectoryIndex index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
+    ROS_INFO("[%d] (%d %d %d %d)", parameter_index,
+             index.component, index.sub_component, index.point, index.element);
+
+    if (parameter_index == 1656)
+    {
+        ROS_INFO("[%d] der %f (%f %f) (%d %d %d %d)", parameter_index, *derivative_out, delta_plus, delta_minus,
+                 index.component, index.sub_component, index.point, index.element);
+        itomp_trajectory_->printTrajectory();
+    }
+    */
+
     itomp_trajectory_->restoreTrajectory();
 }
 
@@ -254,7 +268,7 @@ void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_ind
 
     const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
 
-    performPartialForwardKinematicsAndDynamics(point_begin, point_end, index.element);
+    performPartialForwardKinematicsAndDynamics(point_begin, point_end, index);
 
     evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index);
 }
@@ -598,7 +612,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 
             updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
                                                q_ddot, tau_[point], &external_forces_[point],
-                                               planning_group_->group_joints_[index.element].rbdl_affected_body_ids_);
+                                               planning_group_->group_joints_[itomp_trajectory_->getParameterJointIndex(index.element)].rbdl_affected_body_ids_);
 
         }
     }
