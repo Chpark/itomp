@@ -94,7 +94,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 	bool is_feasible = true;
 
 	double costs[2];
-    #pragma omp critical
+
     for (int i = 1; i < 2; ++i)
 	{
 
@@ -123,7 +123,6 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 		if (i == 0)
 		{
-            //#pragma omp critical
             planning_scene->checkCollisionUnpadded(collision_request, collision_result, *robot_state);
 
 			const collision_detection::CollisionResult::ContactMap& contact_map =
@@ -155,7 +154,6 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
             collision_robot_derivatives->updateInternalFCLObjectTransforms(*robot_state);
 
-            //#pragma omp critical
             collision_world_derivatives->checkRobotCollision(collision_request, collision_result,
                     *collision_robot_derivatives,
                     *robot_state,
@@ -171,7 +169,6 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 			collision_result.clear();
 
-            //#pragma omp critical
             collision_robot_derivatives->checkSelfCollision(collision_request, collision_result,
                     *robot_state,
                     planning_scene->getAllowedCollisionMatrix());

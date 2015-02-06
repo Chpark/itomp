@@ -41,11 +41,10 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
 
 	ImprovementManager::initialize(evaluation_manager, planning_group);
 
-	num_threads_ = 1;//omp_get_max_threads();
-	// TODO: change num_threads_
+    num_threads_ = omp_get_max_threads();
 
 	omp_set_num_threads(num_threads_);
-	ROS_INFO("Use %d threads", num_threads_);
+    ROS_INFO("Use %d threads on %d processors", num_threads_, omp_get_num_procs());
 
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");
@@ -214,10 +213,13 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     column_vector der;
     der.set_size(variables.size());
 
+    /*
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
 	for (int i = 1; i < num_threads_; ++i)
 		evaluation_parameters_[i] = evaluation_parameters_[0];
+        */
 
+    #pragma omp parallel for
     for (int i = 0; i < num_threads_; ++i)
     {
         derivatives_evaluation_manager_[i]->setParameters(variables);

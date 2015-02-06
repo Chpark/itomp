@@ -678,6 +678,8 @@ void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& param
 
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
+    cout.precision(std::numeric_limits<double>::digits10);
+
 	double cost = evaluation_cost_matrix_.sum();
 
 	bool is_best = cost < best_cost_;
@@ -687,20 +689,17 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	const std::vector<TrajectoryCostPtr>& cost_functions =
 		TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
+    cout << "[" << iteration << "] Trajectory cost : " << fixed << cost << "/" << fixed << best_cost_ << std::endl;
+
 	if (!details || !is_best)
 	{
-		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
-			   best_cost_);
 	}
 	else
 	{
-		printf("[%d] Trajectory cost : %.7f/%.7f\n", iteration, cost,
-			   best_cost_);
-
         for (int c = 0; c < cost_functions.size(); ++c)
 		{
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
-            printf("%s : %.7f\n", cost_functions[c]->getName().c_str(), sub_cost);
+            cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
 		}
 
 		/*

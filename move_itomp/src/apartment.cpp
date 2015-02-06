@@ -15,6 +15,7 @@
 #include <geometric_shapes/mesh_operations.h>
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
+#include <sched.h>
 
 //file handling
 #include <string>
@@ -743,9 +744,15 @@ int main(int argc, char **argv)
 	}
 	try
 	{
+        cpu_set_t mask;
+        if (sched_getaffinity(0, sizeof(cpu_set_t), &mask) != 0)
+            ROS_ERROR("sched_getaffinity failed");
 		planner_instance.reset(
             planner_plugin_loader->createUnmanagedInstance(
                 planner_plugin_name));
+        if (sched_setaffinity(0, sizeof(cpu_set_t), &mask) != 0)
+            ROS_ERROR("sched_setaffinity failed");
+        ROS_INFO("After pireset");
 		if (!planner_instance->initialize(robot_model,
                                           node_handle.getNamespace()))
 			ROS_FATAL_STREAM("Could not initialize planner instance");
