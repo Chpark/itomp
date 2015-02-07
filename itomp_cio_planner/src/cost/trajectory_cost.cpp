@@ -297,7 +297,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	for (int i = 0; i < 6; ++i)
 	{
 		// non-actuated root joints
-		double joint_torque = evaluation_manager->tau_[point](i);
+        double joint_torque = evaluation_manager->joint_torques_[point](i);
 		joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
@@ -448,14 +448,14 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
 	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
 	double normalizer = 1.0 / mass * dt; // * dt;
 
-	for (int i = 6; i < evaluation_manager->tau_[point].rows(); ++i)
+    for (int i = 6; i < evaluation_manager->joint_torques_[point].rows(); ++i)
 	{
 		// actuated joints
-		double joint_torque = evaluation_manager->tau_[point](i);
+        double joint_torque = evaluation_manager->joint_torques_[point](i);
 		joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
-	cost /= (double) (evaluation_manager->tau_[point].rows() - 6);
+    cost /= (double) (evaluation_manager->joint_torques_[point].rows() - 6);
 
 	TIME_PROFILER_END_TIMER(Torque);
 

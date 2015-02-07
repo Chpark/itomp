@@ -42,7 +42,7 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
       parameter_modified_(manager.parameter_modified_),
       best_cost_(manager.best_cost_),
       rbdl_models_(manager.rbdl_models_),
-      tau_(manager.tau_),
+      joint_torques_(manager.joint_torques_),
       external_forces_(manager.external_forces_),
       contact_variables_(manager.contact_variables_),
       evaluation_cost_matrix_(manager.evaluation_cost_matrix_)
@@ -81,7 +81,7 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     parameter_modified_ = manager.parameter_modified_;
     best_cost_ = manager.best_cost_;
     rbdl_models_ = manager.rbdl_models_;
-    tau_ = manager.tau_;
+    joint_torques_ = manager.joint_torques_;
     external_forces_ = manager.external_forces_;
     contact_variables_ = manager.contact_variables_;
     evaluation_cost_matrix_ = manager.evaluation_cost_matrix_;
@@ -131,7 +131,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 
     int num_joints = full_trajectory_->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
     rbdl_models_.resize(full_trajectory_->getNumPoints(), robot_model_->getRBDLRobotModel());
-	tau_.resize(full_trajectory_->getNumPoints(), Eigen::VectorXd(num_joints));
+    joint_torques_.resize(full_trajectory_->getNumPoints(), Eigen::VectorXd(num_joints));
 	external_forces_.resize(full_trajectory_->getNumPoints(),
                             std::vector<RigidBodyDynamics::Math::SpatialVector>(robot_model_->getRBDLRobotModel().mBodies.size(), RigidBodyDynamics::Math::SpatialVectorZero));
 
@@ -440,7 +440,7 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 			}
 		}
 
-        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau_[point], &external_forces_[point]);
+        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point]);
 	}
 
 	TIME_PROFILER_END_TIMER(FK);
@@ -534,18 +534,18 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 			}
 
 			updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot,
-								  tau_[point], &external_forces_[point]);
+                                  joint_torques_[point], &external_forces_[point]);
 		}
 		else
 		{
 			contact_variables_[point] =
 				ref_evaluation_manager_->contact_variables_[point];
-			tau_[point] = ref_evaluation_manager_->tau_[point];
+            joint_torques_[point] = ref_evaluation_manager_->joint_torques_[point];
 			external_forces_[point] =
 				ref_evaluation_manager_->external_forces_[point];
 
 			updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
-											   q_ddot, tau_[point], &external_forces_[point],
+                                               q_ddot, joint_torques_[point], &external_forces_[point],
 											   planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
 
 		}
@@ -558,23 +558,36 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 {
     TIME_PROFILER_START_TIMER(FK);
 
-    for (int point = point_begin; point < point_end; ++point)
-    {
-        rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
-    }
-
     bool dynamics_only = (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     int num_contacts = planning_group_->getNumContacts();
 
+    // copy only variables will be updated
     for (int point = point_begin; point < point_end; ++point)
     {
-        const Eigen::VectorXd& q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+        rbdl_models_[point].f = ref_evaluation_manager_->rbdl_models_[point].f;
 
-        const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
-                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
-        const Eigen::VectorXd& q_ddot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
-                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+        if (!dynamics_only)
+        {
+            rbdl_models_[point].X_lambda = ref_evaluation_manager_->rbdl_models_[point].X_lambda;
+            rbdl_models_[point].X_base = ref_evaluation_manager_->rbdl_models_[point].X_base;
+            rbdl_models_[point].v = ref_evaluation_manager_->rbdl_models_[point].v;
+            rbdl_models_[point].a = ref_evaluation_manager_->rbdl_models_[point].a;
+            rbdl_models_[point].c = ref_evaluation_manager_->rbdl_models_[point].c;
+        }
+    }
+
+    const ElementTrajectoryPtr& pos_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryPtr& vel_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryPtr& acc_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+
+    for (int point = point_begin; point < point_end; ++point)
+    {
+        const Eigen::VectorXd& q = pos_trajectory->getTrajectoryPoint(point);
+        const Eigen::VectorXd& q_dot = vel_trajectory->getTrajectoryPoint(point);
+        const Eigen::VectorXd& q_ddot = acc_trajectory->getTrajectoryPoint(point);
 
         if (dynamics_only)
         {
@@ -621,16 +634,16 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                 }
             }
 
-            updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau_[point], &external_forces_[point]);
+            updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point]);
         }
         else
         {
             contact_variables_[point] = ref_evaluation_manager_->contact_variables_[point];
-            tau_[point] = ref_evaluation_manager_->tau_[point];
+            joint_torques_[point] = ref_evaluation_manager_->joint_torques_[point];
             external_forces_[point] = ref_evaluation_manager_->external_forces_[point];
 
             updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
-                                               q_ddot, tau_[point], &external_forces_[point],
+                                               q_ddot, joint_torques_[point], &external_forces_[point],
                                                planning_group_->group_joints_[itomp_trajectory_->getParameterJointIndex(index.element)].rbdl_affected_body_ids_);
 
         }

@@ -84,28 +84,30 @@ inline void PerformanceProfiler::startIteration()
 
 inline void PerformanceProfiler::printIterationTime(bool show_percentage)
 {
-    printf("Elapsed Time\n");
+    std::cout << "Elapsed Time\n";
+    std::cout.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
         double elapsed = it->second.getIterationElapsed();
-        printf("%s : %f\n", it->first.c_str(), elapsed);
+        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
         sum += elapsed;
 	}
 }
 
 inline void PerformanceProfiler::printTotalTime(bool show_percentage)
 {
-    printf("Total Elapsed Time\n");
+    std::cout << "Total Elapsed Time\n";
+    std::cout.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
         double elapsed = it->second.getTotalElapsed();
-        printf("%s : %f\n", it->first.c_str(), elapsed);
+        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
         sum += elapsed;
 	}
 }

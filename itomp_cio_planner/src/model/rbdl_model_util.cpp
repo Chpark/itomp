@@ -10,7 +10,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 									 const RigidBodyDynamics::Math::VectorNd &QDot,
 									 const RigidBodyDynamics::Math::VectorNd &QDDot,
 									 RigidBodyDynamics::Math::VectorNd &Tau,
-									 std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
+                                     const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
 {
     SpatialVector spatial_gravity(0., 0., 0., model.gravity[0], model.gravity[1], model.gravity[2]);
 
@@ -107,7 +107,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 										const RigidBodyDynamics::Math::VectorNd &QDot,
 										const RigidBodyDynamics::Math::VectorNd &QDDot,
 										RigidBodyDynamics::Math::VectorNd &Tau,
-										std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+                                        const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
 										const std::vector<unsigned int>& body_ids)
 {
 	SpatialVector spatial_gravity(0., 0., 0., model.gravity[0],
@@ -247,7 +247,7 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 						   const RigidBodyDynamics::Math::VectorNd &QDot,
 						   const RigidBodyDynamics::Math::VectorNd &QDDot,
 						   RigidBodyDynamics::Math::VectorNd &Tau,
-						   std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
+                           const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
 {
 	unsigned int i;
 

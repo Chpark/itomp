@@ -103,7 +103,7 @@ private:
     double best_cost_;
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
-	std::vector<Eigen::VectorXd> tau_; // joint forces from inverse dynamics
+    std::vector<Eigen::VectorXd> joint_torques_; // computed from inverse dynamics
 	std::vector<std::vector<RigidBodyDynamics::Math::SpatialVector> > external_forces_;
 	std::vector<std::vector<ContactVariables> > contact_variables_;
 
