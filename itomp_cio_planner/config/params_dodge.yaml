@@ -4,18 +4,18 @@ max_iterations: 800
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
-smoothness_cost_weight: 0.0001
-obstacle_cost_weight: 100
+smoothness_cost_weight: 0.000
+obstacle_cost_weight: 0.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
-contact_invariant_cost_weight: 100.0
+contact_invariant_cost_weight: 0.0
 physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 000.0
-endeffector_velocity_cost_weight: 0.0001
+endeffector_velocity_cost_weight: 0.000
 CoM_cost_weight: 0.0
 RVO_cost_weight: 0.0
 FTR_cost_weight: 0.000
-ROM_cost_weight: 0.1
+ROM_cost_weight: 0.0
 cartesian_trajectory_cost_weight: 0.0
 singularity_cost_weight: 0.0
 friction_cone_cost_weight: 0.0000
@@ -38,8 +38,8 @@ group_endeffectors:
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 8.0
-trajectory_discretization: 0.25
+trajectory_duration: 1.0
+trajectory_discretization: 0.5
 keyframe_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link

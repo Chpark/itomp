@@ -178,6 +178,18 @@ double NewEvalManager::evaluate()
 		cost_functions[c]->postEvaluate(this);
 	}
 
+    for (int i = 0; i < joint_torques_[0].size(); ++i)
+    {
+        std::cout << "Torque " << i << " : " << joint_torques_[0][i] << std::endl;
+    }
+    for (int i = 0; i < 4; ++i)
+    {
+        std::vector<ContactVariables> cv(4);
+        itomp_trajectory_->getContactVariables(0, cv);
+        for (int j = 0; j < 4; ++j)
+            std::cout << "Contact Force " << i << ":" << j << " " << cv[i].getPointForce(j).transpose() << std::endl;
+    }
+
 	return getTrajectoryCost();
 }
 
@@ -427,7 +439,7 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
                 Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
 
                 Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
-				contact_force *= contact_v;
+                //contact_force *= contact_v;
 
                 Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
@@ -518,7 +530,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 
 					Eigen::Vector3d contact_force =
 						contact_variables_[point][i].getPointForce(c);
-					contact_force *= contact_v;
+                    //contact_force *= contact_v;
 
 					Eigen::Vector3d contact_torque = point_position.cross(
 														 contact_force);
@@ -621,7 +633,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                     Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
 
                     Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
-                    contact_force *= contact_v;
+                    //contact_force *= contact_v;
 
                     Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 

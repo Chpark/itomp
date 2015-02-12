@@ -63,8 +63,9 @@ inline void ContactVariables::setVariable(double value)
 }
 inline double ContactVariables::getVariable() const
 {
-	double variable = serialized_position_(0);
-	variable = 0.5 * tanh(4 * variable - 2) + 0.5;
+    double variable = serialized_position_(0);
+    //variable = std::abs(variable);
+    //variable = 0.5 * tanh(4 * variable - 2) + 0.5;
 	return variable;
 }
 inline double ContactVariables::getRawVariable() const
@@ -100,10 +101,12 @@ inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
 {
 	Eigen::Vector3d force =
 		serialized_forces_.block(3 * point_index, 0, 3, 1);
+    /*
 	double scale = 150 * 100;
 	force *= scale;
 	if (force(2) < 0.0)
 		force(2) = -force(2);
+        */
 
 	return force;
 }

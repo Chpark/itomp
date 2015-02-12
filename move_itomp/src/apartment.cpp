@@ -808,38 +808,32 @@ int main(int argc, char **argv)
         Eigen::VectorXd vec1;
 		start_trans = Eigen::VectorXd(6);
         start_trans = Eigen::VectorXd(6);
-        start_trans << 0.0, 1.0, 0.0,0,0,0;
+        start_trans << 0.0, 0.0, 0.0, -M_PI_2, 0, 0;
         goal_trans =  Eigen::VectorXd(6);
-        goal_trans << 0.0, 2.5, 0.0,0,0,0;
-		goal_trans << 0.0, 2.5, 0.0, 0, 0, 0;
-        vec1 = Eigen::VectorXd(6);
-        vec1 << 0.0, 1.5, 1.0,0,0,0;
-		vec1 << 0.0, 1.5, 1.0, 0, 0, 0;
-        waypoints.push_back(vec1);
-        vec1 = Eigen::VectorXd(6);
-        vec1 << 0.0, 2.0, 2.0,0,0,0;
-		vec1 << 0.0, 2.0, 2.0, 0, 0, 0;
-        waypoints.push_back(vec1);
-        vec1 = Eigen::VectorXd(6);
-        vec1 << 0.0, 2.5, 1.0,0,0,0;
-		vec1 << 0.0, 2.5, 1.0, 0, 0, 0;
-        waypoints.push_back(vec1);
-// TODO Contacts ?
+        goal_trans << 0.0, 0.0, 0.0, -M_PI_2, 0, 0;
+        waypoints.push_back(start_trans);
+        waypoints.push_back(goal_trans);
+
+        setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
+                         start_trans, goal_trans, hierarchy);
+        // TODO Contacts ?
     }
     else
     {
         hierarchy = InitTrajectoryFromFile(waypoints, contactPoints, initialpath);
         start_trans = waypoints.front();
         goal_trans =  waypoints.back();
+
+        setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
+                         start_trans, goal_trans, hierarchy);
+        for (int i = 0; i < waypoints.size(); ++i)
+        {
+            moveit_msgs::Constraints constraint =
+                setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
+            req.trajectory_constraints.constraints.push_back(constraint);
+        }
     }
-    setWalkingStates(robot_states[state_index], robot_states[state_index + 1],
-                     start_trans, goal_trans, hierarchy);
-	for (int i = 0; i < waypoints.size(); ++i)
-	{
-		moveit_msgs::Constraints constraint =
-            setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
-		req.trajectory_constraints.constraints.push_back(constraint);
-	}
+
 	robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
 	displayInitialWaypoints(rs, node_handle, robot_model,
                             hierarchy, waypoints);

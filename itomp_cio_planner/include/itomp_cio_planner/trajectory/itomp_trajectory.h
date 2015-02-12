@@ -83,6 +83,8 @@ public:
 
     int getParameterJointIndex(int trajectory_index) const;
 
+    double getDiscretization() const;
+
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
                     unsigned int num_keyframes, unsigned int keyframe_interval, double duration, double discretization);
@@ -130,6 +132,11 @@ inline const ItompTrajectoryIndex& ItompTrajectory::getTrajectoryIndex(unsigned 
 inline int ItompTrajectory::getParameterJointIndex(int trajectory_index) const
 {
     return full_to_parameter_joint_index_map_[trajectory_index];
+}
+
+inline double ItompTrajectory::getDiscretization() const
+{
+    return discretization_;
 }
 
 }

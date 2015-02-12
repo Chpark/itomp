@@ -15,7 +15,7 @@ inline void debugJointArray(KDL::JntArray& joint_array)
 	std::cout << std::endl;
 }
 
-#define USE_TIME_PROFILER
+//#define USE_TIME_PROFILER
 #ifdef USE_TIME_PROFILER
 #define TIME_PROFILER_INIT(get_time_func, num_threads) PerformanceProfiler::getInstance()->initialize(get_time_func, num_threads);
 #define TIME_PROFILER_ADD_ENTRY(name) PerformanceProfiler::getInstance()->addEntry(#name);

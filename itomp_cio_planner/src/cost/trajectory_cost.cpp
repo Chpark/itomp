@@ -219,12 +219,8 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-	const FullTrajectoryConstPtr full_trajectory =
-		evaluation_manager->getFullTrajectory();
-	const ItompPlanningGroupConstPtr& planning_group =
-		evaluation_manager->getPlanningGroup();
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-			point);
+    const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
+    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
 
 	bool has_positive = false;
 	double negative_cost = 1.0;
@@ -238,39 +234,56 @@ bool TrajectoryCostContactInvariant::evaluate(
 		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
 			model.X_base[rbdl_body_id];
 
+        /*
 		double raw_contact_variable = contact_variables[i].getRawVariable();
 		if (raw_contact_variable > 0.0)
 			has_positive = true;
 		negative_cost *= raw_contact_variable;
+        */
 
 		double contact_v = contact_variables[i].getVariable();
 
 		Eigen::Vector3d body_position = contact_body_transform.r;
-		Eigen::Vector3d body_orientation =
-			exponential_map::RotationToExponentialMap(
-				contact_body_transform.E);
+        Eigen::Vector3d body_orientation = exponential_map::RotationToExponentialMap(contact_body_transform.E);
 
-		Eigen::Vector3d position_diff = body_position
-										- contact_variables[i].projected_position_;
-		Eigen::Vector3d orientation_diff = body_orientation
-										   - contact_variables[i].projected_orientation_;
+        Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_position_;
+        Eigen::Vector3d orientation_diff = body_orientation - contact_variables[i].projected_orientation_;
 
-		double position_diff_cost = position_diff.squaredNorm()
-									+ orientation_diff.squaredNorm();
+        double position_diff_cost = position_diff.squaredNorm() + orientation_diff.squaredNorm();
 
-		double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm()
-											* 10;
+        double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
-		const double k1 = 0.01; //10.0;
-		const double k2 = 3; //3.0;
+        const double k1 = 10.0;
+        const double k2 = 3.0;
 
-		cost += contact_v * (position_diff_cost + contact_body_velocity_cost);
+
+
+        for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
+        {
+            int contact_point_rbdl_id = planning_group->contact_points_[i].getContactPointRBDLIds(j);
+            RigidBodyDynamics::Math::SpatialTransform contact_point_transform =
+                model.X_base[contact_point_rbdl_id];
+
+            Eigen::Vector3d point_contact_force = contact_variables[i].getPointForce(j);
+
+            double f_norm = 0.0;
+
+            Eigen::Vector3d z_dir = contact_point_transform.E.col(2);
+            f_norm = point_contact_force.dot(z_dir);
+
+
+            double c = 0.5 * std::tanh(k1 * f_norm - k2) + 0.5;
+
+            cost += c * (position_diff_cost + contact_body_velocity_cost);
+        }
 	}
 
+    /*
 	if (!has_positive)
 	{
 		cost += negative_cost;
 	}
+    */
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
@@ -291,17 +304,17 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	double mass = 0;
 	for (int i = 0; i < model.mBodies.size(); ++i)
 		mass += model.mBodies[i].mMass;
-	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
+    double dt = evaluation_manager->getTrajectory()->getDiscretization();
 	double normalizer = 1.0 / mass * dt;
 
 	for (int i = 0; i < 6; ++i)
 	{
 		// non-actuated root joints
         double joint_torque = evaluation_manager->joint_torques_[point](i);
-		joint_torque *= normalizer;
+        joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
-	cost /= 6.0;
+    cost /= 6.0;
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
 
