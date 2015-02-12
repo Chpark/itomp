@@ -13,7 +13,6 @@
 #include <sensor_msgs/JointState.h>
 #include <ros/console.h>
 #include <rbdl/rbdl.h>
-#include <rbdl/rbdl_urdfreader.h>
 
 namespace itomp_cio_planner
 {

@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/model/rbdl_urdf_reader.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include <ros/ros.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -47,30 +48,11 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		urdf_joints.size() + 1);
 	////////////////////////////////////////////////////////////////////////////
 	{
-		RigidBodyDynamics::Addons::read_urdf_model(
-			"/home/chonhyon/hydro_workspace/itomp/human_description/robots/rocketbox_male_rbdl.urdf",
-			&rbdl_robot_model_);
-		rbdl_robot_model_.gravity = Eigen::Vector3d(0, 0, -9.81);
+        ReadURDFModel(urdf_string.c_str(), &rbdl_robot_model_);
 
 		// rbdl_robot_model_.mJoints[0] is not used
 		num_rbdl_joints_ = rbdl_robot_model_.mJoints.size() - 1;
 		rbdl_number_to_joint_name_.resize(rbdl_robot_model_.mJoints.size());
-
-		const string ROOT_TRANSFORM_LINK_NAMES[] =
-		{
-			"base_prismatic_dummy1", "base_prismatic_dummy2",
-			"base_prismatic_dummy3", "base_revolute_dummy1",
-			"base_revolute_dummy2", "pelvis_link"
-		};
-		const string ROOT_TRANSFORM_JOINT_NAMES[] =
-		{
-			"base_prismatic_joint_x", "base_prismatic_joint_x",
-			"base_prismatic_joint_x", "base_revolute_joint_x",
-			"base_revolute_joint_y", "base_revolute_joint_z"
-		};
-
-		// TODO: handle root transform values : trans_z(1.12)
-		rbdl_robot_model_.X_T[1].r(2) += 1.218534; //
 
 		// compute rbdl_affected_body_ids for partial FK
 		for (unsigned int i = 1; i < rbdl_robot_model_.mJoints.size(); ++i)
@@ -117,16 +99,6 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 					link_model->getParentJointModel();
 				unsigned int body_id = rbdl_robot_model_.GetBodyId(
 										   link_name.c_str());
-
-				// TODO: handle root transform
-				for (int j = 0; j < 6; ++j)
-				{
-					if (link_name == ROOT_TRANSFORM_LINK_NAMES[j])
-					{
-						body_id = j + 1;
-						break;
-					}
-				}
 
 				// fixed joint
 				if (joint_model == NULL
