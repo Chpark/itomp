@@ -77,12 +77,6 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 			model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
 	}
 
-    // debug
-    for (i = 0; i < model.mBodies.size(); ++i)
-    {
-        std::cout << "Joint Force " << i << " : " << model.f[i].transpose() << std::endl;
-    }
-
 	for (i = model.mBodies.size() - 1; i > 0; i--)
 	{
 		unsigned int q_index = model.mJoints[i].q_index;
@@ -106,18 +100,6 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 							  + model.X_lambda[i].applyTranspose(model.f[i]);
 		}
 	}
-
-    // debug
-    for (i = 1; i < model.mBodies.size(); ++i)
-    {
-        std::cout << "Joint Force " << i << " : " << model.f[i].transpose() << std::endl;
-    }
-    // debug
-    for (i = 1; i < model.mBodies.size(); ++i)
-    {
-        unsigned int q_index = model.mJoints[i].q_index;
-        std::cout << "Tau " << q_index << " from " << i << " : " << Tau[q_index] << std::endl;
-    }
 }
 
 void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
