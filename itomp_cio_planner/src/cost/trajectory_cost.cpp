@@ -214,6 +214,10 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    const double k1 = 10.0;
+    const double k2 = 3.0;
+    static double MIN_CI_COST = 0.5 * std::tanh(- k2) + 0.5;
+
 	TIME_PROFILER_START_TIMER(ContactInvariant);
 
 	bool is_feasible = true;
@@ -253,11 +257,6 @@ bool TrajectoryCostContactInvariant::evaluate(
 
         double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
-        const double k1 = 10.0;
-        const double k2 = 3.0;
-
-
-
         for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
         {
             int contact_point_rbdl_id = planning_group->contact_points_[i].getContactPointRBDLIds(j);
@@ -265,6 +264,8 @@ bool TrajectoryCostContactInvariant::evaluate(
                 model.X_base[contact_point_rbdl_id];
 
             Eigen::Vector3d point_contact_force = contact_variables[i].getPointForce(j);
+            if (i >= 2)
+                point_contact_force = Eigen::Vector3d::Zero();
 
             double f_norm = 0.0;
 
@@ -272,7 +273,7 @@ bool TrajectoryCostContactInvariant::evaluate(
             f_norm = point_contact_force.dot(z_dir);
 
 
-            double c = 0.5 * std::tanh(k1 * f_norm - k2) + 0.5;
+            double c = 0.5 * std::tanh(k1 * f_norm - k2) + 0.5 - MIN_CI_COST;
 
             cost += c * (position_diff_cost + contact_body_velocity_cost);
         }
@@ -286,6 +287,9 @@ bool TrajectoryCostContactInvariant::evaluate(
     */
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
+
+    if (point != 0)
+        cost = 0.0;
 
 	return is_feasible;
 }
@@ -311,12 +315,15 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	{
 		// non-actuated root joints
         double joint_torque = evaluation_manager->joint_torques_[point](i);
-        joint_torque *= normalizer;
+        //joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
-    cost /= 6.0;
+    //cost /= 6.0;
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
+
+    if (point != 0)
+        cost = 0.0;
 
 	return is_feasible;
 }

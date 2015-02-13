@@ -178,18 +178,6 @@ double NewEvalManager::evaluate()
 		cost_functions[c]->postEvaluate(this);
 	}
 
-    for (int i = 0; i < joint_torques_[0].size(); ++i)
-    {
-        std::cout << "Torque " << i << " : " << joint_torques_[0][i] << std::endl;
-    }
-    for (int i = 0; i < 4; ++i)
-    {
-        std::vector<ContactVariables> cv(4);
-        itomp_trajectory_->getContactVariables(0, cv);
-        for (int j = 0; j < 4; ++j)
-            std::cout << "Contact Force " << i << ":" << j << " " << cv[i].getPointForce(j).transpose() << std::endl;
-    }
-
 	return getTrajectoryCost();
 }
 
@@ -262,19 +250,6 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
     const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
     *derivative_out = (delta_plus - delta_minus) / (2 * eps);
-
-    /*
-    ItompTrajectoryIndex index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
-    ROS_INFO("[%d] (%d %d %d %d)", parameter_index,
-             index.component, index.sub_component, index.point, index.element);
-
-    if (parameter_index == 1656)
-    {
-        ROS_INFO("[%d] der %f (%f %f) (%d %d %d %d)", parameter_index, *derivative_out, delta_plus, delta_minus,
-                 index.component, index.sub_component, index.point, index.element);
-        itomp_trajectory_->printTrajectory();
-    }
-    */
 
     itomp_trajectory_->restoreTrajectory();
 }
@@ -441,6 +416,10 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
                 Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
                 //contact_force *= contact_v;
 
+                // for debug
+                if (i >= 2)
+                    contact_force = Eigen::Vector3d::Zero();
+
                 Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
                 RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_point_id];
@@ -531,6 +510,10 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 					Eigen::Vector3d contact_force =
 						contact_variables_[point][i].getPointForce(c);
                     //contact_force *= contact_v;
+
+                    // for debug
+                    if (i >= 2)
+                        contact_force = Eigen::Vector3d::Zero();
 
 					Eigen::Vector3d contact_torque = point_position.cross(
 														 contact_force);
@@ -635,6 +618,10 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                     Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
                     //contact_force *= contact_v;
 
+                    // for debug
+                    if (i >= 2)
+                        contact_force = Eigen::Vector3d::Zero();
+
                     Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
                     RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_point_id];
@@ -707,6 +694,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
 	double cost = evaluation_cost_matrix_.sum();
 
+    double old_best = best_cost_;
+
 	bool is_best = cost < best_cost_;
 	if (is_best)
 		best_cost_ = cost;
@@ -714,58 +703,28 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	const std::vector<TrajectoryCostPtr>& cost_functions =
 		TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
-    cout << "[" << iteration << "] Trajectory cost : " << fixed << cost << "/" << fixed << best_cost_ << std::endl;
+
 
 	if (!details || !is_best)
 	{
 	}
 	else
 	{
+        cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
+
         for (int c = 0; c < cost_functions.size(); ++c)
 		{
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
             cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
 		}
 
-		/*
-		for (int i = 0; i < evaluation_cost_matrix_.rows(); i += full_trajectory_->getNumKeyframeIntervalPoints())
-		{
-			printf("[%d] ", i);
-			for (int c = 0; c < cost_functions.size(); ++c)
-			{
-				double sub_cost = evaluation_cost_matrix_(i, c);
-				printf("%.7f ", sub_cost);
-			}
-			printf("\n");
-		}
-
-		printf("Contact active forces\n");
-		for (int i = 0; i < full_trajectory_->getNumPoints(); i += full_trajectory_->getNumKeyframeIntervalPoints())
-		{
-			const Eigen::VectorXd& r = full_trajectory_->getComponentTrajectory(
-					FullTrajectory::TRAJECTORY_COMPONENT_CONTACT_POSITION,
-					Trajectory::TRAJECTORY_TYPE_POSITION).row(i);
-
-			printf("[%d] ", i);
-			int num_contacts = planning_group_->getNumContacts();
-			for (int c = 0; c < num_contacts; ++c)
-			{
-				double contact_variable =
-						contact_variables_[i][c].getVariable();
-				Eigen::Vector3d force_sum = Eigen::Vector3d::Zero();
-
-				for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
-					force_sum += contact_variables_[i][c].getPointForce(j);
-
-				const double k_1 = (c < 2) ? 1e-6 : 1e-4;
-				const double active_force = force_sum.norm() * contact_variable;
-
-				printf("%.7f ", force_sum.norm() * contact_variable);
-			}
-
-			printf("\n");
-		}
-		*/
+        for (int i = 0; i < 4; ++i)
+        {
+            std::vector<ContactVariables> cv(4);
+            itomp_trajectory_->getContactVariables(0, cv);
+            for (int j = 0; j < 4; ++j)
+                std::cout << "Contact Force " << i << ":" << j << " " << cv[i].getPointForce(j).transpose() << std::endl;
+        }
 	}
 
 }

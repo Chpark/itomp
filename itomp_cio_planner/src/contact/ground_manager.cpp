@@ -83,7 +83,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 
 		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
 									 triangle.points_[2], position_in);
-		double distance = (position_in - projection).norm();
+        double distance = (position_in - projection).norm();
 		if (distance < current_min_distance)
 		{
 			current_min_distance = distance;
@@ -140,7 +140,7 @@ void GroundManager::initializeStaticScene()
 				p0.normalize();
 				p1.normalize();
 				Eigen::Vector3d normal = p0.cross(p1);
-				if (normal.norm() < 1e-7)
+                if (normal.norm() < ITOMP_EPS)
 					continue;
 				normal.normalize();
 

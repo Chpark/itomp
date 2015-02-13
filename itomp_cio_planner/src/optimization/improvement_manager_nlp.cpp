@@ -21,7 +21,7 @@ namespace itomp_cio_planner
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
 	evaluation_count_ = 0;
-	eps_ = 1e-7;
+    eps_ = ITOMP_EPS;
 	best_cost_ = std::numeric_limits<double>::max();
 }
 
@@ -267,7 +267,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
                      der(i), der_reference(i));
     }
     */
-    ROS_INFO("Done");
+    //ROS_INFO("Done");
 
     return der;
 }
@@ -279,7 +279,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-				   dlib::objective_delta_stop_strategy(eps_,
+                   dlib::objective_delta_stop_strategy(eps_ * eps_,
 						   PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
@@ -300,7 +300,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)
 	{
-		variables(i) += 1e-2 * noise(i);
+        variables(i) += ITOMP_EPS * noise(i);
 	}
 }
 

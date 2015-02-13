@@ -8,7 +8,7 @@ smoothness_cost_weight: 0.000
 obstacle_cost_weight: 0.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
-contact_invariant_cost_weight: 0.0
+contact_invariant_cost_weight: 1.0
 physics_violation_cost_weight: 1.0
 goal_pose_cost_weight: 000.0
 endeffector_velocity_cost_weight: 0.000

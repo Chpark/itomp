@@ -35,4 +35,6 @@ inline int safeDoubleToInt(double a)
 
 const int NUM_ENDEFFECTOR_CONTACT_POINTS = 4;
 
+const double ITOMP_EPS = 1E-7;
+
 #endif
