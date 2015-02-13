@@ -279,7 +279,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-                   dlib::objective_delta_stop_strategy(eps_ * eps_,
+                   dlib::objective_delta_stop_strategy(eps_ * eps_ * 1e-2,
 						   PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
