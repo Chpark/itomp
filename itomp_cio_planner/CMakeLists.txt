@@ -49,6 +49,7 @@ src/trajectory/itomp_trajectory.cpp
 src/cost/trajectory_cost.cpp
 src/cost/trajectory_cost_manager.cpp
 src/contact/contact_point.cpp
+src/contact/contact_util.cpp
 src/contact/ground_manager.cpp
 src/visualization/new_viz_manager.cpp
 src/util/min_jerk_trajectory.cpp

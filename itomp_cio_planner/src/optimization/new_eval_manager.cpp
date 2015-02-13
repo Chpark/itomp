@@ -356,15 +356,12 @@ void NewEvalManager::render()
 {
 	bool is_best = (getTrajectoryCost() <= best_cost_);
 	if (PlanningParameters::getInstance()->getAnimatePath())
-		NewVizManager::getInstance()->animatePath(full_trajectory_,
-				robot_state_[0], is_best);
+        NewVizManager::getInstance()->animatePath(itomp_trajectory_, robot_state_[0], is_best);
 
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 	{
-		NewVizManager::getInstance()->animateEndeffectors(full_trajectory_,
-				rbdl_models_, is_best);
-		NewVizManager::getInstance()->animateContactForces(full_trajectory_,
-				contact_variables_, is_best);
+        NewVizManager::getInstance()->animateEndeffectors(itomp_trajectory_, rbdl_models_, is_best);
+        NewVizManager::getInstance()->animateContacts(itomp_trajectory_, contact_variables_, rbdl_models_, is_best);
 	}
 }
 

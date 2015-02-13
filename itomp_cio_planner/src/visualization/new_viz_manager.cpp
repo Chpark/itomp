@@ -1,6 +1,7 @@
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
+#include <itomp_cio_planner/contact/contact_util.h>
 #include <ros/node_handle.h>
 #include <boost/lexical_cast.hpp>
 
@@ -20,11 +21,8 @@ NewVizManager::~NewVizManager()
 void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 {
 	ros::NodeHandle node_handle;
-	vis_marker_array_publisher_ = node_handle.advertise<
-								  visualization_msgs::MarkerArray>(
-									  "itomp_planner/visualization_marker_array", 10);
-	vis_marker_publisher_ = node_handle.advertise<visualization_msgs::Marker>(
-								"itomp_planner/visualization_marker", 10);
+    vis_marker_array_publisher_path_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_path", 10);
+    vis_marker_array_publisher_contacts_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_contacts", 10);
 
 	robot_model_ = robot_model;
 	reference_frame_ = robot_model->getReferenceFrame();
@@ -39,88 +37,26 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 	}
 }
 
-void NewVizManager::setPlanningGroup(
-	const ItompPlanningGroupConstPtr& planning_group)
+void NewVizManager::setPlanningGroup(const ItompPlanningGroupConstPtr& planning_group)
 {
 	planning_group_ = planning_group;
 
-	const multimap<string, string>& endeffector_names =
-		PlanningParameters::getInstance()->getGroupEndeffectorNames();
-	std::pair<multimap<string, string>::const_iterator,
-		multimap<string, string>::const_iterator> ret =
-			endeffector_names.equal_range(planning_group_->name_);
+    const multimap<string, string>& endeffector_names =	PlanningParameters::getInstance()->getGroupEndeffectorNames();
+    std::pair<multimap<string, string>::const_iterator,	multimap<string, string>::const_iterator> ret =
+        endeffector_names.equal_range(planning_group_->name_);
 	endeffector_rbdl_indices_.clear();
-	for (multimap<string, string>::const_iterator it = ret.first;
-			it != ret.second; ++it)
+    for (multimap<string, string>::const_iterator it = ret.first; it != ret.second; ++it)
 	{
 		string endeffector_name = it->second;
-		unsigned int rbdl_link_index =
-			robot_model_->getRBDLRobotModel().GetBodyId(
-				endeffector_name.c_str());
+        unsigned int rbdl_link_index = robot_model_->getRBDLRobotModel().GetBodyId(endeffector_name.c_str());
 		endeffector_rbdl_indices_.push_back(rbdl_link_index);
 	}
 }
 
-void NewVizManager::renderOneTime()
+void NewVizManager::animateEndeffectors(const ItompTrajectoryConstPtr& full_trajectory,
+                                        const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
 {
-	//renderGround();
-	//renderEnvironment(); // rendered in move_itomp
-}
-
-void NewVizManager::renderEnvironment()
-{
-	string environment_file =
-		PlanningParameters::getInstance()->getEnvironmentModel();
-	if (environment_file.empty())
-		return;
-
-	vector<double> environment_position =
-		PlanningParameters::getInstance()->getEnvironmentModelPosition();
-	double scale =
-		PlanningParameters::getInstance()->getEnvironmentModelScale();
-	environment_position.resize(3, 0);
-
-	visualization_msgs::MarkerArray ma;
-	visualization_msgs::Marker msg;
-	msg.header.frame_id = reference_frame_;
-	msg.header.stamp = ros::Time::now();
-	msg.ns = "environment";
-	msg.type = visualization_msgs::Marker::MESH_RESOURCE;
-	msg.action = visualization_msgs::Marker::ADD;
-	msg.scale.x = scale;
-	msg.scale.y = scale;
-	msg.scale.z = scale;
-	msg.id = 0;
-	msg.pose.position.x = environment_position[0];
-	msg.pose.position.y = environment_position[1];
-	msg.pose.position.z = environment_position[2];
-	/*
-	 msg.pose.orientation.x = sqrt(0.5);
-	 msg.pose.orientation.y = 0.0;
-	 msg.pose.orientation.z = 0.0;
-	 msg.pose.orientation.w = sqrt(0.5);
-	 */
-	msg.pose.orientation.x = 0.0;
-	msg.pose.orientation.y = 0.0;
-	msg.pose.orientation.z = 0.0;
-	msg.pose.orientation.w = 1.0;
-	msg.color.a = 1.0;
-	msg.color.r = 0.5;
-	msg.color.g = 0.5;
-	msg.color.b = 0.5;
-	msg.mesh_resource = environment_file;
-	ma.markers.push_back(msg);
-	vis_marker_array_publisher_.publish(ma);
-}
-
-void NewVizManager::renderGround()
-{
-}
-
-void NewVizManager::animateEndeffectors(
-	const FullTrajectoryConstPtr& full_trajectory,
-	const std::vector<RigidBodyDynamics::Model>& models, bool is_best)
-{
+    /*
 	const double scale_keyframe = 0.03;
 	const double scale_line = 0.005;
 	geometry_msgs::Point point;
@@ -183,141 +119,142 @@ void NewVizManager::animateEndeffectors(
 
 		vis_marker_publisher_.publish(msg);
 	}
+    */
 }
 
-void NewVizManager::animatePath(const FullTrajectoryConstPtr& full_trajectory,
+void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 								const robot_state::RobotStatePtr& robot_state, bool is_best)
 {
 	if (!is_best)
 		return;
 
-	geometry_msgs::Point point;
-
 	visualization_msgs::MarkerArray ma;
-	std::vector<std::string> link_names =
-		robot_model_->getMoveitRobotModel()->getLinkModelNames();
-	std_msgs::ColorRGBA color = colors_[WHITE];
-	color.a = 0.1;
+    std::vector<std::string> link_names = robot_model_->getMoveitRobotModel()->getLinkModelNames();
+    std_msgs::ColorRGBA color = colors_[WHITE];
+    color.a = 0.1;
 	ros::Duration dur(3600.0);
 
-	for (int point = full_trajectory->getKeyframeStartIndex();
-			point < full_trajectory->getNumPoints();
-			point += full_trajectory->getNumKeyframeIntervalPoints())
+    for (unsigned int point = 0; point < trajectory->getNumPoints(); ++point)
 	{
 		ma.markers.clear();
-		const Eigen::MatrixXd mat = full_trajectory->getTrajectory(
-										Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
+        const Eigen::MatrixXd mat = trajectory->getElementTrajectory(
+                                        ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0);
 		robot_state->setVariablePositions(mat.data());
-		std::string ns = "kf_" + boost::lexical_cast<std::string>(point);
+        std::string ns = "frame_" + boost::lexical_cast<std::string>(point);
 		robot_state->getRobotMarkers(ma, link_names, color, ns, dur);
-		vis_marker_array_publisher_.publish(ma);
+        for (int i = 0; i < ma.markers.size(); ++i)
+            ma.markers[i].mesh_use_embedded_materials = true;
+        vis_marker_array_publisher_path_.publish(ma);
 	}
 }
 
-void NewVizManager::animateContactForces(
-	const FullTrajectoryConstPtr& full_trajectory,
-	const std::vector<std::vector<ContactVariables> >& contact_variables,
-	bool is_best, bool keyframe_only)
+void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
+                                    const std::vector<std::vector<ContactVariables> >& contact_variables,
+                                    const std::vector<RigidBodyDynamics::Model>& models,
+                                    bool is_best)
 {
-	const double scale_line = 0.005;
-	const double scale_keyframe = 0.03;
-	geometry_msgs::Point point_from, point_to;
+    if (!is_best)
+        return;
 
-	visualization_msgs::Marker msg, msg2, msg3, msg4;
-	msg.header.frame_id = reference_frame_;
-	msg.header.stamp = ros::Time::now();
-	msg.ns = is_best ? "itomp_best_cf" : "itomp_cf";
-	msg.action = visualization_msgs::Marker::ADD;
-	msg.pose.orientation.w = 1.0;
+    const double SCALE_FORCE_LINE = 0.005;
+    const double SCALE_DISPLACEMENT_LINE = 0.0025;
+    const double SCALE_SPHERE = 0.03;
+    geometry_msgs::Point point_from, point_to, point_body;
 
-	msg.type = visualization_msgs::Marker::LINE_LIST;
-	msg.scale.x = scale_line;
-	msg.scale.y = scale_line;
-	msg.scale.z = scale_line;
-	msg.color = is_best ? colors_[YELLOW] : colors_[MAGENTA];
+    int num_contacts = contact_variables[0].size();
 
-	msg.id = 0;
-	msg.points.resize(0);
+    visualization_msgs::MarkerArray ma;
+    visualization_msgs::Marker marker_cf;
+    visualization_msgs::Marker marker_cp;
+    visualization_msgs::Marker marker_displacement;
 
-	msg2 = msg;
-	msg2.ns = is_best ? "itomp_best_cp" : "itomp_cp";
-	msg2.type = visualization_msgs::Marker::SPHERE_LIST;
-	msg2.scale.x = scale_keyframe;
-	msg2.scale.y = scale_keyframe;
-	msg2.scale.z = scale_keyframe;
+    marker_cf.header.frame_id = reference_frame_;
+    marker_cf.header.stamp = ros::Time::now();
+    marker_cf.action = visualization_msgs::Marker::ADD;
+    marker_cf.pose.orientation.w = 1.0;
+    marker_cf.type = visualization_msgs::Marker::LINE_LIST;
+    marker_cf.scale.x = SCALE_FORCE_LINE;
+    marker_cf.scale.y = SCALE_FORCE_LINE;
+    marker_cf.scale.z = SCALE_FORCE_LINE;
+    marker_cf.color = colors_[GREEN];
 
-	// inactive
-	msg3 = msg;
-	msg3.id = 0;
-	msg3.color = is_best ? colors_[RED] : colors_[MAGENTA];
-	msg3.ns = is_best ? "itomp_best_cf_ia" : "itomp_cf_ia";
-	msg4 = msg2;
-	msg4.id = 0;
-	msg4.color = is_best ? colors_[RED] : colors_[MAGENTA];
-	msg4.ns = is_best ? "itomp_best_cp_ia" : "itomp_cp_ia";
+    marker_cp = marker_cf;
+    marker_cp.type = visualization_msgs::Marker::SPHERE_LIST;
+    marker_cp.scale.x = SCALE_SPHERE;
+    marker_cp.scale.y = SCALE_SPHERE;
+    marker_cp.scale.z = SCALE_SPHERE;
 
-	int begin, end, step;
-	if (keyframe_only)
-	{
-		begin = full_trajectory->getKeyframeStartIndex();
-		end = full_trajectory->getNumPoints();
-		step = full_trajectory->getNumKeyframeIntervalPoints();
-	}
-	else
-	{
-		begin = 0;
-		end = full_trajectory->getNumPoints();
-		step = 1;
-	}
+    marker_displacement = marker_cf;
+    marker_displacement.scale.x = SCALE_DISPLACEMENT_LINE;
+    marker_displacement.scale.y = SCALE_DISPLACEMENT_LINE;
+    marker_displacement.scale.z = SCALE_DISPLACEMENT_LINE;
+    marker_displacement.color = colors_[YELLOW];
 
-	int num_contacts = contact_variables[0].size();
-	for (int point = begin; point < end; point += step)
-	{
-		for (int i = 0; i < num_contacts; ++i)
-		{
-			double contact_v = contact_variables[point][i].getVariable();
+    for (int point = 0; point < trajectory->getNumPoints(); ++point)
+    {
+        marker_cf.ns = "contact_" + boost::lexical_cast<std::string>(point);
+        marker_cp.ns = marker_cf.ns;
+        marker_displacement.ns = marker_cf.ns;
+        for (int i = 0; i < num_contacts; ++i)
+        {
+            for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+            {
+                marker_cf.points.clear();
+                marker_cp.points.clear();
+                marker_displacement.points.clear();
+                marker_cf.id = i * NUM_ENDEFFECTOR_CONTACT_POINTS + c;
+                marker_cp.id = marker_cf.id + NUM_ENDEFFECTOR_CONTACT_POINTS * num_contacts;
+                marker_displacement.id = marker_cp.id + NUM_ENDEFFECTOR_CONTACT_POINTS * num_contacts;
+                marker_cf.color = colors_[i + 1];
+                marker_cp.color = marker_cf.color;
 
-			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
-			{
-				Eigen::Vector3d point_position =
-					contact_variables[point][i].projected_point_positions_[c];
+                const Eigen::Vector3d& point_position = contact_variables[point][i].projected_point_positions_[c];
+                const Eigen::Vector3d& contact_force = contact_variables[point][i].getPointForce(c);
 
-				Eigen::Vector3d contact_force =
-					contact_variables[point][i].getPointForce(c);
-				contact_force *= contact_v;
+                point_from.x = point_position(0);
+                point_from.y = point_position(1);
+                point_from.z = point_position(2);
 
-				point_from.x = point_position(0);
-				point_from.y = point_position(1);
-				point_from.z = point_position(2);
+                point_to.x = contact_force(0) * 0.001 + point_from.x;
+                point_to.y = contact_force(1) * 0.001 + point_from.y;
+                point_to.z = contact_force(2) * 0.001 + point_from.z;
 
-				point_to.x = contact_force(0) * 0.001 + point_from.x;
-				point_to.y = contact_force(1) * 0.001 + point_from.y;
-				point_to.z = contact_force(2) * 0.001 + point_from.z;
+                marker_cf.points.push_back(point_from);
+                marker_cf.points.push_back(point_to);
+                marker_cp.points.push_back(point_from);
 
-				const double k1 = 0.01; //10.0;
-				const double k2 = 3; //3.0;
-				double contact_variable = contact_v;
+                double contact_active_value = getContactActiveValue(i, c, contact_variables[point], planning_group_, models[point]);
+                marker_cf.color.r *= contact_active_value;
+                marker_cf.color.g *= contact_active_value;
+                marker_cf.color.b *= contact_active_value;
+                marker_cp.color.r *= contact_active_value;
+                marker_cp.color.g *= contact_active_value;
+                marker_cp.color.b *= contact_active_value;
 
-				if (contact_variable > 0.0)
-				{
-					msg.points.push_back(point_from);
-					msg.points.push_back(point_to);
-					msg2.points.push_back(point_from);
-				}
-				else
-				{
-					msg3.points.push_back(point_from);
-					msg3.points.push_back(point_to);
-					msg4.points.push_back(point_from);
-				}
-			}
+                ma.markers.push_back(marker_cf);
+                ma.markers.push_back(marker_cp);
 
-		}
-	}
-	vis_marker_publisher_.publish(msg);
-	vis_marker_publisher_.publish(msg2);
-	vis_marker_publisher_.publish(msg3);
-	vis_marker_publisher_.publish(msg4);
+                int rbdl_contact_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
+                const RigidBodyDynamics::Math::SpatialTransform& contact_point_transform = models[point].X_base[rbdl_contact_point_id];
+                const Eigen::Vector3d& body_point_position = contact_point_transform.r;
+
+                point_body.x = body_point_position(0);
+                point_body.y = body_point_position(1);
+                point_body.z = body_point_position(2);
+
+                marker_displacement.points.push_back(point_from);
+                marker_displacement.points.push_back(point_body);
+
+                marker_displacement.color = colors_[YELLOW];
+                marker_displacement.color.r *= contact_active_value;
+                marker_displacement.color.g *= contact_active_value;
+                marker_displacement.color.b *= contact_active_value;
+                ma.markers.push_back(marker_displacement);
+            }
+        }
+    }
+    vis_marker_array_publisher_contacts_.publish(ma);
 }
 
 }

@@ -67,8 +67,6 @@ bool ItompOptimizer::optimize()
 
 	improvement_manager_->updatePlanningParameters();
 
-	NewVizManager::getInstance()->renderOneTime();
-
 	evaluation_manager_->evaluate();
 
 	evaluation_manager_->render();

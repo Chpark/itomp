@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/contact/contact_point.h>
 #include <itomp_cio_planner/util/exponential_map.h>
+#include <rbdl/Model.h>
 
 namespace itomp_cio_planner
 {

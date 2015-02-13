@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/cost/trajectory_cost.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
+#include <itomp_cio_planner/contact/contact_util.h>
 #include <itomp_cio_planner/util/exponential_map.h>
 #include <itomp_cio_planner/rom/ROM.h>
 #include <itomp_cio_planner/collision/collision_world_fcl_derivatives.h>
@@ -214,10 +215,6 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    const double k1 = 10.0;
-    const double k2 = 3.0;
-    static double MIN_CI_COST = 0.5 * std::tanh(- k2) + 0.5;
-
 	TIME_PROFILER_START_TIMER(ContactInvariant);
 
 	bool is_feasible = true;
@@ -226,65 +223,30 @@ bool TrajectoryCostContactInvariant::evaluate(
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
     const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
 
-	bool has_positive = false;
-	double negative_cost = 1.0;
-
 	const std::vector<ContactVariables>& contact_variables =
 		evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
-		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
-			model.X_base[rbdl_body_id];
+        const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_body_id];
 
-        /*
-		double raw_contact_variable = contact_variables[i].getRawVariable();
-		if (raw_contact_variable > 0.0)
-			has_positive = true;
-		negative_cost *= raw_contact_variable;
-        */
-
-		double contact_v = contact_variables[i].getVariable();
-
-		Eigen::Vector3d body_position = contact_body_transform.r;
-        Eigen::Vector3d body_orientation = exponential_map::RotationToExponentialMap(contact_body_transform.E);
+        const Eigen::Vector3d& body_position = contact_body_transform.r;
+        const Eigen::Vector3d& body_orientation = exponential_map::RotationToExponentialMap(contact_body_transform.E);
 
         Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_position_;
         Eigen::Vector3d orientation_diff = body_orientation - contact_variables[i].projected_orientation_;
 
         double position_diff_cost = position_diff.squaredNorm() + orientation_diff.squaredNorm();
-
         double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
         for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
         {
-            int contact_point_rbdl_id = planning_group->contact_points_[i].getContactPointRBDLIds(j);
-            RigidBodyDynamics::Math::SpatialTransform contact_point_transform =
-                model.X_base[contact_point_rbdl_id];
-
-            Eigen::Vector3d point_contact_force = contact_variables[i].getPointForce(j);
-            if (i >= 2)
-                point_contact_force = Eigen::Vector3d::Zero();
-
-            double f_norm = 0.0;
-
-            Eigen::Vector3d z_dir = contact_point_transform.E.col(2);
-            f_norm = point_contact_force.dot(z_dir);
-
-
-            double c = 0.5 * std::tanh(k1 * f_norm - k2) + 0.5 - MIN_CI_COST;
+            double c = getContactActiveValue(i, j, contact_variables, planning_group, model);
 
             cost += c * (position_diff_cost + contact_body_velocity_cost);
         }
 	}
-
-    /*
-	if (!has_positive)
-	{
-		cost += negative_cost;
-	}
-    */
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 

@@ -4,7 +4,7 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
-#include <itomp_cio_planner/trajectory/full_trajectory.h>
+#include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <moveit/robot_state/robot_state.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <ros/publisher.h>
@@ -24,25 +24,21 @@ public:
 	void initialize(const ItompRobotModelConstPtr& robot_model);
 	void setPlanningGroup(const ItompPlanningGroupConstPtr& planning_group);
 
-	void renderOneTime();
-
-	void animateEndeffectors(const FullTrajectoryConstPtr& full_trajectory,
+    void animateEndeffectors(const ItompTrajectoryConstPtr& trajectory,
 							 const std::vector<RigidBodyDynamics::Model>& models, bool is_best);
-	void animatePath(const FullTrajectoryConstPtr& full_trajectory,
+    void animatePath(const ItompTrajectoryConstPtr& trajectory,
 					 const robot_state::RobotStatePtr& robot_state, bool is_best);
-	void animateContactForces(const FullTrajectoryConstPtr& full_trajectory,
-							  const std::vector<std::vector<ContactVariables> >& contact_variables,
-							  bool is_best, bool keyframe_only = false);
+    void animateContacts(const ItompTrajectoryConstPtr& trajectory,
+                         const std::vector<std::vector<ContactVariables> >& contact_variables,
+                         const std::vector<RigidBodyDynamics::Model>& models,
+                         bool is_best);
 
 	ros::Publisher& getVisualizationMarkerPublisher();
 	ros::Publisher& getVisualizationMarkerArrayPublisher();
 
 private:
-	void renderEnvironment();
-	void renderGround();
-
-	ros::Publisher vis_marker_array_publisher_;
-	ros::Publisher vis_marker_publisher_;
+    ros::Publisher vis_marker_array_publisher_path_;
+    ros::Publisher vis_marker_array_publisher_contacts_;
 
 	ItompRobotModelConstPtr robot_model_;
 	ItompPlanningGroupConstPtr planning_group_;
@@ -51,16 +47,6 @@ private:
 	std::vector<unsigned int> endeffector_rbdl_indices_;
 	std::vector<visualization_msgs::Marker::_color_type> colors_;
 };
-
-inline ros::Publisher& NewVizManager::getVisualizationMarkerPublisher()
-{
-	return vis_marker_publisher_;
-}
-
-inline ros::Publisher& NewVizManager::getVisualizationMarkerArrayPublisher()
-{
-	return vis_marker_array_publisher_;
-}
 
 }
 
