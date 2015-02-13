@@ -461,6 +461,8 @@ void ItompTrajectory::backupTrajectory(const ItompTrajectoryIndex& index)
     int element = index.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
+    if (point == num_points_ - 1)
+        ++backup_point_end;
     int backup_length = backup_point_end - backup_point_begin;
 
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)
@@ -478,6 +480,8 @@ void ItompTrajectory::restoreTrajectory()
     int element = backup_index_.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
+    if (point == num_points_ - 1)
+        ++backup_point_end;
     int backup_length = backup_point_end - backup_point_begin;
 
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)

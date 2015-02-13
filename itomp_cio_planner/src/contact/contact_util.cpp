@@ -18,10 +18,7 @@ double getContactActiveValue(unsigned int contact, unsigned int contact_point,
     const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_body_id];
     Eigen::Vector3d z_dir = contact_body_transform.E.col(2);
 
-    // TODO: change to const ref
-    Eigen::Vector3d point_contact_force = contact_variables[contact].getPointForce(contact_point);
-    if (contact >= 2)
-        point_contact_force = Eigen::Vector3d::Zero();
+    const Eigen::Vector3d& point_contact_force = contact_variables[contact].getPointForce(contact_point);
 
     double f_norm = point_contact_force.dot(z_dir);
 

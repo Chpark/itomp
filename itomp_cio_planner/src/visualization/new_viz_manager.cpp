@@ -139,7 +139,7 @@ void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 		ma.markers.clear();
         const Eigen::MatrixXd mat = trajectory->getElementTrajectory(
                                         ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0);
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 		robot_state->setVariablePositions(mat.data());
         std::string ns = "frame_" + boost::lexical_cast<std::string>(point);
 		robot_state->getRobotMarkers(ma, link_names, color, ns, dur);

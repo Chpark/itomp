@@ -274,6 +274,9 @@ void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_ind
 
     const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
 
+    if (index.point == point_end)
+        ++point_end;
+
     performPartialForwardKinematicsAndDynamics(point_begin, point_end, index);
 
     evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index);
@@ -402,8 +405,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 		// compute external forces
 		for (int i = 0; i < num_contacts; ++i)
 		{
-			double contact_v = contact_variables_[point][i].getVariable();
-
 			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 			{
                 int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
@@ -411,11 +412,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
                 Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
 
                 Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
-                //contact_force *= contact_v;
-
-                // for debug
-                if (i >= 2)
-                    contact_force = Eigen::Vector3d::Zero();
 
                 Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
@@ -493,8 +489,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 			// compute external forces
 			for (int i = 0; i < num_contacts; ++i)
 			{
-				double contact_v = contact_variables_[point][i].getVariable();
-
 				for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 				{
 					int rbdl_point_id =
@@ -506,11 +500,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 
 					Eigen::Vector3d contact_force =
 						contact_variables_[point][i].getPointForce(c);
-                    //contact_force *= contact_v;
-
-                    // for debug
-                    if (i >= 2)
-                        contact_force = Eigen::Vector3d::Zero();
 
 					Eigen::Vector3d contact_torque = point_position.cross(
 														 contact_force);
@@ -604,8 +593,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
             // compute external forces
             for (int i = 0; i < num_contacts; ++i)
             {
-                double contact_v = contact_variables_[point][i].getVariable();
-
                 for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
                 {
                     int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
@@ -613,11 +600,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                     Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
 
                     Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
-                    //contact_force *= contact_v;
-
-                    // for debug
-                    if (i >= 2)
-                        contact_force = Eigen::Vector3d::Zero();
 
                     Eigen::Vector3d contact_torque = point_position.cross(contact_force);
 
@@ -718,7 +700,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(0, cv);
+            itomp_trajectory_->getContactVariables(1, cv);
             for (int j = 0; j < 4; ++j)
                 std::cout << "Contact Force " << i << ":" << j << " " << cv[i].getPointForce(j).transpose() << std::endl;
         }
