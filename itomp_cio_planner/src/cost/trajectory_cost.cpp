@@ -120,7 +120,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 		robot_state->setVariablePositions(mat.data());
 
-		const double self_collision_scale = 0.1;
+        const double self_collision_scale = 1.0;
 
 		if (i == 0)
 		{
@@ -165,7 +165,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-				cost += contact.depth;
+                cost += contact.depth * contact.depth * 10000;
 			}
 
 			collision_result.clear();
@@ -177,7 +177,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-				cost += self_collision_scale * contact.depth;
+                cost += self_collision_scale * contact.depth * contact.depth * 10000;
 			}
 		}
 
@@ -195,6 +195,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 
 	TIME_PROFILER_END_TIMER(Obstacle);
+
+    if (point != 0)
+        cost = 0.0;
 
 	return is_feasible;
 }
@@ -242,7 +245,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 
         for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
         {
-            double c = getContactActiveValue(i, j, contact_variables, planning_group, model);
+            double c = getContactActiveValue(i, j, contact_variables);
 
             cost += c * (position_diff_cost + contact_body_velocity_cost);
         }
@@ -265,22 +268,12 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
 
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-			point);
-	double mass = 0;
-	for (int i = 0; i < model.mBodies.size(); ++i)
-		mass += model.mBodies[i].mMass;
-    double dt = evaluation_manager->getTrajectory()->getDiscretization();
-	double normalizer = 1.0 / mass * dt;
-
 	for (int i = 0; i < 6; ++i)
 	{
 		// non-actuated root joints
         double joint_torque = evaluation_manager->joint_torques_[point](i);
-        //joint_torque *= normalizer;
 		cost += joint_torque * joint_torque;
 	}
-    //cost /= 6.0;
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
 
@@ -664,44 +657,34 @@ bool TrajectoryCostFrictionCone::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-	const FullTrajectoryConstPtr full_trajectory =
-		evaluation_manager->getFullTrajectory();
-	const ItompPlanningGroupConstPtr& planning_group =
-		evaluation_manager->getPlanningGroup();
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-			point);
-
-	const std::vector<ContactVariables>& contact_variables =
-		evaluation_manager->contact_variables_[point];
+    const std::vector<ContactVariables>& contact_variables = evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
-		double contact_variable = contact_variables[i].getVariable();
-
-		Eigen::Matrix3d orientation = exponential_map::ExponentialMapToRotation(
-										  contact_variables[i].projected_orientation_);
-		Eigen::Vector3d contact_normal =
-			orientation.block(0, 2, 3, 1).transpose();
+        const Eigen::Matrix3d& orientation = exponential_map::ExponentialMapToRotation(contact_variables[i].projected_orientation_);
+        Eigen::Vector3d contact_normal = orientation.block(0, 2, 3, 1);
 
 		for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 		{
-			Eigen::Vector3d point_force = contact_variables[i].getPointForce(c);
+            Eigen::Vector3d point_force = contact_variables[i].getPointForce(c);
 
 			double angle = 0.0;
 			double norm = point_force.norm();
-			if (point_force.norm() > 1e-7)
+            if (norm > ITOMP_EPS)
 			{
 				point_force.normalize();
-				angle = (point_force.norm() < 1e-7) ?
-						0.0 : acos(contact_normal.dot(point_force));
-				angle = std::max(0.0, std::abs(angle) - 0.25 * M_PI);
+                angle = (norm < ITOMP_EPS) ? 0.0 : acos(contact_normal.dot(point_force));
+                angle = std::max(0.0, std::abs(angle) - M_PI / 6.0);
 			}
 
-			cost += contact_variable * angle * angle * norm * norm;
+            cost += angle * angle * norm * norm;
 		}
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);
+
+    if (point != 0)
+        cost = 0;
 
 	return is_feasible;
 }

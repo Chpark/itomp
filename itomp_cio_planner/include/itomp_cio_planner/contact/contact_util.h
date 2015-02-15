@@ -10,9 +10,7 @@ namespace itomp_cio_planner
 {
 
 double getContactActiveValue(unsigned int contact, unsigned int contact_point,
-                             const std::vector<ContactVariables>& contact_variables,
-                             const ItompPlanningGroupConstPtr& planning_group,
-                             const RigidBodyDynamics::Model& model);
+                             const std::vector<ContactVariables>& contact_variables);
 
 
 };

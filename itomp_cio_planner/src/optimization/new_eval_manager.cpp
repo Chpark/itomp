@@ -7,6 +7,7 @@
 #include <itomp_cio_planner/model/itomp_planning_group.h>
 #include <itomp_cio_planner/model/rbdl_model_util.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
+#include <itomp_cio_planner/contact/contact_util.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/min_jerk_trajectory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
@@ -700,9 +701,14 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(1, cv);
+            itomp_trajectory_->getContactVariables(0, cv);
             for (int j = 0; j < 4; ++j)
-                std::cout << "Contact Force " << i << ":" << j << " " << cv[i].getPointForce(j).transpose() << std::endl;
+            {
+                double c = getContactActiveValue(i, j, cv);
+
+                std::cout << "Contact Force " << i << ":" << j << " " << c << " " << cv[i].getPointForce(j).transpose() << std::endl;
+            }
+
         }
 	}
 

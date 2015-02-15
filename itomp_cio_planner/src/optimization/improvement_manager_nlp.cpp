@@ -148,7 +148,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	evaluation_manager_->render();
 
 	evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
-	if (evaluation_count_ % 100 == 0)
+    if (evaluation_count_ % 1000 == 0)
 	{
 		printf("Elapsed (in eval) : %f\n",
 			   (ros::Time::now() - start_time_).toSec());
@@ -258,6 +258,18 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
     /*
+    for (int i = 0; i < variables.size(); ++i)
+    {
+        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+
+        if (index.component != 0 || index.point != 1)
+            continue;
+
+        std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << der(i) << std::endl;
+    }
+    */
+
+    /*
     column_vector der_reference = derivative_ref(variables);
     ROS_INFO("Vaildate computed derivative with reference");
     for (int i = 0; i < variables.size(); ++i)
@@ -267,7 +279,6 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
                      der(i), der_reference(i));
     }
     */
-    //ROS_INFO("Done");
 
     return der;
 }

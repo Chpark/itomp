@@ -1,6 +1,6 @@
 num_trials: 1
 planning_time_limit: 120.0
-max_iterations: 800
+max_iterations: 8000
 max_iterations_after_collision_free: 0
 num_trajectories: 1
 
@@ -8,8 +8,8 @@ smoothness_cost_weight: 0.000
 obstacle_cost_weight: 0.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
-contact_invariant_cost_weight: 10.0
-physics_violation_cost_weight: 1.0
+contact_invariant_cost_weight: 16000.0
+physics_violation_cost_weight: 0.1
 goal_pose_cost_weight: 000.0
 endeffector_velocity_cost_weight: 0.000
 CoM_cost_weight: 0.0
