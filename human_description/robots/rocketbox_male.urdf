@@ -839,28 +839,28 @@
   <joint name="right_hand_cp_1_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.06 -0.05 0"/>
+    <origin rpy="0 0 0" xyz="0.06 0.14 0"/>
     <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_1_link"/>
   </joint>
   <joint name="right_hand_cp_2_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.06 -0.05 0"/>
+    <origin rpy="0 0 0" xyz="-0.06 0.14 0"/>
     <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_2_link"/>
   </joint>
   <joint name="right_hand_cp_3_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="0.06 0.14 0"/>
+    <origin rpy="0 0 0" xyz="-0.06 -0.05 0"/>
     <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_3_link"/>
   </joint>
   <joint name="right_hand_cp_4_joint" type="revolute">
     <axis xyz="0 0 1"/>
     <limit effort="15" lower="0" upper="0" velocity="5"/>
-    <origin rpy="0 0 0" xyz="-0.06 0.14 0"/>
+    <origin rpy="0 0 0" xyz="0.06 -0.05 0"/>
     <parent link="right_hand_endeffector_link"/>
     <child link="right_hand_cp_4_link"/>
   </joint>
