@@ -160,6 +160,23 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 		best_parameter_ = evaluation_parameters_[0];
 	}
 
+/*
+    std::cout << "eval : " << cost << "\n";
+    for (int i = 0; i < variables.size(); ++i)
+    {
+        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+
+        if (index.component != 0 || index.point != 1)
+            continue;
+
+        if (std::abs(variables(i)) < ITOMP_EPS)
+            continue;
+
+        std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << variables(i) << std::endl;
+    }
+    std::cout.flush();
+*/
+
 	return cost;
 }
 
@@ -213,11 +230,13 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     column_vector der;
     der.set_size(variables.size());
 
-    /*
-	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
-	for (int i = 1; i < num_threads_; ++i)
-		evaluation_parameters_[i] = evaluation_parameters_[0];
-        */
+    // for cost debug
+    std::vector<column_vector> cost_der(TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
+    for (int i = 0; i < cost_der.size(); ++i)
+        cost_der[i].set_size(variables.size());
+    std::vector<double*> cost_der_ptr(cost_der.size());
+    for (int i = 0; i < cost_der.size(); ++i)
+        cost_der_ptr[i] = cost_der[i].begin();
 
     #pragma omp parallel for
     for (int i = 0; i < num_threads_; ++i)
@@ -225,39 +244,21 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         derivatives_evaluation_manager_[i]->setParameters(variables);
     }
 
-    /*
-	int parameter_index = 0;
-	for (int k = 0; k < num_parameter_types_; ++k)
-	{
-		#pragma omp parallel for
-		for (int j = 0; j < num_parameter_points_; ++j)
-		{
-			int thread_index = omp_get_thread_num();
-			int thread_variable_index = parameter_index
-										+ j * num_parameter_elements_;
-
-			derivatives_evaluation_manager_[thread_index]->computeDerivatives(
-				evaluation_parameters_[thread_index], k, j,
-                der.begin() + thread_variable_index, eps_,
-				delta_plus_vec.begin() + thread_variable_index,
-				delta_minus_vec.begin() + thread_variable_index, NULL);//&cost_der);
-		}
-		parameter_index += num_parameter_points_ * num_parameter_elements_;
-    }
-    */
-
-
     #pragma omp parallel for
     for (int i = 0; i < variables.size(); ++i)
     {
         int thread_index = omp_get_thread_num();
-        derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der.begin() + i, eps_);
+
+        //  for cost debug
+        //derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der.begin(), eps_);
+        derivatives_evaluation_manager_[thread_index]->computeCostDerivatives(i, variables, der.begin(), cost_der_ptr, eps_);
     }
 
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
-    /*
+/*
+    std::cout << "der\n";
     for (int i = 0; i < variables.size(); ++i)
     {
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
@@ -265,9 +266,16 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         if (index.component != 0 || index.point != 1)
             continue;
 
-        std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << der(i) << std::endl;
+        if (std::abs(der(i)) < ITOMP_EPS)
+            continue;
+
+        std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << der(i);
+        for (int j = 0; j < cost_der.size(); ++j)
+            std::cout << " " << cost_der[j](i);
+        std::cout << std::endl;
     }
-    */
+    std::cout.flush();
+*/
 
     /*
     column_vector der_reference = derivative_ref(variables);
@@ -291,7 +299,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
                    dlib::objective_delta_stop_strategy(eps_ * eps_ * 1e-2,
-						   PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+                           PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 				   variables, 0.0);

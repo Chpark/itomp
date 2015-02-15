@@ -95,19 +95,16 @@ inline Eigen::Vector3d ContactVariables::getOrientation() const
 inline void ContactVariables::setPointForce(int point_index,
 		const Eigen::Vector3d& point_force)
 {
-	serialized_forces_.block(3 * point_index, 0, 3, 1) =
-		point_force;
+    serialized_forces_.block(3 * point_index, 0, 3, 1) = point_force;
 }
 inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
 {
-	Eigen::Vector3d force =
-		serialized_forces_.block(3 * point_index, 0, 3, 1);
-    /*
-	double scale = 150 * 100;
+    Eigen::Vector3d force =	serialized_forces_.block(3 * point_index, 0, 3, 1);
+
+    // TODO: scale = mass * gravity
+
+    double scale = 60 * 9.8;
 	force *= scale;
-	if (force(2) < 0.0)
-		force(2) = -force(2);
-        */
 
 	return force;
 }

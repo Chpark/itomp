@@ -196,7 +196,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	TIME_PROFILER_END_TIMER(Obstacle);
 
-    if (point != 0)
+    if (point == 100)
         cost = 0.0;
 
 	return is_feasible;
@@ -253,7 +253,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
-    if (point != 0)
+    if (point == 100)
         cost = 0.0;
 
 	return is_feasible;
@@ -277,7 +277,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
 
-    if (point != 0)
+    if (point == 100)
         cost = 0.0;
 
 	return is_feasible;
@@ -677,13 +677,13 @@ bool TrajectoryCostFrictionCone::evaluate(
                 angle = std::max(0.0, std::abs(angle) - M_PI / 6.0);
 			}
 
-            cost += angle * angle * norm * norm;
+            cost += angle * angle;
 		}
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);
 
-    if (point != 0)
+    if (point == 100)
         cost = 0;
 
 	return is_feasible;

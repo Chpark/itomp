@@ -250,7 +250,35 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
     evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
     const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
-    *derivative_out = (delta_plus - delta_minus) / (2 * eps);
+    *(derivative_out + parameter_index) = (delta_plus - delta_minus) / (2 * eps);
+
+    itomp_trajectory_->restoreTrajectory();
+}
+
+void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
+                        double* derivative_out, std::vector<double*>& cost_derivative_out, double eps)
+{
+    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
+
+    unsigned int point_begin, point_end;
+    const double value = parameters(parameter_index, 0);
+
+    std::vector<double> cost_delta_plus(num_cost_functions);
+    std::vector<double> cost_delta_minus(num_cost_functions);
+
+    evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+    const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+    for (int i = 0; i < num_cost_functions; ++i)
+        cost_delta_plus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
+
+    evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+    const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+    for (int i = 0; i < num_cost_functions; ++i)
+        cost_delta_minus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
+
+    *(derivative_out + parameter_index) = (delta_plus - delta_minus) / (2 * eps);
+    for (int i = 0; i < num_cost_functions; ++i)
+        *(cost_derivative_out[i] + parameter_index) = (cost_delta_plus[i] - cost_delta_minus[i]) / (2 * eps);
 
     itomp_trajectory_->restoreTrajectory();
 }
@@ -690,6 +718,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	}
 	else
 	{
+/*
         cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -701,7 +730,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(0, cv);
+            itomp_trajectory_->getContactVariables(1, cv);
             for (int j = 0; j < 4; ++j)
             {
                 double c = getContactActiveValue(i, j, cv);
@@ -710,6 +739,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             }
 
         }
+*/
 	}
 
 }

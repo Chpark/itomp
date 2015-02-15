@@ -55,6 +55,8 @@ public:
 							int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
     void computeDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
                             double* derivative_out, double eps);
+    void computeCostDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
+                            double* derivative_out, std::vector<double*>& cost_derivative_out, double eps);
 
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;

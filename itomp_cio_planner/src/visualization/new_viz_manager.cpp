@@ -225,6 +225,7 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
                 marker_cp.points.push_back(point_from);
 
                 double contact_active_value = getContactActiveValue(i, c, contact_variables[point]);
+                contact_active_value = std::min(1.0, contact_active_value);
                 marker_cf.color.r *= contact_active_value;
                 marker_cf.color.g *= contact_active_value;
                 marker_cf.color.b *= contact_active_value;
