@@ -810,7 +810,7 @@ int main(int argc, char **argv)
         start_trans = Eigen::VectorXd(6);
         start_trans << 0.0, 0.0, 0.0, -M_PI_2, 0, 0;
         goal_trans =  Eigen::VectorXd(6);
-        goal_trans << 0.0, 0.0, 0.0, -M_PI_2, 0, 0;
+        goal_trans << 0.5, 0.0, 0.0, -M_PI_2, 0, 0;
         waypoints.push_back(start_trans);
         waypoints.push_back(goal_trans);
 
