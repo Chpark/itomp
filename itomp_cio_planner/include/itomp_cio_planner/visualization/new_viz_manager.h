@@ -33,12 +33,15 @@ public:
                          const std::vector<RigidBodyDynamics::Model>& models,
                          bool is_best);
 
+    void displayTrajectory(const ItompTrajectoryConstPtr& trajectory);
+
 	ros::Publisher& getVisualizationMarkerPublisher();
 	ros::Publisher& getVisualizationMarkerArrayPublisher();
 
 private:
     ros::Publisher vis_marker_array_publisher_path_;
     ros::Publisher vis_marker_array_publisher_contacts_;
+    ros::Publisher trajectory_publisher_;
 
 	ItompRobotModelConstPtr robot_model_;
 	ItompPlanningGroupConstPtr planning_group_;

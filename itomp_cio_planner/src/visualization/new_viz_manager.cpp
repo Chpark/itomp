@@ -3,6 +3,7 @@
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/contact/contact_util.h>
 #include <ros/node_handle.h>
+#include <moveit_msgs/DisplayTrajectory.h>
 #include <boost/lexical_cast.hpp>
 
 using namespace std;
@@ -23,6 +24,7 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 	ros::NodeHandle node_handle;
     vis_marker_array_publisher_path_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_path", 10);
     vis_marker_array_publisher_contacts_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_contacts", 10);
+    trajectory_publisher_ = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/itomp_planner/display_planned_path", 10);
 
 	robot_model_ = robot_model;
 	reference_frame_ = robot_model->getReferenceFrame();
@@ -247,15 +249,60 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
                 marker_displacement.points.push_back(point_from);
                 marker_displacement.points.push_back(point_body);
 
-                marker_displacement.color = colors_[YELLOW];
-                marker_displacement.color.r *= contact_active_value;
-                marker_displacement.color.g *= contact_active_value;
-                marker_displacement.color.b *= contact_active_value;
+                marker_displacement.color = colors_[WHITE];
+                marker_displacement.color.r *= 0.5 * contact_active_value;
+                marker_displacement.color.g *= 0.5 * contact_active_value;
+                marker_displacement.color.b *= 0.6 * contact_active_value;
                 ma.markers.push_back(marker_displacement);
             }
         }
     }
     vis_marker_array_publisher_contacts_.publish(ma);
+}
+
+void NewVizManager::displayTrajectory(const ItompTrajectoryConstPtr& trajectory)
+{
+
+    moveit_msgs::DisplayTrajectory display_trajectory;
+
+    const ElementTrajectoryConstPtr& joint_trajectory = trajectory->getElementTrajectory(
+                ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryConstPtr& joint_velocity_trajectory = trajectory->getElementTrajectory(
+                ItompTrajectory::COMPONENT_TYPE_VELOCITY, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryConstPtr& joint_acceleration_trajectory = trajectory->getElementTrajectory(
+                ItompTrajectory::COMPONENT_TYPE_ACCELERATION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const Eigen::MatrixXd& joint_data = joint_trajectory->getData();
+    const Eigen::MatrixXd& joint_vel_data = joint_velocity_trajectory->getData();
+    const Eigen::MatrixXd& joint_acc_data = joint_acceleration_trajectory->getData();
+
+    unsigned int num_joints = joint_trajectory->getNumElements();
+
+    moveit_msgs::RobotTrajectory moveit_trajectory;
+
+    moveit_trajectory.joint_trajectory.header.frame_id = reference_frame_;
+    moveit_trajectory.joint_trajectory.header.stamp = ros::Time::now();
+    moveit_trajectory.joint_trajectory.joint_names = robot_model_->getMoveitRobotModel()->getVariableNames();
+
+    double dt = trajectory->getDiscretization();
+    trajectory_msgs::JointTrajectoryPoint trajectory_point;
+    trajectory_point.positions.resize(num_joints);
+    trajectory_point.velocities.resize(num_joints);
+    trajectory_point.effort.resize(num_joints);
+    for (std::size_t i = 0; i < trajectory->getNumPoints(); ++i)
+    {
+        trajectory_point.time_from_start = ros::Duration(dt * i);
+        for (std::size_t j = 0; j < num_joints; ++j)
+        {
+            trajectory_point.positions[j] = joint_data(i, j);
+            trajectory_point.velocities[j] = joint_vel_data(i, j);
+            trajectory_point.effort[j] = joint_acc_data(i, j);
+        }
+        moveit_trajectory.joint_trajectory.points.push_back(trajectory_point);
+    }
+
+    display_trajectory.trajectory.push_back(moveit_trajectory);
+    trajectory_publisher_.publish(display_trajectory);
+
 }
 
 }

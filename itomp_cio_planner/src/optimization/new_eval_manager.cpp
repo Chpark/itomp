@@ -388,7 +388,12 @@ void NewEvalManager::render()
 {
 	bool is_best = (getTrajectoryCost() <= best_cost_);
 	if (PlanningParameters::getInstance()->getAnimatePath())
+    {
         NewVizManager::getInstance()->animatePath(itomp_trajectory_, robot_state_[0], is_best);
+
+        if (is_best)
+            NewVizManager::getInstance()->displayTrajectory(itomp_trajectory_);
+    }
 
 	if (PlanningParameters::getInstance()->getAnimateEndeffector())
 	{
@@ -718,7 +723,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	}
 	else
 	{
-/*
+
         cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -726,7 +731,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
             cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
 		}
-
+/*
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
@@ -741,7 +746,6 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
         }
 */
 	}
-
 }
 
 void NewEvalManager::initializeContactVariables()
