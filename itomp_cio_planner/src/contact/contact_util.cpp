@@ -26,6 +26,9 @@ double getContactActiveValue(unsigned int contact, unsigned int contact_point,
 
     double c = contact_variables[contact].getPointForce(contact_point).squaredNorm();
 
+    if (contact >= 2)
+        c *= 10.0;
+
     return c;
 }
 
