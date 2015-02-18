@@ -668,6 +668,11 @@ bool TrajectoryCostFrictionCone::evaluate(
 		{
             Eigen::Vector3d point_force = contact_variables[i].getPointForce(c);
 
+            
+            if (point_force(2) < 0.0)
+                cost += std::abs(point_force(2) * point_force(2) * point_force(2));
+                
+
 			double angle = 0.0;
 			double norm = point_force.norm();
             if (norm > ITOMP_EPS)
@@ -677,7 +682,7 @@ bool TrajectoryCostFrictionCone::evaluate(
                 angle = std::max(0.0, std::abs(angle) - M_PI / 6.0);
 			}
 
-            cost += angle * angle;
+            cost += angle * angle * norm * norm;
 		}
 	}
 

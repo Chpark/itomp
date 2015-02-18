@@ -731,11 +731,24 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
             cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
 		}
-/*
+
+
+        for (int c = 0; c < cost_functions.size(); ++c)
+        {
+            cout << cost_functions[c]->getName() << " : ";
+            for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
+            {
+                double cost = evaluation_cost_matrix_(i, c);
+                std::cout << fixed << cost << " ";
+            }
+            std::cout << std::endl;
+        }
+
+        /*
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(1, cv);
+            itomp_trajectory_->getContactVariables(0, cv);
             for (int j = 0; j < 4; ++j)
             {
                 double c = getContactActiveValue(i, j, cv);
@@ -744,7 +757,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             }
 
         }
-*/
+        */
+
 	}
 }
 
