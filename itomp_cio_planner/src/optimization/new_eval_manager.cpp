@@ -256,7 +256,7 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
 }
 
 void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
-                        double* derivative_out, std::vector<double*>& cost_derivative_out, double eps)
+        double* derivative_out, std::vector<double*>& cost_derivative_out, double eps)
 {
     int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
@@ -726,11 +726,30 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
         cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
 
+        static std::vector<double> cost_vec[3];
+
         for (int c = 0; c < cost_functions.size(); ++c)
 		{
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
             cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
-		}
+
+            cost_vec[c].push_back(sub_cost);
+        }
+
+        if (cost_vec[0].size() == 15000)
+        {
+            for (int i = 0; i < 15000; ++i)
+            {
+                cout << i << " : ";
+                for (int c = 0; c < cost_functions.size(); ++c)
+                {
+                    cout << cost_vec[c][i] << " ";
+                }
+                cout << endl;
+            }
+        }
+
+
 
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -742,22 +761,34 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
                 std::cout << fixed << cost << " ";
             }
             std::cout << std::endl;
-        }
+		}
 
         /*
         for (int i = 0; i < 4; ++i)
         {
             std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(0, cv);
+            itomp_trajectory_->getContactVariables(1, cv);
             for (int j = 0; j < 4; ++j)
             {
                 double c = getContactActiveValue(i, j, cv);
 
                 std::cout << "Contact Force " << i << ":" << j << " " << c << " " << cv[i].getPointForce(j).transpose() << std::endl;
             }
-
         }
         */
+
+        /*
+        for (int p = 0; p < itomp_trajectory_->getNumPoints(); ++p)
+        {
+            std::cout << "Torques " << p << " : ";
+            for (int i = 0; i < 6; ++i)
+            {
+                std::cout << fixed << joint_torques_[p](i) << " ";
+            }
+            std::cout << std::endl;
+        }
+        */
+
 
 	}
 }
@@ -842,6 +873,11 @@ void NewEvalManager::initializeContactVariables()
 	full_trajectory_->interpolateContactVariables();
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+}
+
+void NewEvalManager::resetBestTrajectoryCost()
+{
+    best_cost_ = std::numeric_limits<double>::max();
 }
 
 }

@@ -61,6 +61,7 @@ public:
 	bool isLastTrajectoryFeasible() const;
 	double getTrajectoryCost() const;
 	void printTrajectoryCost(int iteration, bool details = false);
+    void resetBestTrajectoryCost();
 
 	void render();
 

@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
@@ -74,7 +75,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-	int num_max_iterations = 1;
+    int num_max_iterations = 2;
 	//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
@@ -83,6 +84,15 @@ bool ItompOptimizer::optimize()
 		{
 			if (is_best_parameter_feasible_)
 				++iteration_after_feasible_solution;
+
+            PhaseManager::getInstance()->setPhase(iteration_);
+            if (iteration_ != 0)
+            {
+                best_parameter_cost_ = numeric_limits<double>::max();
+                evaluation_manager_->resetBestTrajectoryCost();
+            }
+
+            ROS_INFO("Planning Phase %d...", iteration_);
 
 			improvement_manager_->runSingleIteration(iteration_);
 			evaluation_manager_->printTrajectoryCost(iteration_);

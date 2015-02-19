@@ -62,6 +62,7 @@ src/optimization/itomp_optimizer.cpp
 src/optimization/new_eval_manager.cpp
 src/optimization/improvement_manager.cpp
 src/optimization/improvement_manager_nlp.cpp
+src/optimization/phase_manager.cpp
 src/rom/ROM.cpp
 src/collision/collision_world_fcl_derivatives.cpp
 src/collision/collision_robot_fcl_derivatives.cpp

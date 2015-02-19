@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/rom/ROM.h>
 #include <itomp_cio_planner/collision/collision_world_fcl_derivatives.h>
 #include <itomp_cio_planner/collision/collision_robot_fcl_derivatives.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <ros/package.h>
 
 namespace itomp_cio_planner
@@ -253,8 +254,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
-    if (point == 100)
-        cost = 0.0;
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+        cost = 0;
 
 	return is_feasible;
 }
@@ -277,8 +279,9 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
 
-    if (point == 100)
-        cost = 0.0;
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+        cost = 0;
 
 	return is_feasible;
 }
@@ -688,7 +691,9 @@ bool TrajectoryCostFrictionCone::evaluate(
 
 	TIME_PROFILER_END_TIMER(FrictionCone);
 
-    if (point == 100)
+
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
         cost = 0;
 
 	return is_feasible;

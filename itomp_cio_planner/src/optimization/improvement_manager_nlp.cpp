@@ -84,6 +84,8 @@ bool ImprovementManagerNLP::updatePlanningParameters()
 
 void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
+    best_cost_ = std::numeric_limits<double>::max();
+
     int num_variables = num_parameter_elements_ * num_parameter_points_ * num_parameter_types_;
 
 	column_vector variables(num_variables);
@@ -161,7 +163,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 		best_parameter_ = evaluation_parameters_[0];
 	}
 
-    if (evaluation_count_ > 6000 && best_found == 0 && cost == best_cost_)
+    if (evaluation_count_ > 15000 && best_found == 0 && cost == best_cost_)
     {
         best_found = 1;
         if (cost == best_cost_)
@@ -253,7 +255,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
-    if (evaluation_count_ > 6000 && best_found == 1)
+    if (best_found == 1)
     {
         best_found = 2;
         std::cout << "der\n";
