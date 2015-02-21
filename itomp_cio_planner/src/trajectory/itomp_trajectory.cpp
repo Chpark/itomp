@@ -1,7 +1,9 @@
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <ros/assert.h>
 #include <ecl/geometry/polynomial.hpp>
+#include <ecl/geometry.hpp>
 
 using namespace std;
 
@@ -307,6 +309,8 @@ void ItompTrajectory::interpolateKeyframes(const ItompPlanningGroupConstPtr& pla
                     if (i != next_keyframe_index)
                         getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
                 }
+                if (false)//next_keyframe_index != num_points_ - 1)
+                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(next_keyframe_index, j) = poly.dderivative((double)next_keyframe_index * discretization_);
             }
         }
     }
@@ -347,6 +351,10 @@ void ItompTrajectory::interpolateKeyframes()
                     getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
                     getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
                 }
+                if (false)//next_keyframe_index != num_points_ - 1)
+                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(next_keyframe_index, j) = poly.dderivative((double)next_keyframe_index * discretization_);
+                //std::cout << "Acc " << cur_keyframe_index << " : " << poly.dderivative( (double)cur_keyframe_index * discretization_ ) << std::endl;
+                //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
             }
         }
     }
@@ -384,6 +392,9 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
             getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_index)->at(i, element) = poly.derivative(t);
             getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_index)->at(i, element) = poly.dderivative(t);
         }
+        if (false)//next_keyframe_index != num_points_ - 1)
+            getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_index)->at(next_keyframe_index, element) =
+                poly.dderivative((double)next_keyframe_index * discretization_);
     }
 }
 
@@ -400,6 +411,10 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
 
         // Do not update joint values of start/goal points
         if (index.sub_component == SUB_COMPONENT_TYPE_JOINT &&
+                (index.point == 0 || index.point == getNumPoints() - 1))
+            continue;
+
+        if (PhaseManager::getInstance()->getPhase() != 0 &&
                 (index.point == 0 || index.point == getNumPoints() - 1))
             continue;
 
@@ -449,6 +464,10 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
             (index.point == 0 || index.point == getNumPoints() - 1))
         return;
 
+    if (PhaseManager::getInstance()->getPhase() != 0 &&
+            (index.point == 0 || index.point == getNumPoints() - 1))
+        return;
+
     // set value
     getElementTrajectory(index.component, index.sub_component)->at(point, element) = value;
 
@@ -461,8 +480,8 @@ void ItompTrajectory::backupTrajectory(const ItompTrajectoryIndex& index)
     int element = index.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
-    if (point == num_points_ - 1)
-        ++backup_point_end;
+    //if (point == num_points_ - 1)
+    ++backup_point_end;
     int backup_length = backup_point_end - backup_point_begin;
 
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)
@@ -480,8 +499,8 @@ void ItompTrajectory::restoreTrajectory()
     int element = backup_index_.element;
     int backup_point_begin = std::max(0, point - (int)keyframe_interval_);
     int backup_point_end = std::min(num_points_ - 1, point + keyframe_interval_);
-    if (point == num_points_ - 1)
-        ++backup_point_end;
+    //if (point == num_points_ - 1)
+    ++backup_point_end;
     int backup_length = backup_point_end - backup_point_begin;
 
     for (unsigned int i = 0; i < COMPONENT_TYPE_NUM; ++i)

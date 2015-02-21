@@ -238,6 +238,7 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
                 ma.markers.push_back(marker_cf);
                 ma.markers.push_back(marker_cp);
 
+                /*
                 int rbdl_contact_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
                 const RigidBodyDynamics::Math::SpatialTransform& contact_point_transform = models[point].X_base[rbdl_contact_point_id];
                 const Eigen::Vector3d& body_point_position = contact_point_transform.r;
@@ -254,6 +255,7 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
                 marker_displacement.color.g *= 0.5 * contact_active_value;
                 marker_displacement.color.b *= 0.6 * contact_active_value;
                 ma.markers.push_back(marker_displacement);
+                */
             }
         }
     }

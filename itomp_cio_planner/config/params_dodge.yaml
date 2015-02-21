@@ -38,9 +38,9 @@ group_endeffectors:
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 2.0
-trajectory_discretization: 0.125
-keyframe_duration: 0.25
+trajectory_duration: 8.0
+trajectory_discretization: 0.25
+keyframe_duration: 0.5
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
 planning_step_size: 5.0

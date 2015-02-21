@@ -736,9 +736,9 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             cost_vec[c].push_back(sub_cost);
         }
 
-        if (cost_vec[0].size() == 15000)
+        if (cost_vec[0].size() > 1500)
         {
-            for (int i = 0; i < 15000; ++i)
+            for (int i = 0; i < 1500; ++i)
             {
                 cout << i << " : ";
                 for (int c = 0; c < cost_functions.size(); ++c)
@@ -747,6 +747,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
                 }
                 cout << endl;
             }
+            for (int c = 0; c < cost_functions.size(); ++c)
+                cost_vec[c].clear();
         }
 
 
