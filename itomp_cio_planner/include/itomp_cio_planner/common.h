@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stddef.h>
 #include <math.h> // TODO : cmath

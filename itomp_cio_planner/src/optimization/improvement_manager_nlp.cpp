@@ -92,6 +92,19 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 
     evaluation_manager_->getParameters(variables);
 
+    // read from file
+    {
+        std::ifstream trajectory_file;
+        std::stringstream ss;
+        ss << "trajectory_" << iteration << ".txt";
+        trajectory_file.open(ss.str().c_str());
+        if (trajectory_file.is_open())
+        {
+            trajectory_file >> variables;
+            trajectory_file.close();
+        }
+    }
+
 	//if (iteration != 0)
 	//addNoiseToVariables(variables);
 
@@ -100,6 +113,18 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 	evaluation_manager_->printTrajectoryCost(iteration);
 
 	printf("Elapsed : %f\n", (ros::Time::now() - start_time_).toSec());
+
+    evaluation_manager_->getParameters(variables);
+
+    // write to file
+    {
+        std::ofstream trajectory_file;
+        std::stringstream ss;
+        ss << "trajectory_" << iteration << ".txt";
+        trajectory_file.open(ss.str().c_str());
+        trajectory_file << variables;
+        trajectory_file.close();
+    }
 }
 
 void ImprovementManagerNLP::writeToOptimizationVariables(
@@ -161,6 +186,7 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	{
 		best_cost_ = cost;
 		best_parameter_ = evaluation_parameters_[0];
+        best_param_ = variables;
 	}
 
     if (evaluation_count_ > 15000 && best_found == 0 && cost == best_cost_)
@@ -308,13 +334,14 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
-                   dlib::objective_delta_stop_strategy(eps_ * eps_ * 1e-2,
+                   dlib::objective_delta_stop_strategy(eps_,
                            PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
 				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
 				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
 				   variables, 0.0);
 
 	evaluation_manager_->setParameters(best_parameter_);
+    evaluation_manager_->setParameters(best_param_);
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(0, true);
 	evaluation_manager_->render();

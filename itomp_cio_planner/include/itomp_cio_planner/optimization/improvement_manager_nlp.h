@@ -40,6 +40,7 @@ protected:
 
 	double best_cost_;
 	std::vector<Eigen::MatrixXd> best_parameter_;
+    column_vector best_param_;
 
 	double eps_;
 
