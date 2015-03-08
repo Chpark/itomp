@@ -52,6 +52,8 @@ planner_configs:
     max_nearest_neighbors: 10  # use k nearest neighbors. default: 10
   PRMstarkConfigDefault:
     type: geometric::PRMstar
+  SPARSkConfigDefault:
+    type: geometric::SPARS
 lower_body:
   planner_configs:
     - SBLkConfigDefault
@@ -65,8 +67,9 @@ lower_body:
     - TRRTkConfigDefault
     - PRMkConfigDefault
     - PRMstarkConfigDefault
+    - SPARSkConfigDefault
   projection_evaluator: joints(joint_0,joint_1)
-  longest_valid_segment_fraction: 0.05
+  longest_valid_segment_fraction: 0.021567
 ee_group:
   planner_configs:
     - SBLkConfigDefault
@@ -94,4 +97,5 @@ lower_body_tcp2:
     - PRMkConfigDefault
     - PRMstarkConfigDefault
   projection_evaluator: joints(joint_0,joint_1)
-  longest_valid_segment_fraction: 0.05
+  longest_valid_segment_fraction: 0.005
+default_planner_config: PRMkConfigDefault
