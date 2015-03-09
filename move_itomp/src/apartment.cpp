@@ -6,6 +6,7 @@
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
 #include <moveit/kinematic_constraints/utils.h>
+#include <moveit/robot_state/conversions.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <moveit_msgs/DisplayRobotState.h>
 #include <moveit_msgs/PlanningScene.h>
@@ -81,68 +82,6 @@ void loadStaticScene(ros::NodeHandle& node_handle,
 		planning_scene->setPlanningSceneDiffMsg(planning_scene_msg);
 
 		planning_scene_diff_publisher.publish(planning_scene_msg);
-	}
-}
-
-void renderStaticScene(ros::NodeHandle& node_handle,
-                       planning_scene::PlanningScenePtr& planning_scene,
-                       robot_model::RobotModelPtr& robot_model)
-{
-	std::string environment_file;
-	std::vector<double> environment_position;
-
-    static ros::Publisher vis_marker_array_publisher_ = node_handle.advertise<visualization_msgs::MarkerArray>("visualization_marker_array", 10);
-
-	ros::WallDuration(1.0).sleep();
-
-    node_handle.param<std::string>("/itomp_planner/environment_model", environment_file, "");
-
-	if (!environment_file.empty())
-	{
-		environment_position.resize(3, 0);
-		if (node_handle.hasParam("/itomp_planner/environment_model_position"))
-		{
-			XmlRpc::XmlRpcValue segment;
-            node_handle.getParam("/itomp_planner/environment_model_position", segment);
-			if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
-			{
-				int size = segment.size();
-				for (int i = 0; i < size; ++i)
-				{
-					double value = segment[i];
-					environment_position[i] = value;
-				}
-			}
-		}
-
-		visualization_msgs::MarkerArray ma;
-		visualization_msgs::Marker msg;
-		msg.header.frame_id = robot_model->getModelFrame();
-		msg.header.stamp = ros::Time::now();
-		msg.ns = "environment";
-		msg.type = visualization_msgs::Marker::MESH_RESOURCE;
-		msg.action = visualization_msgs::Marker::ADD;
-		msg.scale.x = 1.0;
-		msg.scale.y = 1.0;
-		msg.scale.z = 1.0;
-		msg.id = 0;
-		msg.pose.position.x = environment_position[0];
-		msg.pose.position.y = environment_position[1];
-		msg.pose.position.z = environment_position[2];
-        ROS_INFO("Env render pos : (%f %f %f)", environment_position[0], environment_position[1], environment_position[2]);
-		msg.pose.orientation.x = 0.0;
-		msg.pose.orientation.y = 0.0;
-		msg.pose.orientation.z = 0.0;
-		msg.pose.orientation.w = 1.0;
-		msg.color.a = 1.0;
-		msg.color.r = 0.5;
-		msg.color.g = 0.5;
-		msg.color.b = 0.5;
-		msg.mesh_resource = environment_file;
-		ma.markers.push_back(msg);
-
-		ros::WallDuration(1.0).sleep();
-		vis_marker_array_publisher_.publish(ma);
 	}
 }
 
@@ -267,19 +206,7 @@ void doPlan(const std::string& group_name,
 
 	// Copy from start_state to req.start_state
 	unsigned int num_joints = start_state.getVariableCount();
-	req.start_state.joint_state.name = start_state.getVariableNames();
-	req.start_state.joint_state.position.resize(num_joints);
-	req.start_state.joint_state.velocity.resize(num_joints);
-	req.start_state.joint_state.effort.resize(num_joints);
-    memcpy(&req.start_state.joint_state.position[0], start_state.getVariablePositions(), sizeof(double) * num_joints);
-	if (start_state.hasVelocities())
-        memcpy(&req.start_state.joint_state.velocity[0], start_state.getVariableVelocities(), sizeof(double) * num_joints);
-	else
-        memset(&req.start_state.joint_state.velocity[0], 0, sizeof(double) * num_joints);
-	if (start_state.hasAccelerations())
-        memcpy(&req.start_state.joint_state.effort[0], start_state.getVariableAccelerations(), sizeof(double) * num_joints);
-	else
-        memset(&req.start_state.joint_state.effort[0], 0, sizeof(double) * num_joints);
+    robot_state::robotStateToRobotStateMsg(start_state, req.start_state);
 
 	req.group_name = group_name;
     moveit_msgs::Constraints joint_goal = kinematic_constraints::constructGoalConstraints(goal_state, joint_model_group);
