@@ -348,14 +348,13 @@ void FullTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
 		int rbdl_number = robot_model->jointNameToRbdlNumber(name);
 		if (rbdl_number >= 0)
 		{
-			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_POSITION)(
-				rbdl_number) = joint_state.position[i];
-			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_VELOCITY)(
-				rbdl_number) = joint_state.velocity[i];
-			getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_ACCELERATION)(
-				rbdl_number) = joint_state.effort[i];
-			ROS_INFO(
-				"[%d] %s : %f %f %f", rbdl_number, name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
+            getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_POSITION)(rbdl_number) = joint_state.position[i];
+            getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_VELOCITY)(rbdl_number) = joint_state.velocity.size() ? joint_state.velocity[i] : 0.0;
+            getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_ACCELERATION)(rbdl_number) = joint_state.effort.size() ? joint_state.effort[i] : 0.0;
+            ROS_INFO("[%d] %s : %f %f %f", rbdl_number, name.c_str(),
+                     getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_POSITION)(rbdl_number),
+                     getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_VELOCITY)(rbdl_number),
+                     getTrajectoryPoint(0, Trajectory::TRAJECTORY_TYPE_ACCELERATION)(rbdl_number));
 		}
 	}
 

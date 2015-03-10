@@ -58,8 +58,8 @@ void jointStateToArray(const ItompRobotModelConstPtr& itomp_robot_model,
 		if (rbdl_number >= 0)
 		{
 			joint_pos_array(rbdl_number) = joint_state.position[i];
-			joint_vel_array(rbdl_number) = joint_state.velocity[i];
-			joint_acc_array(rbdl_number) = joint_state.effort[i];
+            joint_vel_array(rbdl_number) = joint_state.velocity.size() ? joint_state.velocity[i] : 0.0;
+            joint_acc_array(rbdl_number) = joint_state.effort.size() ? joint_state.effort[i] : 0.0;
 		}
 	}
 }

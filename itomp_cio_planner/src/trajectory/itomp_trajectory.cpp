@@ -88,9 +88,12 @@ void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
         if (rbdl_number >= 0)
         {
             traj_start_point[COMPONENT_TYPE_POSITION](rbdl_number) = joint_state.position[i];
-            traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number) = joint_state.velocity[i];
-            traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number) = joint_state.effort[i];
-            ROS_INFO("[%d] %s : %f %f %f", rbdl_number, name.c_str(), joint_state.position[i], joint_state.velocity[i], joint_state.effort[i]);
+            traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number) = joint_state.velocity.size() ? joint_state.velocity[i] : 0.0;
+            traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number) = joint_state.effort.size() ? joint_state.effort[i] : 0.0;
+            ROS_INFO("[%d] %s : %f %f %f", rbdl_number, name.c_str(),
+                     traj_start_point[COMPONENT_TYPE_POSITION](rbdl_number),
+                     traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number),
+                     traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number));
         }
     }
 
