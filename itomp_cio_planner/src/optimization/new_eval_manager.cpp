@@ -703,8 +703,6 @@ void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& param
 
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 {
-    cout.precision(std::numeric_limits<double>::digits10);
-
 	double cost = evaluation_cost_matrix_.sum();
 
     double old_best = best_cost_;
@@ -713,10 +711,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-	const std::vector<TrajectoryCostPtr>& cost_functions =
-		TrajectoryCostManager::getInstance()->getCostFunctionVector();
-
-
+    const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
 	if (!details || !is_best)
 	{
@@ -726,37 +721,23 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 
         cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
 
-        static std::vector<double> cost_vec[3];
+        int max_cost_name_length = 0;
+        for (int c = 0; c < cost_functions.size(); ++c)
+            if (cost_functions[c]->getName().size() > max_cost_name_length)
+                max_cost_name_length = cost_functions[c]->getName().size();
 
+        cout.precision(std::numeric_limits<double>::digits10);
         for (int c = 0; c < cost_functions.size(); ++c)
 		{
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
-            cout << cost_functions[c]->getName() << " : " << fixed << sub_cost << std::endl;
-
-            cost_vec[c].push_back(sub_cost);
+            cout << setw(max_cost_name_length) << cost_functions[c]->getName();
+            cout << " : " << fixed << sub_cost << std::endl;
         }
 
-        if (cost_vec[0].size() > 1500)
-        {
-            for (int i = 0; i < 1500; ++i)
-            {
-                cout << i << " : ";
-                for (int c = 0; c < cost_functions.size(); ++c)
-                {
-                    cout << cost_vec[c][i] << " ";
-                }
-                cout << endl;
-            }
-            for (int c = 0; c < cost_functions.size(); ++c)
-                cost_vec[c].clear();
-        }
-
-
-
-
+        cout.precision(3);
         for (int c = 0; c < cost_functions.size(); ++c)
         {
-            cout << cost_functions[c]->getName() << " : ";
+            cout << setw(max_cost_name_length) << cost_functions[c]->getName() << " : ";
             for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
             {
                 double cost = evaluation_cost_matrix_(i, c);

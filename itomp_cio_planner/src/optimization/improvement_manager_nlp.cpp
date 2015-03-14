@@ -122,6 +122,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
         std::stringstream ss;
         ss << "trajectory_" << iteration << ".txt";
         trajectory_file.open(ss.str().c_str());
+        trajectory_file.precision(std::numeric_limits<double>::digits10);
         trajectory_file << variables;
         trajectory_file.close();
     }
@@ -164,7 +165,6 @@ void ImprovementManagerNLP::readFromOptimizationVariables(
 	}
 }
 
-static int best_found = 0;
 double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
 	readFromOptimizationVariables(variables, evaluation_parameters_[0]);
@@ -188,24 +188,6 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 		best_parameter_ = evaluation_parameters_[0];
         best_param_ = variables;
 	}
-
-    if (evaluation_count_ > 15000 && best_found == 0 && cost == best_cost_)
-    {
-        best_found = 1;
-        if (cost == best_cost_)
-            std::cout << "best " << std::endl;
-        std::cout << "eval : " << cost << "\n";
-        for (int i = 0; i < variables.size(); ++i)
-        {
-            const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-
-            if (std::abs(variables(i)) < ITOMP_EPS)
-                continue;
-
-            std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << variables(i) << std::endl;
-        }
-        std::cout.flush();
-    }
 
 	return cost;
 }
@@ -245,6 +227,7 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
 	return der;
 }
 
+static bool COMPUTE_COST_DERIVATIVE = false;
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
 	// assume evaluate was called before
@@ -281,25 +264,28 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
-    if (best_found == 1)
+    // print derivatives per costs
+    if (COMPUTE_COST_DERIVATIVE)
     {
-        best_found = 2;
-        std::cout << "der\n";
+        const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
+        std::cout.precision(3);
+        std::cout << "component sub_component point element ";
+        for (int c = 0; c < cost_functions.size(); ++c)
+        {
+            std::cout << cost_functions[c]->getName() << " ";
+        }
+        std::cout << std::endl;
         for (int i = 0; i < variables.size(); ++i)
         {
             const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-
-            if (std::abs(der(i)) < ITOMP_EPS)
-                continue;
-
-            std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " " << std::fixed << der(i);
+            std::cout << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " ";
             for (int j = 0; j < cost_der.size(); ++j)
-                std::cout << " " << cost_der[j](i);
+                std::cout << cost_der[j](i) << " ";
             std::cout << std::endl;
         }
-        std::cout.flush();
     }
 
+    // validation with der_ref
     /*
     column_vector der_reference = derivative_ref(variables);
     ROS_INFO("Vaildate computed derivative with reference");
@@ -345,6 +331,10 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(0, true);
 	evaluation_manager_->render();
+
+    COMPUTE_COST_DERIVATIVE = true;
+    derivative(best_param_);
+    COMPUTE_COST_DERIVATIVE = false;
 }
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
