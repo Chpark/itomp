@@ -345,61 +345,46 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 	// add rbdl partial fk ids
 
-	const std::map<std::string, std::vector<std::string> >& contact_points =
-		PlanningParameters::getInstance()->getContactPoints();
-	const std::vector<const robot_model::JointModelGroup*>& jointModelGroups =
-		moveit_robot_model_->getJointModelGroups();
-	for (std::vector<const robot_model::JointModelGroup*>::const_iterator it =
-				jointModelGroups.begin(); it != jointModelGroups.end(); ++it)
+    const std::map<std::string, std::vector<std::string> >& contact_points = PlanningParameters::getInstance()->getContactPoints();
+    const std::vector<const robot_model::JointModelGroup*>& jmg = moveit_robot_model_->getJointModelGroups();
+    for (std::vector<const robot_model::JointModelGroup*>::const_iterator it = jmg.begin(); it != jmg.end(); ++it)
 	{
 		std::string group_name = (*it)->getName();
-		ItompPlanningGroupPtr planning_group = boost::const_pointer_cast<
-											   ItompPlanningGroup>(planning_groups_[group_name]);
+        ItompPlanningGroupPtr planning_group = boost::const_pointer_cast<ItompPlanningGroup>(planning_groups_[group_name]);
 
-		const multimap<string, string>& group_endeffector_names =
-			PlanningParameters::getInstance()->getGroupEndeffectorNames();
+        const multimap<string, string>& group_endeffector_names = PlanningParameters::getInstance()->getGroupEndeffectorNames();
 
-		std::pair<multimap<string, string>::const_iterator,
-			multimap<string, string>::const_iterator> ret =
-				group_endeffector_names.equal_range(group_name);
+        std::pair<multimap<string, string>::const_iterator, multimap<string, string>::const_iterator> ret = group_endeffector_names.equal_range(group_name);
 
-		for (multimap<string, string>::const_iterator it = ret.first;
-				it != ret.second; ++it)
+        for (multimap<string, string>::const_iterator it = ret.first; it != ret.second; ++it)
 		{
 			string endeffector_name = it->second;
-			unsigned int endeffector_rbdl_id = rbdl_robot_model_.GetBodyId(
-												   endeffector_name.c_str());
+            unsigned int endeffector_rbdl_id = rbdl_robot_model_.GetBodyId(endeffector_name.c_str());
 			while (rbdl_robot_model_.IsFixedBodyId(endeffector_rbdl_id))
 			{
-				endeffector_rbdl_id = rbdl_robot_model_.GetParentBodyId(
-										  endeffector_rbdl_id);
+                endeffector_rbdl_id = rbdl_robot_model_.GetParentBodyId(endeffector_rbdl_id);
 			}
 
-			std::map<std::string, std::vector<std::string> >::const_iterator it2 =
-				contact_points.find(endeffector_name);
-			if (it2 != contact_points.end())
+            std::map<std::string, std::vector<std::string> >::const_iterator it2 = contact_points.find(endeffector_name);
+            if (it2 != contact_points.end())
 			{
-				const std::vector<string>& endeffector_contact_point_names =
-					it2->second;
+                const std::vector<string>& endeffector_contact_point_names = it2->second;
 
 				std::vector<unsigned int> contact_point_rbdl_ids;
 				for (int i = 0; i < endeffector_contact_point_names.size(); ++i)
 				{
 					const std::string& name = endeffector_contact_point_names[i];
-					unsigned int point_rbdl_id = rbdl_robot_model_.GetBodyId(
-													 name.c_str());
+                    unsigned int point_rbdl_id = rbdl_robot_model_.GetBodyId(name.c_str());
 					contact_point_rbdl_ids.push_back(point_rbdl_id);
 
 				}
-				planning_group->contact_points_.push_back(
-					ContactPoint(endeffector_name, endeffector_rbdl_id,
-								 contact_point_rbdl_ids));
+                planning_group->contact_points_.push_back(ContactPoint(endeffector_name, endeffector_rbdl_id, contact_point_rbdl_ids));
+                ROS_INFO("Endeffector %s for group %s is added", endeffector_name.c_str(), group_name.c_str());
 			}
 		}
 	}
 
-	ROS_INFO(
-		"Initialized ITOMP robot model in %s reference frame.", reference_frame_.c_str());
+    ROS_INFO("Initialized ITOMP robot model in %s reference frame.", reference_frame_.c_str());
 
 	return true;
 }
