@@ -7,6 +7,7 @@
 #include <boost/bind.hpp>
 #include <functional>
 #include <itomp_cio_planner/util/jacobian.h>
+#include <iostream>
 
 using namespace Eigen;
 
@@ -17,6 +18,9 @@ double getROSWallTime()
 
 namespace itomp_cio_planner
 {
+
+const bool READ_TRAJECTORY_FILE = true;
+const bool WRITE_TRAJECTORY_FILE = true;
 
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
@@ -93,6 +97,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     evaluation_manager_->getParameters(variables);
 
     // read from file
+    if (READ_TRAJECTORY_FILE)
     {
         std::ifstream trajectory_file;
         std::stringstream ss;
@@ -117,6 +122,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     evaluation_manager_->getParameters(variables);
 
     // write to file
+    if (WRITE_TRAJECTORY_FILE)
     {
         std::ofstream trajectory_file;
         std::stringstream ss;
@@ -318,6 +324,31 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	//addNoiseToVariables(variables);
 
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
+
+    column_vector x_lower, x_upper;
+    x_lower.set_size(variables.size());
+    x_upper.set_size(variables.size());
+    for (int i = 0; i < variables.size(); ++i)
+    {
+        x_lower(i) = -100000;
+        x_upper(i) = 100000;
+
+        if (i == 118+8)
+        {
+            x_lower(i) = -1.0;
+            x_upper(i) = 1.0;
+        }
+    }
+
+    /*
+    dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
+                                   dlib::objective_delta_stop_strategy(eps_,
+                                           PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+                                   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
+                                   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
+                                   variables, x_lower, x_upper);
+    */
+
 
 	dlib::find_min(dlib::lbfgs_search_strategy(10),
                    dlib::objective_delta_stop_strategy(eps_,
