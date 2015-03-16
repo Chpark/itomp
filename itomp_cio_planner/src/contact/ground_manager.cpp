@@ -35,7 +35,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	double min_dist = position_in(2) - 0;
 
 	// ground
-	position_out = Eigen::Vector3d(position_in(0), position_in(1), -0.227936);
+    position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
 	normal = Eigen::Vector3d(0, 0, 1);
 
 	Eigen::Matrix3d orientation_in_mat =
@@ -46,7 +46,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 
 	position_out(2) = 0.0;
 
-	getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
+    getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
 
 	Eigen::Vector3d proj_x_axis = x_axis - x_axis.dot(normal) * normal;
 	Eigen::Vector3d proj_y_axis = y_axis - y_axis.dot(normal) * normal;
