@@ -410,32 +410,45 @@ bool TrajectoryCostEndeffectorVelocity::evaluate(
 }
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Torque)
-bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager,
-									int point, double& cost) const
+bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
 	bool is_feasible = true;
 	cost = 0;
 
 	TIME_PROFILER_START_TIMER(Torque);
 
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-			point);
-	double mass = 0;
-	for (int i = 0; i < model.mBodies.size(); ++i)
-		mass += model.mBodies[i].mMass;
-	double dt = evaluation_manager->getFullTrajectory()->getDiscretization();
-	double normalizer = 1.0 / mass * dt; // * dt;
+    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+    const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
 
-    for (int i = 6; i < evaluation_manager->joint_torques_[point].rows(); ++i)
+    const Eigen::VectorXd& q_ddot = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+    for (int i = 0; i < evaluation_manager->joint_torques_[point].rows(); ++i)
 	{
 		// actuated joints
         double joint_torque = evaluation_manager->joint_torques_[point](i);
-		joint_torque *= normalizer;
-		cost += joint_torque * joint_torque;
+
+        // TODO
+        double weight = 1e-6;
+        if (i <= 6)
+            weight = 1e-6;
+        if (i <= 8) // torso
+            weight = 1e-4;
+        else if (i <= 11) // head
+            weight = 1e-5;
+
+        double acc = q_ddot(i);
+
+        // TODO: penaly for high torque
+
+        // penalty for high acc
+        cost += weight * acc * acc;
 	}
-    cost /= (double) (evaluation_manager->joint_torques_[point].rows() - 6);
 
 	TIME_PROFILER_END_TIMER(Torque);
+
+    if (PhaseManager::getInstance()->getPhase() == 0)
+        cost = 0;
 
 	return is_feasible;
 }
