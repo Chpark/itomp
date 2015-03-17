@@ -11,7 +11,8 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 									 const RigidBodyDynamics::Math::VectorNd &QDot,
 									 const RigidBodyDynamics::Math::VectorNd &QDDot,
 									 RigidBodyDynamics::Math::VectorNd &Tau,
-                                     const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext);
+                                     const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+                                     const std::vector<double> *joint_forces);
 
 void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 										const RigidBodyDynamics::Math::VectorNd &Q,
@@ -19,6 +20,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 										const RigidBodyDynamics::Math::VectorNd &QDDot,
 										RigidBodyDynamics::Math::VectorNd &Tau,
                                         const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+                                        const std::vector<double> *joint_forces,
 										const std::vector<unsigned int>& body_ids);
 
 void updatePartialDynamics(RigidBodyDynamics::Model &model,

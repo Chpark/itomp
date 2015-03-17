@@ -277,11 +277,14 @@ void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTraj
     for (int i = 0; i < num_cost_functions; ++i)
         cost_delta_minus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
 
-    *(derivative_out + parameter_index) = (delta_plus - delta_minus) / (2 * eps);
+    double derivative = (delta_plus - delta_minus) / (2 * eps);
+
+    itomp_trajectory_->restoreTrajectory();
+
+    *(derivative_out + parameter_index) = derivative;
     for (int i = 0; i < num_cost_functions; ++i)
         *(cost_derivative_out[i] + parameter_index) = (cost_delta_plus[i] - cost_delta_minus[i]) / (2 * eps);
 
-    itomp_trajectory_->restoreTrajectory();
 }
 
 void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
@@ -459,48 +462,39 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 			}
 		}
 
-
-
         // passive forces
         const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
         const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
+        std::vector<double> passive_forces(num_joints + 1, 0.0);
         for (int i = 1; i <= num_joints; ++i)
         {
             int q_index = rbdl_models_[point].mJoints[i].q_index;
 
-            double passive_force = 0.0;
             if (q_index < 6)
             {
 
             }
             else if (q_index < 12)
             {
-                passive_force = -K_P * q(q_index) -K_D * q_dot(q_index);
+                passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
                 //passive_force = -K_P * q(q_index);
             }
             else
             {
                 //passive_force = -K_D * q_dot(q_index);
             }
-
-            RigidBodyDynamics::Math::SpatialVector passive_force_vector = rbdl_models_[point].S[i] * passive_force;
-            if (q_index < 12)
-            {
-                RigidBodyDynamics::Math::SpatialVector v =
-                        RigidBodyDynamics::Math::spatial_inverse(rbdl_models_[point].X_base[i].toMatrix()) * passive_force_vector;
-
-                external_forces_[point][i] = v;
-            }
         }
 
-        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point]);
+        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point], &passive_forces);
 	}
 
 	TIME_PROFILER_END_TIMER(FK);
 }
 void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element)
 {
+    ROS_ASSERT(false);
 	TIME_PROFILER_START_TIMER(FK);
+    /*
 
 	if (!full_trajectory_->hasVelocity()
 			|| !full_trajectory_->hasAcceleration())
@@ -594,11 +588,12 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 				ref_evaluation_manager_->external_forces_[point];
 
 			updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
-                                               q_ddot, joint_torques_[point], &external_forces_[point],
+                                               q_ddot, joint_torques_[point], &external_forces_[point], NULL,
 											   planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
 
 		}
 	}
+    */
 
 	TIME_PROFILER_END_TIMER(FK);
 }
@@ -609,6 +604,8 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 
     bool dynamics_only = (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     int num_contacts = planning_group_->getNumContacts();
+    int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                             ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
 
     // copy only variables will be updated
     for (int point = point_begin; point < point_end; ++point)
@@ -693,6 +690,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
             // passive forces
             const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
             const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
+            std::vector<double> passive_forces(num_joints + 1, 0.0);
 
             int i = index.element + 1;
             int q_index = rbdl_models_[point].mJoints[i].q_index;
@@ -705,7 +703,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
             }
             else if (q_index < 12)
             {
-                passive_force = -K_P * q(q_index) -K_D * q_dot(q_index);
+                passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
                 //passive_force = -K_P * q(q_index);
             }
             else
@@ -713,19 +711,8 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                 //passive_force = -K_D * q_dot(q_index);
             }
 
-            RigidBodyDynamics::Math::SpatialVector passive_force_vector = rbdl_models_[point].S[i] * passive_force;
-            // local frame -> world frame
-            if (q_index < 12)
-            {
-                RigidBodyDynamics::Math::SpatialVector v =
-                        RigidBodyDynamics::Math::spatial_inverse(rbdl_models_[point].X_base[i].toMatrix()) * passive_force_vector;
-
-                external_forces_[point][i] = v;
-
-            }
-
             updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
-                                               q_ddot, joint_torques_[point], &external_forces_[point],
+                                               q_ddot, joint_torques_[point], &external_forces_[point], &passive_forces,
                                                planning_group_->group_joints_[itomp_trajectory_->getParameterJointIndex(index.element)].rbdl_affected_body_ids_);
 
         }
@@ -869,7 +856,7 @@ void NewEvalManager::initializeContactVariables()
 
 		Eigen::VectorXd tau(q.rows());
 
-        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL);
+        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
 
 		/*
 		 for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
