@@ -76,6 +76,8 @@ public:
     const CollisionWorldFCLDerivativesPtr& getCollisionWorldFCLDerivatives() const;
     const CollisionRobotFCLDerivativesPtr& getCollisionRobotFCLDerivatives() const;
 
+    void printLinkTransforms() const;
+
 private:
 	void initializeContactVariables();
 

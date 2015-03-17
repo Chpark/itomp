@@ -277,7 +277,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     {
         const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
         std::cout.precision(3);
-        std::cout << "component sub_component point element ";
+        std::cout.precision(std::numeric_limits<double>::digits10);
+        std::cout << "component sub_component point element total";
         for (int c = 0; c < cost_functions.size(); ++c)
         {
             std::cout << cost_functions[c]->getName() << " ";
@@ -289,6 +290,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
             std::cout << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " ";
             for (int j = 0; j < cost_der.size(); ++j)
                 std::cout << cost_der[j](i) << " ";
+            std::cout << der(i);
             std::cout << std::endl;
         }
     }
@@ -360,13 +362,14 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                     x_lower(i) = group_joint_min[parameter_joint_index];
                     x_upper(i) = group_joint_max[parameter_joint_index];
                 }
-                /*
-                if (parameter_joint_index == 3 || parameter_joint_index == 4)
+
+                if (parameter_joint_index == 3 || parameter_joint_index == 4 ||
+                        parameter_joint_index == 8 || parameter_joint_index == 11)
                 {
                     x_lower(i) = -0.001;
                     x_upper(i) = 0.001;
                 }
-                */
+
             }
             break;
 
@@ -448,7 +451,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)
 	{
-        variables(i) += ITOMP_EPS * noise(i);
+        variables(i) += ITOMP_EPS * ITOMP_EPS * noise(i);
 	}
 }
 

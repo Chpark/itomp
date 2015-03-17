@@ -131,6 +131,8 @@ bool ItompOptimizer::optimize()
 	planning_info_.cost = best_parameter_cost_;
 	planning_info_.success = is_best_parameter_feasible_ ? 1 : 0;
 
+    evaluation_manager_->printLinkTransforms();
+
 	return is_best_parameter_feasible_;
 }
 
