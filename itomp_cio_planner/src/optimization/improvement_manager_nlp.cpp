@@ -107,6 +107,8 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
         {
             trajectory_file >> variables;
             trajectory_file.close();
+
+            evaluation_manager_->setParameters(variables);
         }
     }
 
@@ -325,40 +327,109 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
 	Jacobian::evaluation_manager_ = evaluation_manager_.get();
 
+    std::vector<double> group_joint_min(planning_group_->group_joints_.size());
+    std::vector<double> group_joint_max(planning_group_->group_joints_.size());
+    for (int j = 0; j < planning_group_->group_joints_.size(); ++j)
+    {
+        const ItompRobotJoint& joint = planning_group_->group_joints_[j];
+        int group_index = joint.group_joint_index_;
+        group_joint_min[group_index] = joint.joint_limit_min_;
+        group_joint_max[group_index] = joint.joint_limit_max_;
+    }
+
     column_vector x_lower, x_upper;
     x_lower.set_size(variables.size());
     x_upper.set_size(variables.size());
     for (int i = 0; i < variables.size(); ++i)
     {
-        x_lower(i) = -100000;
-        x_upper(i) = 100000;
+        ItompTrajectoryIndex index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
 
-        if (i == 118+8)
+        x_lower(i) = -30.0;
+        x_upper(i) = 30.0;
+
+
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
         {
-            x_lower(i) = -1.0;
-            x_upper(i) = 1.0;
+            switch (index.sub_component)
+            {
+            case ItompTrajectory::SUB_COMPONENT_TYPE_JOINT:
+            {
+                int parameter_joint_index = evaluation_manager_->getTrajectory()->getParameterJointIndex(index.element);
+                if (parameter_joint_index != -1)
+                {
+                    x_lower(i) = group_joint_min[parameter_joint_index];
+                    x_upper(i) = group_joint_max[parameter_joint_index];
+                }
+                /*
+                if (parameter_joint_index == 3 || parameter_joint_index == 4)
+                {
+                    x_lower(i) = -0.001;
+                    x_upper(i) = 0.001;
+                }
+                */
+            }
+            break;
+
+            case ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION:
+                switch(index.element % 7)
+                {
+                case 0:
+                    break;
+
+                case 1:
+                    x_lower(i) = group_joint_min[0];
+                    x_upper(i) = group_joint_max[0];
+                    break;
+
+                case 2:
+                    x_lower(i) = group_joint_min[1];
+                    x_upper(i) = group_joint_max[1];
+                    break;
+
+                case 3:
+                    x_lower(i) = group_joint_min[2];
+                    x_upper(i) = group_joint_max[2];
+                    break;
+
+                case 4:
+                case 5:
+                case 6:
+                    x_lower(i) = -2.0 * M_PI;
+                    x_upper(i) = 2.0 * M_PI;
+                    break;
+                }
+                break;
+
+            case ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE:
+                x_lower(i) = -1.0;
+                x_upper(i) = 1.0;
+
+                break;
+
+            }
         }
     }
 
-    /*
+
     dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_,
                                            PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
                                    variables, x_lower, x_upper);
-    */
 
 
-	dlib::find_min(dlib::lbfgs_search_strategy(10),
-                   dlib::objective_delta_stop_strategy(eps_,
-                           PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
-				   boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-				   boost::bind(&ImprovementManagerNLP::derivative, this, _1),
-				   variables, 0.0);
+    /*
+        dlib::find_min(dlib::lbfgs_search_strategy(10),
+                       dlib::objective_delta_stop_strategy(eps_,
+                               PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+                       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
+                       boost::bind(&ImprovementManagerNLP::derivative, this, _1),
+                       variables, 0.0);
+                       */
 
 	evaluation_manager_->setParameters(best_parameter_);
-    evaluation_manager_->setParameters(best_param_);
+    evaluation_manager_->setParameters(variables);
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(0, true);
 	evaluation_manager_->render();
