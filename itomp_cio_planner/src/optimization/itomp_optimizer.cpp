@@ -47,6 +47,8 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 									trajectory_start_time, path_constraints);
 	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
+    PhaseManager::getInstance()->init(itomp_trajectory->getNumPoints());
+
 	best_parameter_trajectory_.resize(Trajectory::TRAJECTORY_TYPE_NUM);
 }
 

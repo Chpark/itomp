@@ -412,13 +412,7 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
     {
         ItompTrajectoryIndex index = parameter_to_index_map_[i];
 
-        // Do not update joint values of start/goal points
-        if (index.sub_component == SUB_COMPONENT_TYPE_JOINT &&
-                (index.point == 0 || index.point == getNumPoints() - 1))
-            continue;
-
-        if (PhaseManager::getInstance()->getPhase() != 0 &&
-                (index.point == 0 || index.point == getNumPoints() - 1))
+        if (PhaseManager::getInstance()->updateParameter(index) == false)
             continue;
 
         ElementTrajectoryPtr& et = getElementTrajectory(index.component, index.sub_component);
@@ -463,12 +457,7 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
         backupTrajectory(index);
 
     // Do not update joint values of start/goal points
-    if (index.sub_component == SUB_COMPONENT_TYPE_JOINT &&
-            (index.point == 0 || index.point == getNumPoints() - 1))
-        return;
-
-    if (PhaseManager::getInstance()->getPhase() != 0 &&
-            (index.point == 0 || index.point == getNumPoints() - 1))
+    if (PhaseManager::getInstance()->updateParameter(index) == false)
         return;
 
     // set value

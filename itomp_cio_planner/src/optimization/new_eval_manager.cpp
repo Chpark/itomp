@@ -433,8 +433,8 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
             const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
 
 			Eigen::Vector3d contact_normal, proj_position, proj_orientation;
-            GroundManager::getInstance()->getNearestGroundPosition(contact_position, contact_orientation,
-                    proj_position, proj_orientation, contact_normal);
+            GroundManager::getInstance()->getNearestContactPosition(contact_position, contact_orientation,
+                    proj_position, proj_orientation, contact_normal, i < 2);
 
             contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
                     rbdl_models_[point], planning_group_->contact_points_[i]);
@@ -645,9 +645,8 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                 const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
 
                 Eigen::Vector3d contact_normal, proj_position, proj_orientation;
-                GroundManager::getInstance()->getNearestGroundPosition(contact_position, contact_orientation,
-                        proj_position, proj_orientation,
-                        contact_normal);
+                GroundManager::getInstance()->getNearestContactPosition(contact_position, contact_orientation,
+                        proj_position, proj_orientation, contact_normal, i < 2);
 
                 int rbdl_endeffector_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
@@ -803,32 +802,6 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             std::cout << std::endl;
 		}
 
-        /*
-        for (int i = 0; i < 4; ++i)
-        {
-            std::vector<ContactVariables> cv(4);
-            itomp_trajectory_->getContactVariables(1, cv);
-            for (int j = 0; j < 4; ++j)
-            {
-                double c = getContactActiveValue(i, j, cv);
-
-                std::cout << "Contact Force " << i << ":" << j << " " << c << " " << cv[i].getPointForce(j).transpose() << std::endl;
-            }
-        }
-        */
-
-        /*
-        for (int p = 0; p < itomp_trajectory_->getNumPoints(); ++p)
-        {
-            std::cout << "Torques " << p << " : ";
-            for (int i = 0; i < 6; ++i)
-            {
-                std::cout << fixed << joint_torques_[p](i) << " ";
-            }
-            std::cout << std::endl;
-        }
-        */
-
 
 	}
 }
@@ -933,7 +906,15 @@ void NewEvalManager::printLinkTransforms() const
         const RigidBodyDynamics::Model& model = rbdl_models_[i];
         for (int j = 0; j < model.mBodies.size(); ++j)
         {
-            cout << model.GetBodyName(j) << endl << model.X_base[j] << endl;
+            //cout << model.GetBodyName(j) << endl << model.X_base[j] << endl;
+            cout << model.GetBodyName(j) << " X.E ";
+            for (int r = 0; r < 3; ++r)
+                for (int c = 0; c < 3; ++c)
+                    cout << model.X_base[j].E(r, c) << " ";
+            cout << " X.r ";
+            for (int r = 0; r < 3; ++r)
+                cout << model.X_base[j].r(r) << " ";
+            cout << endl;
         }
 
 
