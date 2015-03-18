@@ -39,22 +39,22 @@ void ElementTrajectory::allocate()
     trajectory_data_.setZero(num_points_, num_elements_);
 }
 
-void ElementTrajectory::printTrajectory() const
+void ElementTrajectory::printTrajectory(std::ostream& out_stream) const
 {
-    cout.precision(std::numeric_limits<double>::digits10);
-    cout << "Trajectory " << name_ << std::endl;
-    cout << "x : ";
+    out_stream.precision(std::numeric_limits<double>::digits10);
+    out_stream << "Trajectory " << name_ << std::endl;
+    out_stream << "x : ";
     for (int i = 0; i < num_elements_; ++i)
-        cout << i << " ";
-    cout << std::endl;
+        out_stream << i << " ";
+    out_stream << std::endl;
     for (int i = 0; i < num_points_; ++i)
     {
-        cout << i << " : ";
+        out_stream << i << " : ";
         for (int j = 0; j < num_elements_; ++j)
         {
-            cout << fixed << trajectory_data_(i, j) << " ";
+            out_stream << fixed << trajectory_data_(i, j) << " ";
         }
-        cout << std::endl;
+        out_stream << std::endl;
     }
 }
 

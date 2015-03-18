@@ -22,7 +22,7 @@ public:
     NewTrajectoryConstPtr getComponent(unsigned int index) const;
     unsigned int getNumComponents() const;
 
-    virtual void printTrajectory() const;
+    virtual void printTrajectory(std::ostream& out_stream) const;
 
 protected:
     std::vector<NewTrajectoryPtr> trajectories_;

@@ -115,7 +115,10 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
 
-            itomp_trajectory_->printTrajectory();
+            std::ofstream trajectory_file;
+            trajectory_file.open("trajectory_out.txt");
+            itomp_trajectory_->printTrajectory(trajectory_file);
+            trajectory_file.close();
 		}
 	}
 	planning_info_manager_.printSummary();

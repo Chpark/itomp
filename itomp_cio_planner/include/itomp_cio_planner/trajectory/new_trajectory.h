@@ -21,7 +21,7 @@ public:
     unsigned int getNumElements() const;
     const std::string& getName() const;
 
-    virtual void printTrajectory() const = 0;
+    virtual void printTrajectory(std::ostream& out_stream) const = 0;
 
 protected:
     std::string name_;

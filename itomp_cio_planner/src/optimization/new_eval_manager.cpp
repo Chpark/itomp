@@ -895,30 +895,32 @@ void NewEvalManager::resetBestTrajectoryCost()
 
 void NewEvalManager::printLinkTransforms() const
 {
-    cout << "Link Transforms" << endl;
+    std::ofstream trajectory_file;
+    trajectory_file.open("link_transforms.txt");
+
+
     for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
     {
-        cout.precision(3);
-        cout << "Time : " << i * itomp_trajectory_->getDiscretization() << endl;
+        trajectory_file.precision(3);
+        trajectory_file << "Time : " << i * itomp_trajectory_->getDiscretization() << endl;
 
-        cout.precision(std::numeric_limits<double>::digits10);
+        trajectory_file.precision(std::numeric_limits<double>::digits10);
 
         const RigidBodyDynamics::Model& model = rbdl_models_[i];
         for (int j = 0; j < model.mBodies.size(); ++j)
         {
             //cout << model.GetBodyName(j) << endl << model.X_base[j] << endl;
-            cout << model.GetBodyName(j) << " X.E ";
+            trajectory_file << model.GetBodyName(j) << " X.E ";
             for (int r = 0; r < 3; ++r)
                 for (int c = 0; c < 3; ++c)
-                    cout << model.X_base[j].E(r, c) << " ";
-            cout << " X.r ";
+                    trajectory_file << model.X_base[j].E(r, c) << " ";
+            trajectory_file << " X.r ";
             for (int r = 0; r < 3; ++r)
-                cout << model.X_base[j].r(r) << " ";
-            cout << endl;
+                trajectory_file << model.X_base[j].r(r) << " ";
+            trajectory_file << endl;
         }
-
-
     }
+    trajectory_file.close();
 }
 
 }

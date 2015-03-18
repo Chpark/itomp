@@ -39,6 +39,7 @@ public:
 	const FullTrajectoryConstPtr& getFullTrajectory() const;
 	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
     const ItompTrajectoryConstPtr& getTrajectory() const;
+    ItompTrajectoryPtr& getTrajectoryNonConst();
 
 	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
 	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
@@ -154,6 +155,11 @@ inline const ParameterTrajectoryConstPtr& NewEvalManager::getParameterTrajectory
 inline const ItompTrajectoryConstPtr& NewEvalManager::getTrajectory() const
 {
     return itomp_trajectory_const_;
+}
+
+inline ItompTrajectoryPtr& NewEvalManager::getTrajectoryNonConst()
+{
+    return itomp_trajectory_;
 }
 
 inline bool NewEvalManager::isLastTrajectoryFeasible() const
