@@ -8,6 +8,9 @@
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/point_to_triangle_projection.h>
 #include <itomp_cio_planner/util/exponential_map.h>
+#include <geometric_shapes/mesh_operations.h>
+#include <geometric_shapes/shape_operations.h>
+#include <geometric_shapes/shapes.h>
 #include <limits>
 
 namespace itomp_cio_planner
@@ -25,21 +28,20 @@ void GroundManager::initialize(
 	const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	planning_scene_ = planning_scene;
-	initializeStaticScene();
+    initializeContactSurfaces();
 }
 
-void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
+void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in,
 		const Eigen::Vector3d& orientation_in, Eigen::Vector3d& position_out,
-		Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal) const
+        Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal, bool include_ground) const
 {
-	double min_dist = position_in(2) - 0;
+    double min_dist = include_ground ? (position_in(2) - 0) : std::numeric_limits<double>::max();
 
 	// ground
     position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
 	normal = Eigen::Vector3d(0, 0, 1);
 
-	Eigen::Matrix3d orientation_in_mat =
-		exponential_map::ExponentialMapToRotation(orientation_in);
+    Eigen::Matrix3d orientation_in_mat = exponential_map::ExponentialMapToRotation(orientation_in);
 	Eigen::Vector3d x_axis = orientation_in_mat.col(0);
 	Eigen::Vector3d y_axis = orientation_in_mat.col(1);
 	Eigen::Vector3d normal_in = orientation_in_mat.col(2);
@@ -64,8 +66,7 @@ void GroundManager::getNearestGroundPosition(const Eigen::Vector3d& position_in,
 	orientation_out_mat.col(0) = proj_x_axis;
 	orientation_out_mat.col(1) = proj_y_axis;
 	orientation_out_mat.col(2) = normal;
-	orientation_out = exponential_map::RotationToExponentialMap(
-						  orientation_out_mat);
+    orientation_out = exponential_map::RotationToExponentialMap(orientation_out_mat);
 }
 
 bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
@@ -77,9 +78,6 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 	for (int i = 0; i < triangles_.size(); ++i)
 	{
 		const Triangle& triangle = triangles_[i];
-
-		if (triangle.normal_.dot(normal_in) < 0.5)
-			continue;
 
 		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
 									 triangle.points_[2], position_in);
@@ -97,65 +95,49 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 	return updated;
 }
 
-void GroundManager::initializeStaticScene()
+void GroundManager::initializeContactSurfaces()
 {
 	triangles_.clear();
 
-	const collision_detection::WorldConstPtr& world =
-		planning_scene_->getWorld();
-	std::vector<std::string> object_ids = world->getObjectIds();
-	for (int i = 0; i < object_ids.size(); ++i)
-	{
-		collision_detection::World::ObjectConstPtr obj = world->getObject(
-					object_ids[i]);
-		for (int j = 0; j < obj->shapes_.size(); ++j)
-		{
-			shapes::ShapeConstPtr shape = obj->shapes_[j];
-			const shapes::Mesh* mesh =
-				dynamic_cast<const shapes::Mesh*>(shape.get());
-			if (mesh == NULL)
-				continue;
+    std::string contact_model = PlanningParameters::getInstance()->getContactModel();
+    if (contact_model == "")
+        return;
 
-			Eigen::Affine3d& transform = obj->shape_poses_[j];
-			for (int k = 0; k < mesh->triangle_count; ++k)
-			{
-				int triangle_vertex1 = mesh->triangles[3 * k];
-				int triangle_vertex2 = mesh->triangles[3 * k + 1];
-				int triangle_vertex3 = mesh->triangles[3 * k + 2];
-				Eigen::Vector3d position1(mesh->vertices[3 * triangle_vertex1],
-										  mesh->vertices[3 * triangle_vertex1 + 1],
-										  mesh->vertices[3 * triangle_vertex1 + 2]);
-				Eigen::Vector3d position2(mesh->vertices[3 * triangle_vertex2],
-										  mesh->vertices[3 * triangle_vertex2 + 1],
-										  mesh->vertices[3 * triangle_vertex2 + 2]);
-				Eigen::Vector3d position3(mesh->vertices[3 * triangle_vertex3],
-										  mesh->vertices[3 * triangle_vertex3 + 1],
-										  mesh->vertices[3 * triangle_vertex3 + 2]);
-				position1 = transform * position1;
-				position2 = transform * position2;
-				position3 = transform * position3;
+    const std::vector<double>& contact_model_position = PlanningParameters::getInstance()->getContactModelPosition();
+    double contact_model_scale = PlanningParameters::getInstance()->getContactModelScale();
+    Eigen::Vector3d scale(contact_model_scale, contact_model_scale, contact_model_scale);
+    Eigen::Vector3d translation(contact_model_position[0], contact_model_position[1], contact_model_position[2]);
 
-				Eigen::Vector3d p0 = (position2 - position1);
-				Eigen::Vector3d p1 = (position3 - position1);
-				p0.normalize();
-				p1.normalize();
-				Eigen::Vector3d normal = p0.cross(p1);
-                if (normal.norm() < ITOMP_EPS)
-					continue;
-				normal.normalize();
+    shapes::Mesh* mesh = shapes::createMeshFromResource(contact_model, scale);
+    if (mesh == NULL)
+        return;
 
-				Triangle tri;
-				tri.points_[0] = position1;
-				tri.points_[1] = position2;
-				tri.points_[2] = position3;
-				tri.normal_ = normal;
+    for (int k = 0; k < mesh->triangle_count; ++k)
+    {
+        int triangle_vertex1 = mesh->triangles[3 * k];
+        int triangle_vertex2 = mesh->triangles[3 * k + 1];
+        int triangle_vertex3 = mesh->triangles[3 * k + 2];
+        Eigen::Vector3d position1(mesh->vertices[3 * triangle_vertex1], mesh->vertices[3 * triangle_vertex1 + 1], mesh->vertices[3 * triangle_vertex1 + 2]);
+        Eigen::Vector3d position2(mesh->vertices[3 * triangle_vertex2], mesh->vertices[3 * triangle_vertex2 + 1], mesh->vertices[3 * triangle_vertex2 + 2]);
+        Eigen::Vector3d position3(mesh->vertices[3 * triangle_vertex3], mesh->vertices[3 * triangle_vertex3 + 1], mesh->vertices[3 * triangle_vertex3 + 2]);
 
-				// only triangles that normal.z > 0.5 can be contact surface
-				if (tri.normal_(2) > 0.5)
-					triangles_.push_back(tri);
-			}
-		}
-	}
+        Eigen::Vector3d p0 = (position2 - position1);
+        Eigen::Vector3d p1 = (position3 - position1);
+        p0.normalize();
+        p1.normalize();
+        Eigen::Vector3d normal = p0.cross(p1);
+        if (normal.norm() < ITOMP_EPS)
+            continue;
+        normal.normalize();
+
+        Triangle tri;
+        tri.points_[0] = position1 + translation;
+        tri.points_[1] = position2 + translation;
+        tri.points_[2] = position3 + translation;
+        tri.normal_ = normal;
+
+        triangles_.push_back(tri);
+    }
 }
 
 }

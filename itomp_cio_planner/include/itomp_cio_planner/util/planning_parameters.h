@@ -100,6 +100,10 @@ public:
 	std::string getEnvironmentModel() const;
 	const std::vector<double>& getEnvironmentModelPosition() const;
 	double getEnvironmentModelScale() const;
+    std::string getContactModel() const;
+    const std::vector<double>& getContactModelPosition() const;
+    double getContactModelScale() const;
+
 	bool getHasRoot6d() const;
 
 	const std::map<std::string, std::vector<std::string> >& getContactPoints() const;
@@ -164,6 +168,9 @@ private:
 	std::string environment_model_;
 	std::vector<double> environment_model_position_;
 	double environment_model_scale_;
+    std::string contact_model_;
+    std::vector<double> contact_model_position_;
+    double contact_model_scale_;
 
 	bool has_root_6d_;
 
@@ -394,6 +401,21 @@ inline const std::vector<double>& PlanningParameters::getEnvironmentModelPositio
 inline double PlanningParameters::getEnvironmentModelScale() const
 {
 	return environment_model_scale_;
+}
+
+inline std::string PlanningParameters::getContactModel() const
+{
+    return contact_model_;
+}
+
+inline const std::vector<double>& PlanningParameters::getContactModelPosition() const
+{
+    return contact_model_position_;
+}
+
+inline double PlanningParameters::getContactModelScale() const
+{
+    return contact_model_scale_;
 }
 
 inline bool PlanningParameters::getHasRoot6d() const
