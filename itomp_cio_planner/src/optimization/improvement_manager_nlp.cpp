@@ -112,6 +112,59 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
         }
     }
 
+
+    {
+        std::ifstream trajectory_file;
+        trajectory_file.open("2d_traj.txt");
+        if (trajectory_file.is_open())
+        {
+            double rvo_start_time = PlanningParameters::getInstance()->getRVOTrajectoryStartTime();
+
+            Eigen::MatrixXd xy_path(evaluation_manager_->getTrajectory()->getNumPoints(), 2);
+
+            double agent_id, time, x, y, state, pv_x, pv_y;
+
+            while (true)
+            {
+                trajectory_file >> agent_id >> time >> x >> y >> state >> pv_x >> pv_y;
+
+                if (time >= rvo_start_time - ITOMP_EPS)
+                {
+                    xy_path(0, 0) = x - 0.2;
+                    xy_path(0, 1) = y - 0.225;
+                    break;
+                }
+
+            }
+
+            for (int i = 1; i < (evaluation_manager_->getTrajectory()->getNumPoints() + 1) / 2; ++i)
+            {
+                trajectory_file >> agent_id >> time >> x >> y >> state >> pv_x >> pv_y;
+                xy_path(i, 0) = x - 0.2;
+                xy_path(i, 1) = y - 0.225;
+            }
+            ElementTrajectoryPtr joint_trajectory = evaluation_manager_->getTrajectoryNonConst()->getElementTrajectory(
+                    ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+            for (int i = 0; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
+            {
+                if (i % 2 == 0)
+                {
+                    joint_trajectory->at(i, 0) = xy_path(i / 2, 0);
+                    //joint_trajectory->at(i, 1) = xy_path(i / 2, 1);
+                }
+                else
+                {
+                    joint_trajectory->at(i, 0) = 0.5 * (xy_path(i / 2, 0) + xy_path(i / 2 + 1, 0));
+                    //joint_trajectory->at(i, 1) = 0.5 * (xy_path(i / 2, 1) + xy_path(i / 2 + 1, 1));
+                }
+                ROS_INFO("x pos at %d : %f", i, joint_trajectory->at(i, 0));
+            }
+
+            trajectory_file.close();
+        }
+    }
+
+
 	//if (iteration != 0)
 	//addNoiseToVariables(variables);
 
@@ -278,16 +331,16 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
         std::cout.precision(3);
         std::cout.precision(std::numeric_limits<double>::digits10);
-        std::cout << "component sub_component point element total";
+        std::cout << "component sub_component point element ";
         for (int c = 0; c < cost_functions.size(); ++c)
         {
             std::cout << cost_functions[c]->getName() << " ";
         }
-        std::cout << std::endl;
+        std::cout << "sum " << std::endl;
         for (int i = 0; i < variables.size(); ++i)
         {
             const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-            std::cout << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " ";
+            std::cout << i << " " << index.component << " " << index.sub_component << " " << index.point << " " << index.element << " ";
             for (int j = 0; j < cost_der.size(); ++j)
                 std::cout << cost_der[j](i) << " ";
             std::cout << der(i);
@@ -363,12 +416,15 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                     x_upper(i) = group_joint_max[parameter_joint_index];
                 }
 
-                if (parameter_joint_index == 3 || parameter_joint_index == 4 ||
-                        parameter_joint_index == 8 || parameter_joint_index == 11)
+
+                // for walking
+                if (parameter_joint_index == 3 || parameter_joint_index == 4
+                        || parameter_joint_index == 8 || parameter_joint_index == 11)
                 {
                     x_lower(i) = -0.001;
                     x_upper(i) = 0.001;
                 }
+
 
             }
             break;
@@ -382,6 +438,11 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 case 1:
                     x_lower(i) = group_joint_min[0];
                     x_upper(i) = group_joint_max[0];
+                    // standing up
+                    /*
+                    if (index.element < 14)
+                        x_upper(i) = 27.1578-0.2;
+                        */
                     break;
 
                 case 2:
@@ -437,9 +498,11 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 	evaluation_manager_->printTrajectoryCost(0, true);
 	evaluation_manager_->render();
 
+    /*
     COMPUTE_COST_DERIVATIVE = true;
     derivative(best_param_);
     COMPUTE_COST_DERIVATIVE = false;
+    */
 }
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)

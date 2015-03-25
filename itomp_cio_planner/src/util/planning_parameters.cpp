@@ -267,7 +267,10 @@ void PlanningParameters::initFromNodeHandle()
 
 
 	node_handle.param("has_root_6d", has_root_6d_, true);
+
+    node_handle.param("rvo_trajectory_start_time", rvo_trajectory_start_time_, 0.0);
 }
 
 } // namespace
+
 

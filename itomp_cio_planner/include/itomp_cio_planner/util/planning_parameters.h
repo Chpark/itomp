@@ -108,6 +108,8 @@ public:
 
 	const std::map<std::string, std::vector<std::string> >& getContactPoints() const;
 
+    double getRVOTrajectoryStartTime() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -173,6 +175,8 @@ private:
     double contact_model_scale_;
 
 	bool has_root_6d_;
+
+    double rvo_trajectory_start_time_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -431,6 +435,11 @@ inline double PlanningParameters::getFrictionConeCostWeight() const
 inline const std::map<std::string, std::vector<std::string> >& PlanningParameters::getContactPoints() const
 {
 	return contact_points_;
+}
+
+inline double PlanningParameters::getRVOTrajectoryStartTime() const
+{
+    return rvo_trajectory_start_time_;
 }
 
 }

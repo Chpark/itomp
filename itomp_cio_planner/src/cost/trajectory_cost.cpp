@@ -128,7 +128,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 		robot_state->setVariablePositions(mat.data());
 
-        const double self_collision_scale = 0.5;
+        const double self_collision_scale = 1.0;
 
 		if (i == 0)
 		{
@@ -176,7 +176,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-                cost += contact.depth * contact.depth;
+                cost += contact.depth * contact.depth * 10000;
 			}
 
 
@@ -190,7 +190,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-                cost += self_collision_scale * contact.depth * contact.depth;
+                cost += self_collision_scale * contact.depth * contact.depth * 10000;
 			}
 		}
 
