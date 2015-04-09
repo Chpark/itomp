@@ -199,7 +199,7 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 	std::vector<double> positions(num_all_joints);
 	double dt = trajectory_->getDiscretization();
     // TODO:
-    int num_return_points = 21;
+    int num_return_points = 41;
     for (std::size_t i = 0; i < num_return_points; ++i)
 	{
 		for (std::size_t j = 0; j < num_all_joints; j++)
@@ -299,7 +299,7 @@ void ItompPlannerNode::writeWaypoint()
     trajectory_file.open(ss.str().c_str());
     trajectory_file.precision(std::numeric_limits<double>::digits10);
 
-    int last_point = 20;
+    int last_point = 40;
 
     const ElementTrajectoryPtr& joint_pos_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
             ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);

@@ -93,12 +93,14 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
                 (index.point == 0 || index.point == num_points_ - 1))
             return false;
 
+    case 20: // SCA two-footstep planning
+
         if (getPhase() != 0 && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
         {
             int parameter_point = index.point / 4;
-            if (parameter_point != 0 && parameter_point != 3 && parameter_point != 8)
+            if (parameter_point % 5 != 0)
             {
-                if (parameter_point > 3) // left contact
+                if (5 < parameter_point && parameter_point < 10) // left contact
                 {
                     if (support_foot_ == 0 || support_foot_ == 1)
                     {
