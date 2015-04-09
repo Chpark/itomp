@@ -7,7 +7,7 @@ namespace itomp_cio_planner
 PhaseManager::PhaseManager()
     : phase_(0), num_points_(0)
 {
-
+    support_foot_ = 0; // any
 }
 
 PhaseManager::~PhaseManager()
@@ -60,7 +60,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         if (getPhase() != 0 && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE &&
                 index.point > 0 && index.point < 20 &&
                 index.element >= 12 && index.element < 24) // turn right
-                //index.element < 12) // turn left
+            //index.element < 12) // turn left
             return false;
 
         break;
@@ -96,22 +96,40 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         if (getPhase() != 0 && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
         {
             int parameter_point = index.point / 4;
-            if (parameter_point % 5 != 4)
+            if (parameter_point != 0 && parameter_point != 3 && parameter_point != 8)
             {
-                if ((parameter_point / 5) % 2 == 0) // left contact
+                if (parameter_point > 3) // left contact
                 {
-                    if (index.element < 12)
+                    if (support_foot_ == 0 || support_foot_ == 1)
                     {
-                        //ROS_INFO("LContact for %d", index.point);
-                        return false;
+                        if (index.element < 12)
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (index.element >= 12 && index.element < 24)
+                        {
+                            return false;
+                        }
                     }
                 }
                 else // right contact
                 {
-                    if (index.element >= 12 && index.element < 24)
+                    if (support_foot_ == 0 || support_foot_ == 1)
                     {
-                        //ROS_INFO("RContact for %d", index.point);
-                        return false;
+                        if (index.element >= 12 && index.element < 24)
+                        {
+                            return false;
+                        }
+                    }
+                    else
+                    {
+                        if (index.element < 12)
+                        {
+                            return false;
+                        }
                     }
                 }
             }

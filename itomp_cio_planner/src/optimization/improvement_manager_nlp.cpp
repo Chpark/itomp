@@ -19,8 +19,8 @@ double getROSWallTime()
 namespace itomp_cio_planner
 {
 
-const bool READ_TRAJECTORY_FILE = true;
-const bool WRITE_TRAJECTORY_FILE = true;
+const bool READ_TRAJECTORY_FILE = false;
+const bool WRITE_TRAJECTORY_FILE = false;
 
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
@@ -438,11 +438,6 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 case 1:
                     x_lower(i) = group_joint_min[0];
                     x_upper(i) = group_joint_max[0];
-                    // standing up
-                    /*
-                    if (index.element < 14)
-                        x_upper(i) = 27.1578-0.2;
-                        */
                     break;
 
                 case 2:

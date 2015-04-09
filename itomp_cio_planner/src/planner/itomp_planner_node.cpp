@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <kdl/jntarray.hpp>
 #include <angles/angles.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -11,6 +12,7 @@
 #include <boost/random/variate_generator.hpp>
 #include <moveit/robot_model/robot_model.h>
 #include <moveit/robot_state/robot_state.h>
+#include <ros/ros.h>
 
 using namespace std;
 
@@ -59,6 +61,8 @@ bool ItompPlannerNode::init()
                 PlanningParameters::getInstance()->getTrajectoryDiscretization(),
                 PlanningParameters::getInstance()->getPhaseDuration()));
 
+    deleteWaypointFiles();
+
 	ROS_INFO("Initialized ITOMP planning service...");
 
 	return true;
@@ -91,6 +95,10 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
         trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_, true);
         itomp_trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_);
 
+        // read start state
+        readWaypoint(initial_robot_state);
+        setSupportFoot(initial_robot_state);
+
 		// for each planning group
 		for (unsigned int i = 0; i != planning_group_names.size(); ++i)
 		{
@@ -119,9 +127,13 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             trajectory_file.open("trajectory_out.txt");
             itomp_trajectory_->printTrajectory(trajectory_file);
             trajectory_file.close();
-		}
+        }
 	}
 	planning_info_manager_.printSummary();
+
+    // write goal state
+    writeWaypoint();
+
 
 	// return trajectory
     fillInResult(initial_robot_state, res);
@@ -177,18 +189,22 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 {
 	int num_all_joints = robot_state->getVariableCount();
 
-	ROS_ASSERT(num_all_joints == trajectory_->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT));
+    const ElementTrajectoryPtr& joint_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    ROS_ASSERT(num_all_joints == joint_trajectory->getNumElements());
 
     res.trajectory_ = boost::make_shared<robot_trajectory::RobotTrajectory>(itomp_robot_model_->getMoveitRobotModel(), "");
 
 	robot_state::RobotState ks = *robot_state;
 	std::vector<double> positions(num_all_joints);
 	double dt = trajectory_->getDiscretization();
-	for (std::size_t i = 0; i < trajectory_->getNumPoints(); ++i)
+    // TODO:
+    int num_return_points = 21;
+    for (std::size_t i = 0; i < num_return_points; ++i)
 	{
 		for (std::size_t j = 0; j < num_all_joints; j++)
 		{
-			positions[j] = (*trajectory_)(i, j);
+            positions[j] = (*joint_trajectory)(i, j);
 		}
 
 		ks.setVariablePositions(&positions[0]);
@@ -206,7 +222,7 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 		for (int j = 0; j < num_all_joints; j++)
 			printf("%s ", joint_names[j].c_str());
 		printf("\n");
-		for (int i = 0; i < trajectory_->getNumPoints(); ++i)
+        for (int i = 0; i < num_return_points; ++i)
 		{
 			for (int j = 0; j < num_all_joints; j++)
 			{
@@ -215,6 +231,148 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 			printf("\n");
 		}
 	}
+}
+
+void ItompPlannerNode::readWaypoint(robot_state::RobotStatePtr& robot_state)
+{
+    double value;
+
+    int agent_id = 0;
+    ros::NodeHandle node_handle("itomp_planner");
+    node_handle.getParam("agent_id", agent_id);
+
+    std::ifstream trajectory_file;
+    std::stringstream ss;
+    ss << "agent_" << agent_id << "_waypoint.txt";
+    trajectory_file.open(ss.str().c_str());
+    if (trajectory_file.is_open())
+    {
+        ElementTrajectoryPtr& joint_pos_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+        ElementTrajectoryPtr& joint_vel_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+        ElementTrajectoryPtr& joint_acc_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+        int num_elements = joint_pos_trajectory->getNumElements();
+
+        for (int i = 0; i < num_elements; ++i)
+        {
+            trajectory_file >> value;
+
+            (*joint_pos_trajectory)(0, i) = value;
+            robot_state->getVariablePositions()[i] = value;
+        }
+
+
+        for (int i = 0; i < num_elements; ++i)
+        {
+            trajectory_file >> value;
+
+            (*joint_vel_trajectory)(0, i) = value;
+            robot_state->getVariableVelocities()[i] = value;
+        }
+
+        for (int i = 0; i < num_elements; ++i)
+        {
+            trajectory_file >> value;
+
+            (*joint_acc_trajectory)(0, i) = value;
+            robot_state->getVariableAccelerations()[i] = value;
+        }
+
+
+        trajectory_file.close();
+
+        robot_state->update(true);
+    }
+}
+
+void ItompPlannerNode::writeWaypoint()
+{
+    int agent_id = 0;
+    ros::NodeHandle node_handle("itomp_planner");
+    node_handle.getParam("agent_id", agent_id);
+
+    std::ofstream trajectory_file;
+    std::stringstream ss;
+    ss << "agent_" << agent_id << "_waypoint.txt";
+    trajectory_file.open(ss.str().c_str());
+    trajectory_file.precision(std::numeric_limits<double>::digits10);
+
+    int last_point = 20;
+
+    const ElementTrajectoryPtr& joint_pos_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryPtr& joint_vel_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const ElementTrajectoryPtr& joint_acc_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    int num_elements = joint_pos_trajectory->getNumElements();
+
+    for (int i = 0; i < num_elements; ++i)
+    {
+        trajectory_file << (*joint_pos_trajectory)(last_point, i) << " ";
+    }
+    trajectory_file << std::endl;
+
+
+    for (int i = 0; i < num_elements; ++i)
+    {
+        trajectory_file << (*joint_vel_trajectory)(last_point, i) << " ";
+    }
+    trajectory_file << std::endl;
+
+    for (int i = 0; i < num_elements; ++i)
+    {
+        trajectory_file << (*joint_acc_trajectory)(last_point, i) << " ";
+    }
+    trajectory_file << std::endl;
+
+
+    trajectory_file.close();
+}
+
+void ItompPlannerNode::deleteWaypointFiles()
+{
+    int agent_id = 0;
+    while (true)
+    {
+        stringstream ss;
+        ss << "agent_" << agent_id++ << "_waypoint.txt";
+        if (remove(ss.str().c_str()) != 0)
+            break;
+    }
+}
+
+void ItompPlannerNode::setSupportFoot(robot_state::RobotStatePtr& robot_state)
+{
+    int support_foot = 0; // any
+    double orientation = robot_state->getVariablePosition("base_revolute_joint_z");
+    const Eigen::Vector3d root_pos = robot_state->getGlobalLinkTransform("pelvis_link").translation();
+    const Eigen::Vector3d dir = Eigen::AngleAxisd(orientation, Eigen::Vector3d::UnitZ()) * Eigen::Vector3d::UnitY();
+    const Eigen::Vector3d left_foot = robot_state->getGlobalLinkTransform("left_foot_endeffector_link").translation();
+    const Eigen::Vector3d right_foot = robot_state->getGlobalLinkTransform("right_foot_endeffector_link").translation();
+    double left_dot = dir.dot(left_foot - root_pos);
+    double right_dot = dir.dot(right_foot - root_pos);
+    if (std::abs(left_dot - right_dot) < 0.1)
+    {
+        support_foot = 0;
+    }
+    else if (left_dot > right_dot)
+    {
+        support_foot = 1; // left
+    }
+    else
+    {
+        support_foot = 2; // right
+    }
+
+    PhaseManager::getInstance()->support_foot_ = support_foot;
+    ROS_INFO("Ori dir : %f %f %f", dir.x(), dir.y(), dir.z());
+    ROS_INFO("left_foot : %f %f %f", left_foot.x(), left_foot.y(), left_foot.z());
+    ROS_INFO("right_foot : %f %f %f", right_foot.x(), right_foot.y(), right_foot.z());
+    ROS_INFO("Support foot : %d", support_foot);
+    ROS_INFO("zz");
 }
 
 } // namespace

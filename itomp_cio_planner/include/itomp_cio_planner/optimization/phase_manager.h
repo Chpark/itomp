@@ -20,6 +20,8 @@ public:
 
     bool updateParameter(const ItompTrajectoryIndex& index) const;
 
+    int support_foot_;
+
 private:
     unsigned int phase_;
     int num_points_;
