@@ -41,6 +41,7 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 	NewVizManager::getInstance()->setPlanningGroup(planning_group);
 	GroundManager::getInstance()->initialize(planning_scene);
 
+    NewEvalManager::ref_evaluation_manager_ = NULL;
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();
     evaluation_manager_->initialize(full_trajectory, itomp_trajectory, robot_model,
 									planning_scene, planning_group, planning_start_time_,

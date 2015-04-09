@@ -128,6 +128,8 @@ private:
     CollisionWorldFCLDerivativesPtr collision_world_derivatives_;
     CollisionRobotFCLDerivativesPtr collision_robot_derivatives_;
 
+    friend class ItompOptimizer;
+
 	friend class TrajectoryCostContactInvariant;
 	friend class TrajectoryCostObstacle;
 	friend class TrajectoryCostPhysicsViolation;
