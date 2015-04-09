@@ -30,7 +30,7 @@ public:
     Eigen::MatrixXd& getData();
     const Eigen::MatrixXd& getData() const;
 
-    virtual void printTrajectory(std::ostream& out_stream) const;
+    virtual void printTrajectory(std::ostream& out_stream, int point_start = 0, int point_end = -1) const;
 
 protected:
     void allocate(); /**< \brief Allocates memory for the trajectory */

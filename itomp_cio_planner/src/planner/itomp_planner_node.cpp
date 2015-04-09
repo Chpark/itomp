@@ -121,18 +121,15 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
 			planning_info_manager_.write(c, i, optimizer_->getPlanningInfo());
 
-            ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
-
-            std::ofstream trajectory_file;
-            trajectory_file.open("trajectory_out.txt");
-            itomp_trajectory_->printTrajectory(trajectory_file);
-            trajectory_file.close();
+            ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());            
         }
 	}
 	planning_info_manager_.printSummary();
 
     // write goal state
     writeWaypoint();
+
+    writeTrajectory();
 
 
 	// return trajectory
@@ -342,6 +339,23 @@ void ItompPlannerNode::deleteWaypointFiles()
         if (remove(ss.str().c_str()) != 0)
             break;
     }
+    agent_id = 0;
+    while (true)
+    {
+        int trajectory_index = 0;
+
+        while (true)
+        {
+            std::stringstream ss;
+            ss << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
+            if (remove(ss.str().c_str()) != 0)
+                break;
+            ++trajectory_index;
+        }
+        if (trajectory_index == 0)
+            break;
+        ++agent_id;
+    }
 }
 
 void ItompPlannerNode::setSupportFoot(robot_state::RobotStatePtr& robot_state)
@@ -373,6 +387,30 @@ void ItompPlannerNode::setSupportFoot(robot_state::RobotStatePtr& robot_state)
     ROS_INFO("right_foot : %f %f %f", right_foot.x(), right_foot.y(), right_foot.z());
     ROS_INFO("Support foot : %d", support_foot);
     ROS_INFO("zz");
+}
+
+void ItompPlannerNode::writeTrajectory()
+{
+    /*
+    std::ofstream trajectory_file;
+    trajectory_file.open("trajectory_out.txt");
+    itomp_trajectory_->printTrajectory(trajectory_file);
+    trajectory_file.close();
+    */
+
+    int agent_id = 0;
+    int trajectory_index = 0;
+
+    ros::NodeHandle node_handle("itomp_planner");
+    node_handle.getParam("agent_id", agent_id);
+    node_handle.getParam("agent_trajectory_index", trajectory_index);
+
+    std::stringstream ss;
+    ss << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
+    std::ofstream trajectory_file;
+    trajectory_file.open(ss.str().c_str());
+    itomp_trajectory_->printTrajectory(trajectory_file, 0, 40);
+    trajectory_file.close();
 }
 
 } // namespace

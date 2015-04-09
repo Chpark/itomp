@@ -34,12 +34,12 @@ CompositeTrajectory* CompositeTrajectory::clone() const
     return new CompositeTrajectory(*this);
 }
 
-void CompositeTrajectory::printTrajectory(std::ostream& out_stream) const
+void CompositeTrajectory::printTrajectory(std::ostream& out_stream, int point_start, int point_end) const
 {
     out_stream << "Trajectory " << name_ << std::endl;
     for (unsigned int i = 0; i < getNumComponents(); ++i)
     {
-        trajectories_[i]->printTrajectory(out_stream);
+        trajectories_[i]->printTrajectory(out_stream, point_start, point_end);
     }
 }
 

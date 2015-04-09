@@ -35,6 +35,7 @@ private:
     void writeWaypoint();
     void deleteWaypointFiles();
     void setSupportFoot(robot_state::RobotStatePtr& robot_state);
+    void writeTrajectory();
 
 	robot_model::RobotModelConstPtr robot_model_;
 	ItompRobotModelPtr itomp_robot_model_;
