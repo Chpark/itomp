@@ -112,59 +112,6 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
         }
     }
 
-
-    {
-        std::ifstream trajectory_file;
-        trajectory_file.open("2d_traj.txt");
-        if (trajectory_file.is_open())
-        {
-            double rvo_start_time = PlanningParameters::getInstance()->getRVOTrajectoryStartTime();
-
-            Eigen::MatrixXd xy_path(evaluation_manager_->getTrajectory()->getNumPoints(), 2);
-
-            double agent_id, time, x, y, state, pv_x, pv_y;
-
-            while (true)
-            {
-                trajectory_file >> agent_id >> time >> x >> y >> state >> pv_x >> pv_y;
-
-                if (time >= rvo_start_time - ITOMP_EPS)
-                {
-                    xy_path(0, 0) = x - 0.2;
-                    xy_path(0, 1) = y - 0.225;
-                    break;
-                }
-
-            }
-
-            for (int i = 1; i < (evaluation_manager_->getTrajectory()->getNumPoints() + 1) / 2; ++i)
-            {
-                trajectory_file >> agent_id >> time >> x >> y >> state >> pv_x >> pv_y;
-                xy_path(i, 0) = x - 0.2;
-                xy_path(i, 1) = y - 0.225;
-            }
-            ElementTrajectoryPtr joint_trajectory = evaluation_manager_->getTrajectoryNonConst()->getElementTrajectory(
-                    ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
-            for (int i = 0; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
-            {
-                if (i % 2 == 0)
-                {
-                    joint_trajectory->at(i, 0) = xy_path(i / 2, 0);
-                    //joint_trajectory->at(i, 1) = xy_path(i / 2, 1);
-                }
-                else
-                {
-                    joint_trajectory->at(i, 0) = 0.5 * (xy_path(i / 2, 0) + xy_path(i / 2 + 1, 0));
-                    //joint_trajectory->at(i, 1) = 0.5 * (xy_path(i / 2, 1) + xy_path(i / 2 + 1, 1));
-                }
-                ROS_INFO("x pos at %d : %f", i, joint_trajectory->at(i, 0));
-            }
-
-            trajectory_file.close();
-        }
-    }
-
-
 	//if (iteration != 0)
 	//addNoiseToVariables(variables);
 
@@ -476,16 +423,6 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
                                    variables, x_lower, x_upper);
-
-
-    /*
-        dlib::find_min(dlib::lbfgs_search_strategy(10),
-                       dlib::objective_delta_stop_strategy(eps_,
-                               PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
-                       boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
-                       boost::bind(&ImprovementManagerNLP::derivative, this, _1),
-                       variables, 0.0);
-                       */
 
 	evaluation_manager_->setParameters(best_parameter_);
     evaluation_manager_->setParameters(variables);
