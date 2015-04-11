@@ -209,10 +209,6 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	TIME_PROFILER_END_TIMER(Obstacle);
 
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-        cost = 0;
-
 	return is_feasible;
 }
 
@@ -232,6 +228,13 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    {
+        cost = 0;
+        return true;
+    }
+
 	TIME_PROFILER_START_TIMER(ContactInvariant);
 
 	bool is_feasible = true;
@@ -268,10 +271,6 @@ bool TrajectoryCostContactInvariant::evaluate(
 
 	TIME_PROFILER_END_TIMER(ContactInvariant);
 
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-        cost = 0;
-
 	return is_feasible;
 }
 
@@ -279,6 +278,13 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(PhysicsViolation)
 bool TrajectoryCostPhysicsViolation::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    {
+        cost = 0;
+        return true;
+    }
+
 	bool is_feasible = true;
 	cost = 0;
 
@@ -292,10 +298,6 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	}
 
 	TIME_PROFILER_END_TIMER(PhysicsViolation);
-
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-        cost = 0;
 
 	return is_feasible;
 }
@@ -683,6 +685,13 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FrictionCone)
 bool TrajectoryCostFrictionCone::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    if (PhaseManager::getInstance()->getPhase() == 0 &&
+            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    {
+        cost = 0;
+        return true;
+    }
+
 	TIME_PROFILER_START_TIMER(FrictionCone);
 
 	bool is_feasible = true;
@@ -718,11 +727,6 @@ bool TrajectoryCostFrictionCone::evaluate(
 	}
 
 	TIME_PROFILER_END_TIMER(FrictionCone);
-
-
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-        cost = 0;
 
 	return is_feasible;
 }

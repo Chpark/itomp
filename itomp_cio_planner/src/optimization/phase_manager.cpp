@@ -95,57 +95,71 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 
     case 20: // SCA two-footstep planning
 
-        if (getPhase() != 0 && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+        if (getPhase() == 0 &&
+                (index.point > 0 && index.point < num_points_ - 1))
+            return false;
+
+        if (getPhase() != 0)
         {
-            int parameter_point = index.point / 4;
-            if (parameter_point % 5 != 0)
+            if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
             {
-                if (5 < parameter_point && parameter_point < 10) // left contact
+                if (index.point == 0 || index.point == num_points_ - 1)
+                    return false;
+                //if (index.point % 20 != 0)
+                //  return false;
+            }
+            else if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            {
+                if (index.element % 3 != 2)
+                    return false;
+
+                int parameter_point = index.point / 4;
+                if (parameter_point % 5 != 0)
                 {
-                    if (support_foot_ == 0 || support_foot_ == 1)
+                    if (5 < parameter_point && parameter_point < 10) // left contact
                     {
-                        if (index.element < 12)
+                        if (support_foot_ == 0 || support_foot_ == 1)
                         {
-                            return false;
+                            if (index.element < 12)
+                            {
+                                return false;
+                            }
+                        }
+                        else
+                        {
+                            if (index.element >= 12 && index.element < 24)
+                            {
+                                return false;
+                            }
                         }
                     }
-                    else
+                    else // right contact
                     {
-                        if (index.element >= 12 && index.element < 24)
+                        if (support_foot_ == 0 || support_foot_ == 1)
                         {
-                            return false;
+                            if (index.element >= 12 && index.element < 24)
+                            {
+                                return false;
+                            }
                         }
-                    }
-                }
-                else // right contact
-                {
-                    if (support_foot_ == 0 || support_foot_ == 1)
-                    {
-                        if (index.element >= 12 && index.element < 24)
+                        else
                         {
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (index.element < 12)
-                        {
-                            return false;
+                            if (index.element < 12)
+                            {
+                                return false;
+                            }
                         }
                     }
                 }
             }
         }
+
         break;
     }
 
 
-    /*
-    // root x y follow the 2d traj
-    if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
-            (index.element < 2))
-        return false;
-        */
+
+
 
     if (state != 0)
     {

@@ -242,7 +242,7 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
 	return der;
 }
 
-static bool COMPUTE_COST_DERIVATIVE = false;
+//#define COMPUTE_COST_DERIVATIVE
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
 	// assume evaluate was called before
@@ -253,12 +253,14 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     der.set_size(variables.size());
 
     // for cost debug
+#ifdef COMPUTE_COST_DERIVATIVE
     std::vector<column_vector> cost_der(TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
     for (int i = 0; i < cost_der.size(); ++i)
         cost_der[i].set_size(variables.size());
     std::vector<double*> cost_der_ptr(cost_der.size());
     for (int i = 0; i < cost_der.size(); ++i)
         cost_der_ptr[i] = cost_der[i].begin();
+#endif
 
     #pragma omp parallel for
     for (int i = 0; i < num_threads_; ++i)
@@ -272,15 +274,17 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         int thread_index = omp_get_thread_num();
 
         //  for cost debug
-        //derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der.begin(), eps_);
+#ifndef COMPUTE_COST_DERIVATIVE
+        derivatives_evaluation_manager_[thread_index]->computeDerivatives(i, variables, der.begin(), eps_);
+#else
         derivatives_evaluation_manager_[thread_index]->computeCostDerivatives(i, variables, der.begin(), cost_der_ptr, eps_);
+#endif
     }
-
 
     TIME_PROFILER_PRINT_ITERATION_TIME();
 
     // print derivatives per costs
-    if (COMPUTE_COST_DERIVATIVE)
+#ifdef COMPUTE_COST_DERIVATIVE
     {
         const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
         std::cout.precision(3);
@@ -301,6 +305,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
             std::cout << std::endl;
         }
     }
+#endif
 
     // validation with der_ref
     /*

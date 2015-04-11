@@ -2,6 +2,7 @@
 #include <moveit/robot_state/robot_state.h>
 #include <moveit_msgs/PlanningScene.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
@@ -245,15 +246,23 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
     unsigned int point_begin, point_end;
     const double value = parameters(parameter_index, 0);
 
-    evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
-    const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+    double derivative = 0.0;
 
-    evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
-    const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+    const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
+    if (PhaseManager::getInstance()->updateParameter(index))
+    {
+        evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+        const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
-    *(derivative_out + parameter_index) = (delta_plus - delta_minus) / (2 * eps);
+        evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+        const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
-    itomp_trajectory_->restoreTrajectory();
+        derivative = (delta_plus - delta_minus) / (2 * eps);
+
+        itomp_trajectory_->restoreTrajectory();
+    }
+
+    *(derivative_out + parameter_index) = derivative;
 }
 
 void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
@@ -264,22 +273,27 @@ void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTraj
     unsigned int point_begin, point_end;
     const double value = parameters(parameter_index, 0);
 
-    std::vector<double> cost_delta_plus(num_cost_functions);
-    std::vector<double> cost_delta_minus(num_cost_functions);
+    std::vector<double> cost_delta_plus(num_cost_functions, 0.0);
+    std::vector<double> cost_delta_minus(num_cost_functions, 0.0);
+    double derivative = 0.0;
 
-    evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
-    const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
-    for (int i = 0; i < num_cost_functions; ++i)
-        cost_delta_plus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
+    const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
+    if (PhaseManager::getInstance()->updateParameter(index))
+    {
+        evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+        const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+        for (int i = 0; i < num_cost_functions; ++i)
+            cost_delta_plus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
 
-    evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
-    const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
-    for (int i = 0; i < num_cost_functions; ++i)
-        cost_delta_minus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
+        evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+        const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
+        for (int i = 0; i < num_cost_functions; ++i)
+            cost_delta_minus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
 
-    double derivative = (delta_plus - delta_minus) / (2 * eps);
+        derivative = (delta_plus - delta_minus) / (2 * eps);
 
-    itomp_trajectory_->restoreTrajectory();
+        itomp_trajectory_->restoreTrajectory();
+    }
 
     *(derivative_out + parameter_index) = derivative;
     for (int i = 0; i < num_cost_functions; ++i)
@@ -767,6 +781,8 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
+    return;
+
     const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
 	if (!details || !is_best)
@@ -861,6 +877,39 @@ void NewEvalManager::initializeContactVariables()
 				contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
 				// set forces to 0
 				contact_force = 0.0 / num_contacts * tau.block(0, 0, 3, 1);
+
+
+                // TODO: set initial forces to feet
+                if (i < 2)
+                {
+                    const double VINCENT_CP_WEIGHT[] = {0.107, 0.107, 0.393, 0.393};
+
+                    if (point == 0 || point == full_trajectory_->getNumPoints() - 1)
+                    //if (point % 20 == 0)
+                    {
+                        contact_force = VINCENT_CP_WEIGHT[j] / 2.0 * tau.block(0, 0, 3, 1);
+                    }
+                    /*
+                    else
+                    {
+                        if ((point / 20) % 2 == 0)
+                        {
+                            if (i == 0)
+                            {
+                                contact_force = VINCENT_CP_WEIGHT[j] * tau.block(0, 0, 3, 1);
+                            }
+                        }
+                        else
+                        {
+                            if (i == 1)
+                            {
+                                contact_force = VINCENT_CP_WEIGHT[j] * tau.block(0, 0, 3, 1);
+                            }
+                        }
+                    }
+                    */
+                }
+
 				contact_torque = contact_position.cross(contact_force);
 
                 RigidBodyDynamics::Math::SpatialVector& ext_force = ext_forces[rbdl_body_id];
@@ -885,7 +934,25 @@ void NewEvalManager::initializeContactVariables()
 	}
 	full_trajectory_->interpolateContactVariables();
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
-    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+    //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+
+    /*
+    std::vector<unsigned int> left_foot_cp(7);
+    std::vector<unsigned int> right_foot_cp(7);
+    for (int i = 0; i < 7; ++i)
+    {
+        left_foot_cp[i] = i;
+        right_foot_cp[i] = i + 7;
+    }
+    itomp_trajectory_->interpolate(20, 60, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &left_foot_cp);
+    itomp_trajectory_->copy(60, 40, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
+    itomp_trajectory_->interpolate(0, 40, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
+    for (int i = 40; i >= 20; --i)
+    {
+        itomp_trajectory_->copy(i, i + 20, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
+        itomp_trajectory_->copy(20, i, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
+    }
+    */
 }
 
 void NewEvalManager::resetBestTrajectoryCost()
