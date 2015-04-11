@@ -118,7 +118,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
                 {
                     if (5 < parameter_point && parameter_point < 10) // left contact
                     {
-                        if (support_foot_ == 0 || support_foot_ == 1)
+                        if (support_foot_ & 0x1) // left foot can be support foot
                         {
                             if (index.element < 12)
                             {
@@ -135,7 +135,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
                     }
                     else // right contact
                     {
-                        if (support_foot_ == 0 || support_foot_ == 1)
+                        if (support_foot_ & 0x1)
                         {
                             if (index.element >= 12 && index.element < 24)
                             {

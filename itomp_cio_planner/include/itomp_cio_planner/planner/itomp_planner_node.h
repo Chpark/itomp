@@ -31,10 +31,12 @@ private:
     void fillInResult(const robot_state::RobotStatePtr& robot_state,
                       planning_interface::MotionPlanResponse &res);
 
+    void adjustStartGoalAngles();
+
     void readWaypoint(robot_state::RobotStatePtr& robot_state);
     void writeWaypoint();
     void deleteWaypointFiles();
-    void setSupportFoot(robot_state::RobotStatePtr& robot_state);
+    bool setSupportFoot(const robot_state::RobotState& initial_state, const robot_state::RobotState& goal_state);
     void writeTrajectory();
 
 	robot_model::RobotModelConstPtr robot_model_;
