@@ -16,7 +16,6 @@ ITOMP_FORWARD_DECL(ItompTrajectory)
 
 struct ItompTrajectoryIndex
 {
-    //unsigned int indices[4]; // [pos/vel/acc, joint/contact pos/contact force, point, element]
     unsigned int component; // pos/vel/acc
     unsigned int sub_component; // joint/contact pos/contact force
     unsigned int point;
@@ -78,8 +77,13 @@ public:
 
     void interpolateStartEnd(SUB_COMPONENT_TYPE sub_component_type,
                              const std::vector<unsigned int>* element_indices = NULL);
+    void interpolate(int point_start, int point_end, SUB_COMPONENT_TYPE sub_component_type,
+                     const std::vector<unsigned int>* element_indices = NULL);
     void interpolateKeyframes(const ItompPlanningGroupConstPtr& planning_group);
     void interpolateKeyframes();
+
+    void copy(int point_src, int point_dest, SUB_COMPONENT_TYPE sub_component_type,
+               const std::vector<unsigned int>* element_indices = NULL);
 
     int getParameterJointIndex(int trajectory_index) const;
 
@@ -137,6 +141,12 @@ inline int ItompTrajectory::getParameterJointIndex(int trajectory_index) const
 inline double ItompTrajectory::getDiscretization() const
 {
     return discretization_;
+}
+
+inline void ItompTrajectory::interpolateStartEnd(SUB_COMPONENT_TYPE sub_component_type,
+        const std::vector<unsigned int>* element_indices)
+{
+    interpolate(0, getNumPoints() - 1, sub_component_type, element_indices);
 }
 
 }
