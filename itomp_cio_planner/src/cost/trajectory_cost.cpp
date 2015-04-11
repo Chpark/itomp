@@ -91,11 +91,21 @@ bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manage
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    if (PhaseManager::getInstance()->getPhase() == 0)
     {
-        cost = 0;
-        return true;
+        if (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        {
+            cost = 0;
+            return true;
+        }
+    }
+    else
+    {
+        if (point % 4 != 0)
+        {
+            cost = 0;
+            return true;
+        }
     }
 
 	TIME_PROFILER_START_TIMER(Obstacle);
