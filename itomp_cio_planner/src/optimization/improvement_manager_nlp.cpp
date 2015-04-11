@@ -134,6 +134,13 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
         trajectory_file << variables;
         trajectory_file.close();
     }
+
+    std::ofstream trajectory_file;
+    std::stringstream ss;
+    ss << "trajectory_out_phase_" << iteration << ".txt";
+    trajectory_file.open(ss.str().c_str());
+    evaluation_manager_->getTrajectory()->printTrajectory(trajectory_file);
+    trajectory_file.close();
 }
 
 void ImprovementManagerNLP::writeToOptimizationVariables(
@@ -370,6 +377,12 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 {
                     x_lower(i) = -0.001;
                     x_upper(i) = 0.001;
+                }
+
+                if (parameter_joint_index < 2)
+                {
+                    x_lower(i) = PlanningParameters::getInstance()->getWorkspaceMin()[parameter_joint_index];
+                    x_upper(i) = PlanningParameters::getInstance()->getWorkspaceMax()[parameter_joint_index];
                 }
 
 

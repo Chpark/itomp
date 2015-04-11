@@ -268,7 +268,48 @@ void PlanningParameters::initFromNodeHandle()
 
 	node_handle.param("has_root_6d", has_root_6d_, true);
 
-    node_handle.param("rvo_trajectory_start_time", rvo_trajectory_start_time_, 0.0);
+    workspace_min_.clear();
+    if (node_handle.hasParam("workspace_min"))
+    {
+        XmlRpc::XmlRpcValue segment;
+
+        node_handle.getParam("workspace_min", segment);
+
+        if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+        {
+            int size = segment.size();
+            for (int i = 0; i < size; ++i)
+            {
+                double value = segment[i];
+                workspace_min_.push_back(value);
+            }
+        }
+    }
+    workspace_max_.clear();
+    if (node_handle.hasParam("workspace_max"))
+    {
+        XmlRpc::XmlRpcValue segment;
+
+        node_handle.getParam("workspace_max", segment);
+
+        if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+        {
+            int size = segment.size();
+            for (int i = 0; i < size; ++i)
+            {
+                double value = segment[i];
+                workspace_max_.push_back(value);
+            }
+        }
+    }
+    if (workspace_min_.size() < 3)
+    {
+        workspace_min_.resize(3, -30);
+    }
+    if (workspace_max_.size() < 3)
+    {
+        workspace_max_.resize(3, 30);
+    }
 }
 
 } // namespace

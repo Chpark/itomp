@@ -108,7 +108,8 @@ public:
 
 	const std::map<std::string, std::vector<std::string> >& getContactPoints() const;
 
-    double getRVOTrajectoryStartTime() const;
+    const std::vector<double>& getWorkspaceMin() const;
+    const std::vector<double>& getWorkspaceMax() const;
 
 private:
 	int updateIndex;
@@ -176,7 +177,8 @@ private:
 
 	bool has_root_6d_;
 
-    double rvo_trajectory_start_time_;
+    std::vector<double> workspace_min_;
+    std::vector<double> workspace_max_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -437,9 +439,14 @@ inline const std::map<std::string, std::vector<std::string> >& PlanningParameter
 	return contact_points_;
 }
 
-inline double PlanningParameters::getRVOTrajectoryStartTime() const
+inline const std::vector<double>& PlanningParameters::getWorkspaceMin() const
 {
-    return rvo_trajectory_start_time_;
+    return workspace_min_;
+}
+
+inline const std::vector<double>& PlanningParameters::getWorkspaceMax() const
+{
+    return workspace_max_;
 }
 
 }
