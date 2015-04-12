@@ -652,9 +652,9 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
                 getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(i),
                 getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(i)
             };
-            traj_point[COMPONENT_TYPE_POSITION](index) = poly(i * discretization_);
-            traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative(i * discretization_);
-            traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative(i * discretization_);
+            traj_point[COMPONENT_TYPE_POSITION](index) = poly((i - point_start) * discretization_);
+            traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative((i - point_start) * discretization_);
+            traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative((i - point_start) * discretization_);
         }
     }
 }
