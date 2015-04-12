@@ -316,16 +316,37 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(GoalPose)
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 									  int point, double& cost) const
 {
+    if (PhaseManager::getInstance()->getPhase() != 0)
+    {
+        cost = 0;
+        return true;
+    }
+
 	TIME_PROFILER_START_TIMER(GoalPose);
 
+    bool is_feasible = true;
+    cost = 0;
+
+    if (point == evaluation_manager->getFullTrajectory()->getNumPoints() - 1)
+    {
+        Eigen::Vector3d current_goal_pos;
+        const robot_state::RobotStatePtr& state = evaluation_manager->getRobotState(point);
+        current_goal_pos(0) = state->getVariablePosition(0);
+        current_goal_pos(1) = state->getVariablePosition(1);
+        current_goal_pos(2) = state->getVariablePosition(2);
+
+        cost = (current_goal_pos - PhaseManager::getInstance()->initial_goal_pos).squaredNorm();
+    }
+
+
+    /*
 	// TODO
 	Eigen::Vector3d goal_foot_pos[3];
 	goal_foot_pos[0] = Eigen::Vector3d(-0.1, 2.0, 0.0);
 	goal_foot_pos[1] = Eigen::Vector3d(0.1, 2.0, 0.0);
 	goal_foot_pos[2] = Eigen::Vector3d(0.0, 2.0, 1.12);
 
-	Eigen::Vector3d goal_ori = exponential_map::RotationToExponentialMap(
-								   Eigen::Matrix3d::Identity());
+    Eigen::Vector3d goal_ori = exponential_map::RotationToExponentialMap(Eigen::Matrix3d::Identity());
 
 	bool is_feasible = true;
 	cost = 0;
@@ -338,37 +359,29 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 		unsigned body_ids[3];
 
 		// TODO
-		body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId(
-						  "left_foot_endeffector_link");
-		body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId(
-						  "right_foot_endeffector_link");
-		body_ids[2] = evaluation_manager->getRBDLModel(point).GetBodyId(
-						  "pelvis_link");
+        body_ids[0] = evaluation_manager->getRBDLModel(point).GetBodyId("left_foot_endeffector_link");
+        body_ids[1] = evaluation_manager->getRBDLModel(point).GetBodyId("right_foot_endeffector_link");
+        body_ids[2] = evaluation_manager->getRBDLModel(point).GetBodyId("pelvis_link");
 		//std::cout << "bodyid2 : " << body_ids[2] << std::endl;
 		body_ids[2] = 6;
-		cur_foot_pos[0] =
-			evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
-		cur_foot_pos[1] =
-			evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
-		cur_foot_pos[2] =
-			evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].r;
+        cur_foot_pos[0] = evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].r;
+        cur_foot_pos[1] = evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].r;
+        cur_foot_pos[2] = evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].r;
 
 		cost += (goal_foot_pos[0] - cur_foot_pos[0]).squaredNorm();
 		cost += (goal_foot_pos[1] - cur_foot_pos[1]).squaredNorm();
 		cost += (goal_foot_pos[2] - cur_foot_pos[2]).squaredNorm();
 
 		Eigen::Vector3d cur_ori[3];
-		cur_ori[0] = exponential_map::RotationToExponentialMap(
-						 evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].E);
-		cur_ori[1] = exponential_map::RotationToExponentialMap(
-						 evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].E);
-		cur_ori[2] = exponential_map::RotationToExponentialMap(
-						 evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].E);
+        cur_ori[0] = exponential_map::RotationToExponentialMap(evaluation_manager->getRBDLModel(point).X_base[body_ids[0]].E);
+        cur_ori[1] = exponential_map::RotationToExponentialMap(evaluation_manager->getRBDLModel(point).X_base[body_ids[1]].E);
+        cur_ori[2] = exponential_map::RotationToExponentialMap(evaluation_manager->getRBDLModel(point).X_base[body_ids[2]].E);
 
 		cost += (goal_ori - cur_ori[0]).squaredNorm();
 		//cost += (goal_ori - cur_ori[1]).squaredNorm();
 		//cost += (goal_ori - cur_ori[2]).squaredNorm();
 	}
+    */
 
 	TIME_PROFILER_END_TIMER(GoalPose);
 
