@@ -828,20 +828,22 @@ void NewEvalManager::initializeContactVariables()
     ROS_ASSERT(num_contacts == PlanningParameters::getInstance()->getNumContacts());
 
 	// allocate
-	contact_variables_.resize(full_trajectory_->getNumPoints());
+    contact_variables_.resize(itomp_trajectory_->getNumPoints());
 	for (int i = 0; i < contact_variables_.size(); ++i)
 	{
 		contact_variables_[i].resize(num_contacts);
 	}
 
-    if (!full_trajectory_->hasVelocity() || !full_trajectory_->hasAcceleration())
-		return;
-
-    for (int point = 0; point < full_trajectory_->getNumPoints(); ++point)
+    for (int point = 0; point < itomp_trajectory_->getNumPoints(); ++point)
 	{
-        const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(FullTrajectory::TRAJECTORY_COMPONENT_JOINT, Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-        const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(FullTrajectory::TRAJECTORY_COMPONENT_JOINT, Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-        const Eigen::VectorXd& q_ddot =	full_trajectory_->getComponentTrajectory(FullTrajectory::TRAJECTORY_COMPONENT_JOINT, Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
+        const Eigen::VectorXd& q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_ddot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 		Eigen::VectorXd tau(q.rows());
 
@@ -884,7 +886,7 @@ void NewEvalManager::initializeContactVariables()
                 {
                     const double VINCENT_CP_WEIGHT[] = {0.107, 0.107, 0.393, 0.393};
 
-                    if (point == 0 || point == full_trajectory_->getNumPoints() - 1)
+                    if (point == 0 || point == itomp_trajectory_->getNumPoints() - 1)
                     //if (point % 20 == 0)
                     {
                         contact_force = VINCENT_CP_WEIGHT[j] / 2.0 * tau.block(0, 0, 3, 1);
