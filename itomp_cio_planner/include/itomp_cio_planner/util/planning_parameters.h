@@ -111,6 +111,8 @@ public:
     const std::vector<double>& getWorkspaceMin() const;
     const std::vector<double>& getWorkspaceMax() const;
 
+    bool getUseDefaultContactGround() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -179,6 +181,8 @@ private:
 
     std::vector<double> workspace_min_;
     std::vector<double> workspace_max_;
+
+    bool use_default_contact_ground_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -447,6 +451,11 @@ inline const std::vector<double>& PlanningParameters::getWorkspaceMin() const
 inline const std::vector<double>& PlanningParameters::getWorkspaceMax() const
 {
     return workspace_max_;
+}
+
+inline bool PlanningParameters::getUseDefaultContactGround() const
+{
+    return use_default_contact_ground_;
 }
 
 }

@@ -33,22 +33,26 @@ void GroundManager::initialize(
 
 void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in,
 		const Eigen::Vector3d& orientation_in, Eigen::Vector3d& position_out,
-        Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal, bool include_ground) const
+        Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal, bool include_ground, bool ignore_Z) const
 {
+    include_ground = PlanningParameters::getInstance()->getUseDefaultContactGround();
+
     double min_dist = include_ground ? (position_in(2) - 0) : std::numeric_limits<double>::max();
 
-	// ground
-    position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
-	normal = Eigen::Vector3d(0, 0, 1);
-
     Eigen::Matrix3d orientation_in_mat = exponential_map::ExponentialMapToRotation(orientation_in);
-	Eigen::Vector3d x_axis = orientation_in_mat.col(0);
-	Eigen::Vector3d y_axis = orientation_in_mat.col(1);
-	Eigen::Vector3d normal_in = orientation_in_mat.col(2);
+    Eigen::Vector3d x_axis = orientation_in_mat.col(0);
+    Eigen::Vector3d y_axis = orientation_in_mat.col(1);
+    Eigen::Vector3d normal_in = orientation_in_mat.col(2);
 
-	position_out(2) = 0.0;
+    if (include_ground)
+    {
+        // ground
+        position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
+        normal = Eigen::Vector3d(0, 0, 1);
+        position_out(2) = 0.0;
+    }
 
-    getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist);
+    getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist, ignore_Z);
 
 	Eigen::Vector3d proj_x_axis = x_axis - x_axis.dot(normal) * normal;
 	Eigen::Vector3d proj_y_axis = y_axis - y_axis.dot(normal) * normal;
@@ -67,11 +71,12 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
 	orientation_out_mat.col(1) = proj_y_axis;
 	orientation_out_mat.col(2) = normal;
     orientation_out = exponential_map::RotationToExponentialMap(orientation_out_mat);
+    //orientation_out.normalize();
 }
 
 bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 		Eigen::Vector3d& position_out, const Eigen::Vector3d& normal_in, Eigen::Vector3d& normal,
-		double current_min_distance) const
+        double current_min_distance, bool ignore_Z) const
 {
 	bool updated = false;
 
@@ -80,8 +85,16 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 		const Triangle& triangle = triangles_[i];
 
 		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
-									 triangle.points_[2], position_in);
+									 triangle.points_[2], position_in);       
+
         double distance = (position_in - projection).norm();
+        if (ignore_Z)
+        {
+            Eigen::Vector3d diff = position_in - projection;
+            diff(2) = 0.0;
+            distance = diff.norm();
+        }
+
 		if (distance < current_min_distance)
 		{
 			current_min_distance = distance;

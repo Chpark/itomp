@@ -310,6 +310,8 @@ void PlanningParameters::initFromNodeHandle()
     {
         workspace_max_.resize(3, 30);
     }
+
+    node_handle.param("use_default_contact_ground", use_default_contact_ground_, true);
 }
 
 } // namespace

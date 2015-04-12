@@ -25,11 +25,11 @@ public:
 	void getNearestContactPosition(const Eigen::Vector3d& position_in,
 								  const Eigen::Vector3d& orientation_in,
 								  Eigen::Vector3d& position_out, Eigen::Vector3d& orientation_out,
-                                  Eigen::Vector3d& normal, bool include_ground = true) const;
+                                  Eigen::Vector3d& normal, bool include_ground = true, bool ignore_Z = false) const;
 
 	bool getNearestMeshPosition(const Eigen::Vector3d& position_in,
 								Eigen::Vector3d& position_out, const Eigen::Vector3d& normal_in,
-								Eigen::Vector3d& normal, double current_min_distance) const;
+                                Eigen::Vector3d& normal, double current_min_distance, bool ignore_Z = false) const;
 
 private:
 	void initializeContactSurfaces();
