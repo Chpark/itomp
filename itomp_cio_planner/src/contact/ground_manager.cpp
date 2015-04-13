@@ -44,15 +44,18 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
     Eigen::Vector3d y_axis = orientation_in_mat.col(1);
     Eigen::Vector3d normal_in = orientation_in_mat.col(2);
 
+    Eigen::Vector3d temp_position_out;
+
     if (include_ground)
     {
         // ground
-        position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
+
+        temp_position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
         normal = Eigen::Vector3d(0, 0, 1);
-        position_out(2) = 0.0;
+        temp_position_out(2) = 0.0;
     }
 
-    getNearestMeshPosition(position_in, position_out, normal_in, normal, min_dist, ignore_Z);
+    getNearestMeshPosition(position_in, temp_position_out, normal_in, normal, min_dist, ignore_Z);
 
 	Eigen::Vector3d proj_x_axis = x_axis - x_axis.dot(normal) * normal;
 	Eigen::Vector3d proj_y_axis = y_axis - y_axis.dot(normal) * normal;
@@ -72,6 +75,8 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
 	orientation_out_mat.col(2) = normal;
     orientation_out = exponential_map::RotationToExponentialMap(orientation_out_mat);
     //orientation_out.normalize();
+
+    position_out = temp_position_out;
 }
 
 bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
