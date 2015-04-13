@@ -449,27 +449,45 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 
 		// compute contact variables
         itomp_trajectory_->getContactVariables(point, contact_variables_[point]);
+        /*
 		for (int i = 0; i < num_contacts; ++i)
 		{
             const Eigen::Vector3d contact_position = contact_variables_[point][i].getPosition();
             const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
 
 			Eigen::Vector3d contact_normal, proj_position, proj_orientation;
+
+
             GroundManager::getInstance()->getNearestContactPosition(contact_position, contact_orientation,
                     proj_position, proj_orientation, contact_normal, i < 2);
 
             contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
                     rbdl_models_[point], planning_group_->contact_points_[i]);
 		}
+        */
 
 		// compute external forces
 		for (int i = 0; i < num_contacts; ++i)
 		{
+            const Eigen::Vector3d contact_position = contact_variables_[point][i].getPosition();
+            const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
+
+            Eigen::Vector3d contact_normal, proj_position, proj_orientation;
+
+            proj_position = contact_position;
+            proj_orientation = contact_orientation;
+
+            contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
+                    rbdl_models_[point], planning_group_->contact_points_[i]);
+
 			for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
 			{
-                int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
+                Eigen::Vector3d& point_position = contact_variables_[point][i].projected_point_positions_[c];
+                Eigen::Vector3d point_orientation;
+                GroundManager::getInstance()->getNearestContactPosition(point_position, proj_orientation,
+                        point_position, point_orientation, contact_normal, i < 2);
 
-                Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
+                int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
 
                 Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
 
@@ -661,29 +679,29 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
         {
             // compute contact variables
             itomp_trajectory_->getContactVariables(point, contact_variables_[point]);
+
+            // compute external forces
             for (int i = 0; i < num_contacts; ++i)
             {
                 const Eigen::Vector3d contact_position = contact_variables_[point][i].getPosition();
                 const Eigen::Vector3d contact_orientation = contact_variables_[point][i].getOrientation();
 
                 Eigen::Vector3d contact_normal, proj_position, proj_orientation;
-                GroundManager::getInstance()->getNearestContactPosition(contact_position, contact_orientation,
-                        proj_position, proj_orientation, contact_normal, i < 2);
 
-                int rbdl_endeffector_id = planning_group_->contact_points_[i].getRBDLBodyId();
+                proj_position = contact_position;
+                proj_orientation = contact_orientation;
 
                 contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
                         rbdl_models_[point], planning_group_->contact_points_[i]);
-            }
 
-            // compute external forces
-            for (int i = 0; i < num_contacts; ++i)
-            {
                 for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
                 {
-                    int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
+                    Eigen::Vector3d& point_position = contact_variables_[point][i].projected_point_positions_[c];
+                    Eigen::Vector3d point_orientation;
+                    GroundManager::getInstance()->getNearestContactPosition(point_position, proj_orientation,
+                            point_position, point_orientation, contact_normal, i < 2);
 
-                    Eigen::Vector3d point_position = contact_variables_[point][i].projected_point_positions_[c];
+                    int rbdl_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
 
                     Eigen::Vector3d contact_force = contact_variables_[point][i].getPointForce(c);
 

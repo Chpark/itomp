@@ -258,24 +258,26 @@ bool TrajectoryCostContactInvariant::evaluate(
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
-		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
-        const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_body_id];
-
-        const Eigen::Vector3d& body_position = contact_body_transform.r;
-        Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_position_;
-
-        Eigen::Quaterniond body_orientation(contact_body_transform.E);
-        Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
-        double angle = body_orientation.angularDistance(projected_orientation);
-
-        double position_diff_cost = position_diff.squaredNorm() + angle * angle;
-        double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
-
         for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
         {
+            //int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
+            int rbdl_point_id = planning_group->contact_points_[i].getContactPointRBDLIds(j);
+
+            const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_point_id];
+
+            const Eigen::Vector3d& body_position = contact_body_transform.r;
+            Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
+
+            Eigen::Quaterniond body_orientation(contact_body_transform.E);
+            Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
+            double angle = body_orientation.angularDistance(projected_orientation);
+
+            double position_diff_cost = position_diff.squaredNorm() + angle * angle;
+            double contact_body_velocity_cost = model.v[rbdl_point_id].squaredNorm();
+
             double c = getContactActiveValue(i, j, contact_variables);
 
-            cost += c * (position_diff_cost + contact_body_velocity_cost);
+            cost += c * (position_diff_cost + contact_body_velocity_cost) / NUM_ENDEFFECTOR_CONTACT_POINTS;
         }
 	}
 
