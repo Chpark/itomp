@@ -434,8 +434,6 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
         }
         else // VELOCITY
         {
-            x_lower(i) = -3.0;
-            x_upper(i) = 3.0;
         }
     }
 
