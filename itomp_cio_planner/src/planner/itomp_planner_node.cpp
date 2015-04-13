@@ -78,7 +78,10 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 	PlanningParameters::getInstance()->initFromNodeHandle();
 
 	if (!validateRequest(req))
+    {
+        res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 		return false;
+    }
 
     GroundManager::getInstance()->initialize(planning_scene);
 
@@ -123,7 +126,12 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
                     goal_state.setVariablePosition(goal_joint_state.name[i], goal_joint_state.position[i]);
             }
             goal_state.update(true);
-            setSupportFoot(*initial_robot_state, goal_state);
+
+            if (setSupportFoot(*initial_robot_state, goal_state) == false)
+            {
+                res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+                return false;
+            }
 
             adjustStartGoalPositions();
 
@@ -142,7 +150,6 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
     // write goal state
     writeWaypoint();
-
     writeTrajectory();
 
 
@@ -249,12 +256,14 @@ void ItompPlannerNode::readWaypoint(robot_state::RobotStatePtr& robot_state)
     double value;
 
     int agent_id = 0;
+    int trajectory_index = 0;
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("agent_id", agent_id);
+    node_handle.getParam("agent_trajectory_index", trajectory_index);
 
     std::ifstream trajectory_file;
     std::stringstream ss;
-    ss << "agent_" << agent_id << "_waypoint.txt";
+    ss << "agent_" << agent_id << "_" << trajectory_index - 1<< "_waypoint.txt";
     trajectory_file.open(ss.str().c_str());
     if (trajectory_file.is_open())
     {
@@ -301,12 +310,14 @@ void ItompPlannerNode::readWaypoint(robot_state::RobotStatePtr& robot_state)
 void ItompPlannerNode::writeWaypoint()
 {
     int agent_id = 0;
+    int trajectory_index = 0;
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("agent_id", agent_id);
+    node_handle.getParam("agent_trajectory_index", trajectory_index);
 
     std::ofstream trajectory_file;
     std::stringstream ss;
-    ss << "agent_" << agent_id << "_waypoint.txt";
+    ss << "agent_" << agent_id << "_" << trajectory_index << "_waypoint.txt";
     trajectory_file.open(ss.str().c_str());
     trajectory_file.precision(std::numeric_limits<double>::digits10);
 
@@ -348,16 +359,17 @@ void ItompPlannerNode::deleteWaypointFiles()
     int agent_id = 0;
     while (true)
     {
-        stringstream ss;
-        ss << "agent_" << agent_id++ << "_waypoint.txt";
-        if (remove(ss.str().c_str()) != 0)
-            break;
-    }
-    agent_id = 0;
-    while (true)
-    {
         int trajectory_index = 0;
+        while (true)
+        {
+            stringstream ss;
+            ss << "agent_" << agent_id << "_" << trajectory_index << "_waypoint.txt";
+            if (remove(ss.str().c_str()) != 0)
+                break;
+            ++trajectory_index;
+        }
 
+        trajectory_index = 0;
         while (true)
         {
             std::stringstream ss;
@@ -368,6 +380,7 @@ void ItompPlannerNode::deleteWaypointFiles()
         }
         if (trajectory_index == 0)
             break;
+
         ++agent_id;
     }
 }
@@ -383,6 +396,7 @@ bool ItompPlannerNode::setSupportFoot(const robot_state::RobotState& initial_sta
     const Eigen::Vector3d start_right_foot = initial_state.getGlobalLinkTransform("right_foot_endeffector_link").translation();
 
     const Eigen::Vector3d goal_pos = goal_state.getGlobalLinkTransform("pelvis_link").translation();
+    double goal_orientation = goal_state.getVariablePosition("base_revolute_joint_z");
 
     double left_dot = start_dir.dot(start_left_foot - start_pos);
     double right_dot = start_dir.dot(start_right_foot - start_pos);
@@ -400,23 +414,25 @@ bool ItompPlannerNode::setSupportFoot(const robot_state::RobotState& initial_sta
     }
 
     // compute angle between start / goal
-    Eigen::Vector3d pos_diff = goal_pos - start_pos;
-    pos_diff.z() = 0.0;
-    double diff_orientation = 0.0;
-    if (pos_diff.norm() > ITOMP_EPS)
+    Eigen::Vector3d move_pos = goal_pos - start_pos;
+    move_pos.z() = 0.0;
+    double move_orientation = 0.0;
+    double move_orientation_diff = 0.0;
+    if (move_pos.norm() > ITOMP_EPS)
     {
-        diff_orientation = std::atan2(pos_diff.y(), pos_diff.x()) - M_PI_2 - start_orientation;
-        if (diff_orientation > M_PI)
-            diff_orientation -= 2.0 * M_PI;
-        else if (diff_orientation <= -M_PI)
-            diff_orientation += 2.0 * M_PI;
+        move_orientation = std::atan2(move_pos.y(), move_pos.x()) - M_PI_2;
+        move_orientation_diff = move_orientation - start_orientation;
+        if (move_orientation_diff > M_PI)
+            move_orientation_diff -= 2.0 * M_PI;
+        else if (move_orientation_diff <= -M_PI)
+            move_orientation_diff += 2.0 * M_PI;
     }
 
-    if (std::abs(diff_orientation) < M_PI / 6.0)
+    if (std::abs(move_orientation_diff) < M_PI / 6.0)
     {
         support_foot = back_foot;
     }
-    else if (std::abs(diff_orientation) > M_PI / 5.0 * 6.0)
+    else if (std::abs(move_orientation_diff) > M_PI / 5.0 * 6.0)
     {
         switch (back_foot)
         {
@@ -435,7 +451,7 @@ bool ItompPlannerNode::setSupportFoot(const robot_state::RobotState& initial_sta
 
         }
     }
-    else if (diff_orientation > 0)
+    else if (move_orientation_diff > 0)
     {
         switch (back_foot)
         {
@@ -470,8 +486,32 @@ bool ItompPlannerNode::setSupportFoot(const robot_state::RobotState& initial_sta
     ROS_INFO("Ori dir : %f %f %f", start_dir.x(), start_dir.y(), start_dir.z());
     ROS_INFO("left_foot : %f %f %f", start_left_foot.x(), start_left_foot.y(), start_left_foot.z());
     ROS_INFO("right_foot : %f %f %f", start_right_foot.x(), start_right_foot.y(), start_right_foot.z());
-    ROS_INFO("init ori : %f ori diff : %f", start_orientation, diff_orientation);
+    ROS_INFO("init ori : %f move ori : %f goal ori : %f", start_orientation, move_orientation, goal_orientation);
     ROS_INFO("Support foot : %d", support_foot);
+
+    double goal_orientation_diff = goal_orientation - start_orientation;
+    if (goal_orientation_diff > M_PI)
+        goal_orientation_diff -= 2.0 * M_PI;
+    else if (goal_orientation_diff <= -M_PI)
+        goal_orientation_diff += 2.0 * M_PI;
+    if (std::abs(goal_orientation_diff) < M_PI / 6.0)
+    {
+        // always ok
+    }
+    else if (std::abs(move_orientation_diff) < M_PI / 5.0 * 6.0)
+    {
+        double goal_move_orientation_diff = goal_orientation - move_orientation;
+        if (goal_move_orientation_diff > M_PI)
+            goal_move_orientation_diff -= 2.0 * M_PI;
+        else if (goal_move_orientation_diff <= -M_PI)
+            goal_move_orientation_diff += 2.0 * M_PI;
+        if (std::abs(goal_move_orientation_diff) > M_PI_4)
+            return false;
+    }
+    else
+    {
+            return false;
+    }
 
     return support_foot != 0;
 }
