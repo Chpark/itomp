@@ -5,6 +5,7 @@
 #include <itomp_cio_planner/util/joint_state_util.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/optimization/phase_manager.h>
+#include <itomp_cio_planner/contact/ground_manager.h>
 #include <kdl/jntarray.hpp>
 #include <angles/angles.h>
 #include <visualization_msgs/MarkerArray.h>
@@ -79,6 +80,8 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 	if (!validateRequest(req))
 		return false;
 
+    GroundManager::getInstance()->initialize(planning_scene);
+
     double trajectory_start_time = req.start_state.joint_state.header.stamp.toSec();
     robot_state::RobotStatePtr initial_robot_state = planning_scene->getCurrentStateUpdated(req.start_state);
 
@@ -122,7 +125,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             goal_state.update(true);
             setSupportFoot(*initial_robot_state, goal_state);
 
-            adjustStartGoalAngles();
+            adjustStartGoalPositions();
 
             optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
@@ -497,7 +500,7 @@ void ItompPlannerNode::writeTrajectory()
     trajectory_file.close();
 }
 
-void ItompPlannerNode::adjustStartGoalAngles()
+void ItompPlannerNode::adjustStartGoalPositions()
 {
     unsigned int goal_index = itomp_trajectory_->getNumPoints() - 1;
     Eigen::MatrixXd::RowXpr traj_start_point = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,

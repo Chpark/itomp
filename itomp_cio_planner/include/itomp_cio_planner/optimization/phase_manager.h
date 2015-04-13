@@ -21,6 +21,7 @@ public:
     bool updateParameter(const ItompTrajectoryIndex& index) const;
 
     int support_foot_;
+    Eigen::Vector3d initial_goal_pos;
 
 private:
     unsigned int phase_;

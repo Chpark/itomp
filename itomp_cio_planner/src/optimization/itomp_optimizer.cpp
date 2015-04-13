@@ -39,7 +39,6 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 	//improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
 
 	NewVizManager::getInstance()->setPlanningGroup(planning_group);
-	GroundManager::getInstance()->initialize(planning_scene);
 
     NewEvalManager::ref_evaluation_manager_ = NULL;
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();

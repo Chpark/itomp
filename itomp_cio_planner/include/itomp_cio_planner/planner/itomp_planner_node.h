@@ -31,7 +31,7 @@ private:
     void fillInResult(const robot_state::RobotStatePtr& robot_state,
                       planning_interface::MotionPlanResponse &res);
 
-    void adjustStartGoalAngles();
+    void adjustStartGoalPositions();
 
     void readWaypoint(robot_state::RobotStatePtr& robot_state);
     void writeWaypoint();
