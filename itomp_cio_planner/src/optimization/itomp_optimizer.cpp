@@ -19,12 +19,12 @@ ItompOptimizer::ItompOptimizer(int trajectory_index,
 							   const planning_scene::PlanningSceneConstPtr& planning_scene,
 							   const ItompPlanningGroupConstPtr& planning_group,
 							   double planning_start_time, double trajectory_start_time,
-							   const moveit_msgs::Constraints& path_constraints) :
+                               const std::vector<moveit_msgs::Constraints>& trajectory_constraints) :
     trajectory_index_(trajectory_index), planning_start_time_(planning_start_time), iteration_(-1),
     best_parameter_cost_(std::numeric_limits<double>::max()), is_best_parameter_feasible_(false), best_parameter_iteration_(-1)
 {
     initialize(full_trajectory, itomp_trajectory, robot_model, planning_scene, planning_group,
-			   trajectory_start_time, path_constraints);
+               trajectory_start_time, trajectory_constraints);
 }
 
 void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
@@ -33,7 +33,7 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 								const planning_scene::PlanningSceneConstPtr& planning_scene,
 								const ItompPlanningGroupConstPtr& planning_group,
 								double trajectory_start_time,
-								const moveit_msgs::Constraints& path_constraints)
+                                const std::vector<moveit_msgs::Constraints>& trajectory_constraints)
 {
 	improvement_manager_ = boost::make_shared<ImprovementManagerNLP>();
 	//improvement_manager_ = boost::make_shared<ImprovementManagerChomp>();
@@ -44,7 +44,7 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();
     evaluation_manager_->initialize(full_trajectory, itomp_trajectory, robot_model,
 									planning_scene, planning_group, planning_start_time_,
-									trajectory_start_time, path_constraints);
+                                    trajectory_start_time, trajectory_constraints);
 	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
     PhaseManager::getInstance()->init(itomp_trajectory->getNumPoints());

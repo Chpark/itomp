@@ -48,7 +48,8 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
       joint_torques_(manager.joint_torques_),
       external_forces_(manager.external_forces_),
       contact_variables_(manager.contact_variables_),
-      evaluation_cost_matrix_(manager.evaluation_cost_matrix_)
+      evaluation_cost_matrix_(manager.evaluation_cost_matrix_),
+      trajectory_constraints_(manager.trajectory_constraints_)
 {
     full_trajectory_.reset(manager.full_trajectory_->createClone());
     full_trajectory_const_ = full_trajectory_;
@@ -88,6 +89,7 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     external_forces_ = manager.external_forces_;
     contact_variables_ = manager.contact_variables_;
     evaluation_cost_matrix_ = manager.evaluation_cost_matrix_;
+    trajectory_constraints_ = manager.trajectory_constraints_;
 
     // allocate
     full_trajectory_.reset(manager.full_trajectory_->createClone());
@@ -117,7 +119,7 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
                                 const planning_scene::PlanningSceneConstPtr& planning_scene,
                                 const ItompPlanningGroupConstPtr& planning_group,
                                 double planning_start_time, double trajectory_start_time,
-                                const moveit_msgs::Constraints& path_constraints)
+                                const std::vector<moveit_msgs::Constraints>& trajectory_constraints)
 {
     full_trajectory_const_ = full_trajectory_ = full_trajectory;
     itomp_trajectory_const_ = itomp_trajectory_ = itomp_trajectory;
@@ -156,6 +158,8 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
     collision_robot_derivatives_.reset(new CollisionRobotFCLDerivatives(
                                            dynamic_cast<const collision_detection::CollisionRobotFCL&>(*planning_scene_->getCollisionRobotUnpadded())));
     collision_robot_derivatives_->constructInternalFCLObject(planning_scene_->getCurrentState());
+
+    trajectory_constraints_ = trajectory_constraints;
 }
 
 double NewEvalManager::evaluate()
@@ -321,6 +325,10 @@ void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_ind
 
     const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
 
+    if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
+            index.element < 2)
+        itomp_trajectory_->avoidNeighbors(trajectory_constraints_);
+
     if (index.point == point_end)
         ++point_end;
 
@@ -426,7 +434,7 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 
 	int num_contacts = planning_group_->getNumContacts();
     int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                             ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
+                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
 
 	for (int point = point_begin; point < point_end; ++point)
 	{
@@ -619,7 +627,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
     bool dynamics_only = (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     int num_contacts = planning_group_->getNumContacts();
     int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                             ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
+                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
 
     // copy only variables will be updated
     for (int point = point_begin; point < point_end; ++point)
@@ -769,6 +777,7 @@ void NewEvalManager::getParameters(ItompTrajectory::ParameterVector& parameters)
 void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& parameters)
 {
     itomp_trajectory_->setParameters(parameters, planning_group_);
+    itomp_trajectory_->avoidNeighbors(trajectory_constraints_);
 }
 
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
@@ -887,7 +896,7 @@ void NewEvalManager::initializeContactVariables()
                     const double VINCENT_CP_WEIGHT[] = {0.107, 0.107, 0.393, 0.393};
 
                     if (point == 0 || point == itomp_trajectory_->getNumPoints() - 1)
-                    //if (point % 20 == 0)
+                        //if (point % 20 == 0)
                     {
                         contact_force = VINCENT_CP_WEIGHT[j] / 2.0 * tau.block(0, 0, 3, 1);
                     }

@@ -20,6 +20,7 @@ public:
 
     bool updateParameter(const ItompTrajectoryIndex& index) const;
 
+    int agent_id_;
     int support_foot_;
     Eigen::Vector3d initial_goal_pos;
 

@@ -142,11 +142,13 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
     }
 
     // interpolate trajectory
+    /*
     if (trajectory_constraints.constraints.size() != 0)
     {
         interpolateInputJointTrajectory(group_rbdl_indices, planning_group, trajectory_constraints);
     }
     else
+    */
     {
         interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, &group_rbdl_indices);
     }
@@ -687,6 +689,70 @@ void ItompTrajectory::copy(int point_src, int point_dest, SUB_COMPONENT_TYPE sub
         copy_dest_point[COMPONENT_TYPE_VELOCITY](index) = copy_src_point[COMPONENT_TYPE_VELOCITY](index);
         copy_dest_point[COMPONENT_TYPE_ACCELERATION](index) = copy_src_point[COMPONENT_TYPE_ACCELERATION](index);
     }
+}
+
+bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>& neighbors)
+{
+    if (neighbors.size() == 0)
+        return true;
+
+    ElementTrajectoryPtr joint = getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT);
+
+    double last_dist_to_move = std::numeric_limits<double>::max();
+    double dist_to_move = 0.0;
+    while (true)
+    {
+        dist_to_move = 0.0;
+
+        for (int i = 0; i < neighbors[0].position_constraints.size(); ++i)
+        {
+            // 0 is the robot itself
+            double my_radius = neighbors[0].position_constraints[i].target_point_offset.z;
+            Eigen::Vector3d my_pos;
+            my_pos(0) = (*joint)(i, 0);
+            my_pos(1) = (*joint)(i, 1);
+
+            for (int j = 1; j < neighbors.size(); ++j)
+            {
+                if (neighbors[j].position_constraints[i].weight < 0)
+                    continue;
+
+                double neighbor_radius = neighbors[j].position_constraints[i].target_point_offset.z;
+
+                double sq_radius_sum = (my_radius + neighbor_radius) * (my_radius + neighbor_radius);
+
+                Eigen::Vector3d neighbor_pos;
+                neighbor_pos(0) = neighbors[j].position_constraints[i].target_point_offset.x;
+                neighbor_pos(1) = neighbors[j].position_constraints[i].target_point_offset.y;
+
+                double sq_dist = (my_pos - neighbor_pos).squaredNorm();
+
+                if (sq_dist < sq_radius_sum)
+                {
+                    double dist = std::sqrt(sq_radius_sum - sq_dist);
+                    dist_to_move += dist;
+
+                    Eigen::Vector3d dir = (my_pos - neighbor_pos);
+                    dir.normalize();
+
+                    (*joint)(i, 0) += dist * dir(0);
+                    (*joint)(i, 1) += dist * dir(1);
+                }
+            }
+            if (i == 0 && dist_to_move > 0)
+                return false;
+        }
+
+        if (dist_to_move == 0)
+            break;
+
+        if (dist_to_move >= last_dist_to_move)
+            return false;
+        else
+            last_dist_to_move = dist_to_move;
+    }
+
+    return true;
 }
 
 }

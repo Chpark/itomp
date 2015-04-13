@@ -34,7 +34,7 @@ public:
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
 					double planning_start_time, double trajectory_start_time,
-					const moveit_msgs::Constraints& path_constraints);
+                    const std::vector<moveit_msgs::Constraints>& trajectory_constraints);
 
 	const FullTrajectoryConstPtr& getFullTrajectory() const;
 	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
@@ -114,6 +114,8 @@ private:
 	std::vector<std::vector<ContactVariables> > contact_variables_;
 
 	Eigen::MatrixXd evaluation_cost_matrix_;
+
+    std::vector<moveit_msgs::Constraints> trajectory_constraints_;
 
     static const NewEvalManager* ref_evaluation_manager_;
 

@@ -89,6 +89,8 @@ public:
 
     double getDiscretization() const;
 
+    bool avoidNeighbors(const std::vector<moveit_msgs::Constraints>& neighbors);
+
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
                     unsigned int num_keyframes, unsigned int keyframe_interval, double duration, double discretization);

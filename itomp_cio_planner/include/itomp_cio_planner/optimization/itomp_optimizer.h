@@ -23,7 +23,7 @@ public:
 				   const planning_scene::PlanningSceneConstPtr& planning_scene,
 				   const ItompPlanningGroupConstPtr& planning_group,
 				   double planning_start_time, double trajectory_start_time,
-				   const moveit_msgs::Constraints& path_constraints);
+                   const std::vector<moveit_msgs::Constraints>& trajectory_constraints);
 	virtual ~ItompOptimizer();
 
 	bool optimize();
@@ -37,7 +37,7 @@ private:
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
 					double trajectory_start_time,
-					const moveit_msgs::Constraints& path_constraints);
+                    const std::vector<moveit_msgs::Constraints>& trajectory_constraints);
 
 	bool updateBestTrajectory();
 

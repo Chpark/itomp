@@ -120,7 +120,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             robot_state::RobotState goal_state(*initial_robot_state);
             //robot_state::jointStateToRobotState(goal_joint_state, goal_state);
-            for (int i = 0; i < goal_joint_state.name.size(); ++i)
+            for (unsigned int i = 0; i < goal_joint_state.name.size(); ++i)
             {
                 if (goal_joint_state.name[i] != "")
                     goal_state.setVariablePosition(goal_joint_state.name[i], goal_joint_state.position[i]);
@@ -137,7 +137,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
-						 trajectory_start_time, req.path_constraints);
+                         trajectory_start_time, req.trajectory_constraints.constraints);
 
 			optimizer_->optimize();
 
@@ -147,6 +147,12 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
         }
 	}
 	planning_info_manager_.printSummary();
+
+    if (itomp_trajectory_->avoidNeighbors(req.trajectory_constraints.constraints) == false)
+    {
+        res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+        return false;
+    }
 
     // write goal state
     writeWaypoint();
@@ -260,6 +266,8 @@ void ItompPlannerNode::readWaypoint(robot_state::RobotStatePtr& robot_state)
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("agent_id", agent_id);
     node_handle.getParam("agent_trajectory_index", trajectory_index);
+
+    PhaseManager::getInstance()->agent_id_ = agent_id;
 
     std::ifstream trajectory_file;
     std::stringstream ss;

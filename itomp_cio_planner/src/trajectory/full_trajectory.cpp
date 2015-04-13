@@ -409,12 +409,13 @@ void FullTrajectory::setGroupGoalState(
 		group_rbdl_joint_indices.insert(
 			planning_group->group_joints_[i].rbdl_joint_index_);
 	}
+    /*
 	if (trajectory_constraints.constraints.size() != 0)
 	{
 		fillInMinJerk(group_rbdl_joint_indices, robot_model, planning_group,
 					  trajectory_constraints);
 	}
-	else if (path_constraints.position_constraints.size() == 0)
+    else */if (path_constraints.position_constraints.size() == 0)
 	{
 		fillInMinJerk(group_rbdl_joint_indices);
 	}

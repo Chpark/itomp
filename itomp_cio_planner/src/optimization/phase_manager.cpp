@@ -8,6 +8,7 @@ PhaseManager::PhaseManager()
     : phase_(0), num_points_(0)
 {
     support_foot_ = 0; // any
+    agent_id_ = 0;
 }
 
 PhaseManager::~PhaseManager()
