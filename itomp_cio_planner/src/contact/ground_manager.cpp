@@ -35,9 +35,9 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
 		const Eigen::Vector3d& orientation_in, Eigen::Vector3d& position_out,
         Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal, bool include_ground, bool ignore_Z) const
 {
-    include_ground = PlanningParameters::getInstance()->getUseDefaultContactGround();
+    bool inc = PlanningParameters::getInstance()->getUseDefaultContactGround();
 
-    double min_dist = include_ground ? (position_in(2) - 0) : std::numeric_limits<double>::max();
+    double min_dist = (inc ? (position_in(2) - 0) : std::numeric_limits<double>::max());
 
     Eigen::Matrix3d orientation_in_mat = exponential_map::ExponentialMapToRotation(orientation_in);
     Eigen::Vector3d x_axis = orientation_in_mat.col(0);
@@ -46,7 +46,7 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
 
     Eigen::Vector3d temp_position_out;
 
-    if (include_ground)
+    if (inc)
     {
         // ground
 

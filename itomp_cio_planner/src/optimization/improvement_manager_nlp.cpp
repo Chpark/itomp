@@ -432,6 +432,11 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
             }
         }
+        else // VELOCITY
+        {
+            x_lower(i) = -3.0;
+            x_upper(i) = 3.0;
+        }
     }
 
 
@@ -457,6 +462,8 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
+    return;
+
 	int num_variables = variables.size();
 	MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
 										 MatrixXd::Identity(num_variables, num_variables));
@@ -464,7 +471,9 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	noise_generator.sample(noise);
 	for (int i = 0; i < num_variables; ++i)
 	{
-        variables(i) += ITOMP_EPS * ITOMP_EPS * noise(i);
+        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.point != 0)
+            variables(i) += 1e-3 * noise(i);
 	}
 }
 

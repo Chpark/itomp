@@ -141,9 +141,18 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
 			optimizer_->optimize();
 
-			planning_info_manager_.write(c, i, optimizer_->getPlanningInfo());
+            const PlanningInfo& planning_info = optimizer_->getPlanningInfo();
+
+            planning_info_manager_.write(c, i, planning_info);
 
             ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
+
+            const double FAILURE_THRESHOLD = 100000.0;
+            if (planning_info.cost > FAILURE_THRESHOLD)
+            {
+                res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+                return false;
+            }
         }
 	}
 	planning_info_manager_.printSummary();
@@ -551,13 +560,32 @@ void ItompPlannerNode::writeTrajectory()
 void ItompPlannerNode::adjustStartGoalPositions()
 {
     unsigned int goal_index = itomp_trajectory_->getNumPoints() - 1;
-    Eigen::MatrixXd::RowXpr traj_start_point = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(0);
-    Eigen::MatrixXd::RowXpr traj_goal_point = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                                                      ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(goal_index);
-    std::vector<unsigned int> rotation_joints;
+
+    ElementTrajectoryPtr& joint_traj = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    Eigen::MatrixXd::RowXpr traj_start_point = joint_traj->getTrajectoryPoint(0);
+    Eigen::MatrixXd::RowXpr traj_goal_point = joint_traj->getTrajectoryPoint(goal_index);
+
+    // root translation joints
+    Eigen::Vector3d start_pos, goal_pos;
+    for (int i = 0; i < 3; ++i)
+    {
+        start_pos(i) = traj_start_point(i);
+        goal_pos(i) = traj_goal_point(i);
+    }
+    Eigen::Vector3d pos_out, normal_out, contact_normal_out;
+    GroundManager::getInstance()->getNearestContactPosition(start_pos, Eigen::Vector3d::UnitZ(), pos_out, normal_out, contact_normal_out, false, true);
+    start_pos = pos_out;
+    GroundManager::getInstance()->getNearestContactPosition(goal_pos, Eigen::Vector3d::UnitZ(), pos_out, normal_out, contact_normal_out, false, true);
+    goal_pos = pos_out;
+    traj_start_point(2) = start_pos(2);
+    traj_goal_point(2) = goal_pos(2);
+    std::vector<unsigned int> translation_joints;
+    translation_joints.push_back(2);
+    itomp_trajectory_->interpolate(0, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &translation_joints);
+    PhaseManager::getInstance()->initial_goal_pos = goal_pos;
 
     // root rotation joints
+    std::vector<unsigned int> rotation_joints;
     for (int i = 3; i < 6; ++i)
     {
         double start_angle = traj_start_point(i);
@@ -576,10 +604,87 @@ void ItompPlannerNode::adjustStartGoalPositions()
         rotation_joints.push_back(i);
     }
 
+    /*
+    // knee
+    int left_hip = robot_model_->getVariableIndex("upper_left_leg_x_joint");
+    int right_hip = robot_model_->getVariableIndex("upper_right_leg_x_joint");
+    int left_knee = robot_model_->getVariableIndex("lower_left_leg_joint");
+    int right_knee = robot_model_->getVariableIndex("lower_right_leg_joint");
+    int left_foot = robot_model_->getVariableIndex("left_foot_x_joint");
+    int right_foot = robot_model_->getVariableIndex("right_foot_x_joint");
+    std::vector<unsigned int> support_leg_joints;
+    std::vector<unsigned int> free_leg_joints;
+
+    if (PhaseManager::getInstance()->support_foot_ & 0x1)
+    {
+        support_leg_joints.push_back(left_knee);
+        support_leg_joints.push_back(left_hip);
+        support_leg_joints.push_back(left_foot);
+        free_leg_joints.push_back(right_knee);
+        free_leg_joints.push_back(right_hip);
+        free_leg_joints.push_back(right_foot);
+    }
+    else
+    {
+        free_leg_joints.push_back(left_knee);
+        free_leg_joints.push_back(left_hip);
+        free_leg_joints.push_back(left_foot);
+        support_leg_joints.push_back(right_knee);
+        support_leg_joints.push_back(right_hip);
+        support_leg_joints.push_back(right_foot);
+    }
+
+    const double default_angle = M_PI_2;
+
+    itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
+
+    for (int j = 8; j <= 12; ++j)
+    {
+        (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
+        (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
+        //(*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
+    }
+    for (int j = 28; j <= 32; ++j)
+    {
+        (*joint_traj)(j, support_leg_joints[0]) = -default_angle;
+        (*joint_traj)(j, support_leg_joints[1]) = default_angle * 0.5;
+        //(*joint_traj)(j, support_leg_joints[2]) = default_angle * 0.5;
+    }
+    for (int j = 48; j <= 52; ++j)
+    {
+        (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
+        (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
+        //(*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
+    }
+
+    itomp_trajectory_->interpolate(0, 10, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
+    itomp_trajectory_->interpolate(10, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
+    itomp_trajectory_->interpolate(20, 30, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
+    itomp_trajectory_->interpolate(30, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
+    itomp_trajectory_->interpolate(40, 50, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
+    itomp_trajectory_->interpolate(50, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
+    */
+
+
     itomp_trajectory_->copy(60, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
     itomp_trajectory_->interpolate(0, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
     itomp_trajectory_->interpolate(20, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
     //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
+
+    /*
+    std::vector<unsigned int> z_joints;
+    z_joints.push_back(0);
+    z_joints.push_back(1);
+    z_joints.push_back(2);
+    itomp_trajectory_->interpolate(0, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->copy(0, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->copy(30, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->interpolate(0, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->interpolate(40, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->copy(0, 59, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    itomp_trajectory_->interpolate(0, 59, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &z_joints);
+    */
 }
 
 } // namespace

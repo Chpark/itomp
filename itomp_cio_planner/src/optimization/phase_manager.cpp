@@ -96,18 +96,15 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 
     case 20: // SCA two-footstep planning
 
-        if (getPhase() == 0 &&
-                (index.point > 0 && index.point < num_points_ - 1))
+        if (getPhase() == 0 && (index.point > 0 && index.point < num_points_ - 1))
             return false;
 
         if (getPhase() != 0)
         {
             if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
             {
-                if (index.point == 0 || index.point == num_points_ - 1)
+                if (index.point == 0)// || index.point == num_points_ - 1)
                     return false;
-                //if (index.point % 20 != 0)
-                //  return false;
             }
             else if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
             {
@@ -165,8 +162,10 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     if (state != 0)
     {
         if (PhaseManager::getInstance()->getPhase() == 0 &&
+                index.point == 0 &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
+
         if (PhaseManager::getInstance()->getPhase() != 0 &&
                 (index.point == 0 || index.point == num_points_ - 1) &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
