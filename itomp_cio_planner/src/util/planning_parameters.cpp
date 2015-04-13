@@ -312,6 +312,7 @@ void PlanningParameters::initFromNodeHandle()
     }
 
     node_handle.param("use_default_contact_ground", use_default_contact_ground_, true);
+    node_handle.param("ci_evaluation_on_points", ci_evaluation_on_points_, false);
 }
 
 } // namespace

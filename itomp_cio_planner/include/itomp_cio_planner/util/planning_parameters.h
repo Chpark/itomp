@@ -112,6 +112,7 @@ public:
     const std::vector<double>& getWorkspaceMax() const;
 
     bool getUseDefaultContactGround() const;
+    bool getCIEvaluationOnPoints() const;
 
 private:
 	int updateIndex;
@@ -183,6 +184,7 @@ private:
     std::vector<double> workspace_max_;
 
     bool use_default_contact_ground_;
+    bool ci_evaluation_on_points_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -456,6 +458,11 @@ inline const std::vector<double>& PlanningParameters::getWorkspaceMax() const
 inline bool PlanningParameters::getUseDefaultContactGround() const
 {
     return use_default_contact_ground_;
+}
+
+inline bool PlanningParameters::getCIEvaluationOnPoints() const
+{
+    return ci_evaluation_on_points_;
 }
 
 }
