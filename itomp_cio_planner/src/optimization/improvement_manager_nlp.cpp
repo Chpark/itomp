@@ -380,8 +380,8 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 if (parameter_joint_index == 3 || parameter_joint_index == 4
                         || parameter_joint_index == 8 || parameter_joint_index == 11)
                 {
-                    x_lower(i) = -0.001;
-                    x_upper(i) = 0.001;
+                    x_lower(i) = -0.01;
+                    x_upper(i) = 0.01;
                 }
 
                 if (parameter_joint_index < 2)
@@ -460,7 +460,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
-    return;
+    //return;
 
 	int num_variables = variables.size();
 	MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
@@ -471,7 +471,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	{
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
         if (index.point != 0)
-            variables(i) += 1e-3 * noise(i);
+            variables(i) += 1e-2 * noise(i);
 	}
 }
 
