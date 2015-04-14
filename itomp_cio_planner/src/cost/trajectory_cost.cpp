@@ -92,6 +92,7 @@ bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manage
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
+    double collision_scale = 1.0;
     if (PhaseManager::getInstance()->getPhase() == 0)
     {
         if (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1)
@@ -102,11 +103,15 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
     }
     else
     {
+
         if (point % 4 != 0)
         {
             cost = 0;
             return true;
         }
+
+        if (PhaseManager::getInstance()->getPhase() == 2)
+            collision_scale = 10.0;
     }
 
 	TIME_PROFILER_START_TIMER(Obstacle);
@@ -183,12 +188,14 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                     planning_scene->getAllowedCollisionMatrix());
 
 
+
 			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-                cost += contact.depth * contact.depth * 10000;
+                cost += contact.depth * contact.depth * collision_scale;
 			}
+
 
 
 			collision_result.clear();
@@ -275,7 +282,11 @@ bool TrajectoryCostContactInvariant::evaluate(
                 Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
                 double angle = body_orientation.angularDistance(projected_orientation);
 
-                double position_diff_cost = position_diff.squaredNorm() + angle * angle;
+                double position_diff_cost = 0.0;// = position_diff.squaredNorm() + angle * angle;
+                        position_diff_cost += position_diff(0) * position_diff(0)// * 0.01
+                                + position_diff(1) * position_diff(1)// * 0.01
+                                + position_diff(2) * position_diff(2)
+                                + angle * angle * 0.01;
                 double contact_body_velocity_cost = model.v[rbdl_point_id].squaredNorm();
 
                 double c = getContactActiveValue(i, j, contact_variables);
@@ -298,7 +309,7 @@ bool TrajectoryCostContactInvariant::evaluate(
             Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
             double angle = body_orientation.angularDistance(projected_orientation);
 
-            double position_diff_cost = position_diff.squaredNorm() + angle * angle;
+            double position_diff_cost = position_diff.squaredNorm();// + angle * angle * 0.01;
             double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
             for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
@@ -347,11 +358,13 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(GoalPose)
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 									  int point, double& cost) const
 {
+    /*
     if (PhaseManager::getInstance()->getPhase() != 0)
     {
         cost = 0;
         return true;
     }
+    */
 
 	TIME_PROFILER_START_TIMER(GoalPose);
 
@@ -364,7 +377,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
         const robot_state::RobotStatePtr& state = evaluation_manager->getRobotState(point);
         current_goal_pos(0) = state->getVariablePosition(0);
         current_goal_pos(1) = state->getVariablePosition(1);
-        current_goal_pos(2) = state->getVariablePosition(2);
+        current_goal_pos(2) = state->getVariablePosition(5);
 
         cost = (current_goal_pos - PhaseManager::getInstance()->initial_goal_pos).squaredNorm();
     }
