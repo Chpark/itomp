@@ -171,6 +171,8 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 	// return trajectory
     fillInResult(initial_robot_state, res);
 
+    GroundManager::getInstance()->destroy();
+
 	return true;
 }
 
@@ -604,7 +606,7 @@ void ItompPlannerNode::adjustStartGoalPositions()
         rotation_joints.push_back(i);
     }
 
-    /*
+
     // knee
     int left_hip = robot_model_->getVariableIndex("upper_left_leg_x_joint");
     int right_hip = robot_model_->getVariableIndex("upper_right_leg_x_joint");
@@ -634,7 +636,7 @@ void ItompPlannerNode::adjustStartGoalPositions()
         support_leg_joints.push_back(right_foot);
     }
 
-    const double default_angle = M_PI_2;
+    const double default_angle = M_PI_4;
 
     itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
 
@@ -642,19 +644,19 @@ void ItompPlannerNode::adjustStartGoalPositions()
     {
         (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
         (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
-        //(*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
+        (*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
     }
     for (int j = 28; j <= 32; ++j)
     {
         (*joint_traj)(j, support_leg_joints[0]) = -default_angle;
         (*joint_traj)(j, support_leg_joints[1]) = default_angle * 0.5;
-        //(*joint_traj)(j, support_leg_joints[2]) = default_angle * 0.5;
+        (*joint_traj)(j, support_leg_joints[2]) = default_angle * 0.5;
     }
     for (int j = 48; j <= 52; ++j)
     {
         (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
         (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
-        //(*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
+        (*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
     }
 
     itomp_trajectory_->interpolate(0, 10, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
@@ -663,7 +665,7 @@ void ItompPlannerNode::adjustStartGoalPositions()
     itomp_trajectory_->interpolate(30, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
     itomp_trajectory_->interpolate(40, 50, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
     itomp_trajectory_->interpolate(50, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
-    */
+
 
 
     itomp_trajectory_->copy(60, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);

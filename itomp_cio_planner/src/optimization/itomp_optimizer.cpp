@@ -54,8 +54,6 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 
 ItompOptimizer::~ItompOptimizer()
 {
-    GroundManager::getInstance()->destroy();
-
     improvement_manager_.reset();
     evaluation_manager_.reset();
 }
