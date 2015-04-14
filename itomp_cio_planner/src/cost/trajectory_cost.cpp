@@ -309,7 +309,7 @@ bool TrajectoryCostContactInvariant::evaluate(
             Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
             double angle = body_orientation.angularDistance(projected_orientation);
 
-            double position_diff_cost = position_diff.squaredNorm();// + angle * angle * 0.01;
+            double position_diff_cost = position_diff.squaredNorm() + angle * angle;
             double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
             for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
