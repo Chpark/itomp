@@ -108,8 +108,8 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
             }
             else if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
             {
-                if (index.element % 3 != 2)
-                    return false;
+                //if (index.element % 3 != 2)
+                  //  return false;
 
                 int parameter_point = index.point / 4;
                 if (parameter_point % 5 != 0)
@@ -162,12 +162,12 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     if (state != 0)
     {
         if (PhaseManager::getInstance()->getPhase() == 0 &&
-                //index.point == 0 &&
+                index.point == 0 &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
 
         if (PhaseManager::getInstance()->getPhase() != 0 &&
-                (index.point == 0 || index.point == num_points_ - 1) &&
+                (index.point == 0 /*|| index.point == num_points_ - 1*/) &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
     }
