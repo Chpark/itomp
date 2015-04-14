@@ -380,8 +380,8 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 if (parameter_joint_index == 3 || parameter_joint_index == 4
                         || parameter_joint_index == 8 || parameter_joint_index == 11)
                 {
-                    x_lower(i) = -0.01;
-                    x_upper(i) = 0.01;
+                    x_lower(i) = -0.001;
+                    x_upper(i) = 0.001;
                 }
 
                 if (parameter_joint_index < 2)
