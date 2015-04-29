@@ -162,12 +162,12 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     if (state != 0)
     {
         if (PhaseManager::getInstance()->getPhase() == 0 &&
-                index.point == 0 &&
+                (index.point == 0 || (index.point == num_points_ - 1 && index.element >= 3)) &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
 
         if (PhaseManager::getInstance()->getPhase() != 0 &&
-                (index.point == 0 /*|| index.point == num_points_ - 1*/) &&
+                (index.point == 0 || index.point == num_points_ - 1) &&
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
     }

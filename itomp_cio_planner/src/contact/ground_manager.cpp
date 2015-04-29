@@ -5,6 +5,7 @@
  *      Author: chpark
  */
 #include <itomp_cio_planner/contact/ground_manager.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/point_to_triangle_projection.h>
 #include <itomp_cio_planner/util/exponential_map.h>
@@ -85,86 +86,89 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 {
 	bool updated = false;
 
-    /*
-	for (int i = 0; i < triangles_.size(); ++i)
+    if (PhaseManager::getInstance()->getPhase() == 2)
 	{
-		const Triangle& triangle = triangles_[i];
-
-		Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
-                                     triangle.points_[2], position_in);
-
-        double distance = (position_in - projection).norm();
-        //if (ignore_Z)
+        for (int i = 0; i < triangles_.size(); ++i)
         {
-            Eigen::Vector3d diff = position_in - projection;
-            diff(2) = 0.0;
-            distance = diff.norm();
-        }
+            const Triangle& triangle = triangles_[i];
 
-		if (distance < current_min_distance)
-		{
-			current_min_distance = distance;
-			normal = triangle.normal_;
-			position_out = projection;
+            Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
+                                         triangle.points_[2], position_in);
 
-			updated = true;
+            double distance = (position_in - projection).norm();
+            //if (ignore_Z)
+            {
+                Eigen::Vector3d diff = position_in - projection;
+                diff(2) = 0.0;
+                distance = diff.norm();
+            }
+
+            if (distance < current_min_distance)
+            {
+                current_min_distance = distance;
+                normal = triangle.normal_;
+                position_out = projection;
+
+                updated = true;
+            }
 		}
 	}
-    */
-
-    std::vector<double> weights;
-    weights.reserve(triangles_.size());
-    std::vector<Eigen::Vector3d> proj_points;
-    proj_points.reserve(triangles_.size());
-    double weight_sum = 0.0;
-
-    const double SMOOTHNESS_PARAM = 1000;
-
-    for (int i = 0; i < triangles_.size(); ++i)
+    else
     {
-        const Triangle& triangle = triangles_[i];
+        std::vector<double> weights;
+        weights.reserve(triangles_.size());
+        std::vector<Eigen::Vector3d> proj_points;
+        proj_points.reserve(triangles_.size());
+        double weight_sum = 0.0;
 
-        Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
-                                     triangle.points_[2], position_in);
+        const double SMOOTHNESS_PARAM = 1000;
 
-        double distance = (position_in - projection).norm();
-        //if (ignore_Z)
+        for (int i = 0; i < triangles_.size(); ++i)
         {
-            Eigen::Vector3d diff = position_in - projection;
-            diff(2) = 0.0;
-            distance = diff.norm();
+            const Triangle& triangle = triangles_[i];
+
+            Eigen::Vector3d projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1],
+                                         triangle.points_[2], position_in);
+
+            double distance = (position_in - projection).norm();
+            //if (ignore_Z)
+            {
+                Eigen::Vector3d diff = position_in - projection;
+                diff(2) = 0.0;
+                distance = diff.norm();
+            }
+
+            if (distance < current_min_distance)
+            {
+                current_min_distance = distance;
+                normal = triangle.normal_;
+                //position_out = projection;
+            }
+
+            updated = true;
+
+            weights.push_back(1.0 / (1.0 + distance * distance * SMOOTHNESS_PARAM));
+            proj_points.push_back(projection);
+            weight_sum += weights.back();
+
         }
 
-        if (distance < current_min_distance)
+        if (updated)
         {
-            current_min_distance = distance;
-            normal = triangle.normal_;
-            //position_out = projection;
+            //printf("Pos : %f %f %f\n", position_in(0), position_in(1), position_in(2));
+            Eigen::Vector3d weighted_point = Eigen::Vector3d::Zero();
+
+            for (int i = 0; i < proj_points.size(); ++i)
+            {
+                weighted_point += weights[i] / weight_sum * proj_points[i];
+                // TODO: normal?
+                //printf("Proj %d : (%f) %f %f %f\n", weights[i] / weight_sum, proj_points[i](0), proj_points[i](1), proj_points[i](2));
+                //printf("WP %f %f %f\n", weighted_point(0), weighted_point(1), weighted_point(2));
+            }
+            position_out = weighted_point;
+
+            //printf("WPos : %f %f %f\n", position_out(0), position_out(1), position_out(2));
         }
-
-        updated = true;
-
-        weights.push_back(1.0 / (1.0 + distance * distance * SMOOTHNESS_PARAM));
-        proj_points.push_back(projection);
-        weight_sum += weights.back();
-
-    }
-
-    if (updated)
-    {
-        //printf("Pos : %f %f %f\n", position_in(0), position_in(1), position_in(2));
-        Eigen::Vector3d weighted_point = Eigen::Vector3d::Zero();
-
-        for (int i = 0; i < proj_points.size(); ++i)
-        {
-            weighted_point += weights[i] / weight_sum * proj_points[i];
-            // TODO: normal?
-            //printf("Proj %d : (%f) %f %f %f\n", weights[i] / weight_sum, proj_points[i](0), proj_points[i](1), proj_points[i](2));
-            //printf("WP %f %f %f\n", weighted_point(0), weighted_point(1), weighted_point(2));
-        }
-        position_out = weighted_point;
-
-        //printf("WPos : %f %f %f\n", position_out(0), position_out(1), position_out(2));
     }
 
 	return updated;

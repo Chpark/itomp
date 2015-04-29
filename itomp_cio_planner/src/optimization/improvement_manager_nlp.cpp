@@ -438,6 +438,23 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
     }
 
 
+    if (iteration == 2)
+    {
+        for (int i = 0; i < variables.size(); ++i)
+        {
+            ItompTrajectoryIndex index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+            if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION &&
+                    index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
+                    index.element == 2 && index.point >= 16 && index.point <= 44)
+            {
+                variables(i) += 0.1;
+            }
+        }
+        evaluation_manager_->setParameters(variables);
+    }
+
+
+
     dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_,
                                            PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),

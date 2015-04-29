@@ -574,6 +574,12 @@ void ItompPlannerNode::adjustStartGoalPositions()
         start_pos(i) = traj_start_point(i);
         goal_pos(i) = traj_goal_point(i);
     }
+    Eigen::Vector3d goal_start_diff = goal_pos - start_pos;
+    if (goal_start_diff.norm() > 1.0)
+    {
+        goal_pos = start_pos + goal_start_diff / goal_start_diff.norm();
+    }
+
     Eigen::Vector3d pos_out, normal_out, contact_normal_out;
     GroundManager::getInstance()->getNearestContactPosition(start_pos, Eigen::Vector3d::UnitZ(), pos_out, normal_out, contact_normal_out, false, true);
     start_pos = pos_out;

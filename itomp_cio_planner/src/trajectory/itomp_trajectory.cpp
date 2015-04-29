@@ -693,6 +693,8 @@ void ItompTrajectory::copy(int point_src, int point_dest, SUB_COMPONENT_TYPE sub
 
 bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>& neighbors)
 {
+    return true;
+
     if (neighbors.size() == 0)
         return true;
 
