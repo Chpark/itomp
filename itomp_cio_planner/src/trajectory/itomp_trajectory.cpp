@@ -735,11 +735,11 @@ bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>
                     Eigen::Vector3d dir = (my_pos - neighbor_pos);
                     dir.normalize();
 
-                    (*joint)(i, 0) += dist * dir(0);
-                    (*joint)(i, 1) += dist * dir(1);
+                    //(*joint)(i, 0) += dist * dir(0);
+                    //(*joint)(i, 1) += dist * dir(1);
                 }
             }
-            if (i == 0 && dist_to_move > 0)
+            if (/*i == 0 && */dist_to_move > 0)
                 return false;
         }
 
