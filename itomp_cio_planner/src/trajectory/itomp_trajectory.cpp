@@ -150,7 +150,7 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
     else
     */
     {
-        interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, &group_rbdl_indices);
+        //interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, &group_rbdl_indices);
     }
 }
 

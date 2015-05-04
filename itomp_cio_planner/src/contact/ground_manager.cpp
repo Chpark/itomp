@@ -17,6 +17,33 @@
 namespace itomp_cio_planner
 {
 
+Plane::Plane(const Triangle &triangle)
+{
+    normal_ = triangle.normal_;
+    d_ = -( normal_(0) * triangle.points_[0](0) + normal_(1) * triangle.points_[0](1) + normal_(2) * triangle.points_[0](2));
+}
+
+bool Plane::isTriangleIn(const Triangle &triangle) const
+{
+    double normal_error = std::min((normal_ - triangle.normal_).norm(), (normal_ + triangle.normal_).norm());
+    if (normal_error >= ITOMP_EPS)
+        return false;
+    double pos_error = std::abs(normal_(0) * triangle.points_[0](0) + normal_(1) * triangle.points_[0](1) + normal_(2) * triangle.points_[0](2) + d_);
+    return pos_error < ITOMP_EPS;
+}
+
+bool Plane::projectionZ(const Eigen::Vector3d& position_in, Eigen::Vector3d& position_out) const
+{
+    if (normal_(2) < ITOMP_EPS) // ignore -z surfaces
+        return false;
+
+    position_out(0) = position_in(0);
+    position_out(1) = position_in(1);
+    position_out(2) = -(normal_(0) * position_in(0) + normal_(1) * position_in(1) + d_) / normal_(2);
+
+    return true;
+}
+
 GroundManager::GroundManager()
 {
 }
@@ -25,8 +52,7 @@ GroundManager::~GroundManager()
 {
 }
 
-void GroundManager::initialize(
-	const planning_scene::PlanningSceneConstPtr& planning_scene)
+void GroundManager::initialize(const planning_scene::PlanningSceneConstPtr& planning_scene)
 {
 	planning_scene_ = planning_scene;
     initializeContactSurfaces();
@@ -174,6 +200,50 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 	return updated;
 }
 
+void GroundManager::getNearestZPosition(const Eigen::Vector3d& position_in, Eigen::Vector3d& position_out, Eigen::Vector3d& normal) const
+{
+    double min_dist = std::numeric_limits<double>::max();
+
+    Eigen::Vector3d temp_position_out;
+
+    if (PlanningParameters::getInstance()->getUseDefaultContactGround())
+    {
+        min_dist = position_in(2) - 0.0;
+        position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
+        normal = Eigen::Vector3d(0, 0, 1);
+    }
+
+    getNearestMeshZPosition(position_in, position_out, normal, min_dist);
+}
+
+void GroundManager::getNearestMeshZPosition(const Eigen::Vector3d& position_in, Eigen::Vector3d& position_out, Eigen::Vector3d& normal, double current_min_distance) const
+{
+    for (int i = 0; i < triangles_.size(); ++i)
+    {
+        const Triangle& triangle = triangles_[i];
+        const Plane& plane = planes_[triangle.plane_index_];
+
+        Eigen::Vector3d projection;
+        if (plane.projectionZ(position_in, projection) == false)
+            continue;
+
+        projection = ProjPoint2Triangle(triangle.points_[0], triangle.points_[1], triangle.points_[2], projection);
+
+        Eigen::Vector3d diff = projection - position_in;
+        if (std::abs(diff(0)) > ITOMP_EPS || std::abs(diff(1)) > ITOMP_EPS)
+            continue;
+
+        double distance = std::abs(diff(2));
+
+        if (distance < current_min_distance)
+        {
+            current_min_distance = distance;
+            normal = triangle.normal_;
+            position_out = projection;
+        }
+    }
+}
+
 void GroundManager::initializeContactSurfaces()
 {
 	triangles_.clear();
@@ -215,6 +285,22 @@ void GroundManager::initializeContactSurfaces()
         tri.points_[2] = position3 + translation;
         tri.normal_ = normal;
 
+        tri.plane_index_ = -1;
+        for (int i = 0; i < planes_.size(); ++i)
+        {
+            Plane& plane = planes_[i];
+            if (plane.isTriangleIn(tri))
+            {
+                plane.triangle_indices_.insert(triangles_.size());
+                tri.plane_index_ = i;
+            }
+        }
+        if (tri.plane_index_ == -1)
+        {
+            tri.plane_index_ = planes_.size();
+            planes_.push_back(Plane(tri));
+            planes_.back().triangle_indices_.insert(triangles_.size());
+        }
         triangles_.push_back(tri);
     }
 }

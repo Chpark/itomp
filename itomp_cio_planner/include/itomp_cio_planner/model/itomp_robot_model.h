@@ -78,7 +78,15 @@ public:
 
 	const std::set<std::string>& getContactPointNames() const;
 
+    bool getGroupEndeffectorPos(const std::string& group_name, const robot_state::RobotState& robot_state, Eigen::Affine3d& ee_pose) const;
+    bool computeStandIKState(robot_state::RobotState& robot_state, Eigen::Affine3d& root_pose, const Eigen::Affine3d& left_foot_pose, const Eigen::Affine3d& right_foot_pose) const;
+
 private:
+    bool computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
+                                  std::vector<double>& joint_values) const;
+    bool getGroupMaxStretch(const std::string& group_name, double& max_stretch, double& height_max_stretch_diff) const;
+    bool adjustRootZ(const std::string& group_name, Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose) const;
+
 	robot_model::RobotModelConstPtr moveit_robot_model_;
 	std::string reference_frame_; /**< Reference frame for all kinematics operations */
 
