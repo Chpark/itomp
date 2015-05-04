@@ -150,7 +150,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
 
             // TODO test
-            const double FAILURE_THRESHOLD = 100000.0 * 1000;
+            const double FAILURE_THRESHOLD = 100000.0;
             if (planning_info.cost > FAILURE_THRESHOLD)
             {
                 res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
