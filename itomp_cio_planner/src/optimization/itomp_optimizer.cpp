@@ -78,7 +78,7 @@ bool ItompOptimizer::optimize()
     int num_max_iterations = 2;
 	//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
 
-    ++iteration_;
+    //++iteration_;
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
