@@ -623,6 +623,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     node_handle.getParam("/itomp_planner/agent_vel_y_20", velocities[2](1));
     velocities[0](2) = velocities[1](2) = velocities[2](2);
 
+    if (!initial_state_fixed)
+        velocities[0] = Eigen::Vector3d::Zero();
+
     if (side_stepping)
         velocities[2] = Eigen::Vector3d::Zero();
 
@@ -786,10 +789,12 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         itomp_trajectory_->interpolate(i - 5, i, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     }
 
+    /*
     for (int i = 0; i < 3; ++i)
     {
         goal_pos(i) = goal_state.getVariablePosition(i);
     }
+    */
 
 
 
@@ -808,7 +813,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     itomp_trajectory_->interpolate(0, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &translation_joints);
     */
 
-    PhaseManager::getInstance()->initial_goal_pos = goal_pos;
+    PhaseManager::getInstance()->initial_goal_pos(0) = goal_state.getVariablePosition(0);
+    PhaseManager::getInstance()->initial_goal_pos(1) = goal_state.getVariablePosition(1);
+    PhaseManager::getInstance()->initial_goal_pos(2) = goal_state.getVariablePosition(5);
 
 
 
