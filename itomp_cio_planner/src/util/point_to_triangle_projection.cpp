@@ -111,4 +111,5 @@ Eigen::Vector3d ProjPoint2Triangle(const Eigen::Vector3d &p0, const Eigen::Vecto
 	}
 	return p0 + s * edge0 + t * edge1;
 }
+
 } // namespace itomp_cio_planner

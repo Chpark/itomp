@@ -101,14 +101,23 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
             return true;
         }
     }
+    /*
+    else if (PhaseManager::getInstance()->getPhase() == 1)
+    {
+        cost = 0;
+        return true;
+    }
+    */
     else
     {
 
+        /*
         if (point % 4 != 0)
         {
             cost = 0;
             return true;
         }
+        */
 
         if (PhaseManager::getInstance()->getPhase() == 2)
             collision_scale = 10.0;
@@ -309,7 +318,7 @@ bool TrajectoryCostContactInvariant::evaluate(
             Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
             double angle = body_orientation.angularDistance(projected_orientation);
 
-            double position_diff_cost = position_diff.squaredNorm() + angle * angle;
+            double position_diff_cost = position_diff.squaredNorm() + angle * angle * 0.01;
             double contact_body_velocity_cost = model.v[rbdl_body_id].squaredNorm();
 
             for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
