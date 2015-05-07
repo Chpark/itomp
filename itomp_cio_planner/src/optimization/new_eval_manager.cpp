@@ -677,15 +677,11 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
     for (int point = point_begin; point < point_end; ++point)
     {
         rbdl_models_[point].f = ref_evaluation_manager_->rbdl_models_[point].f;
-
-        if (!dynamics_only)
-        {
-            rbdl_models_[point].X_lambda = ref_evaluation_manager_->rbdl_models_[point].X_lambda;
-            rbdl_models_[point].X_base = ref_evaluation_manager_->rbdl_models_[point].X_base;
-            rbdl_models_[point].v = ref_evaluation_manager_->rbdl_models_[point].v;
-            rbdl_models_[point].a = ref_evaluation_manager_->rbdl_models_[point].a;
-            rbdl_models_[point].c = ref_evaluation_manager_->rbdl_models_[point].c;
-        }
+        rbdl_models_[point].X_lambda = ref_evaluation_manager_->rbdl_models_[point].X_lambda;
+        rbdl_models_[point].X_base = ref_evaluation_manager_->rbdl_models_[point].X_base;
+        rbdl_models_[point].v = ref_evaluation_manager_->rbdl_models_[point].v;
+        rbdl_models_[point].a = ref_evaluation_manager_->rbdl_models_[point].a;
+        rbdl_models_[point].c = ref_evaluation_manager_->rbdl_models_[point].c;
     }
 
     const ElementTrajectoryPtr& pos_trajectory = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
