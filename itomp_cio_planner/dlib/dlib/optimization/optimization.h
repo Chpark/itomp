@@ -548,6 +548,18 @@ namespace dlib
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
+
+            if (!is_finite(f_value))
+            {
+                std::cout << "f value is not finite\n" << f_value << std::endl;
+                break;
+            }
+            if (!is_finite(g))
+            {
+                std::cout << "g is not finite\n" << g << std::endl;
+                break;
+            }
+
         }
 
         return f_value;
@@ -674,7 +686,7 @@ namespace dlib
             g = -der(x);
 
             // Don't forget to negate the output from the line search since it is  from the
-            // unnegated version of f() 
+            // unnegated osion of f()
             f_value *= -1;
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");

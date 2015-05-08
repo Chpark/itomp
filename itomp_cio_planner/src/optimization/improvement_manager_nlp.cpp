@@ -193,8 +193,13 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
 	evaluation_manager_->printTrajectoryCost(++evaluation_count_, true);
     if (evaluation_count_ % 1000 == 0)
 	{
-		printf("Elapsed (in eval) : %f\n",
-			   (ros::Time::now() - start_time_).toSec());
+        double elapsed_time = (ros::Time::now() - start_time_).toSec();
+        printf("Elapsed (in eval) : %f cost : %f\n", elapsed_time, cost);
+
+        // Assume a planning has problem if it takes more than 600 seconds.
+        if (elapsed_time > 600)
+            evaluation_manager_->getTrajectory()->printTrajectory(std::cout);
+
 	}
 
 	if (cost < best_cost_)
