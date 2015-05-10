@@ -114,6 +114,8 @@ public:
     bool getUseDefaultContactGround() const;
     bool getCIEvaluationOnPoints() const;
 
+    double getFailureCost() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -185,6 +187,8 @@ private:
 
     bool use_default_contact_ground_;
     bool ci_evaluation_on_points_;
+
+    double failure_cost_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -463,6 +467,11 @@ inline bool PlanningParameters::getUseDefaultContactGround() const
 inline bool PlanningParameters::getCIEvaluationOnPoints() const
 {
     return ci_evaluation_on_points_;
+}
+
+inline double PlanningParameters::getFailureCost() const
+{
+    return failure_cost_;
 }
 
 }
