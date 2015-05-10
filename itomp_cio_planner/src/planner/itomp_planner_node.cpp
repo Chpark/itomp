@@ -79,6 +79,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
 	if (!validateRequest(req))
     {
+        ROS_INFO("Planning failure - invalid planning request");
         res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 		return false;
     }
@@ -96,7 +97,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 	{
 		double planning_start_time = ros::Time::now().toSec();
 
-		ROS_INFO("Planning Trial [%d]", c);
+        //ROS_INFO("Planning Trial [%d]", c);
 
 		// initialize trajectory with start state
         trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_, true);
@@ -120,22 +121,15 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             robot_state::RobotState goal_state(*initial_robot_state);
             //robot_state::jointStateToRobotState(goal_joint_state, goal_state);
-            for (unsigned int i = 0; i < goal_joint_state.name.size(); ++i)
+            for (unsigned int j = 0; j < goal_joint_state.name.size(); ++j)
             {
-                if (goal_joint_state.name[i] != "")
-                    goal_state.setVariablePosition(goal_joint_state.name[i], goal_joint_state.position[i]);
+                if (goal_joint_state.name[j] != "")
+                    goal_state.setVariablePosition(goal_joint_state.name[j], goal_joint_state.position[j]);
             }
             goal_state.update(true);
 
-            bool side_stepping = applySideStepping(*initial_robot_state, goal_state);
-
-            if (setSupportFoot(*initial_robot_state, goal_state) == false)
-            {
+            if (!adjustStartGoalPositions(*initial_robot_state, goal_state, !read_start_state))
                 res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
-                return false;
-            }
-
-            adjustStartGoalPositions(*initial_robot_state, read_start_state, side_stepping);
 
             optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
@@ -149,19 +143,20 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             ROS_INFO("Optimization of group %s took %f sec", planning_group_names[i].c_str(), (ros::WallTime::now() - create_time).toSec());
 
-            // TODO test
-            const double FAILURE_THRESHOLD = 100000.0;
-            if (planning_info.cost > FAILURE_THRESHOLD)
+            if (planning_info.cost > PlanningParameters::getInstance()->getFailureCost())
             {
                 res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+                ROS_INFO("Planning failure - cost : %f", planning_info.cost);
                 return false;
             }
         }
 	}
-	planning_info_manager_.printSummary();
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        planning_info_manager_.printSummary();
 
     if (itomp_trajectory_->avoidNeighbors(req.trajectory_constraints.constraints) == false)
     {
+        ROS_INFO("Planning failure - collision with neighbor");
         res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
         return false;
     }
@@ -182,21 +177,27 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 bool ItompPlannerNode::validateRequest(const planning_interface::MotionPlanRequest &req)
 {
     ROS_INFO("Received planning request ... planning group : %s", req.group_name.c_str());
-    ROS_INFO("Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        ROS_INFO("Trajectory Duration : %f", PlanningParameters::getInstance()->getTrajectoryDuration());
 
 	// check goal constraint
-	ROS_INFO("Validate planning request goal state ...");
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        ROS_INFO("Validate planning request goal state ...");
     sensor_msgs::JointState goal_joint_state = jointConstraintsToJointState(req.goal_constraints);
 	if (goal_joint_state.name.size() != goal_joint_state.position.size())
 	{
 		ROS_ERROR("Invalid goal");
 		return false;
 	}
-    ROS_INFO("Goal constraint has %d/%d joints", goal_joint_state.name.size(), req.start_state.joint_state.name.size());
 
-	for (unsigned int i = 0; i < goal_joint_state.name.size(); i++)
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
 	{
-        ROS_INFO("%s : %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
+        ROS_INFO("Goal constraint has %d/%d joints", goal_joint_state.name.size(), req.start_state.joint_state.name.size());
+
+        for (unsigned int i = 0; i < goal_joint_state.name.size(); i++)
+        {
+            ROS_INFO("%s : %f", goal_joint_state.name[i].c_str(), goal_joint_state.position[i]);
+        }
 	}
 
 	return true;
@@ -410,137 +411,6 @@ void ItompPlannerNode::deleteWaypointFiles()
     }
 }
 
-bool ItompPlannerNode::setSupportFoot(const robot_state::RobotState& initial_state, const robot_state::RobotState& goal_state)
-{
-    int start_support_foot = 3; // {0 = none, 1 = left, 2 = right, 3 = any}
-    int start_front_foot = 3; // any
-    double start_orientation = initial_state.getVariablePosition("base_revolute_joint_z");
-    const Eigen::Vector3d start_pos = initial_state.getGlobalLinkTransform("pelvis_link").translation();
-    const Eigen::Vector3d start_dir = Eigen::AngleAxisd(start_orientation, Eigen::Vector3d::UnitZ()) * Eigen::Vector3d::UnitY();
-    const Eigen::Vector3d start_left_foot = initial_state.getGlobalLinkTransform("left_foot_endeffector_link").translation();
-    const Eigen::Vector3d start_right_foot = initial_state.getGlobalLinkTransform("right_foot_endeffector_link").translation();
-
-    const Eigen::Vector3d goal_pos = goal_state.getGlobalLinkTransform("pelvis_link").translation();
-    double goal_orientation = goal_state.getVariablePosition("base_revolute_joint_z");
-
-    double left_dot = start_dir.dot(start_left_foot - start_pos);
-    double right_dot = start_dir.dot(start_right_foot - start_pos);
-    if (std::abs(left_dot - right_dot) < 0.1)
-    {
-        start_front_foot = 3;
-    }
-    else if (left_dot > right_dot)
-    {
-        start_front_foot = 1; // left
-    }
-    else
-    {
-        start_front_foot = 2; // right
-    }
-
-    // compute angle between start / goal
-    Eigen::Vector3d move_pos = goal_pos - start_pos;
-    move_pos.z() = 0.0;
-    double move_orientation = 0.0;
-    double move_orientation_diff = 0.0;
-    if (move_pos.norm() > ITOMP_EPS)
-    {
-        move_orientation = std::atan2(move_pos.y(), move_pos.x()) - M_PI_2;
-        move_orientation_diff = move_orientation - start_orientation;
-        if (move_orientation_diff > M_PI)
-            move_orientation_diff -= 2.0 * M_PI;
-        else if (move_orientation_diff <= -M_PI)
-            move_orientation_diff += 2.0 * M_PI;
-    }
-
-    if (std::abs(move_orientation_diff) < M_PI / 6.0)
-    {
-        start_support_foot = start_front_foot;
-    }
-    else if (std::abs(move_orientation_diff) > M_PI / 5.0 * 6.0)
-    {
-        switch (start_front_foot)
-        {
-        case 0:
-        case 3:
-            start_support_foot = start_front_foot;
-            break;
-
-        case 1:
-            start_support_foot = 2;
-            break;
-
-        case 2:
-            start_support_foot = 1;
-            break;
-
-        }
-    }
-    else if (move_orientation_diff > 0) // left
-    {
-        switch (start_front_foot)
-        {
-        case 0:
-            start_support_foot = 0;
-            break;
-
-        case 1:
-        case 2:
-        case 3:
-            start_support_foot = 2;
-            break;
-        }
-    }
-    else // diff_orientation < 0 (right)
-    {
-        switch (start_front_foot)
-        {
-        case 0:
-            start_support_foot = 0;
-            break;
-
-        case 1:
-        case 2:
-        case 3:
-            start_support_foot = 1;
-            break;
-        }
-    }
-
-    PhaseManager::getInstance()->support_foot_ = start_support_foot;
-    ROS_INFO("Ori dir : %f %f %f", start_dir.x(), start_dir.y(), start_dir.z());
-    ROS_INFO("left_foot : %f %f %f", start_left_foot.x(), start_left_foot.y(), start_left_foot.z());
-    ROS_INFO("right_foot : %f %f %f", start_right_foot.x(), start_right_foot.y(), start_right_foot.z());
-    ROS_INFO("init ori : %f move ori : %f goal ori : %f", start_orientation, move_orientation, goal_orientation);
-    ROS_INFO("Support foot : %d", start_support_foot);
-
-    double goal_orientation_diff = goal_orientation - start_orientation;
-    if (goal_orientation_diff > M_PI)
-        goal_orientation_diff -= 2.0 * M_PI;
-    else if (goal_orientation_diff <= -M_PI)
-        goal_orientation_diff += 2.0 * M_PI;
-    if (std::abs(goal_orientation_diff) < M_PI / 6.0)
-    {
-        // always ok
-    }
-    else if (std::abs(move_orientation_diff) < M_PI / 5.0 * 6.0)
-    {
-        double goal_move_orientation_diff = goal_orientation - move_orientation;
-        if (goal_move_orientation_diff > M_PI)
-            goal_move_orientation_diff -= 2.0 * M_PI;
-        else if (goal_move_orientation_diff <= -M_PI)
-            goal_move_orientation_diff += 2.0 * M_PI;
-        if (std::abs(goal_move_orientation_diff) > M_PI_4)
-            return false;
-    }
-    else
-    {
-        return false;
-    }
-
-    return start_support_foot != 0;
-}
-
 void ItompPlannerNode::writeTrajectory()
 {
     /*
@@ -565,53 +435,56 @@ void ItompPlannerNode::writeTrajectory()
     trajectory_file.close();
 }
 
-bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial_state, bool initial_state_fixed, bool side_stepping)
+bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial_state, robot_state::RobotState& goal_state, bool initial_state_fixed)
 {
+    const double MIN_ANKLE_Z_ROTATION_ANGLE = M_PI / 60.0;
+    const double GOAL_MOVE_ORIENTATION_BOUND = M_PI / 6.0;
+
     unsigned int goal_index = itomp_trajectory_->getNumPoints() - 1;
     unsigned int mid_index = goal_index / 2;
-
     ElementTrajectoryPtr& joint_traj = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     Eigen::MatrixXd::RowXpr traj_start_point = joint_traj->getTrajectoryPoint(0);
     Eigen::MatrixXd::RowXpr traj_mid_point = joint_traj->getTrajectoryPoint(mid_index);
     Eigen::MatrixXd::RowXpr traj_goal_point = joint_traj->getTrajectoryPoint(goal_index);
 
-    // root rotation joints
-    std::vector<unsigned int> rotation_joints;
-    for (int i = 3; i < 6; ++i)
+    bool side_stepping = applySideStepping(initial_state, goal_state);
+    if (side_stepping)
     {
-        double start_angle = traj_start_point(i);
-        double goal_angle = traj_goal_point(i);
-        if (start_angle > M_PI)
-            start_angle -= 2.0 * M_PI;
-        else if (start_angle <= -M_PI)
-            start_angle += 2.0 * M_PI;
-        if (goal_angle - start_angle > M_PI)
-            goal_angle -= 2.0 * M_PI;
-        else if (goal_angle - start_angle <= -M_PI)
-            goal_angle += 2.0 * M_PI;
-        traj_start_point(i) = start_angle;
-        traj_goal_point(i) = goal_angle;
-
-        rotation_joints.push_back(i);
+        goal_state.setVariablePosition("base_revolute_joint_z", initial_state.getVariablePosition("base_revolute_joint_z"));
+        goal_state.update(true);
     }
-    itomp_trajectory_->copy(40, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
-    itomp_trajectory_->interpolate(0, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
-    itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &rotation_joints);
+
+    eFOOT_INDEX initial_support_foot;
+    eFOOT_INDEX initial_front_foot = getFrontFoot(initial_state, initial_support_foot);
+    PhaseManager::getInstance()->support_foot_ = initial_support_foot;
 
     // root translation joints
-    Eigen::Vector3d start_pos, mid_pos, goal_pos;
+    Eigen::Vector3d start_pos;
+    Eigen::Vector3d goal_pos;
     for (int i = 0; i < 3; ++i)
     {
-        start_pos(i) = traj_start_point(i);        
-        goal_pos(i) = traj_goal_point(i);
-        mid_pos(i) = 0.5 * (start_pos(i) + goal_pos(i));
+        start_pos(i) = initial_state.getVariablePosition(i);
+        goal_pos(i) = goal_state.getVariablePosition(i);
     }
-
+    Eigen::Vector3d mid_pos = 0.5 * (start_pos + goal_pos);
     Eigen::Vector3d move_pos = goal_pos - start_pos;
     move_pos(2) = 0.0;
     double move_dist = move_pos.norm();
     Eigen::Vector3d move_dir = (move_dist > ITOMP_EPS) ? Eigen::Vector3d(move_pos / move_dist) : Eigen::Vector3d::UnitY();
+
+    double start_orientation = normalizeAngle(initial_state.getVariablePosition("base_revolute_joint_z"));
+    double move_orientation = std::atan2(move_pos.y(), move_pos.x()) - M_PI_2;
+    double move_orientation_diff = normalizeAngle(move_orientation - start_orientation);
+    move_orientation = start_orientation + move_orientation_diff;
+    double goal_orientation = goal_state.getVariablePosition("base_revolute_joint_z");
+    double goal_move_orientation_diff = normalizeAngle(goal_orientation - move_orientation);
+    if (goal_move_orientation_diff > GOAL_MOVE_ORIENTATION_BOUND)
+        goal_move_orientation_diff = GOAL_MOVE_ORIENTATION_BOUND;
+    else if (goal_move_orientation_diff < -GOAL_MOVE_ORIENTATION_BOUND)
+        goal_move_orientation_diff = -GOAL_MOVE_ORIENTATION_BOUND;
+    goal_orientation = move_orientation + goal_move_orientation_diff;
+    bool mid_orientation_use_goal_orientation = true;
 
     Eigen::Vector3d velocities[3];
     ros::NodeHandle node_handle("itomp_planner");
@@ -621,13 +494,26 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     node_handle.getParam("/itomp_planner/agent_vel_y_10", velocities[1](1));
     node_handle.getParam("/itomp_planner/agent_vel_x_20", velocities[2](0));
     node_handle.getParam("/itomp_planner/agent_vel_y_20", velocities[2](1));
-    velocities[0](2) = velocities[1](2) = velocities[2](2);
+    velocities[0](2) = velocities[1](2) = velocities[2](2) = 0.0;
 
-    if (!initial_state_fixed)
+    if (initial_state_fixed)
         velocities[0] = Eigen::Vector3d::Zero();
 
     if (side_stepping)
         velocities[2] = Eigen::Vector3d::Zero();
+    else
+    {
+        if (initial_support_foot == LEFT_FOOT && move_orientation_diff > MIN_ANKLE_Z_ROTATION_ANGLE)
+        {
+            velocities[1] = Eigen::Vector3d::Zero();
+            mid_orientation_use_goal_orientation = false;
+        }
+        if (initial_support_foot == RIGHT_FOOT && move_orientation_diff < -MIN_ANKLE_Z_ROTATION_ANGLE)
+        {
+            velocities[1] = Eigen::Vector3d::Zero();
+            mid_orientation_use_goal_orientation = false;
+        }
+    }
 
     mid_pos = start_pos + std::min(0.5 * (velocities[0] + velocities[1]).norm(), move_dist * 0.5) * move_dir;
     goal_pos = mid_pos + std::min(0.5 * (velocities[1] + velocities[2]).norm(), move_dist * 0.5) * move_dir;
@@ -647,13 +533,10 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     goal_pos(2) = pos_out(2);
 
     robot_state::RobotState mid_state(initial_state);
-    robot_state::RobotState goal_state(initial_state);
     for (int k = 0; k < initial_state.getVariableCount(); ++k)
     {
         mid_state.getVariablePositions()[k] = traj_mid_point(k);
-        goal_state.getVariablePositions()[k] = traj_goal_point(k);
     }
-
     for (int i = 0; i < 3; ++i)
     {
         traj_start_point(i) = start_pos(i);
@@ -664,37 +547,47 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         mid_state.setVariablePosition(i, mid_pos(i));
         goal_state.setVariablePosition(i, goal_pos(i));
     }
+    traj_start_point(5) = start_orientation;
+    traj_goal_point(5) = goal_orientation;
+    initial_state.setVariablePosition("base_revolute_joint_z", start_orientation);
+    goal_state.setVariablePosition("base_revolute_joint_z", goal_orientation);
+    for (int i = 3; i < 6; ++i)
+    {
+        double value = mid_orientation_use_goal_orientation ? goal_state.getVariablePosition(i) : initial_state.getVariablePosition(i);
+        mid_state.setVariablePosition(i, value);
+        traj_mid_point(i) = value;
+    }
+
     initial_state.update(true);
     mid_state.update(true);
     goal_state.update(true);
 
-    int start_support_foot = PhaseManager::getInstance()->support_foot_;
-    if (start_support_foot == 3)
-        start_support_foot = 1;
-    int opposite_foot = (start_support_foot == 1) ? 2 : 1;
-    std::map<int, std::string> group_name_map;
-    group_name_map[1] = "left_leg";
-    group_name_map[2] = "right_leg";
+    if (initial_support_foot == ANY_FOOT)
+        initial_support_foot = initial_front_foot;
+    eFOOT_INDEX initial_back_foot = (initial_support_foot == LEFT_FOOT) ? RIGHT_FOOT : LEFT_FOOT;
+    std::map<eFOOT_INDEX, std::string> group_name_map;
+    group_name_map[LEFT_FOOT] = "left_leg";
+    group_name_map[RIGHT_FOOT] = "right_leg";
 
-    std::map<int, Eigen::Affine3d> foot_pose_0;
-    std::map<int, Eigen::Affine3d> foot_pose_1;
+    std::map<eFOOT_INDEX, Eigen::Affine3d> foot_pose_0;
+    std::map<eFOOT_INDEX, Eigen::Affine3d> foot_pose_1;
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[start_support_foot], initial_state, foot_pose_0[start_support_foot]))
+    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_support_foot], initial_state, foot_pose_0[initial_support_foot]))
         return false;
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[opposite_foot], initial_state, foot_pose_0[opposite_foot]))
+    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_back_foot], initial_state, foot_pose_0[initial_back_foot]))
         return false;
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[opposite_foot], mid_state, foot_pose_1[opposite_foot]))
+    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_back_foot], mid_state, foot_pose_1[initial_back_foot]))
         return false;
-    foot_pose_1[opposite_foot].translation() += foot_pos_1 * move_dir;
-    GroundManager::getInstance()->getNearestZPosition(foot_pose_1[opposite_foot].translation(), pos_out, normal_out);
-    foot_pose_1[opposite_foot].translation()(2) = pos_out(2);
+    foot_pose_1[initial_back_foot].translation() += foot_pos_1 * move_dir;
+    GroundManager::getInstance()->getNearestZPosition(foot_pose_1[initial_back_foot].translation(), pos_out, normal_out);
+    foot_pose_1[initial_back_foot].translation()(2) = pos_out(2);
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[start_support_foot], goal_state, foot_pose_1[start_support_foot]))
+    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_support_foot], goal_state, foot_pose_1[initial_support_foot]))
         return false;
-    foot_pose_1[start_support_foot].translation() += foot_pos_2 * move_dir;
-    GroundManager::getInstance()->getNearestZPosition(foot_pose_1[start_support_foot].translation(), pos_out, normal_out);
-    foot_pose_1[start_support_foot].translation()(2) = pos_out(2);
+    foot_pose_1[initial_support_foot].translation() += foot_pos_2 * move_dir;
+    GroundManager::getInstance()->getNearestZPosition(foot_pose_1[initial_support_foot].translation(), pos_out, normal_out);
+    foot_pose_1[initial_support_foot].translation()(2) = pos_out(2);
 
     std::vector<unsigned int> root_transform_indices;
     for (unsigned int i = 0; i < 6; ++i)
@@ -706,12 +599,13 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     {
         Eigen::Affine3d root_pose;
         root_pose = initial_state.getGlobalLinkTransform(robot_link_models[6]);
-        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
-                 foot_pose_0[1].translation()(0), foot_pose_0[1].translation()(1), foot_pose_0[1].translation()(2),
-                 foot_pose_0[2].translation()(0), foot_pose_0[2].translation()(1), foot_pose_0[2].translation()(2),
-                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
-    }
 
+        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
+                     foot_pose_0[LEFT_FOOT].translation()(0), foot_pose_0[LEFT_FOOT].translation()(1), foot_pose_0[LEFT_FOOT].translation()(2),
+                     foot_pose_0[RIGHT_FOOT].translation()(0), foot_pose_0[RIGHT_FOOT].translation()(1), foot_pose_0[RIGHT_FOOT].translation()(2),
+                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+    }
 
     for (int i = 5; i <= 40; i += 5)
     {
@@ -727,7 +621,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         root_pose = robot_state.getGlobalLinkTransform(robot_link_models[6]);
 
         int left_foot_change, right_foot_change;
-        if (start_support_foot == 1)
+        if (initial_support_foot == LEFT_FOOT)
         {
             left_foot_change = 30;
             right_foot_change = 10;
@@ -740,39 +634,40 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
         if (i < left_foot_change)
         {
-            left_foot_pose = foot_pose_0[1];
+            left_foot_pose = foot_pose_0[LEFT_FOOT];
         }
         else if (i == left_foot_change)
         {
-            left_foot_pose.translation() = 0.5 * (foot_pose_0[1].translation() + foot_pose_1[1].translation());
-            left_foot_pose.linear() = foot_pose_1[1].linear();
+            left_foot_pose.translation() = 0.5 * (foot_pose_0[LEFT_FOOT].translation() + foot_pose_1[LEFT_FOOT].translation());
+            left_foot_pose.linear() = foot_pose_1[LEFT_FOOT].linear();
         }
         else // i > left_foot_chage
         {
-            left_foot_pose = foot_pose_1[1];
+            left_foot_pose = foot_pose_1[LEFT_FOOT];
         }
 
         if (i < right_foot_change)
         {
-            right_foot_pose = foot_pose_0[2];
+            right_foot_pose = foot_pose_0[RIGHT_FOOT];
         }
         else if (i == right_foot_change)
         {
-            right_foot_pose.translation() = 0.5 * (foot_pose_0[2].translation() + foot_pose_1[2].translation());
-            right_foot_pose.linear() = foot_pose_1[2].linear();
+            right_foot_pose.translation() = 0.5 * (foot_pose_0[RIGHT_FOOT].translation() + foot_pose_1[RIGHT_FOOT].translation());
+            right_foot_pose.linear() = foot_pose_1[RIGHT_FOOT].linear();
         }
         else // i > right_foot_change
         {
-            right_foot_pose = foot_pose_1[2];
+            right_foot_pose = foot_pose_1[RIGHT_FOOT];
         }
 
         if (!itomp_robot_model_->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose))
             return false;
 
-        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
-                 left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
-                 right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
-                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
+                     left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
+                     right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
+                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
 
         Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
         for (int k = 0; k < robot_state.getVariableCount(); ++k)
@@ -789,151 +684,74 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         itomp_trajectory_->interpolate(i - 5, i, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     }
 
-    /*
-    for (int i = 0; i < 3; ++i)
-    {
-        goal_pos(i) = goal_state.getVariablePosition(i);
-    }
-    */
-
-
-
-
-
-
-
-
-
-
-
-    /*
-    std::vector<unsigned int> translation_joints;
-    for (int i = 0; i < 3; ++i)
-        translation_joints.push_back(i);
-    itomp_trajectory_->interpolate(0, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &translation_joints);
-    */
-
     PhaseManager::getInstance()->initial_goal_pos(0) = goal_state.getVariablePosition(0);
     PhaseManager::getInstance()->initial_goal_pos(1) = goal_state.getVariablePosition(1);
     PhaseManager::getInstance()->initial_goal_pos(2) = goal_state.getVariablePosition(5);
 
-
-
-
     return true;
-
-
-
-    // knee
-    /*
-    int left_hip = robot_model_->getVariableIndex("upper_left_leg_x_joint");
-    int right_hip = robot_model_->getVariableIndex("upper_right_leg_x_joint");
-    int left_knee = robot_model_->getVariableIndex("lower_left_leg_joint");
-    int right_knee = robot_model_->getVariableIndex("lower_right_leg_joint");
-    int left_foot = robot_model_->getVariableIndex("left_foot_x_joint");
-    int right_foot = robot_model_->getVariableIndex("right_foot_x_joint");
-    std::vector<unsigned int> support_leg_joints;
-    std::vector<unsigned int> free_leg_joints;
-
-    if (PhaseManager::getInstance()->support_foot_ & 0x1)
-    {
-        support_leg_joints.push_back(left_knee);
-        support_leg_joints.push_back(left_hip);
-        support_leg_joints.push_back(left_foot);
-        free_leg_joints.push_back(right_knee);
-        free_leg_joints.push_back(right_hip);
-        free_leg_joints.push_back(right_foot);
-    }
-    else
-    {
-        free_leg_joints.push_back(left_knee);
-        free_leg_joints.push_back(left_hip);
-        free_leg_joints.push_back(left_foot);
-        support_leg_joints.push_back(right_knee);
-        support_leg_joints.push_back(right_hip);
-        support_leg_joints.push_back(right_foot);
-    }
-
-    const double default_angle = M_PI_4;
-
-    itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
-
-    for (int j = 8; j <= 12; ++j)
-    {
-        (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
-        (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
-        (*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
-    }
-    for (int j = 28; j <= 32; ++j)
-    {
-        (*joint_traj)(j, support_leg_joints[0]) = -default_angle;
-        (*joint_traj)(j, support_leg_joints[1]) = default_angle * 0.5;
-        (*joint_traj)(j, support_leg_joints[2]) = default_angle * 0.5;
-    }
-    for (int j = 48; j <= 52; ++j)
-    {
-        (*joint_traj)(j, free_leg_joints[0]) = -default_angle;
-        (*joint_traj)(j, free_leg_joints[1]) = default_angle * 0.5;
-        (*joint_traj)(j, free_leg_joints[2]) = default_angle * 0.5;
-    }
-
-    itomp_trajectory_->interpolate(0, 10, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
-    itomp_trajectory_->interpolate(10, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
-    itomp_trajectory_->interpolate(20, 30, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
-    itomp_trajectory_->interpolate(30, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &support_leg_joints);
-    itomp_trajectory_->interpolate(40, 50, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
-    itomp_trajectory_->interpolate(50, 60, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &free_leg_joints);
-    */
 }
 
 bool ItompPlannerNode::applySideStepping(const robot_state::RobotState& initial_state, robot_state::RobotState& goal_state)
 {
+    const double FORWARD_WALKING_ANGLE = M_PI / 3.0;
+
     Eigen::Vector3d pref_velocity;
 
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("/itomp_planner/agent_pref_vel_x_0", pref_velocity(0));
     node_handle.getParam("/itomp_planner/agent_pref_vel_y_0", pref_velocity(1));
     double pref_vel_orientation = 0.0;
-    if (pref_velocity.norm() > ITOMP_EPS)
-    {
-        pref_vel_orientation = std::atan2(pref_velocity.y(), pref_velocity.x()) - M_PI_2;
-    }
+    if (pref_velocity.norm() < ITOMP_EPS)
+        return true;
+
+    pref_vel_orientation = std::atan2(pref_velocity.y(), pref_velocity.x()) - M_PI_2;
 
     const Eigen::Vector3d start_pos = initial_state.getGlobalLinkTransform("pelvis_link").translation();
     const Eigen::Vector3d goal_pos = goal_state.getGlobalLinkTransform("pelvis_link").translation();
     Eigen::Vector3d move_pos = goal_pos - start_pos;
     move_pos.z() = 0.0;
     double move_orientation = 0.0;
-    if (move_pos.norm() > ITOMP_EPS)
-    {
-        move_orientation = std::atan2(move_pos.y(), move_pos.x()) - M_PI_2;
-    }
+    if (move_pos.norm() < ITOMP_EPS)
+        return true;
 
-    double orientation_diff = move_orientation - pref_vel_orientation;
-    if (orientation_diff > M_PI)
-        orientation_diff -= 2.0 * M_PI;
-    else if (orientation_diff <= -M_PI)
-        orientation_diff += 2.0 * M_PI;
+    move_orientation = std::atan2(move_pos.y(), move_pos.x()) - M_PI_2;
 
-    if (std::abs(orientation_diff) <= M_PI_2)
+    double orientation_diff = normalizeAngle(move_orientation - pref_vel_orientation);
+
+    if (std::abs(orientation_diff) <= FORWARD_WALKING_ANGLE)
     {
-        // forward stepping
+        // forward walking
         return false;
     }
 
-    double start_orientation = initial_state.getVariablePosition("base_revolute_joint_z");
-
-    goal_state.setVariablePosition(5, start_orientation);
-    goal_state.updateLinkTransforms();
-
-    unsigned int goal_index = itomp_trajectory_->getNumPoints() - 1;
-    ElementTrajectoryPtr& joint_traj = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
-    Eigen::MatrixXd::RowXpr traj_goal_point = joint_traj->getTrajectoryPoint(goal_index);
-
-    traj_goal_point(5) = start_orientation;
-
     return true;
+}
+
+eFOOT_INDEX ItompPlannerNode::getFrontFoot(const robot_state::RobotState& robot_state, eFOOT_INDEX& support_foot)
+{
+    eFOOT_INDEX front_foot = ANY_FOOT; // any
+
+    double start_orientation = robot_state.getVariablePosition("base_revolute_joint_z");
+
+    Eigen::Vector3d start_pos = robot_state.getGlobalLinkTransform("pelvis_link").translation();
+    Eigen::Vector3d start_dir = Eigen::AngleAxisd(start_orientation, Eigen::Vector3d::UnitZ()) * Eigen::Vector3d::UnitY();
+    Eigen::Vector3d start_left_foot = robot_state.getGlobalLinkTransform("left_foot_endeffector_link").translation();
+    Eigen::Vector3d start_right_foot = robot_state.getGlobalLinkTransform("right_foot_endeffector_link").translation();
+
+    start_pos(2) = start_left_foot(2) = start_right_foot(2) = 0.0;
+
+    double left_dot = start_dir.dot(start_left_foot - start_pos);
+    double right_dot = start_dir.dot(start_right_foot - start_pos);
+
+    if (left_dot > right_dot)
+        front_foot = support_foot = LEFT_FOOT; // left
+    else
+        front_foot = support_foot = RIGHT_FOOT; // right
+
+    if (std::abs(left_dot - right_dot) < 0.1)
+        support_foot = ANY_FOOT;
+
+    return front_foot;
 }
 
 } // namespace

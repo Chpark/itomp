@@ -25,28 +25,26 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 	moveit_robot_model_ = robot_model;
 	reference_frame_ = moveit_robot_model_->getModelFrame();
 
-	// print robot_model joints
-	ROS_INFO("Initialize ItompRobotModel");
-	const std::vector<const robot_model::JointModel*>& urdf_joints =
-		robot_model->getJointModels();
-	for (int i = 0; i < urdf_joints.size(); ++i)
-		ROS_INFO(
-			"[%d] %s", urdf_joints[i]->getFirstVariableIndex(), urdf_joints[i]->getName().c_str());
+    const std::vector<const robot_model::JointModel*>& urdf_joints = robot_model->getJointModels();
+
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+    {
+        ROS_INFO("Initialize ItompRobotModel");
+        for (int i = 0; i < urdf_joints.size(); ++i)
+            ROS_INFO("[%d] %s", urdf_joints[i]->getFirstVariableIndex(), urdf_joints[i]->getName().c_str());
+    }
 
 	// get the urdf as a string:
 	string urdf_string;
 	ros::NodeHandle node_handle("~");
-	robot_model_loader::RobotModelLoader robot_model_loader(
-		"robot_description");
-	if (!node_handle.getParam(robot_model_loader.getRobotDescription(),
-							  urdf_string))
+    robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
+    if (!node_handle.getParam(robot_model_loader.getRobotDescription(), urdf_string))
 	{
 		return false;
 	}
 
 	// RBDL
-	std::vector<std::vector<unsigned int> > rbdl_affected_body_ids_vector(
-		urdf_joints.size() + 1);
+    std::vector<std::vector<unsigned int> > rbdl_affected_body_ids_vector(urdf_joints.size() + 1);
 	////////////////////////////////////////////////////////////////////////////
 	{
         ReadURDFModel(urdf_string.c_str(), &rbdl_robot_model_);
@@ -73,15 +71,14 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		for (std::vector<const robot_model::JointModelGroup*>::const_iterator it =
 					jointModelGroups.begin(); it != jointModelGroups.end(); ++it)
 		{
-			ItompPlanningGroupPtr group =
-				boost::make_shared<ItompPlanningGroup>();
+            ItompPlanningGroupPtr group = boost::make_shared<ItompPlanningGroup>();
 			group->name_ = (*it)->getName();
-			ROS_INFO_STREAM("Planning group " << group->name_);
 
-			const std::vector<std::string>& joint_model_names =
-				(*it)->getJointModelNames();
-			const std::vector<std::string>& link_model_names =
-				(*it)->getLinkModelNames();
+            if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                ROS_INFO_STREAM("Planning group " << group->name_);
+
+            const std::vector<std::string>& joint_model_names = (*it)->getJointModelNames();
+            const std::vector<std::string>& link_model_names = (*it)->getLinkModelNames();
 
 			group->num_joints_ = 0;
 			std::vector<bool> active_joints;
@@ -89,35 +86,28 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 			for (int i = 0; i < link_model_names.size(); i++)
 			{
 				std::string link_name = link_model_names[i];
-				const moveit::core::LinkModel* link_model =
-					moveit_robot_model_->getLinkModel(link_name.c_str());
+                const moveit::core::LinkModel* link_model = moveit_robot_model_->getLinkModel(link_name.c_str());
 				if (link_model == NULL)
 				{
 					ROS_ERROR("Link name %s not exist.", link_name.c_str());
 					return false;
 				}
-				const moveit::core::JointModel* joint_model =
-					link_model->getParentJointModel();
-				unsigned int body_id = rbdl_robot_model_.GetBodyId(
-										   link_name.c_str());
+                const moveit::core::JointModel* joint_model = link_model->getParentJointModel();
+                unsigned int body_id = rbdl_robot_model_.GetBodyId(link_name.c_str());
 
 				// fixed joint
-				if (joint_model == NULL
-						|| body_id
-						>= rbdl_robot_model_.fixed_body_discriminator)
+                if (joint_model == NULL || body_id >= rbdl_robot_model_.fixed_body_discriminator)
 					continue;
 				std::string joint_name = joint_model->getName();
 
-				const RigidBodyDynamics::Joint& rbdl_joint =
-					rbdl_robot_model_.mJoints[body_id];
+                const RigidBodyDynamics::Joint& rbdl_joint = rbdl_robot_model_.mJoints[body_id];
 
 				ItompRobotJoint joint;
 				joint.group_joint_index_ = group->num_joints_;
 				joint.rbdl_joint_index_ = rbdl_joint.q_index;
 				joint.link_name_ = link_name;
 				joint.joint_name_ = joint_name;
-				joint.rbdl_affected_body_ids_ =
-					rbdl_affected_body_ids_vector[body_id];
+                joint.rbdl_affected_body_ids_ = rbdl_affected_body_ids_vector[body_id];
 
 				switch (rbdl_joint.mJointType)
 				{
@@ -128,13 +118,12 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 						joint.wrap_around_ = revolute_joint->isContinuous();
 						joint.has_joint_limits_ = !(joint.wrap_around_);
 						const robot_model::VariableBounds& bounds =
-							revolute_joint->getVariableBounds(
-								revolute_joint->getName());
+                            revolute_joint->getVariableBounds(revolute_joint->getName());
 						joint.joint_limit_min_ = bounds.min_position_;
 						joint.joint_limit_max_ = bounds.max_position_;
 
-						ROS_INFO_STREAM(
-							"Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << revolute_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+                        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                            ROS_INFO_STREAM("Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << revolute_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
 					}
 					break;
 				case RigidBodyDynamics::JointTypePrismatic:
@@ -143,25 +132,21 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 					{
 						joint.wrap_around_ = false;
 						joint.has_joint_limits_ = true;
-						const robot_model::VariableBounds& bounds =
-							prismatic_joint->getVariableBounds(
-								prismatic_joint->getName());
+                        const robot_model::VariableBounds& bounds =prismatic_joint->getVariableBounds(prismatic_joint->getName());
 						joint.joint_limit_min_ = bounds.min_position_;
 						joint.joint_limit_max_ = bounds.max_position_;
-						ROS_INFO_STREAM(
-							"Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << prismatic_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+
+                        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                            ROS_INFO_STREAM("Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.rbdl_joint_index_ << "] " << prismatic_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
 					}
 					break;
 				default:
-					ROS_ERROR(
-						"Unsupported joint type for joint %s", joint_name.c_str());
+                    ROS_ERROR("Unsupported joint type for joint %s", joint_name.c_str());
 					return false;
 				}
 
-				rbdl_number_to_joint_name_[joint.rbdl_joint_index_] =
-					joint_name;
-				joint_name_to_rbdl_number_.insert(
-					make_pair(joint_name, joint.rbdl_joint_index_));
+                rbdl_number_to_joint_name_[joint.rbdl_joint_index_] = joint_name;
+                joint_name_to_rbdl_number_.insert(make_pair(joint_name, joint.rbdl_joint_index_));
 
 				group->num_joints_++;
 				group->group_joints_.push_back(joint);
@@ -170,20 +155,22 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 			for (int i = 0; i < group->num_joints_; i++)
 			{
-				group->rbdl_to_group_joint_[group->group_joints_[i].rbdl_joint_index_] =
-					i;
+                group->rbdl_to_group_joint_[group->group_joints_[i].rbdl_joint_index_] = i;
 			}
 
 			planning_groups_.insert(make_pair(group->name_, group));
 		}
 
-		ROS_INFO("RBDL Model Initialized");
-        ROS_INFO("Joints");
-		for (int i = 0; i < rbdl_number_to_joint_name_.size(); ++i)
-			ROS_INFO("[%d] %s", i, rbdl_number_to_joint_name_[i].c_str());
-        ROS_INFO("Links");
-        for (int i = 0; i < rbdl_robot_model_.mBodies.size(); ++i)
-            ROS_INFO("[%d] %s", i, rbdl_robot_model_.GetBodyName(i).c_str());
+        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        {
+            ROS_INFO("RBDL Model Initialized");
+            ROS_INFO("Joints");
+            for (int i = 0; i < rbdl_number_to_joint_name_.size(); ++i)
+                ROS_INFO("[%d] %s", i, rbdl_number_to_joint_name_[i].c_str());
+            ROS_INFO("Links");
+            for (int i = 0; i < rbdl_robot_model_.mBodies.size(); ++i)
+                ROS_INFO("[%d] %s", i, rbdl_robot_model_.GetBodyName(i).c_str());
+        }
 	}
 	////////////////////////////////////////////////////////////////////////////
 
@@ -234,8 +221,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 			{
 				//    std::cout << "Kdl number is " << kdl_number << std::endl;
 				kdl_number_to_urdf_name_[kdl_number] = joint_name;
-				urdf_name_to_kdl_number_.insert(
-					make_pair(joint_name, kdl_number));
+                urdf_name_to_kdl_number_.insert(make_pair(joint_name, kdl_number));
 			}
 		}
 
@@ -245,10 +231,11 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 		for (std::vector<const robot_model::JointModelGroup*>::const_iterator it =
 					jointModelGroups.begin(); it != jointModelGroups.end(); ++it)
 		{
-			ItompPlanningGroupPtr group =
-				boost::make_shared<ItompPlanningGroup>();
+            ItompPlanningGroupPtr group = boost::make_shared<ItompPlanningGroup>();
 			group->name_ = (*it)->getName();
-			ROS_INFO_STREAM("Planning group " << group->name_);
+
+            if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                ROS_INFO_STREAM("Planning group " << group->name_);
 
 			const std::vector<std::string> joint_model_names =
 				(*it)->getJointModelNames();
@@ -263,8 +250,7 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 					joint_segment_mapping_.find(joint_name);
 				if (link_name_it == joint_segment_mapping_.end())
 				{
-					ROS_ERROR(
-						"Joint name %s did not have containing KDL segment.", joint_name.c_str());
+                    ROS_ERROR("Joint name %s did not have containing KDL segment.", joint_name.c_str());
 					return false;
 				}
 				std::string link_name = link_name_it->second;
@@ -282,13 +268,10 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 					joint.joint_name_ = segment_joint_mapping_[link_name];
 
 					// TODO:
-					joint.rbdl_affected_body_ids_ =
-						rbdl_affected_body_ids_vector[joint.rbdl_joint_index_
-													  + 1];
+                    joint.rbdl_affected_body_ids_ = rbdl_affected_body_ids_vector[joint.rbdl_joint_index_ + 1];
 
 					const robot_model::JointModel * kin_model_joint =
-						moveit_robot_model_->getJointModel(
-							joint.joint_name_);
+                        moveit_robot_model_->getJointModel(joint.joint_name_);
 					if (const robot_model::RevoluteJointModel* revolute_joint =
 								dynamic_cast<const robot_model::RevoluteJointModel*>(kin_model_joint))
 					{
@@ -300,8 +283,8 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 						joint.joint_limit_min_ = bounds.min_position_;
 						joint.joint_limit_max_ = bounds.max_position_;
 
-						ROS_INFO_STREAM(
-							"Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.kdl_joint_index_ << "] " << revolute_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+                        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                            ROS_INFO_STREAM("Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.kdl_joint_index_ << "] " << revolute_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
 					}
 					else if (const robot_model::PrismaticJointModel* prismatic_joint =
 								 dynamic_cast<const robot_model::PrismaticJointModel*>(kin_model_joint))
@@ -313,13 +296,13 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 								prismatic_joint->getName());
 						joint.joint_limit_min_ = bounds.min_position_;
 						joint.joint_limit_max_ = bounds.max_position_;
-						ROS_INFO_STREAM(
-							"Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.kdl_joint_index_ << "] " << prismatic_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
+
+                        if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                            ROS_INFO_STREAM("Setting bounds for joint[" << joint.group_joint_index_ << "][" << joint.kdl_joint_index_ << "] " << prismatic_joint->getName() << " to " << joint.joint_limit_min_ << " " << joint.joint_limit_max_);
 					}
 					else
 					{
-						ROS_WARN(
-							"Cannot handle floating or planar joints yet.");
+                        ROS_WARN("Cannot handle floating or planar joints yet.");
 					}
 
 					group->num_joints_++;
@@ -380,7 +363,9 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 
 				}
                 planning_group->contact_points_.push_back(ContactPoint(endeffector_name, endeffector_rbdl_id, contact_point_rbdl_ids));
-                ROS_INFO("Endeffector %s for group %s is added", endeffector_name.c_str(), group_name.c_str());
+
+                if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                    ROS_INFO("Endeffector %s for group %s is added", endeffector_name.c_str(), group_name.c_str());
 			}
 		}
 	}
@@ -431,17 +416,9 @@ double solveASinXPlusBCosXIsC(double a, double b, double c)
         return x2;
 }
 
-bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
-        std::vector<double>& joint_values) const
+void ItompRobotModel::initializeIKData(const string &group_name) const
 {
-    // compute IK for dest_pose of endeffector
-
-    if (group_name != "left_leg" && group_name != "right_leg")
-        return false;
-
-    const Eigen::Vector3d robot_model_right(1.0, 0.0, 0.0);
-    const Eigen::Vector3d robot_model_dir(0.0, 1.0, 0.0);
-    const Eigen::Vector3d robot_model_up(0.0, 0.0, 1.0);
+    ItompRobotModelIKData& ik_data = ik_data_map_[group_name];
 
     const std::vector<const robot_model::LinkModel*>& robot_link_models = moveit_robot_model_->getLinkModels();
     const std::vector<const robot_model::LinkModel*>& group_link_models = moveit_robot_model_->getJointModelGroup(group_name)->getLinkModels();
@@ -455,17 +432,36 @@ bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, co
     const Eigen::Affine3d& root_transf = zero_state.getGlobalLinkTransform(robot_link_models[6]);
     const Eigen::Affine3d& ee_transf = zero_state.getGlobalLinkTransform(ee_link_model);
 
-    //double initial_root_height = root_transf.translation()(2);
-    //double max_lower_body_stretch = (root_transf.translation() - ee_transf.translation()).norm();
-
     const Eigen::Affine3d& hip_transf = zero_state.getGlobalLinkTransform(group_link_models[0]);
     const Eigen::Affine3d& knee_transf = zero_state.getGlobalLinkTransform(group_link_models[3]);
     const Eigen::Affine3d& ankle_transf = zero_state.getGlobalLinkTransform(group_link_models[4]);
 
-    Eigen::Vector3d root_to_hip = hip_transf.translation() - root_transf.translation();
-    Eigen::Vector3d hip_to_knee = knee_transf.translation() - hip_transf.translation();
-    Eigen::Vector3d knee_to_ankle = ankle_transf.translation() - knee_transf.translation();
-    Eigen::Vector3d ankle_to_ee = ee_transf.translation() - ankle_transf.translation();
+    ik_data.root_to_hip = hip_transf.translation() - root_transf.translation();
+    ik_data.hip_to_knee = knee_transf.translation() - hip_transf.translation();
+    ik_data.knee_to_ankle = ankle_transf.translation() - knee_transf.translation();
+    ik_data.ankle_to_ee = ee_transf.translation() - ankle_transf.translation();
+
+    ik_data.h1 = std::sqrt(ik_data.hip_to_knee.y() * ik_data.hip_to_knee.y() + ik_data.hip_to_knee.z() * ik_data.hip_to_knee.z());
+    ik_data.h2 = std::sqrt(ik_data.knee_to_ankle.y() * ik_data.knee_to_ankle.y() + ik_data.knee_to_ankle.z() * ik_data.knee_to_ankle.z());
+    ik_data.ph1 = std::atan2(-ik_data.hip_to_knee.y(), -ik_data.hip_to_knee.z());
+    ik_data.ph2 = std::atan2(-ik_data.knee_to_ankle.y(), -ik_data.knee_to_ankle.z());
+
+    ik_data.max_stretch = std::sqrt(ik_data.hip_to_knee(1) * ik_data.hip_to_knee(1) + ik_data.hip_to_knee(2) * ik_data.hip_to_knee(2)) +
+                          std::sqrt(ik_data.knee_to_ankle(1) * ik_data.knee_to_ankle(1) + ik_data.knee_to_ankle(2) * ik_data.knee_to_ankle(2));
+}
+
+bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
+        std::vector<double>& joint_values) const
+{
+    // compute IK for dest_pose of endeffector
+
+    if (group_name != "left_leg" && group_name != "right_leg")
+        return false;
+
+    if (ik_data_map_.find(group_name) == ik_data_map_.end())
+        initializeIKData(group_name);
+
+    const ItompRobotModelIKData& ik_data = ik_data_map_[group_name];
 
     joint_values.resize(moveit_robot_model_->getJointModelGroup(group_name)->getVariableCount(), 0.0);
 
@@ -521,24 +517,30 @@ bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, co
     // Use law of cosine for yz plane
     {
         const Eigen::Vector3d v = dest_pose.linear().inverse() *
-                                  ((dest_pose.translation() - root_pose.translation()) - root_pose.linear() * root_to_hip) - ankle_to_ee;
+                                  ((dest_pose.translation() - root_pose.translation()) - root_pose.linear() * ik_data.root_to_hip) - ik_data.ankle_to_ee;
         double yz_v_sq_dist = v.y() * v.y() + v.z() * v.z();
 
-        double h1 = std::sqrt(hip_to_knee.y() * hip_to_knee.y() + hip_to_knee.z() * hip_to_knee.z());
-        double h2 = std::sqrt(knee_to_ankle.y() * knee_to_ankle.y() + knee_to_ankle.z() * knee_to_ankle.z());
-        double ph1 = std::atan2(-hip_to_knee.y(), -hip_to_knee.z());
-        double ph2 = std::atan2(-knee_to_ankle.y(), -knee_to_ankle.z());
+        double value = (ik_data.h1 * ik_data.h1 + ik_data.h2 * ik_data.h2 - yz_v_sq_dist) / (2 * ik_data.h1 * ik_data.h2);
+        if (value < -1.0)
+            value = -1.0;
+        if (value > 1.0)
+            value = 1.0;
+        double rho = std::acos(value);
 
-        double rho = std::acos((h1 * h1 + h2 * h2 - yz_v_sq_dist) / (2 * h1 * h2));
-        joint_values[3] = -(M_PI + ph1 - ph2 - rho);
-        //joint_values[3] = -(M_PI - rho) + ph2;
+        joint_values[3] = -(M_PI + ik_data.ph1 - ik_data.ph2 - rho);
 
         // let Rx3^-1 * L3 + L4=k
         // solve v.x * cos7 + v.z * sin7 = k.x : get theta7 (11)
         // solve (v.x * sin7 - v.z * cos7) * sin6 + v.y * cos6 = k.y : get theta6 (12)
-        const Eigen::Vector3d k = Eigen::AngleAxisd(-joint_values[3], Eigen::Vector3d::UnitX()) * hip_to_knee + knee_to_ankle;
+        const Eigen::Vector3d k = Eigen::AngleAxisd(-joint_values[3], Eigen::Vector3d::UnitX()) * ik_data.hip_to_knee + ik_data.knee_to_ankle;
         joint_values[5] = solveASinXPlusBCosXIsC(v.z(),v.x(), k.x());
         joint_values[4] = solveASinXPlusBCosXIsC(v.x() * std::sin(joint_values[5]) - v.z() * std::cos(joint_values[5]), v.y(), k.y());
+
+        if (!isfinite(joint_values[3]) || !isfinite(joint_values[4]) || !isfinite(joint_values[5]))
+        {
+            ROS_INFO("v.y : %f v.z : %f yz_v_sq_dist : %f, rho : %f", v.y(), v.z(), yz_v_sq_dist, rho);
+            ROS_INFO("Error:finite value!");
+        }
     }
 
     // let ROOT.M^-1 * foot.M * Ry5^-1 * Rx4^-1 * Rx3^-1 = M,
@@ -553,6 +555,11 @@ bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, co
         joint_values[1] = -std::asin(M(2, 0));
         joint_values[0] = std::asin(M(1, 0) / std::cos(joint_values[1]));
         joint_values[2] = std::asin(M(2, 1) / std::cos(joint_values[1]));
+
+        if (!isfinite(joint_values[0]) || !isfinite(joint_values[1]) || !isfinite(joint_values[2]))
+        {
+            ROS_INFO("Error:finite value!");
+        }
     }
 
     // convert Rx4 * Ry5 * Rz6 to Rz4 * Ry5 * Rx6
@@ -566,19 +573,24 @@ bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, co
         joint_values[4] = euler_angles(0);
         joint_values[5] = euler_angles(1);
         joint_values[6] = euler_angles(2);
+
+        if (!isfinite(joint_values[6]) || !isfinite(joint_values[4]) || !isfinite(joint_values[5]))
+        {
+            ROS_INFO("Error:finite value!");
+        }
     }
 
     // validate foot pos
     // foot.p = ROOT.p + ROOT.M * (L0 + Rz0 * Ry1 * Rx2 * (L3 + Rx3 * (L4 + Rx4 * Ry5 * Rz6(I) * L7)))
     // foot.M = ROOT.M * Rz0 * Ry1 * Rx2 * Rx3 * Rx4 * Ry5 * Rz6(I)
     Eigen::Vector3d evaluated_pos = root_pose.translation() + root_pose.linear()
-                                    * (root_to_hip + Eigen::AngleAxisd(joint_values[0], Eigen::Vector3d::UnitZ())
+                                    * (ik_data.root_to_hip + Eigen::AngleAxisd(joint_values[0], Eigen::Vector3d::UnitZ())
                                        * Eigen::AngleAxisd(joint_values[1], Eigen::Vector3d::UnitY())
                                        * Eigen::AngleAxisd(joint_values[2], Eigen::Vector3d::UnitX())
-                                       * (hip_to_knee + Eigen::AngleAxisd(joint_values[3], Eigen::Vector3d::UnitX())
-                                          * (knee_to_ankle + Eigen::AngleAxisd(joint_values[4], Eigen::Vector3d::UnitZ())
+                                       * (ik_data.hip_to_knee + Eigen::AngleAxisd(joint_values[3], Eigen::Vector3d::UnitX())
+                                          * (ik_data.knee_to_ankle + Eigen::AngleAxisd(joint_values[4], Eigen::Vector3d::UnitZ())
                                                   * Eigen::AngleAxisd(joint_values[5], Eigen::Vector3d::UnitY())
-                                                  * Eigen::AngleAxisd(joint_values[6], Eigen::Vector3d::UnitX()) * ankle_to_ee)));
+                                                  * Eigen::AngleAxisd(joint_values[6], Eigen::Vector3d::UnitX()) * ik_data.ankle_to_ee)));
     Eigen::MatrixXd evaluated_rotation = root_pose.linear()
                                          * Eigen::AngleAxisd(joint_values[0], Eigen::Vector3d::UnitZ())
                                          * Eigen::AngleAxisd(joint_values[1], Eigen::Vector3d::UnitY())
@@ -608,38 +620,12 @@ bool ItompRobotModel::getGroupEndeffectorPos(const std::string& group_name, cons
     return true;
 }
 
-bool ItompRobotModel::getGroupMaxStretch(const std::string& group_name, double& max_stretch, double& height_max_stretch_diff) const
-{
-    if (group_name != "left_leg" && group_name != "right_leg")
-        return false;
-
-    const robot_model::JointModelGroup* jmg = moveit_robot_model_->getJointModelGroup(group_name);
-    if (jmg == NULL)
-        return false;
-
-    const std::vector<const robot_model::LinkModel*>& robot_link_models = moveit_robot_model_->getLinkModels();
-    const std::vector<const robot_model::LinkModel*>& group_link_models = moveit_robot_model_->getJointModelGroup(group_name)->getLinkModels();
-
-    robot_state::RobotState zero_state(moveit_robot_model_);
-    zero_state.setToDefaultValues();
-    zero_state.updateLinkTransforms();
-
-    const Eigen::Affine3d& root_transf = zero_state.getGlobalLinkTransform(robot_link_models[6]);
-    const Eigen::Affine3d& hip_transf = zero_state.getGlobalLinkTransform(group_link_models[0]);
-    const Eigen::Affine3d& ankle_transf = zero_state.getGlobalLinkTransform(group_link_models[4]);
-
-    double initial_root_height = root_transf.translation()(2);
-    max_stretch = (hip_transf.translation() - ankle_transf.translation()).norm();
-    height_max_stretch_diff = initial_root_height - max_stretch;
-
-    return true;
-}
-
 bool ItompRobotModel::computeStandIKState(robot_state::RobotState& robot_state, Eigen::Affine3d& root_pose, const Eigen::Affine3d& left_foot_pose, const Eigen::Affine3d& right_foot_pose) const
 {
     // adjust root_z for foot poses
-    adjustRootZ("left_leg", root_pose, left_foot_pose);
-    adjustRootZ("right_leg", root_pose, right_foot_pose);
+    bool is_feasible = true;
+    is_feasible &= adjustRootZ("left_leg", root_pose, left_foot_pose);
+    is_feasible &= adjustRootZ("right_leg", root_pose, right_foot_pose);
 
     // set root transform from root_pose;
     Eigen::Vector3d euler_angles = root_pose.linear().eulerAngles(0, 1, 2);
@@ -650,11 +636,14 @@ bool ItompRobotModel::computeStandIKState(robot_state::RobotState& robot_state, 
         robot_state.getVariablePositions()[i + 3] = euler_angles(i);
     }
 
-    std::vector<double> joint_values;
-    computeInverseKinematics("left_leg", root_pose, left_foot_pose, joint_values);
-    robot_state.setJointGroupPositions("left_leg", joint_values);
-    computeInverseKinematics("right_leg", root_pose, right_foot_pose, joint_values);
-    robot_state.setJointGroupPositions("right_leg", joint_values);
+    if (is_feasible)
+    {
+        std::vector<double> joint_values;
+        computeInverseKinematics("left_leg", root_pose, left_foot_pose, joint_values);
+        robot_state.setJointGroupPositions("left_leg", joint_values);
+        computeInverseKinematics("right_leg", root_pose, right_foot_pose, joint_values);
+        robot_state.setJointGroupPositions("right_leg", joint_values);
+    }
 
     /*
     Eigen::Vector3d evaluated_pos = root_pose.translation() + root_pose.linear()
@@ -665,7 +654,7 @@ bool ItompRobotModel::computeStandIKState(robot_state::RobotState& robot_state, 
                                           * (knee_to_ankle + Eigen::AngleAxisd(joint_values[4], Eigen::Vector3d::UnitX())
                                                   * Eigen::AngleAxisd(joint_values[5], Eigen::Vector3d::UnitY())
                                                   * Eigen::AngleAxisd(joint_values[6], Eigen::Vector3d::UnitZ()) * ankle_to_ee)));
-                                                  */
+
 
     Eigen::MatrixXd evaluated_rotation[7];
     evaluated_rotation[0] = root_pose.linear()
@@ -685,6 +674,7 @@ bool ItompRobotModel::computeStandIKState(robot_state::RobotState& robot_state, 
 
     // test
     robot_state.update(true);
+
     Eigen::Affine3d root_transform = robot_state.getGlobalLinkTransform("pelvis_link");
     Eigen::Affine3d left_ee_transform = robot_state.getGlobalLinkTransform("left_foot_endeffector_link");
     Eigen::Affine3d right_ee_transform = robot_state.getGlobalLinkTransform("right_foot_endeffector_link");
@@ -692,13 +682,21 @@ bool ItompRobotModel::computeStandIKState(robot_state::RobotState& robot_state, 
     Eigen::Affine3d right_hip_transform = robot_state.getGlobalLinkTransform("upper_right_leg_x_link");
     Eigen::Affine3d right_knee_transform = robot_state.getGlobalLinkTransform("lower_right_leg_link");
     Eigen::Affine3d right_ankle_transform = robot_state.getGlobalLinkTransform("right_foot_x_link");
+    */
 
     return true;
 }
 
 bool ItompRobotModel::adjustRootZ(const std::string& group_name, Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose) const
 {
-    const std::vector<const robot_model::LinkModel*>& robot_link_models = moveit_robot_model_->getLinkModels();
+    if (group_name != "left_leg" && group_name != "right_leg")
+        return false;
+
+    if (ik_data_map_.find(group_name) == ik_data_map_.end())
+        initializeIKData(group_name);
+
+    const ItompRobotModelIKData& ik_data = ik_data_map_[group_name];
+
     const std::vector<const robot_model::LinkModel*>& group_link_models = moveit_robot_model_->getJointModelGroup(group_name)->getLinkModels();
     std::string ee_group_name = moveit_robot_model_->getJointModelGroup(group_name)->getAttachedEndEffectorNames()[0];
     const robot_model::LinkModel* ee_link_model = moveit_robot_model_->getJointModelGroup(ee_group_name)->getLinkModels()[0];
@@ -712,8 +710,6 @@ bool ItompRobotModel::adjustRootZ(const std::string& group_name, Eigen::Affine3d
     Eigen::Affine3d ankle_transf = robot_state.getGlobalLinkTransform(group_link_models[4]);
     Eigen::Vector3d hip_to_knee = knee_transf.translation() - hip_transf.translation();
     Eigen::Vector3d knee_to_ankle = ankle_transf.translation() - knee_transf.translation();
-    hip_to_knee(0) = knee_to_ankle(0) = 0.0;
-    double max_stretch = hip_to_knee.norm() + knee_to_ankle.norm();
 
     Eigen::Vector3d euler_angles = root_pose.linear().eulerAngles(0, 1, 2);
     for (int i = 0; i < 3; ++i)
@@ -733,17 +729,41 @@ bool ItompRobotModel::adjustRootZ(const std::string& group_name, Eigen::Affine3d
     Eigen::Vector3d dest_ankle_pos = dest_pose.translation() - ankle_to_ee;
     Eigen::Vector3d dest_hip_to_ankle = dest_ankle_pos - hip_transf.translation();
 
-    if (dest_hip_to_ankle.norm() <= max_stretch)
-        return false; // no change
+    if (dest_hip_to_ankle.norm() <= ik_data.max_stretch)
+        return true; // no change
     else
     {
-        double sq_max_stretch = max_stretch * max_stretch;
+        double sq_max_stretch = ik_data.max_stretch * ik_data.max_stretch;
         double sq_dist_x_y = dest_hip_to_ankle.x() * dest_hip_to_ankle.x() + dest_hip_to_ankle.y() * dest_hip_to_ankle.y();
         if (sq_dist_x_y > sq_max_stretch)
+        {
+            ROS_INFO("Failed to set initial IK pose");
             return false;
+        }
         double new_z = std::sqrt(sq_max_stretch - sq_dist_x_y);
         double dist_diff = new_z + dest_hip_to_ankle.z();
+
+        //ROS_INFO("Z adjusted : %f -> %f", root_pose.translation()(2), root_pose.translation()(2) + dist_diff);
+
         root_pose.translation()(2) += dist_diff;
+
+        /*
+        // for debug
+        double old_stretch = dest_hip_to_ankle.norm();
+        Eigen::Vector3d euler_angles = root_pose.linear().eulerAngles(0, 1, 2);
+        for (int i = 0; i < 3; ++i)
+        {
+            double default_value = (i == 2) ? 0.9619 : 0.0;
+            robot_state.getVariablePositions()[i] = root_pose.translation()(i) - default_value;
+            robot_state.getVariablePositions()[i + 3] = euler_angles(i);
+        }
+        robot_state.update(true);
+        hip_transf = robot_state.getGlobalLinkTransform(group_link_models[0]);
+        dest_hip_to_ankle = dest_ankle_pos - hip_transf.translation();
+        ROS_INFO("New dist(max:%f) : %f -> %f(%f, %f)", ik_data.max_stretch, old_stretch, dest_hip_to_ankle.norm(),
+                 std::sqrt(dest_hip_to_ankle.x() * dest_hip_to_ankle.x() + dest_hip_to_ankle.y() * dest_hip_to_ankle.y()),
+                 dest_hip_to_ankle.z());
+                 */
     }
     return true;
 }
