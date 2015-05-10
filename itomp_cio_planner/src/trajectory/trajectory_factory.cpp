@@ -71,10 +71,11 @@ ParameterTrajectory* TrajectoryFactory::CreateParameterTrajectory(
 							  FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 	int num_parameter_joints = parameter_trajectory->num_joints_;
 
-	ROS_INFO(
-		"Parameter trajectory joints : %d/%d", num_parameter_joints, num_full_joints);
-	ROS_INFO(
-		"Parameter trajectory length : %d", parameter_trajectory->getNumElements());
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+    {
+        ROS_INFO("Parameter trajectory joints : %d/%d", num_parameter_joints, num_full_joints);
+        ROS_INFO("Parameter trajectory length : %d", parameter_trajectory->getNumElements());
+    }
 
 	// copy joint parameters from full to parameter trajectory
 	for (int i = 0; i < num_parameter_joints; ++i)

@@ -48,7 +48,8 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
     num_threads_ = omp_get_max_threads();
 
 	omp_set_num_threads(num_threads_);
-    ROS_INFO("Use %d threads on %d processors", num_threads_, omp_get_num_procs());
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        ROS_INFO("Use %d threads on %d processors", num_threads_, omp_get_num_procs());
 
 	if (num_threads_ < 1)
 		ROS_ERROR("0 threads!!!");

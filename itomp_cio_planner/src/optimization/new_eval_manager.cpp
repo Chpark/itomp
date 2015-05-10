@@ -874,7 +874,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-    //return;
+    return;
 
     const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
@@ -910,12 +910,14 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
         }
         */
 
+
         for (int c = 0; c < cost_functions.size(); ++c)
         {
             double sub_cost = evaluation_cost_matrix_.col(c).sum();
             cout << setw(max_cost_name_length) << cost_functions[c]->getName();
             cout << " : " << fixed << sub_cost << std::endl;
         }
+
 
 
 
@@ -964,7 +966,12 @@ void NewEvalManager::initializeContactVariables()
 
 			contact_variables_[point][i].setVariable(0.0);
             contact_variables_[point][i].setPosition(rbdl_models_[point].X_base[rbdl_body_id].r);
-            contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E));
+
+            const Eigen::Vector3d prev_orientation = (point == 0) ? Eigen::Vector3d::Zero() : contact_variables_[point - 1][i].getOrientation();
+            const Eigen::Vector3d* prev_orientation_p = (point == 0) ? NULL : &prev_orientation;
+            contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E,
+                                                                                                  prev_orientation_p));
+
 
 			for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
 			{

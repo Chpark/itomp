@@ -35,9 +35,12 @@ void TrajectoryCostManager::buildActiveCostFunctions(const NewEvalManager* evalu
 	ITOMP_TRAJECTORY_COST_ADD(Singularity)
 	ITOMP_TRAJECTORY_COST_ADD(FrictionCone)
 
-    ROS_INFO("Loaded trajectory cost functions");
-    for (int i = 0; i < cost_function_vector_.size(); ++i)
-        ROS_INFO("[%d] %s : %f", i, cost_function_vector_[i]->getName().c_str(), cost_function_vector_[i]->getWeight());
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+    {
+        ROS_INFO("Loaded trajectory cost functions");
+        for (int i = 0; i < cost_function_vector_.size(); ++i)
+            ROS_INFO("[%d] %s : %f", i, cost_function_vector_[i]->getName().c_str(), cost_function_vector_[i]->getWeight());
+    }
 }
 
 }

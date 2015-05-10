@@ -1,6 +1,7 @@
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
 #include <itomp_cio_planner/optimization/phase_manager.h>
+#include <itomp_cio_planner/util/planning_parameters.h>
 #include <ros/assert.h>
 #include <ecl/geometry/polynomial.hpp>
 #include <ecl/geometry.hpp>
@@ -67,7 +68,8 @@ ItompTrajectory* ItompTrajectory::clone() const
 void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
                                     const ItompRobotModelConstPtr& robot_model)
 {
-    ROS_INFO("Set the trajectory start state");
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        ROS_INFO("Set the trajectory start state");
 
     Eigen::MatrixXd::RowXpr traj_start_point[] =
     {
@@ -90,10 +92,11 @@ void ItompTrajectory::setStartState(const sensor_msgs::JointState &joint_state,
             traj_start_point[COMPONENT_TYPE_POSITION](rbdl_number) = joint_state.position[i];
             traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number) = joint_state.velocity.size() ? joint_state.velocity[i] : 0.0;
             traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number) = joint_state.effort.size() ? joint_state.effort[i] : 0.0;
-            ROS_INFO("[%d] %s : %f %f %f", rbdl_number, name.c_str(),
-                     traj_start_point[COMPONENT_TYPE_POSITION](rbdl_number),
-                     traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number),
-                     traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number));
+            if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+                ROS_INFO("[%d] %s : %f %f %f", rbdl_number, name.c_str(),
+                         traj_start_point[COMPONENT_TYPE_POSITION](rbdl_number),
+                         traj_start_point[COMPONENT_TYPE_VELOCITY](rbdl_number),
+                         traj_start_point[COMPONENT_TYPE_ACCELERATION](rbdl_number));
         }
     }
 
@@ -111,7 +114,8 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
                                    const ItompRobotModelConstPtr& robot_model,
                                    const moveit_msgs::TrajectoryConstraints& trajectory_constraints)
 {
-    ROS_INFO("Set the trajectory goal state for planning group : %s", planning_group->name_.c_str());
+    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+        ROS_INFO("Set the trajectory goal state for planning group : %s", planning_group->name_.c_str());
 
     ROS_ASSERT(getNumPoints() > 0);
 
@@ -742,7 +746,10 @@ bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>
                 }
             }
             if (/*i == 0 && */dist_to_move > 0)
+            {
+                ROS_INFO("Collide with neighbor %d", i);
                 return false;
+            }
         }
 
         if (dist_to_move == 0)

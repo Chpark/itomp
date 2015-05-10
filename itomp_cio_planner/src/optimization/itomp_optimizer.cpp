@@ -122,9 +122,9 @@ bool ItompOptimizer::optimize()
 
 	double elpsed_time = (ros::WallTime::now() - start_time).toSec();
 
-    ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, best_parameter_iteration_);
-    ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_best_parameter_feasible_ ? "True" : "False"));
-	ROS_INFO("Optimization core finished in %f sec", elpsed_time);
+    //ROS_INFO("Terminated after %d iterations, using path from iteration %d", iteration_, best_parameter_iteration_);
+    //ROS_INFO("We think trajectory %d is feasible: %s", trajectory_index_, (is_best_parameter_feasible_ ? "True" : "False"));
+    //ROS_INFO("Optimization core finished in %f sec", elpsed_time);
 
 	planning_info_.time = elpsed_time;
 	planning_info_.iterations = iteration_ + 1;
