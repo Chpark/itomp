@@ -22,6 +22,7 @@ public:
     const std::string& getName() const;
 
     virtual void printTrajectory(std::ostream& out_stream, int point_start = 0, int point_end = -1) const = 0;
+    virtual void reset() = 0;
 
 protected:
     std::string name_;

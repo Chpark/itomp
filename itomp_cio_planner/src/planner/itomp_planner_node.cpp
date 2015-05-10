@@ -84,6 +84,9 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 		return false;
     }
 
+    // set trajectory to zero
+    itomp_trajectory_->reset();
+
     GroundManager::getInstance()->initialize(planning_scene);
 
     double trajectory_start_time = req.start_state.joint_state.header.stamp.toSec();
@@ -477,12 +480,19 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     double move_orientation_diff = normalizeAngle(move_orientation - start_orientation);
     move_orientation = start_orientation + move_orientation_diff;
     double goal_orientation = goal_state.getVariablePosition("base_revolute_joint_z");
-    double goal_move_orientation_diff = normalizeAngle(goal_orientation - move_orientation);
-    if (goal_move_orientation_diff > GOAL_MOVE_ORIENTATION_BOUND)
-        goal_move_orientation_diff = GOAL_MOVE_ORIENTATION_BOUND;
-    else if (goal_move_orientation_diff < -GOAL_MOVE_ORIENTATION_BOUND)
-        goal_move_orientation_diff = -GOAL_MOVE_ORIENTATION_BOUND;
-    goal_orientation = move_orientation + goal_move_orientation_diff;
+    if (side_stepping)
+    {
+        goal_orientation = start_orientation;
+    }
+    else
+    {
+        double goal_move_orientation_diff = normalizeAngle(goal_orientation - move_orientation);
+        if (goal_move_orientation_diff > GOAL_MOVE_ORIENTATION_BOUND)
+            goal_move_orientation_diff = GOAL_MOVE_ORIENTATION_BOUND;
+        else if (goal_move_orientation_diff < -GOAL_MOVE_ORIENTATION_BOUND)
+            goal_move_orientation_diff = -GOAL_MOVE_ORIENTATION_BOUND;
+        goal_orientation = move_orientation + goal_move_orientation_diff;
+    }
     bool mid_orientation_use_goal_orientation = true;
 
     Eigen::Vector3d velocities[3];

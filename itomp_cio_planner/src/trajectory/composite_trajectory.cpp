@@ -43,5 +43,13 @@ void CompositeTrajectory::printTrajectory(std::ostream& out_stream, int point_st
     }
 }
 
+void CompositeTrajectory::reset()
+{
+    for (unsigned int i = 0; i < getNumComponents(); ++i)
+    {
+        trajectories_[i]->reset();
+    }
+}
+
 }
 

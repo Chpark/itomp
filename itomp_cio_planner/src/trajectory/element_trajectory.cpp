@@ -59,4 +59,9 @@ void ElementTrajectory::printTrajectory(std::ostream& out_stream, int point_star
     }
 }
 
+void ElementTrajectory::reset()
+{
+    trajectory_data_.setZero(num_points_, num_elements_);
+}
+
 }

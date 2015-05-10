@@ -23,6 +23,7 @@ public:
     unsigned int getNumComponents() const;
 
     virtual void printTrajectory(std::ostream& out_stream, int point_start = 0, int point_end = -1) const;
+    virtual void reset();
 
 protected:
     std::vector<NewTrajectoryPtr> trajectories_;
