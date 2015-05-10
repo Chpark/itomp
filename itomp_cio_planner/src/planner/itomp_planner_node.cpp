@@ -457,7 +457,6 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
     eFOOT_INDEX initial_support_foot;
     eFOOT_INDEX initial_front_foot = getFrontFoot(initial_state, initial_support_foot);
-    PhaseManager::getInstance()->support_foot_ = initial_support_foot;
 
     // root translation joints
     Eigen::Vector3d start_pos;
@@ -564,6 +563,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
     if (initial_support_foot == ANY_FOOT)
         initial_support_foot = initial_front_foot;
+    PhaseManager::getInstance()->support_foot_ = initial_support_foot;
     eFOOT_INDEX initial_back_foot = (initial_support_foot == LEFT_FOOT) ? RIGHT_FOOT : LEFT_FOOT;
     std::map<eFOOT_INDEX, std::string> group_name_map;
     group_name_map[LEFT_FOOT] = "left_leg";
