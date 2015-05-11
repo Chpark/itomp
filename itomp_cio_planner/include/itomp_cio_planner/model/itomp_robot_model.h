@@ -30,6 +30,8 @@ struct ItompRobotModelIKData
     double ph2;
 
     double max_stretch;
+
+    Eigen::Affine3d ee_to_root;
 };
 
 class ItompRobotModel
@@ -95,12 +97,14 @@ public:
 
     bool getGroupEndeffectorPos(const std::string& group_name, const robot_state::RobotState& robot_state, Eigen::Affine3d& ee_pose) const;
     bool computeStandIKState(robot_state::RobotState& robot_state, Eigen::Affine3d& root_pose, const Eigen::Affine3d& left_foot_pose, const Eigen::Affine3d& right_foot_pose) const;
+    bool getRootPose(const std::string& group_name, const Eigen::Affine3d& ee_pose, Eigen::Affine3d& root_pose) const;
 
 private:
     void initializeIKData(const std::string& group_name) const;
     bool computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
                                   std::vector<double>& joint_values) const;
     bool adjustRootZ(const std::string& group_name, Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose) const;
+
 
 	robot_model::RobotModelConstPtr moveit_robot_model_;
 	std::string reference_frame_; /**< Reference frame for all kinematics operations */

@@ -458,8 +458,13 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         goal_state.update(true);
     }
 
+    //ROS_INFO("Use Side stepping : %s", side_stepping ? "true" : "false");
+
     eFOOT_INDEX initial_support_foot;
     eFOOT_INDEX initial_front_foot = getFrontFoot(initial_state, initial_support_foot);
+
+    //ROS_INFO("initial_front_foot : %s", (initial_front_foot == 1) ? "left" : "right");
+    //ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
 
     // root translation joints
     Eigen::Vector3d start_pos;
@@ -495,6 +500,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     }
     bool mid_orientation_use_goal_orientation = true;
 
+    //ROS_INFO("Start ori : %f Move ori : %f Goal ori : %f", start_orientation, move_orientation, goal_orientation);
+    //ROS_INFO("Move ori diff: %f", move_orientation_diff);
+
     Eigen::Vector3d velocities[3];
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("/itomp_planner/agent_vel_x_0", velocities[0](0));
@@ -505,30 +513,89 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     node_handle.getParam("/itomp_planner/agent_vel_y_20", velocities[2](1));
     velocities[0](2) = velocities[1](2) = velocities[2](2) = 0.0;
 
+    Eigen::Affine3d mid_transform;
+
     if (initial_state_fixed)
         velocities[0] = Eigen::Vector3d::Zero();
 
     if (side_stepping)
-        velocities[2] = Eigen::Vector3d::Zero();
-    else
     {
-        if (initial_support_foot == LEFT_FOOT && move_orientation_diff > MIN_ANKLE_Z_ROTATION_ANGLE)
+        velocities[2] = Eigen::Vector3d::Zero();
+        if (initial_support_foot == ANY_FOOT)
         {
-            velocities[1] = Eigen::Vector3d::Zero();
-            mid_orientation_use_goal_orientation = false;
+            if (move_orientation_diff > 0)
+                initial_support_foot = RIGHT_FOOT;
+            else
+                initial_support_foot = LEFT_FOOT;
         }
-        if (initial_support_foot == RIGHT_FOOT && move_orientation_diff < -MIN_ANKLE_Z_ROTATION_ANGLE)
+        else if (initial_support_foot == LEFT_FOOT)
         {
-            velocities[1] = Eigen::Vector3d::Zero();
-            mid_orientation_use_goal_orientation = false;
+            if (move_orientation_diff > MIN_ANKLE_Z_ROTATION_ANGLE &&
+                    move_orientation_diff < M_PI - MIN_ANKLE_Z_ROTATION_ANGLE)
+                initial_support_foot = RIGHT_FOOT;
+        }
+        else if (initial_support_foot == RIGHT_FOOT)
+        {
+            if (move_orientation_diff < -MIN_ANKLE_Z_ROTATION_ANGLE &&
+                    move_orientation_diff > -M_PI + MIN_ANKLE_Z_ROTATION_ANGLE)
+                initial_support_foot = LEFT_FOOT;
         }
     }
+    else
+    {
+        if (move_orientation_diff > MIN_ANKLE_Z_ROTATION_ANGLE)
+        {
+            if (initial_support_foot == LEFT_FOOT)
+            {
+                velocities[1] = Eigen::Vector3d::Zero();
+                mid_orientation_use_goal_orientation = false;
+                Eigen::Affine3d ee_pose;
+                if (!itomp_robot_model_->getGroupEndeffectorPos("left_leg", initial_state, ee_pose))
+                    return false;
+                if (!itomp_robot_model_->getRootPose("left_leg", ee_pose, mid_transform))
+                    return false;
+                //ROS_INFO("Turn left at 2 step");
+            }
+            else if (initial_support_foot == ANY_FOOT)
+                initial_support_foot = RIGHT_FOOT;
+        }
+        if (move_orientation_diff < -MIN_ANKLE_Z_ROTATION_ANGLE)
+        {
+            if (initial_support_foot == RIGHT_FOOT)
+            {
+                velocities[1] = Eigen::Vector3d::Zero();
+                mid_orientation_use_goal_orientation = false;
+                Eigen::Affine3d ee_pose;
+                if (!itomp_robot_model_->getGroupEndeffectorPos("right_leg", initial_state, ee_pose))
+                    return false;
+                if (!itomp_robot_model_->getRootPose("right_leg", ee_pose, mid_transform))
+                    return false;
+                //ROS_INFO("Turn right at 2 step");
+            }
+            else if (initial_support_foot == ANY_FOOT)
+                initial_support_foot = LEFT_FOOT;
+        }
+    }
+    //ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
 
-    mid_pos = start_pos + std::min(0.5 * (velocities[0] + velocities[1]).norm(), move_dist * 0.5) * move_dir;
+    //ROS_INFO("Speeds : %f %f %f", velocities[0].norm(), velocities[1].norm(), velocities[2].norm());
+
+    if (mid_orientation_use_goal_orientation)
+        mid_pos = start_pos + std::min(0.5 * (velocities[0] + velocities[1]).norm(), move_dist * 0.5) * move_dir;
+    else
+    {
+        mid_pos = mid_transform.translation();
+    }
     goal_pos = mid_pos + std::min(0.5 * (velocities[1] + velocities[2]).norm(), move_dist * 0.5) * move_dir;
+
+    //ROS_INFO("Start pos : %f %f %f", start_pos(0), start_pos(1), start_pos(2));
+    //ROS_INFO("Move pos : %f %f %f", move_pos(0), move_pos(1), move_pos(2));
+    //ROS_INFO("goal pos : %f %f %f", goal_pos(0), goal_pos(1), goal_pos(2));
 
     double foot_pos_1 = 0.5 * std::min(velocities[1].norm(), move_dist * 0.5);
     double foot_pos_2 = 0.5 * std::min(velocities[2].norm(), move_dist * 0.5);
+
+    //ROS_INFO("Foot_pos : %f %f", foot_pos_1, foot_pos_2);
 
     Eigen::Vector3d pos_out, normal_out;
     if (!initial_state_fixed)
@@ -560,11 +627,25 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     traj_goal_point(5) = goal_orientation;
     initial_state.setVariablePosition("base_revolute_joint_z", start_orientation);
     goal_state.setVariablePosition("base_revolute_joint_z", goal_orientation);
-    for (int i = 3; i < 6; ++i)
+
+    if (mid_orientation_use_goal_orientation)
     {
-        double value = mid_orientation_use_goal_orientation ? goal_state.getVariablePosition(i) : initial_state.getVariablePosition(i);
-        mid_state.setVariablePosition(i, value);
-        traj_mid_point(i) = value;
+        for (int i = 3; i < 6; ++i)
+        {
+            double value = goal_state.getVariablePosition(i);
+            mid_state.setVariablePosition(i, value);
+            traj_mid_point(i) = value;
+        }
+    }
+    else
+    {
+        Eigen::Vector3d euler_angles = mid_transform.linear().eulerAngles(0, 1, 2);
+        for (int i = 3; i < 6; ++i)
+        {
+            double value = euler_angles(i - 3);
+            mid_state.setVariablePosition(i, value);
+            traj_mid_point(i) = value;
+        }
     }
 
     initial_state.update(true);
@@ -573,6 +654,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
     if (initial_support_foot == ANY_FOOT)
         initial_support_foot = initial_front_foot;
+    //ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
     PhaseManager::getInstance()->support_foot_ = initial_support_foot;
     eFOOT_INDEX initial_back_foot = (initial_support_foot == LEFT_FOOT) ? RIGHT_FOOT : LEFT_FOOT;
     std::map<eFOOT_INDEX, std::string> group_name_map;
@@ -611,10 +693,10 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         root_pose = initial_state.getGlobalLinkTransform(robot_link_models[6]);
 
         if (PlanningParameters::getInstance()->getPrintPlanningInfo())
-            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
-                     foot_pose_0[LEFT_FOOT].translation()(0), foot_pose_0[LEFT_FOOT].translation()(1), foot_pose_0[LEFT_FOOT].translation()(2),
-                     foot_pose_0[RIGHT_FOOT].translation()(0), foot_pose_0[RIGHT_FOOT].translation()(1), foot_pose_0[RIGHT_FOOT].translation()(2),
-                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
+                 foot_pose_0[LEFT_FOOT].translation()(0), foot_pose_0[LEFT_FOOT].translation()(1), foot_pose_0[LEFT_FOOT].translation()(2),
+                 foot_pose_0[RIGHT_FOOT].translation()(0), foot_pose_0[RIGHT_FOOT].translation()(1), foot_pose_0[RIGHT_FOOT].translation()(2),
+                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
     }
 
     for (int i = 5; i <= 40; i += 5)
@@ -674,10 +756,10 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
             return false;
 
         if (PlanningParameters::getInstance()->getPrintPlanningInfo())
-            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
-                     left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
-                     right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
-                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
+                 left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
+                 right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
+                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
 
         Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
         for (int k = 0; k < robot_state.getVariableCount(); ++k)

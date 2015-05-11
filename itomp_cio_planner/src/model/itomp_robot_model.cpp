@@ -430,7 +430,7 @@ void ItompRobotModel::initializeIKData(const string &group_name) const
     zero_state.updateLinkTransforms();
 
     const Eigen::Affine3d& root_transf = zero_state.getGlobalLinkTransform(robot_link_models[6]);
-    const Eigen::Affine3d& ee_transf = zero_state.getGlobalLinkTransform(ee_link_model);
+    const Eigen::Affine3d ee_transf = zero_state.getGlobalLinkTransform(ee_link_model);
 
     const Eigen::Affine3d& hip_transf = zero_state.getGlobalLinkTransform(group_link_models[0]);
     const Eigen::Affine3d& knee_transf = zero_state.getGlobalLinkTransform(group_link_models[3]);
@@ -448,6 +448,8 @@ void ItompRobotModel::initializeIKData(const string &group_name) const
 
     ik_data.max_stretch = std::sqrt(ik_data.hip_to_knee(1) * ik_data.hip_to_knee(1) + ik_data.hip_to_knee(2) * ik_data.hip_to_knee(2)) +
                           std::sqrt(ik_data.knee_to_ankle(1) * ik_data.knee_to_ankle(1) + ik_data.knee_to_ankle(2) * ik_data.knee_to_ankle(2));
+
+    ik_data.ee_to_root = ee_transf.inverse();
 }
 
 bool ItompRobotModel::computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
@@ -765,6 +767,22 @@ bool ItompRobotModel::adjustRootZ(const std::string& group_name, Eigen::Affine3d
                  dest_hip_to_ankle.z());
                  */
     }
+    return true;
+}
+
+bool ItompRobotModel::getRootPose(const std::string& group_name, const Eigen::Affine3d& ee_pose, Eigen::Affine3d& root_pose) const
+{
+    if (group_name != "left_leg" && group_name != "right_leg")
+        return false;
+
+    if (ik_data_map_.find(group_name) == ik_data_map_.end())
+        initializeIKData(group_name);
+
+    const ItompRobotModelIKData& ik_data = ik_data_map_[group_name];
+
+    root_pose.linear() = ee_pose.linear();
+    root_pose.translation() = ee_pose.translation() + ee_pose.linear() * ik_data.ee_to_root.translation();
+
     return true;
 }
 
