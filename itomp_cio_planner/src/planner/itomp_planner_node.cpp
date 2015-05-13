@@ -107,7 +107,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
         itomp_trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_);
 
         // read start state
-        bool read_start_state = readWaypoint(initial_robot_state);
+        bool read_start_state_from_previous_step = readWaypoint(initial_robot_state);
 
 		// for each planning group
 		for (unsigned int i = 0; i != planning_group_names.size(); ++i)
@@ -131,7 +131,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             }
             goal_state.update(true);
 
-            if (!adjustStartGoalPositions(*initial_robot_state, goal_state, !read_start_state))
+            if (!adjustStartGoalPositions(*initial_robot_state, goal_state, read_start_state_from_previous_step))
                 res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
             optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
@@ -438,7 +438,7 @@ void ItompPlannerNode::writeTrajectory()
     trajectory_file.close();
 }
 
-bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial_state, robot_state::RobotState& goal_state, bool initial_state_fixed)
+bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial_state, robot_state::RobotState& goal_state, bool read_start_state_from_previous_step)
 {
     const double MIN_ANKLE_Z_ROTATION_ANGLE = M_PI / 60.0;
     const double GOAL_MOVE_ORIENTATION_BOUND = M_PI / 6.0;
@@ -515,7 +515,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
     Eigen::Affine3d mid_transform;
 
-    if (initial_state_fixed)
+    if (!read_start_state_from_previous_step)
         velocities[0] = Eigen::Vector3d::Zero();
 
     if (side_stepping)
@@ -578,7 +578,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     }
     //ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
 
-    //ROS_INFO("Speeds : %f %f %f", velocities[0].norm(), velocities[1].norm(), velocities[2].norm());
+    ROS_INFO("Speeds : %f %f %f", velocities[0].norm(), velocities[1].norm(), velocities[2].norm());
 
     if (mid_orientation_use_goal_orientation)
         mid_pos = start_pos + std::min(0.5 * (velocities[0] + velocities[1]).norm(), move_dist * 0.5) * move_dir;
@@ -587,6 +587,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         mid_pos = mid_transform.translation();
     }
     goal_pos = mid_pos + std::min(0.5 * (velocities[1] + velocities[2]).norm(), move_dist * 0.5) * move_dir;
+
+    double dist_start_mid = (mid_pos - start_pos).norm();
+    double dist_mid_goal = (goal_pos - mid_pos).norm();
 
     //ROS_INFO("Start pos : %f %f %f", start_pos(0), start_pos(1), start_pos(2));
     //ROS_INFO("Move pos : %f %f %f", move_pos(0), move_pos(1), move_pos(2));
@@ -598,7 +601,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     //ROS_INFO("Foot_pos : %f %f", foot_pos_1, foot_pos_2);
 
     Eigen::Vector3d pos_out, normal_out;
-    if (!initial_state_fixed)
+    if (!read_start_state_from_previous_step)
     {
         GroundManager::getInstance()->getNearestZPosition(start_pos, pos_out, normal_out);
         start_pos(2) = pos_out(2);
@@ -654,7 +657,8 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
 
     if (initial_support_foot == ANY_FOOT)
         initial_support_foot = initial_front_foot;
-    //ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
+
+    ROS_INFO("initial_support_foot : %s", (initial_support_foot == 1) ? "left" : "right");
     PhaseManager::getInstance()->support_foot_ = initial_support_foot;
     eFOOT_INDEX initial_back_foot = (initial_support_foot == LEFT_FOOT) ? RIGHT_FOOT : LEFT_FOOT;
     std::map<eFOOT_INDEX, std::string> group_name_map;
@@ -687,16 +691,68 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     itomp_trajectory_->interpolate(0, 20, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &root_transform_indices);
     itomp_trajectory_->interpolate(20, 40, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT, &root_transform_indices);
 
+    if (side_stepping == false)
+    {
+        // add mocap data
+        Eigen::MatrixXd mocap_trajectory;
+        mocap_trajectory.setZero(itomp_trajectory_->getNumPoints(), joint_traj->getNumElements());
+
+        readMocapData((initial_support_foot == LEFT_FOOT) ? "walking_itomp_left.txt" : "walking_itomp_right.txt", mocap_trajectory);
+
+        Eigen::Vector3d mid_translation;
+        for (int i = 5; i <= 40; i += 5)
+        {
+            Eigen::Vector3d root_translation;
+            root_translation(0) = std::cos(move_orientation) * mocap_trajectory(i, 0) - std::sin(move_orientation) * mocap_trajectory(i, 1);
+            root_translation(1) = std::sin(move_orientation) * mocap_trajectory(i, 0) + std::cos(move_orientation) * mocap_trajectory(i, 1);
+            root_translation(2) = mocap_trajectory(i, 2);
+
+            Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
+
+            if (i <= 20)
+            {
+                traj_point(0) = traj_start_point(0) + root_translation(0) * dist_start_mid * 2.0;
+                traj_point(1) = traj_start_point(1) + root_translation(1) * dist_start_mid * 2.0;
+                traj_point(2) = traj_start_point(2) + root_translation(2) * dist_start_mid * 2.0;
+            }
+            else
+            {
+                traj_point(0) = traj_mid_point(0) + (root_translation(0) - mid_translation(0)) * dist_mid_goal * 2.0;
+                traj_point(1) = traj_mid_point(1) + (root_translation(1) - mid_translation(1)) * dist_mid_goal * 2.0;
+                traj_point(2) = traj_mid_point(2) + (root_translation(2) - mid_translation(2)) * dist_mid_goal * 2.0;
+            }
+
+            if (i == 20)
+            {
+                mid_translation(0) = root_translation(0);
+                mid_translation(1) = root_translation(1);
+                mid_translation(2) = root_translation(2);
+            }
+
+            int num_joints = joint_traj->getNumElements();
+            for (int j = 3; j < 6; ++j)
+            {
+                traj_point(j) += mocap_trajectory(i, j);
+            }
+            for (int j = 6; j < num_joints; ++j)
+            {
+                traj_point(j) = mocap_trajectory(i, j);
+            }
+
+            itomp_trajectory_->interpolate(i - 5, i, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+        }
+    }
+
     const std::vector<const robot_model::LinkModel*>& robot_link_models = itomp_robot_model_->getMoveitRobotModel()->getLinkModels();
     {
         Eigen::Affine3d root_pose;
         root_pose = initial_state.getGlobalLinkTransform(robot_link_models[6]);
 
         if (PlanningParameters::getInstance()->getPrintPlanningInfo())
-        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
-                 foot_pose_0[LEFT_FOOT].translation()(0), foot_pose_0[LEFT_FOOT].translation()(1), foot_pose_0[LEFT_FOOT].translation()(2),
-                 foot_pose_0[RIGHT_FOOT].translation()(0), foot_pose_0[RIGHT_FOOT].translation()(1), foot_pose_0[RIGHT_FOOT].translation()(2),
-                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", 0,
+                     foot_pose_0[LEFT_FOOT].translation()(0), foot_pose_0[LEFT_FOOT].translation()(1), foot_pose_0[LEFT_FOOT].translation()(2),
+                     foot_pose_0[RIGHT_FOOT].translation()(0), foot_pose_0[RIGHT_FOOT].translation()(1), foot_pose_0[RIGHT_FOOT].translation()(2),
+                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
     }
 
     for (int i = 5; i <= 40; i += 5)
@@ -756,10 +812,10 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
             return false;
 
         if (PlanningParameters::getInstance()->getPrintPlanningInfo())
-        ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
-                 left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
-                 right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
-                 root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
+            ROS_INFO("Point %d : (%f %f %f) (%f %f %f) (%f %f %f)", i,
+                     left_foot_pose.translation()(0), left_foot_pose.translation()(1), left_foot_pose.translation()(2),
+                     right_foot_pose.translation()(0), right_foot_pose.translation()(1), right_foot_pose.translation()(2),
+                     root_pose.translation()(0), root_pose.translation()(1), root_pose.translation()(2));
 
         Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
         for (int k = 0; k < robot_state.getVariableCount(); ++k)
@@ -844,6 +900,177 @@ eFOOT_INDEX ItompPlannerNode::getFrontFoot(const robot_state::RobotState& robot_
         support_foot = ANY_FOOT;
 
     return front_foot;
+}
+
+
+void ItompPlannerNode::readMocapData(const std::string& file_name, Eigen::MatrixXd& mocap_trajectory)
+{
+    std::ifstream trajectory_file;
+    trajectory_file.open(file_name.c_str());
+    std::string temp;
+    if (trajectory_file.is_open())
+    {
+        std::getline(trajectory_file, temp);
+        std::getline(trajectory_file, temp);
+
+        std::map<int,int> index_map;
+        index_map[	0	]=	0	;
+        index_map[	1	]=	1	;
+        index_map[	2	]=	2	;
+        index_map[	3	]=	3	;
+        index_map[	4	]=	4	;
+        index_map[	5	]=	5	;
+        index_map[	6	]=	8	;
+        index_map[	7	]=	7	;
+        index_map[	8	]=	6	;
+        index_map[	9	]=	-1	;
+        index_map[	10	]=	-1	;
+        index_map[	11	]=	12	;
+        index_map[	12	]=	13	;
+        index_map[	13	]=	14	;
+        index_map[	14	]=	15	;
+        index_map[	15	]=	-1	;
+        index_map[	16	]=	16	;
+        index_map[	17	]=	-1	;
+        index_map[	18	]=	19	;
+        index_map[	19	]=	18	;
+        index_map[	20	]=	17	;
+        index_map[	21	]=	-1	;
+        index_map[	22	]=	-1	;
+        index_map[	23	]=	25	;
+        index_map[	24	]=	26	;
+        index_map[	25	]=	27	;
+        index_map[	26	]=	28	;
+        index_map[	27	]=	-1	;
+        index_map[	28	]=	29	;
+        index_map[	29	]=	-1	;
+        index_map[	30	]=	19	;
+        index_map[	31	]=	18	;
+        index_map[	32	]=	17	;
+        index_map[	33	]=	11	;
+        index_map[	34	]=	10	;
+        index_map[	35	]=	9	;
+        index_map[	36	]=	40	;
+        index_map[	37	]=	39	;
+        index_map[	38	]=	38	;
+        index_map[	39	]=	41	;
+        index_map[	40	]=	-1	;
+        index_map[	41	]=	-1	;
+        index_map[	42	]=	44	;
+        index_map[	43	]=	43	;
+        index_map[	44	]=	42	;
+        index_map[	45	]=	52	;
+        index_map[	46	]=	51	;
+        index_map[	47	]=	50	;
+        index_map[	48	]=	53	;
+        index_map[	49	]=	-1	;
+        index_map[	50	]=	-1	;
+        index_map[	51	]=	56	;
+        index_map[	52	]=	55	;
+        index_map[	53	]=	54	;
+
+
+        double v;
+
+        ElementTrajectoryPtr t = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                 ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+
+        std::vector<double> old_value(54);
+        for (int c = 0; c < 54; ++c)
+            old_value[c] = t->at(0, c);
+        old_value[14] = 0.0;
+        old_value[27] = 0.0;
+
+        Eigen::MatrixXd mat_old(32, 54);
+
+        // 0
+        // 9  -> 0
+        // 16
+        // 25 -> 16
+
+        Eigen::MatrixXd mat(32, 54);
+
+
+        for (int r = 0; r < 32; ++r)
+        {
+            for (int c = 0; c < 54; ++c)
+            {
+                trajectory_file >> v;
+
+                if (c < 3)
+                    v *= 0.01;
+                else
+                    v *= M_PI / 180.0;
+
+                if (c == 2)
+                    v /= 1.64215;
+
+                mat_old(r, c) = v;
+                mat((r-9+32)%32, c) = v;
+            }
+        }
+        double s = mat(0, 2);
+        for (int r = 0; r < 32; ++r)
+        {
+            mat(r, 2) -= s;
+            if (mat(r, 2) < 0.0)
+                   mat(r, 2) += 1.0;
+        }
+
+        trajectory_file.close();
+
+        for (int rr = 0; rr <= 40; ++rr)
+        {
+            int r = rr * 31 / 40;
+
+            //t->at(rr, 0) = old_value[0] + -mat(r, 2);
+            //t->at(rr, 1) = old_value[1] + -mat(r, 0);
+            //t->at(rr, 2) = old_value[2] + mat(r, 1) - 0.9619;
+
+            mocap_trajectory(rr, 0) = -mat(r, 0);
+            mocap_trajectory(rr, 1) = mat(r, 2);
+            mocap_trajectory(rr, 2) = mat(r, 1) - 0.9619;
+
+            Eigen::Vector3d dir[3];
+            dir[0] = -Eigen::Vector3d::UnitX();
+            dir[1] = Eigen::Vector3d::UnitZ();
+            dir[2] = Eigen::Vector3d::UnitY();
+
+            for (int c = 3; c < 54; c += 3)
+            {
+                int ori_set[3] = {0, 1, 2};
+                if ((9 <= c && c < 15) || (21 <= c && c < 27))
+                {
+                    ori_set[0] = 2;
+                    ori_set[1] = 0;
+                    ori_set[2] = 1;
+                }
+                else if ((18 <= c && c < 21) || (30 <= c && c < 33))
+                {
+                    ori_set[0] = 2;
+                    ori_set[1] = 1;
+                    ori_set[2] = 0;
+                }
+
+                Eigen::Matrix3d m;
+                m = Eigen::AngleAxisd(mat(r, c), dir[ori_set[0]]) *
+                    Eigen::AngleAxisd(mat(r, c + 1), dir[ori_set[1]]) *
+                    Eigen::AngleAxisd(mat(r, c + 2), dir[ori_set[2]]);
+
+                Eigen::Vector3d euler_angles = m.eulerAngles(0, 1, 2);
+
+                for (int j = 0; j < 3; ++j)
+                {
+                    int k = index_map[c + j];
+                    if (k != -1)
+                        //t->at(rr, k) = old_value[k] + euler_angles(j);
+                         mocap_trajectory(rr, k) = euler_angles(j);
+                }
+            }
+        }
+    }
+    else
+        ROS_ERROR("Failed to open %s", file_name.c_str());
 }
 
 } // namespace

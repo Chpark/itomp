@@ -1042,7 +1042,7 @@ void NewEvalManager::initializeContactVariables()
         itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
 	}
 	full_trajectory_->interpolateContactVariables();
-    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+    //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
     //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
 
     /*

@@ -39,7 +39,7 @@ private:
     void fillInResult(const robot_state::RobotStatePtr& robot_state,
                       planning_interface::MotionPlanResponse &res);
 
-    bool adjustStartGoalPositions(robot_state::RobotState& initial_state, robot_state::RobotState& goal_state, bool initial_state_fixed);
+    bool adjustStartGoalPositions(robot_state::RobotState& initial_state, robot_state::RobotState& goal_state, bool read_start_state_from_previous_step);
     bool applySideStepping(const robot_state::RobotState& initial_state, robot_state::RobotState& goal_state);
     eFOOT_INDEX getFrontFoot(const robot_state::RobotState& initial_state, eFOOT_INDEX& support_foot);
 
@@ -48,7 +48,7 @@ private:
     void deleteWaypointFiles();
     void writeTrajectory();
 
-
+    void readMocapData(const std::string& file_name, Eigen::MatrixXd& mocap_trajectory);
 
 	robot_model::RobotModelConstPtr robot_model_;
 	ItompRobotModelPtr itomp_robot_model_;
