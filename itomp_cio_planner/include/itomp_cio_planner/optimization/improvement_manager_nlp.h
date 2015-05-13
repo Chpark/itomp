@@ -32,6 +32,8 @@ protected:
 
 	void optimize(int iteration, column_vector& variables);
 
+    void computeEvaluationOrder(long variable_size);
+
 	int num_threads_;
 	std::vector<NewEvalManagerPtr> derivatives_evaluation_manager_;
 
@@ -50,6 +52,8 @@ protected:
 	int num_parameter_types_;
 	int num_parameter_points_;
 	int num_parameter_elements_;
+
+    std::vector<long> evaluation_order_;
 };
 
 }
