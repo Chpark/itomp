@@ -304,7 +304,43 @@ void NewVizManager::displayTrajectory(const ItompTrajectoryConstPtr& trajectory)
 
     display_trajectory.trajectory.push_back(moveit_trajectory);
     trajectory_publisher_.publish(display_trajectory);
+}
 
+void NewVizManager::renderContactSurface()
+{
+    string contact_file = PlanningParameters::getInstance()->getContactModel();
+    if (contact_file.empty())
+        return;
+
+    vector<double> environment_position = PlanningParameters::getInstance()->getContactModelPosition();
+    double scale = PlanningParameters::getInstance()->getContactModelScale();
+    environment_position.resize(3, 0);
+
+    visualization_msgs::MarkerArray ma;
+    visualization_msgs::Marker msg;
+    msg.header.frame_id = reference_frame_;
+    msg.header.stamp = ros::Time::now();
+    msg.ns = "contact";
+    msg.type = visualization_msgs::Marker::MESH_RESOURCE;
+    msg.action = visualization_msgs::Marker::ADD;
+    msg.scale.x = scale;
+    msg.scale.y = scale;
+    msg.scale.z = scale;
+    msg.id = 0;
+    msg.pose.position.x = environment_position[0];
+    msg.pose.position.y = environment_position[1];
+    msg.pose.position.z = environment_position[2];
+    msg.pose.orientation.x = 0.0;
+    msg.pose.orientation.y = 0.0;
+    msg.pose.orientation.z = 0.0;
+    msg.pose.orientation.w = 1.0;
+    msg.color.a = 1.0;
+    msg.color.r = 0.5;
+    msg.color.g = 0.5;
+    msg.color.b = 0.5;
+    msg.mesh_resource = contact_file;
+    ma.markers.push_back(msg);
+    vis_marker_array_publisher_contacts_.publish(ma);
 }
 
 }

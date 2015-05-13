@@ -9,6 +9,7 @@
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/point_to_triangle_projection.h>
 #include <itomp_cio_planner/util/exponential_map.h>
+#include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <geometric_shapes/mesh_operations.h>
 #include <geometric_shapes/shape_operations.h>
 #include <geometric_shapes/shapes.h>
@@ -303,6 +304,8 @@ void GroundManager::initializeContactSurfaces()
         }
         triangles_.push_back(tri);
     }
+
+    NewVizManager::getInstance()->renderContactSurface();
 }
 
 }

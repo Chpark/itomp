@@ -34,6 +34,7 @@ public:
                          bool is_best);
 
     void displayTrajectory(const ItompTrajectoryConstPtr& trajectory);
+    void renderContactSurface();
 
 	ros::Publisher& getVisualizationMarkerPublisher();
 	ros::Publisher& getVisualizationMarkerArrayPublisher();
