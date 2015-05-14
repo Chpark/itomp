@@ -544,6 +544,7 @@ namespace dlib
 
             // Take the search step indicated by the above line search
             x = clamp(x + alpha*s, x_lower, x_upper);
+            f_value = f(x);
             g = der(x);
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");

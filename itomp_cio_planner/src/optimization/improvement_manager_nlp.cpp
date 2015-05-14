@@ -25,7 +25,7 @@ const bool WRITE_TRAJECTORY_FILE = false;
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
     evaluation_count_ = 0;
-    eps_ = ITOMP_EPS;
+    eps_ = 1e-1;//ITOMP_EPS;
     best_cost_ = std::numeric_limits<double>::max();
 }
 
@@ -114,7 +114,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     }
 
     //if (iteration != 0)
-    //addNoiseToVariables(variables);
+    addNoiseToVariables(variables);
 
     optimize(iteration, variables);
 
@@ -248,7 +248,7 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
     return der;
 }
 
-//#define COMPUTE_COST_DERIVATIVE
+#define COMPUTE_COST_DERIVATIVE
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
     // assume evaluate was called before
@@ -356,6 +356,43 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     */
 
+
+    double max_der = std::abs(der(0));
+    int max_der_index = 0;
+    for (int i = 1; i < der.size(); ++i)
+    {
+        if (std::abs(der(i) > max_der))
+        {
+            der(max_der_index) = 0.0;
+
+            max_der_index = i;
+            max_der = der(i);
+        }
+        else
+            der(i) = 0.0;
+    }
+    /*
+    const ItompTrajectoryIndex& max_itomp_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(max_der_index);
+    for (int i = 0; i < der.size(); ++i)
+    {
+        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.sub_component != max_itomp_index.sub_component)
+            der(i) = 0.0;
+    }
+    */
+
+
+    // normalize der;
+    double norm = 0.0;
+    for (int i = 0; i < der.size(); ++i)
+        norm += der(i) * der(i);
+    norm = std::sqrt(norm);
+    if (norm > ITOMP_EPS)
+    {
+        for (int i = 0; i < der.size(); ++i)
+            der(i) /= norm;
+    }
+
     return der;
 }
 
@@ -405,8 +442,8 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 if (parameter_joint_index == 3 || parameter_joint_index == 4
                         || parameter_joint_index == 8 || parameter_joint_index == 11)
                 {
-                    x_lower(i) = -0.001;
-                    x_upper(i) = 0.001;
+                    //x_lower(i) = -0.001;
+                    //x_upper(i) = 0.001;
                 }
 
                 if (parameter_joint_index < 2)
@@ -515,7 +552,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	{
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
         if (index.point != 0)
-            variables(i) += 1e-2 * noise(i);
+            variables(i) += 1e-1 * noise(i);
     }
 }
 
