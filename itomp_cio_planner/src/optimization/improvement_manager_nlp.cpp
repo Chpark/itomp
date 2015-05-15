@@ -114,7 +114,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     }
 
     //if (iteration != 0)
-    addNoiseToVariables(variables);
+    //addNoiseToVariables(variables);
 
     optimize(iteration, variables);
 
@@ -357,6 +357,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     */
 
 
+    /*
     double max_der = std::abs(der(0));
     int max_der_index = 0;
     for (int i = 1; i < der.size(); ++i)
@@ -371,6 +372,8 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         else
             der(i) = 0.0;
     }
+    */
+
     /*
     const ItompTrajectoryIndex& max_itomp_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(max_der_index);
     for (int i = 0; i < der.size(); ++i)
@@ -552,7 +555,7 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 	{
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
         if (index.point != 0)
-            variables(i) += 1e-1 * noise(i);
+            variables(i) += 1e-3 * noise(i);
     }
 }
 
