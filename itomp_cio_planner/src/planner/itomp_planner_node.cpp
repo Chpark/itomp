@@ -697,7 +697,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
         Eigen::MatrixXd mocap_trajectory;
         mocap_trajectory.setZero(itomp_trajectory_->getNumPoints(), joint_traj->getNumElements());
 
-        readMocapData((initial_support_foot == LEFT_FOOT) ? "walking_itomp_left.txt" : "walking_itomp_right.txt", mocap_trajectory);
+        readMocapData((initial_support_foot == LEFT_FOOT) ? "../motions/walking_itomp_left.txt" : "../motions/walking_itomp_right.txt", mocap_trajectory);
 
         Eigen::Vector3d mid_translation;
         for (int i = 5; i <= 40; i += 5)
@@ -713,13 +713,13 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
             {
                 traj_point(0) = traj_start_point(0) + root_translation(0) * dist_start_mid * 2.0;
                 traj_point(1) = traj_start_point(1) + root_translation(1) * dist_start_mid * 2.0;
-                traj_point(2) = traj_start_point(2) + root_translation(2) * dist_start_mid * 2.0;
+                traj_point(2) = traj_point(2) + root_translation(2) * dist_start_mid * 2.0;
             }
             else
             {
                 traj_point(0) = traj_mid_point(0) + (root_translation(0) - mid_translation(0)) * dist_mid_goal * 2.0;
                 traj_point(1) = traj_mid_point(1) + (root_translation(1) - mid_translation(1)) * dist_mid_goal * 2.0;
-                traj_point(2) = traj_mid_point(2) + (root_translation(2) - mid_translation(2)) * dist_mid_goal * 2.0;
+                traj_point(2) = traj_point(2) + (root_translation(2) - mid_translation(2)) * dist_mid_goal * 2.0;
             }
 
             if (i == 20)
