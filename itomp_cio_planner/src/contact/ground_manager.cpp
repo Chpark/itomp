@@ -111,9 +111,10 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 		Eigen::Vector3d& position_out, const Eigen::Vector3d& normal_in, Eigen::Vector3d& normal,
         double current_min_distance, bool ignore_Z) const
 {
+    bool NO_INTERPOLATED = true;
 	bool updated = false;
 
-    if (PhaseManager::getInstance()->getPhase() == 2)
+    if (PhaseManager::getInstance()->getPhase() == 2 || NO_INTERPOLATED)
 	{
         for (int i = 0; i < triangles_.size(); ++i)
         {
@@ -161,7 +162,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
             //if (ignore_Z)
             {
                 Eigen::Vector3d diff = position_in - projection;
-                diff(2) = 0.0;
+                //diff(2) = 0.0;
                 distance = diff.norm();
             }
 
@@ -205,7 +206,25 @@ void GroundManager::getNearestZPosition(const Eigen::Vector3d& position_in, Eige
 {
     double min_dist = std::numeric_limits<double>::max();
 
-    Eigen::Vector3d temp_position_out;
+    if (PlanningParameters::getInstance()->getUseDefaultContactGround())
+    {
+        min_dist = position_in(2) - 0.0;
+        position_out = Eigen::Vector3d(position_in(0), position_in(1), 0.0);
+        normal = Eigen::Vector3d(0, 0, 1);
+    }
+
+    getNearestMeshZPosition(position_in, position_out, normal, min_dist);
+}
+
+void GroundManager::getNearestZPosition(const Eigen::Vector3d& position_in, const Eigen::Vector3d& orientation_in,
+                         Eigen::Vector3d& position_out, Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal) const
+{
+    double min_dist = std::numeric_limits<double>::max();
+
+    Eigen::Matrix3d orientation_in_mat = exponential_map::ExponentialMapToRotation(orientation_in);
+    Eigen::Vector3d x_axis = orientation_in_mat.col(0);
+    Eigen::Vector3d y_axis = orientation_in_mat.col(1);
+    Eigen::Vector3d normal_in = orientation_in_mat.col(2);
 
     if (PlanningParameters::getInstance()->getUseDefaultContactGround())
     {
@@ -215,6 +234,25 @@ void GroundManager::getNearestZPosition(const Eigen::Vector3d& position_in, Eige
     }
 
     getNearestMeshZPosition(position_in, position_out, normal, min_dist);
+
+    Eigen::Vector3d proj_x_axis = x_axis - x_axis.dot(normal) * normal;
+    Eigen::Vector3d proj_y_axis = y_axis - y_axis.dot(normal) * normal;
+    if (proj_x_axis.norm() > proj_y_axis.norm())
+    {
+        proj_x_axis.normalize();
+        proj_y_axis = normal.cross(proj_x_axis);
+    }
+    else
+    {
+        proj_y_axis.normalize();
+        proj_x_axis = proj_y_axis.cross(normal);
+    }
+    Eigen::Matrix3d orientation_out_mat;
+    orientation_out_mat.col(0) = proj_x_axis;
+    orientation_out_mat.col(1) = proj_y_axis;
+    orientation_out_mat.col(2) = normal;
+    orientation_out = exponential_map::RotationToExponentialMap(orientation_out_mat);
+
 }
 
 void GroundManager::getNearestMeshZPosition(const Eigen::Vector3d& position_in, Eigen::Vector3d& position_out, Eigen::Vector3d& normal, double current_min_distance) const

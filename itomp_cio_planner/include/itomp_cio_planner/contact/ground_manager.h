@@ -41,6 +41,8 @@ public:
                                   Eigen::Vector3d& normal, bool include_ground = true, bool ignore_Z = false) const;
 
     void getNearestZPosition(const Eigen::Vector3d& position_in, Eigen::Vector3d& position_out, Eigen::Vector3d& normal) const;
+    void getNearestZPosition(const Eigen::Vector3d& position_in, const Eigen::Vector3d& orientation_in,
+                             Eigen::Vector3d& position_out, Eigen::Vector3d& orientation_out, Eigen::Vector3d& normal) const;
 
 private:
 	void initializeContactSurfaces();
