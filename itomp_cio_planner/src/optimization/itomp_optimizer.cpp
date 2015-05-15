@@ -75,7 +75,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 2;
+    int num_max_iterations = 3;
 	//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
 
     //++iteration_;
@@ -108,9 +108,62 @@ bool ItompOptimizer::optimize()
 
 			++iteration_;
 
-			if (iteration_after_feasible_solution
-					> PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
+            if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
+
+            if (iteration_ >= 2)
+            {
+                for (int i = 1; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
+                {
+                    robot_state::RobotState robot_state(*evaluation_manager_->getRobotState(i));
+                    const std::vector<const robot_model::LinkModel*>& robot_link_models = evaluation_manager_->getItompRobotModel()->getMoveitRobotModel()->getLinkModels();
+
+                    Eigen::Affine3d root_pose;
+                    Eigen::Affine3d left_foot_pose;
+                    Eigen::Affine3d right_foot_pose;
+
+                    ElementTrajectoryPtr& joint_traj = evaluation_manager_->getTrajectoryNonConst()->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+
+                    for (unsigned int j = 0; j < robot_state.getVariableCount(); ++j)
+                        robot_state.getVariablePositions()[j] = joint_traj->getTrajectoryPoint(i)(j);
+                    robot_state.update(true);
+                    root_pose = robot_state.getGlobalLinkTransform(robot_link_models[6]);
+
+                    evaluation_manager_->getItompRobotModel()->getGroupEndeffectorPos("left_leg", robot_state, left_foot_pose);
+                    evaluation_manager_->getItompRobotModel()->getGroupEndeffectorPos("right_leg", robot_state, right_foot_pose);
+
+                    Eigen::Vector3d normal_out, pos_out, orientation_out;
+                    GroundManager::getInstance()->getNearestContactPosition(left_foot_pose.translation(), exponential_map::RotationToExponentialMap(left_foot_pose.linear()),
+                                                                      pos_out, orientation_out, normal_out);
+                    //GroundManager::getInstance()->getNearestZPosition(left_foot_pose.translation(), exponential_map::RotationToExponentialMap(left_foot_pose.linear()),
+                      //                                                pos_out, orientation_out, normal_out);
+
+                    if ((i == 40 || normal_out.dot(left_foot_pose.translation() - pos_out) < 0.0) ||
+                        (PhaseManager::getInstance()->support_foot_ == 1 && i <= 20) ||
+                        (PhaseManager::getInstance()->support_foot_ != 1 && i >= 20))
+                    {
+                        left_foot_pose.translation() = pos_out;
+                        left_foot_pose.linear() = exponential_map::ExponentialMapToRotation(orientation_out);
+                    }
+                    GroundManager::getInstance()->getNearestContactPosition(right_foot_pose.translation(), exponential_map::RotationToExponentialMap(right_foot_pose.linear()),
+                                                                      pos_out, orientation_out, normal_out);
+                    if ((i == 40 || normal_out.dot(right_foot_pose.translation() - pos_out) < 0.0) ||
+                        (PhaseManager::getInstance()->support_foot_ == 2 && i <= 20) ||
+                        (PhaseManager::getInstance()->support_foot_ != 2 && i >= 20))
+                    {
+                        right_foot_pose.translation() = pos_out;
+                        right_foot_pose.linear() = exponential_map::ExponentialMapToRotation(orientation_out);
+                    }
+
+                    evaluation_manager_->getItompRobotModel()->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose);
+
+                    Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
+                    for (int k = 0; k < robot_state.getVariableCount(); ++k)
+                        traj_point(k) = robot_state.getVariablePosition(k);
+
+                }
+            }
 		}
 	}
 
