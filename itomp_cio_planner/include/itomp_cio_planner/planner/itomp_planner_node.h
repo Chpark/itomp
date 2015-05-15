@@ -48,7 +48,7 @@ private:
     void deleteWaypointFiles();
     void writeTrajectory();
 
-    void readMocapData(const std::string& file_name, Eigen::MatrixXd& mocap_trajectory);
+    bool readMocapData(const std::string& file_name, Eigen::MatrixXd& mocap_trajectory);
 
 	robot_model::RobotModelConstPtr robot_model_;
 	ItompRobotModelPtr itomp_robot_model_;
