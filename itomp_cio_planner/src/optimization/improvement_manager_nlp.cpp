@@ -248,7 +248,7 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
     return der;
 }
 
-#define COMPUTE_COST_DERIVATIVE
+//#define COMPUTE_COST_DERIVATIVE
 column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
 {
     // assume evaluate was called before
