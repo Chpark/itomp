@@ -217,7 +217,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 						contact_map.begin(); it != contact_map.end(); ++it)
 			{
 				const collision_detection::Contact& contact = it->second[0];
-                cost += self_collision_scale * contact.depth * contact.depth * 10000;
+                cost += self_collision_scale * contact.depth * contact.depth;
 			}
 		}
 
