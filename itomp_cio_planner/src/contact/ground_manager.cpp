@@ -125,11 +125,13 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 
             double distance = (position_in - projection).norm();
             //if (ignore_Z)
+            /*
             {
                 Eigen::Vector3d diff = position_in - projection;
                 diff(2) = 0.0;
                 distance = diff.norm();
             }
+            */
 
             if (distance < current_min_distance)
             {
