@@ -478,7 +478,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     }
     Eigen::Vector3d mid_pos = 0.5 * (start_pos + goal_pos);
     Eigen::Vector3d move_pos = goal_pos - start_pos;
-    //move_pos(2) = 0.0;
+    move_pos(2) = 0.0;
     double move_dist = move_pos.norm();
     Eigen::Vector3d move_dir = (move_dist > ITOMP_EPS) ? Eigen::Vector3d(move_pos / move_dist) : Eigen::Vector3d::UnitY();
 
@@ -611,12 +611,12 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     //GroundManager::getInstance()->getNearestZPosition(mid_pos, pos_out, normal_out);
     Eigen::Vector3d ori = Eigen::Vector3d(1, 0, 0);
     GroundManager::getInstance()->getNearestContactPosition(mid_pos, ori, pos_out, ori, normal_out);
-    mid_pos = pos_out;
-    //mid_pos(2) = pos_out(2);
+    //mid_pos = pos_out;
+    mid_pos(2) = pos_out(2);
     ///GroundManager::getInstance()->getNearestZPosition(goal_pos, pos_out, normal_out);
     GroundManager::getInstance()->getNearestContactPosition(goal_pos, ori, pos_out, ori, normal_out);
-    goal_pos = pos_out;
-    //goal_pos(2) = pos_out(2);
+    //goal_pos = pos_out;
+    goal_pos(2) = pos_out(2);
 
     robot_state::RobotState mid_state(initial_state);
     for (int k = 0; k < initial_state.getVariableCount(); ++k)
@@ -686,27 +686,29 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_back_foot], mid_state, foot_pose_1[initial_back_foot]))
         return false;
     foot_pose_1[initial_back_foot].translation() += foot_pos_1 * move_dir;
-    /*
+
     GroundManager::getInstance()->getNearestZPosition(foot_pose_1[initial_back_foot].translation(), pos_out, normal_out);
     foot_pose_1[initial_back_foot].translation()(2) = pos_out(2);
-    */
+    /*
     Eigen::Vector3d orientation_out;
     GroundManager::getInstance()->getNearestContactPosition(foot_pose_1[initial_back_foot].translation(), exponential_map::RotationToExponentialMap(foot_pose_1[initial_back_foot].linear()),
                                                             pos_out, orientation_out, normal_out);
     foot_pose_1[initial_back_foot].translation() = pos_out;
     foot_pose_1[initial_back_foot].linear() = exponential_map::ExponentialMapToRotation(orientation_out);
+    */
 
     if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_support_foot], goal_state, foot_pose_1[initial_support_foot]))
         return false;
     foot_pose_1[initial_support_foot].translation() += foot_pos_2 * move_dir;
-    /*
+
     GroundManager::getInstance()->getNearestZPosition(foot_pose_1[initial_support_foot].translation(), pos_out, normal_out);
     foot_pose_1[initial_support_foot].translation()(2) = pos_out(2);
-    */
+    /*
     GroundManager::getInstance()->getNearestContactPosition(foot_pose_1[initial_support_foot].translation(), exponential_map::RotationToExponentialMap(foot_pose_1[initial_support_foot].linear()),
                                                             pos_out, orientation_out, normal_out);
     foot_pose_1[initial_support_foot].translation() = pos_out;
     foot_pose_1[initial_support_foot].linear() = exponential_map::ExponentialMapToRotation(orientation_out);
+    */
 
     std::vector<unsigned int> root_transform_indices;
     for (unsigned int i = 0; i < 6; ++i)
