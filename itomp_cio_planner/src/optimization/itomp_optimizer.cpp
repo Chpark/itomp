@@ -111,7 +111,7 @@ bool ItompOptimizer::optimize()
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
 
-            if (iteration_ >= 2)
+            if (iteration_ == 2)
             {
                 for (int i = 1; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
                 {
@@ -159,9 +159,22 @@ bool ItompOptimizer::optimize()
                     evaluation_manager_->getItompRobotModel()->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose);
 
                     Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
-                    for (int k = 0; k < robot_state.getVariableCount(); ++k)
-                        traj_point(k) = robot_state.getVariablePosition(k);
-
+                    if (i % 5 == 0)
+                    {
+                        for (int k = 0; k < robot_state.getVariableCount(); ++k)
+                        {
+                            double value = robot_state.getVariablePosition(k);
+                            if (k == 5)
+                            {
+                                double prev_value = joint_traj->getTrajectoryPoint(i - 5)(k);
+                                while (value - prev_value > M_PI)
+                                    value -= 2.0 * M_PI;
+                                while (value - prev_value < -M_PI)
+                                    value += 2.0 * M_PI;
+                            }
+                            traj_point(k) = value;
+                        }
+                    }
                 }
             }
 		}
