@@ -111,10 +111,10 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 		Eigen::Vector3d& position_out, const Eigen::Vector3d& normal_in, Eigen::Vector3d& normal,
         double current_min_distance, bool ignore_Z) const
 {
-    bool NO_INTERPOLATED = true;
+    bool NO_INTERPOLATED = false;
 	bool updated = false;
 
-    if (PhaseManager::getInstance()->getPhase() == 2 || NO_INTERPOLATED)
+    if (/*PhaseManager::getInstance()->getPhase() == 2 || */NO_INTERPOLATED)
 	{
         for (int i = 0; i < triangles_.size(); ++i)
         {
@@ -125,13 +125,13 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 
             double distance = (position_in - projection).norm();
             //if (ignore_Z)
-            /*
+
             {
                 Eigen::Vector3d diff = position_in - projection;
                 diff(2) = 0.0;
                 distance = diff.norm();
             }
-            */
+
 
             if (distance < current_min_distance)
             {
@@ -164,7 +164,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
             //if (ignore_Z)
             {
                 Eigen::Vector3d diff = position_in - projection;
-                //diff(2) = 0.0;
+                diff(2) = 0.0;
                 distance = diff.norm();
             }
 
