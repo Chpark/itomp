@@ -131,14 +131,14 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             }
             goal_state.update(true);
 
-            if (!adjustStartGoalPositions(*initial_robot_state, goal_state, read_start_state_from_previous_step))
-                res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+            //if (!adjustStartGoalPositions(*initial_robot_state, goal_state, read_start_state_from_previous_step))
+              //  res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
             optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
                          trajectory_start_time, req.trajectory_constraints.constraints);
 
-			optimizer_->optimize();
+            //optimizer_->optimize();
 
             const PlanningInfo& planning_info = optimizer_->getPlanningInfo();
 
@@ -165,8 +165,8 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
     }
 
     // write goal state
-    writeWaypoint();
-    writeTrajectory();
+    //writeWaypoint();
+    //writeTrajectory();
 
 
 	// return trajectory
@@ -241,7 +241,7 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 	std::vector<double> positions(num_all_joints);
 	double dt = trajectory_->getDiscretization();
     // TODO:
-    int num_return_points = 41;
+    int num_return_points = joint_trajectory->getNumPoints();
     for (std::size_t i = 0; i < num_return_points; ++i)
 	{
 		for (std::size_t j = 0; j < num_all_joints; j++)

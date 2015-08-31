@@ -146,13 +146,13 @@ void ItompTrajectory::setGoalState(const sensor_msgs::JointState& joint_goal_sta
     }
 
     // interpolate trajectory
-    /*
+
     if (trajectory_constraints.constraints.size() != 0)
     {
         interpolateInputJointTrajectory(group_rbdl_indices, planning_group, trajectory_constraints);
     }
     else
-    */
+
     {
         //interpolateStartEnd(SUB_COMPONENT_TYPE_JOINT, &group_rbdl_indices);
     }
