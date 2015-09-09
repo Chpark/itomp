@@ -320,6 +320,10 @@ void GroundManager::initializeContactSurfaces()
             continue;
         normal.normalize();
 
+        // TODO: z-axis only
+        if (PlanningParameters::getInstance()->getContactZPlaneOnly() && normal(2) < 0.99)
+            continue;
+
         Triangle tri;
         tri.points_[0] = position1 + translation;
         tri.points_[1] = position2 + translation;

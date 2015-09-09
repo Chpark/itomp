@@ -107,7 +107,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
         itomp_trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_);
 
         // read start state
-        bool read_start_state_from_previous_step = readWaypoint(initial_robot_state);
+        //bool read_start_state_from_previous_step = readWaypoint(initial_robot_state);
 
 		// for each planning group
 		for (unsigned int i = 0; i != planning_group_names.size(); ++i)
@@ -138,7 +138,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
                          trajectory_start_time, req.trajectory_constraints.constraints);
 
-            //optimizer_->optimize();
+            optimizer_->optimize();
 
             const PlanningInfo& planning_info = optimizer_->getPlanningInfo();
 
@@ -157,12 +157,14 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
     if (PlanningParameters::getInstance()->getPrintPlanningInfo())
         planning_info_manager_.printSummary();
 
+    /*
     if (itomp_trajectory_->avoidNeighbors(req.trajectory_constraints.constraints) == false)
     {
         ROS_INFO("Planning failure - collision with neighbor");
         res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
         return false;
     }
+    */
 
     // write goal state
     //writeWaypoint();

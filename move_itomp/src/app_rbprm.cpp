@@ -50,11 +50,6 @@ int main(int argc, char **argv)
 	ros::WallDuration sleep_time(1.0);
 	sleep_time.sleep();
 
-	// We will now create a motion plan request
-	// specifying the desired pose of the end-effector as input.
-	planning_interface::MotionPlanRequest req;
-	planning_interface::MotionPlanResponse res;
-
 	std::vector<robot_state::RobotState> robot_states;
 
 	robot_states.push_back(planning_scene->getCurrentStateNonConst());
@@ -71,23 +66,26 @@ int main(int argc, char **argv)
     }
 
     hierarchy = InitTrajectoryFromFile(waypoints, contactPoints, initialpath);
-    for (unsigned int i = 0; i < waypoints.size(); ++i)
-    {
-        moveit_msgs::Constraints constraint = setRootJointAndContactPointConstraints(hierarchy, waypoints[i], contactPoints[i]);
-        req.trajectory_constraints.constraints.push_back(constraint);
-    }
-
-	robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
+    robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
     displayInitialWaypoints(rs, node_handle, robot_model, hierarchy, waypoints);
 
-    setRobotStateFrom(robot_states[0], hierarchy, waypoints, 0);
-    setRobotStateFrom(robot_states[1], hierarchy, waypoints, 1);
+    //for (unsigned int i = 0; i < waypoints.size() - 1; ++i)
+    for (unsigned int i = 0; i < 1; ++i)
+    {
+        planning_interface::MotionPlanRequest req;
+        planning_interface::MotionPlanResponse res;
 
-    displayStates(robot_states[0], robot_states[1], node_handle, robot_model);
-
-    doPlan("whole_body", req, res, robot_states[0], robot_states[1], planning_scene, planner_instance);
-
-	visualizeResult(res, node_handle, 0, 1.0);
+        for (unsigned int j = i; j <= i + 1; ++j)
+        {
+            moveit_msgs::Constraints constraint = setRootJointAndContactPointConstraints(hierarchy, waypoints[j], contactPoints[j]);
+            req.trajectory_constraints.constraints.push_back(constraint);
+        }
+        setRobotStateFrom(robot_states[0], hierarchy, waypoints, i);
+        setRobotStateFrom(robot_states[1], hierarchy, waypoints, i + 1);
+        displayStates(robot_states[0], robot_states[1], node_handle, robot_model);
+        doPlan("whole_body", req, res, robot_states[0], robot_states[1], planning_scene, planner_instance);
+        visualizeResult(res, node_handle, 0, 1.0);
+    }
 
 	ROS_INFO("Done");
 

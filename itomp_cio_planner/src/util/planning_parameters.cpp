@@ -315,6 +315,8 @@ void PlanningParameters::initFromNodeHandle()
     node_handle.param("ci_evaluation_on_points", ci_evaluation_on_points_, false);
 
     node_handle.param("failure_cost", failure_cost_, 100000.0);
+
+    node_handle.param("contact_z_plane_only", contact_z_plane_only_, false);
 }
 
 } // namespace

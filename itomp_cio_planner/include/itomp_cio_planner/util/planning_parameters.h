@@ -116,6 +116,8 @@ public:
 
     double getFailureCost() const;
 
+    bool getContactZPlaneOnly() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -189,6 +191,8 @@ private:
     bool ci_evaluation_on_points_;
 
     double failure_cost_;
+
+    bool contact_z_plane_only_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -472,6 +476,11 @@ inline bool PlanningParameters::getCIEvaluationOnPoints() const
 inline double PlanningParameters::getFailureCost() const
 {
     return failure_cost_;
+}
+
+inline bool PlanningParameters::getContactZPlaneOnly() const
+{
+    return contact_z_plane_only_;
 }
 
 }
