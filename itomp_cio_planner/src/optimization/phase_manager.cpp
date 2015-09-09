@@ -158,7 +158,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 
 
 
-
+/*
     if (state != 0)
     {
         if (PhaseManager::getInstance()->getPhase() == 0 &&
@@ -171,7 +171,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
                 index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
     }
-
+*/
 
 
     return true;
