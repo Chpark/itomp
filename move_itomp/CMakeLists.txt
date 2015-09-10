@@ -35,3 +35,11 @@ src/rbprm_reader.cpp
 ${MOVE_ITOMP_HEADER_FILES}
 )
 
+
+# mixamo walking animation visualize
+rosbuild_add_executable(walking_rbprm
+src/walking_rbprm.cpp
+src/move_itomp_util.cpp
+src/rbprm_reader.cpp
+${MOVE_ITOMP_HEADER_FILES}
+)

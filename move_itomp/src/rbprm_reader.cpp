@@ -83,7 +83,7 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                     {
                         waypoint[i] += offset[i];
                     }
-                    waypoint[2] -= 1.2;
+                    waypoint[2] -= 1;
                     waypoints.push_back(waypoint);
                 }
                 else if(contacts)
@@ -140,13 +140,21 @@ void displayInitialWaypoints(robot_state::RobotState& state,
     color.r = 1.0;
     color.g = 1.0;
     color.b = 0.0;
-    ros::Duration dur(3600.0);
+
+    //ros::Duration dur(3600.0);
+    ros::Duration dur(0.25);
 
     for (unsigned int point = 0; point < waypoints.size(); ++point)
     {
         ma.markers.clear();
 
         setRobotStateFrom(state, hierarchy, waypoints, point);
+
+
+        double time = 0.05;
+        ros::WallDuration timer(time);
+        timer.sleep();
+
 
         std::string ns = "init_" + boost::lexical_cast<std::string>(point);
         state.getRobotMarkers(ma, link_names, color, ns, dur);
