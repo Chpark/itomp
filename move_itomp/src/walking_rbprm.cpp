@@ -41,8 +41,9 @@ int main(int argc, char **argv)
         ROS_INFO("Waiting planning_scene subscribers");
     }
 
+    boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
     planning_interface::PlannerManagerPtr planner_instance;
-    initializePlanner(planner_instance, node_handle, robot_model);
+    initializePlanner(planner_plugin_loader, planner_instance, node_handle, robot_model);
 
     loadStaticScene(node_handle, planning_scene, robot_model, planning_scene_diff_publisher);
 

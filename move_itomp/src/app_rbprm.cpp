@@ -41,8 +41,9 @@ int main(int argc, char **argv)
 		ROS_INFO("Waiting planning_scene subscribers");
 	}
 
+    boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
     planning_interface::PlannerManagerPtr planner_instance;
-    initializePlanner(planner_instance, node_handle, robot_model);
+    initializePlanner(planner_plugin_loader, planner_instance, node_handle, robot_model);
 
 	loadStaticScene(node_handle, planning_scene, robot_model, planning_scene_diff_publisher);
 
@@ -69,11 +70,23 @@ int main(int argc, char **argv)
     robot_state::RobotState rs(planning_scene->getCurrentStateNonConst());
     displayInitialWaypoints(rs, node_handle, robot_model, hierarchy, waypoints);
 
+    moveit_msgs::DisplayTrajectory display_trajectory;
     //for (unsigned int i = 0; i < waypoints.size() - 1; ++i)
     for (unsigned int i = 0; i < 1; ++i)
     {
         planning_interface::MotionPlanRequest req;
         planning_interface::MotionPlanResponse res;
+
+        for (unsigned int j = 0; j < waypoints[i].rows(); ++j)
+        {
+            double cur_pos = waypoints[i](j);
+            double next_pos = waypoints[i + 1](j);
+            while (next_pos - cur_pos > M_PI)
+                next_pos -= 2 * M_PI;
+            while (next_pos - cur_pos < -M_PI)
+                next_pos += 2 * M_PI;
+            waypoints[i + 1](j) = next_pos;
+        }
 
         for (unsigned int j = i; j <= i + 1; ++j)
         {
@@ -81,11 +94,33 @@ int main(int argc, char **argv)
             req.trajectory_constraints.constraints.push_back(constraint);
         }
         setRobotStateFrom(robot_states[0], hierarchy, waypoints, i);
-        setRobotStateFrom(robot_states[1], hierarchy, waypoints, i + 1);
+        setRobotStateFrom(robot_states[1], hierarchy, waypoints, i + 1);        
+
         displayStates(robot_states[0], robot_states[1], node_handle, robot_model);
         doPlan("whole_body", req, res, robot_states[0], robot_states[1], planning_scene, planner_instance);
-        visualizeResult(res, node_handle, 0, 1.0);
+        //visualizeResult(res, node_handle, 0, 1.0);
+
+        moveit_msgs::MotionPlanResponse response;
+        res.getMessage(response);
+
+        if (i == 0)
+            display_trajectory.trajectory_start = response.trajectory_start;
+        display_trajectory.trajectory.push_back(response.trajectory);
+
+        // test
+        /*
+        display_trajectory.trajectory_start = response.trajectory_start;
+        display_trajectory.trajectory.clear();
+        display_trajectory.trajectory.push_back(response.trajectory);
+        */
     }
+
+    ROS_INFO("Visualizing the trajectory");
+    static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
+
+    display_publisher.publish(display_trajectory);
+    ros::WallDuration timer(1.0);
+    timer.sleep();
 
 	ROS_INFO("Done");
 

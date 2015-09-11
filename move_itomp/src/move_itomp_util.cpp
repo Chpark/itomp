@@ -1,5 +1,4 @@
 #include <move_itomp/move_itomp_util.h>
-#include <pluginlib/class_loader.h>
 #include <boost/variant/get.hpp>
 #include <geometric_shapes/mesh_operations.h>
 #include <geometric_shapes/shape_operations.h>
@@ -8,11 +7,11 @@
 namespace move_itomp_util
 {
 
-void initializePlanner(planning_interface::PlannerManagerPtr& planner_instance,
+void initializePlanner(boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> >& planner_plugin_loader,
+                       planning_interface::PlannerManagerPtr& planner_instance,
                        ros::NodeHandle& node_handle,
                        robot_model::RobotModelPtr& robot_model)
 {
-    boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> > planner_plugin_loader;
     std::string planner_plugin_name;
 
     if (!node_handle.getParam("planning_plugin", planner_plugin_name))

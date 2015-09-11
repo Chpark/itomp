@@ -2,6 +2,7 @@
 #define MOVE_ITOMP_UTIL_H_
 
 #include <ros/ros.h>
+#include <pluginlib/class_loader.h>
 #include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/planning_interface/planning_interface.h>
 #include <moveit/planning_scene/planning_scene.h>
@@ -14,7 +15,8 @@
 namespace move_itomp_util
 {
 
-void initializePlanner(planning_interface::PlannerManagerPtr& planner_instance,
+void initializePlanner(boost::scoped_ptr<pluginlib::ClassLoader<planning_interface::PlannerManager> >& planner_plugin_loader,
+                       planning_interface::PlannerManagerPtr& planner_instance,
                        ros::NodeHandle& node_handle,
                        robot_model::RobotModelPtr& robot_model);
 
