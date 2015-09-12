@@ -114,7 +114,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
     bool NO_INTERPOLATED = false;
 	bool updated = false;
 
-    if (/*PhaseManager::getInstance()->getPhase() == 2 || */NO_INTERPOLATED)
+    if (NO_INTERPOLATED)
 	{
         for (int i = 0; i < triangles_.size(); ++i)
         {
@@ -124,8 +124,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
                                          triangle.points_[2], position_in);
 
             double distance = (position_in - projection).norm();
-            //if (ignore_Z)
-
+            if (ignore_Z)
             {
                 Eigen::Vector3d diff = position_in - projection;
                 diff(2) = 0.0;
@@ -161,7 +160,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
                                          triangle.points_[2], position_in);
 
             double distance = (position_in - projection).norm();
-            //if (ignore_Z)
+            if (ignore_Z)
             {
                 Eigen::Vector3d diff = position_in - projection;
                 diff(2) = 0.0;
@@ -177,7 +176,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 
             updated = true;
 
-            weights.push_back(1.0 / (1.0 + distance * distance * SMOOTHNESS_PARAM));
+            weights.push_back(1.0 / (1.0 + distance * distance * distance * SMOOTHNESS_PARAM));
             proj_points.push_back(projection);
             weight_sum += weights.back();
 
