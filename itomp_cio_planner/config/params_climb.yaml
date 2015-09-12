@@ -5,7 +5,7 @@ max_iterations_after_collision_free: 0
 num_trajectories: 1
 
 smoothness_cost_weight: 0.000
-obstacle_cost_weight: 1000000.0
+obstacle_cost_weight: 100000.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
 contact_invariant_cost_weight: 1.0
