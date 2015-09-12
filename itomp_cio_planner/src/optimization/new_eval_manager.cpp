@@ -874,7 +874,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-    return;
+    //return;
 
     const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
@@ -891,7 +891,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             if (cost_functions[c]->getName().size() > max_cost_name_length)
                 max_cost_name_length = cost_functions[c]->getName().size();
 
-        /*
+
         cout.precision(3);
         for (int c = 0; c < cost_functions.size(); ++c)
         {
@@ -908,7 +908,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             }
             std::cout << std::endl;
         }
-        */
+
 
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -951,12 +951,6 @@ void NewEvalManager::initializeContactVariables()
 
         updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
 
-		/*
-		 for (int i = 0; i < rbdl_models_[point].f.size(); ++i)
-		 cout << i << " : " << rbdl_models_[point].f[i].transpose() << endl;
-		 cout << tau.transpose() << endl;
-		 */
-
 		std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
         ext_forces.resize(rbdl_models_[point].mBodies.size(), RigidBodyDynamics::Math::SpatialVectorZero);
 
@@ -969,8 +963,7 @@ void NewEvalManager::initializeContactVariables()
 
             const Eigen::Vector3d prev_orientation = (point == 0) ? Eigen::Vector3d::Zero() : contact_variables_[point - 1][i].getOrientation();
             const Eigen::Vector3d* prev_orientation_p = (point == 0) ? NULL : &prev_orientation;
-            contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E,
-                                                                                                  prev_orientation_p));
+            contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E, prev_orientation_p));
 
 
 			for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
@@ -986,38 +979,6 @@ void NewEvalManager::initializeContactVariables()
 				contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
 				// set forces to 0
 				contact_force = 0.0 / num_contacts * tau.block(0, 0, 3, 1);
-
-
-                // TODO: set initial forces to feet
-                if (i < 2)
-                {
-                    const double VINCENT_CP_WEIGHT[] = {0.107, 0.107, 0.393, 0.393};
-
-                    if (point == 0 || point == itomp_trajectory_->getNumPoints() - 1)
-                        //if (point % 20 == 0)
-                    {
-                        contact_force = VINCENT_CP_WEIGHT[j] / 2.0 * tau.block(0, 0, 3, 1);
-                    }
-                    /*
-                    else
-                    {
-                        if ((point / 20) % 2 == 0)
-                        {
-                            if (i == 0)
-                            {
-                                contact_force = VINCENT_CP_WEIGHT[j] * tau.block(0, 0, 3, 1);
-                            }
-                        }
-                        else
-                        {
-                            if (i == 1)
-                            {
-                                contact_force = VINCENT_CP_WEIGHT[j] * tau.block(0, 0, 3, 1);
-                            }
-                        }
-                    }
-                    */
-                }
 
 				contact_torque = contact_position.cross(contact_force);
 
@@ -1042,26 +1003,6 @@ void NewEvalManager::initializeContactVariables()
         itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
 	}
 	full_trajectory_->interpolateContactVariables();
-    //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
-    //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
-
-    /*
-    std::vector<unsigned int> left_foot_cp(7);
-    std::vector<unsigned int> right_foot_cp(7);
-    for (int i = 0; i < 7; ++i)
-    {
-        left_foot_cp[i] = i;
-        right_foot_cp[i] = i + 7;
-    }
-    itomp_trajectory_->interpolate(20, 60, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &left_foot_cp);
-    itomp_trajectory_->copy(60, 40, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
-    itomp_trajectory_->interpolate(0, 40, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
-    for (int i = 40; i >= 20; --i)
-    {
-        itomp_trajectory_->copy(i, i + 20, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
-        itomp_trajectory_->copy(20, i, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION, &right_foot_cp);
-    }
-    */
 }
 
 void NewEvalManager::resetBestTrajectoryCost()

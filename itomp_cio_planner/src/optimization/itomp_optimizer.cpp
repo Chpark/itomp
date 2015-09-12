@@ -75,8 +75,8 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 3;
-	//PlanningParameters::getInstance()->getMaxIterations(); // for CHOMP optimization
+    int num_max_iterations = 1;
+    //PlanningParameters::getInstance()->getMaxIterations();
 
     //++iteration_;
 
@@ -111,6 +111,7 @@ bool ItompOptimizer::optimize()
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
 
+            /*
             if (iteration_ == 2)
             {
                 for (int i = 1; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
@@ -177,6 +178,7 @@ bool ItompOptimizer::optimize()
                     }
                 }
             }
+            */
 		}
 	}
 
