@@ -93,150 +93,79 @@ bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manage
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
     double collision_scale = 1.0;
-    if (PhaseManager::getInstance()->getPhase() == 0)
-    {
-        if (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1)
-        {
-            cost = 0;
-            return true;
-        }
-    }
-    /*
-    else if (PhaseManager::getInstance()->getPhase() == 1)
-    {
-        cost = 0;
-        return true;
-    }
-    */
-    else
-    {
-
-        /*
-        if (point % 4 != 0)
-        {
-            cost = 0;
-            return true;
-        }
-        */
-
-        if (PhaseManager::getInstance()->getPhase() == 2)
-            collision_scale = 10.0;
-    }
 
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;
 
-	double costs[2];
+    const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
+    robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
+    const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
 
-    for (int i = 1; i < 2; ++i)
-	{
+    ROS_ASSERT(robot_state->getVariableCount() ==
+               trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements());
 
-		cost = 0;
+    collision_detection::CollisionRequest collision_request;
+    collision_detection::CollisionResult collision_result;
+    collision_request.verbose = false;
+    collision_request.contacts = true;
+    collision_request.max_contacts = 1000;
+    collision_request.distance = false;
 
-        const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
-        robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
-        const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
+    const Eigen::MatrixXd mat = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+    robot_state->setVariablePositions(mat.data());
 
-        ROS_ASSERT(robot_state->getVariableCount() ==
-                   trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                           ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements());
-
-		collision_detection::CollisionRequest collision_request;
-		collision_detection::CollisionResult collision_result;
-		collision_request.verbose = false;
-		collision_request.contacts = true;
-		collision_request.max_contacts = 1000;
-		collision_request.distance = false;
-
-        const Eigen::MatrixXd mat = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
-		robot_state->setVariablePositions(mat.data());
-
-        const double self_collision_scale = 1.0;
-
-		if (i == 0)
-		{
-            planning_scene->checkCollisionUnpadded(collision_request, collision_result, *robot_state);
-
-			const collision_detection::CollisionResult::ContactMap& contact_map =
-				collision_result.contacts;
-			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-						contact_map.begin(); it != contact_map.end(); ++it)
-			{
-				const collision_detection::Contact& contact = it->second[0];
-
-                if (contact.body_type_1	!= collision_detection::BodyTypes::WORLD_OBJECT
-                        && contact.body_type_2 != collision_detection::BodyTypes::WORLD_OBJECT)
-				{
-					cost += self_collision_scale * contact.depth;
-				}
-				else
-				{
-					cost += contact.depth;
-				}
-			}
-
-			collision_result.clear();
-		}
-		else
-		{
-            const CollisionWorldFCLDerivativesPtr& collision_world_derivatives = evaluation_manager->getCollisionWorldFCLDerivatives();
-            const CollisionRobotFCLDerivativesPtr& collision_robot_derivatives = evaluation_manager->getCollisionRobotFCLDerivatives();
-
-            robot_state->updateCollisionBodyTransforms();
-
-            collision_robot_derivatives->updateInternalFCLObjectTransforms(*robot_state);
-
-            const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+    const double self_collision_scale = 1.0;
 
 
-            collision_world_derivatives->checkRobotCollision(collision_request, collision_result,
-                    *collision_robot_derivatives,
-                    *robot_state,
-                    planning_scene->getAllowedCollisionMatrix());
+    const CollisionWorldFCLDerivativesPtr& collision_world_derivatives = evaluation_manager->getCollisionWorldFCLDerivatives();
+    const CollisionRobotFCLDerivativesPtr& collision_robot_derivatives = evaluation_manager->getCollisionRobotFCLDerivatives();
+
+    robot_state->updateCollisionBodyTransforms();
+
+    collision_robot_derivatives->updateInternalFCLObjectTransforms(*robot_state);
+
+    const collision_detection::CollisionResult::ContactMap& contact_map = collision_result.contacts;
+
+
+    collision_world_derivatives->checkRobotCollision(collision_request, collision_result,
+            *collision_robot_derivatives,
+            *robot_state,
+            planning_scene->getAllowedCollisionMatrix());
 
 
 
-			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-						contact_map.begin(); it != contact_map.end(); ++it)
-			{
-				const collision_detection::Contact& contact = it->second[0];
-                cost += contact.depth * contact.depth * collision_scale;
-			}
+    for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+                contact_map.begin(); it != contact_map.end(); ++it)
+    {
+        const collision_detection::Contact& contact = it->second[0];
+        cost += contact.depth * contact.depth * collision_scale;
+    }
 
 
 
-			collision_result.clear();
+    collision_result.clear();
 
 
-            collision_robot_derivatives->checkSelfCollision(collision_request, collision_result,
-                    *robot_state,
-                    planning_scene->getAllowedCollisionMatrix());
-			for (collision_detection::CollisionResult::ContactMap::const_iterator it =
-						contact_map.begin(); it != contact_map.end(); ++it)
-			{
-				const collision_detection::Contact& contact = it->second[0];
-                cost += self_collision_scale * contact.depth * contact.depth;
-			}
-		}
-
-		is_feasible = (cost == 0.0);
-
-		costs[i] = cost;
-
-	}
-
-    /*
-    double diff = std::abs(costs[0] - costs[1]);
-    if (diff > 0.000001)
-        ROS_INFO("[%d] obstacle cost invalid : %f %f (%.14f", point, costs[0], costs[1], costs[0] - costs[1]);
-        */
+    collision_robot_derivatives->checkSelfCollision(collision_request, collision_result,
+            *robot_state,
+            planning_scene->getAllowedCollisionMatrix());
+    for (collision_detection::CollisionResult::ContactMap::const_iterator it =
+                contact_map.begin(); it != contact_map.end(); ++it)
+    {
+        const collision_detection::Contact& contact = it->second[0];
+        cost += self_collision_scale * contact.depth * contact.depth;
+    }
 
 
-	TIME_PROFILER_END_TIMER(Obstacle);
+    is_feasible = (cost == 0.0);
 
-	return is_feasible;
+
+    TIME_PROFILER_END_TIMER(Obstacle);
+
+    return is_feasible;
 }
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(Validity)
@@ -255,13 +184,6 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(ContactInvariant)
 bool TrajectoryCostContactInvariant::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-    {
-        cost = 0;
-        return true;
-    }
-
 	TIME_PROFILER_START_TIMER(ContactInvariant);
 
 	bool is_feasible = true;
@@ -286,16 +208,17 @@ bool TrajectoryCostContactInvariant::evaluate(
 
                 const Eigen::Vector3d& body_position = contact_body_transform.r;
                 Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
+                //Eigen::Vector3d position_diff = body_position - GroundManager::getInstance()->getProjPosition(contact_variables[i].projected_point_positions_[j]);
 
                 Eigen::Quaterniond body_orientation(contact_body_transform.E);
                 Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
                 double angle = body_orientation.angularDistance(projected_orientation);
 
                 double position_diff_cost = 0.0;// = position_diff.squaredNorm() + angle * angle;
-                        position_diff_cost += position_diff(0) * position_diff(0)// * 0.01
-                                + position_diff(1) * position_diff(1)// * 0.01
-                                + position_diff(2) * position_diff(2)
-                                + angle * angle * 0.01;
+                position_diff_cost += position_diff(0) * position_diff(0)// * 0.01
+                                      + position_diff(1) * position_diff(1)// * 0.01
+                                      + position_diff(2) * position_diff(2)
+                                      + angle * angle * 0.01;
                 double contact_body_velocity_cost = model.v[rbdl_point_id].squaredNorm();
 
                 double c = getContactActiveValue(i, j, contact_variables);
@@ -339,12 +262,6 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(PhysicsViolation)
 bool TrajectoryCostPhysicsViolation::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-    {
-        cost = 0;
-        return true;
-    }
 
 	bool is_feasible = true;
 	cost = 0;
@@ -367,14 +284,6 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(GoalPose)
 bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
 									  int point, double& cost) const
 {
-    /*
-    if (PhaseManager::getInstance()->getPhase() != 0)
-    {
-        cost = 0;
-        return true;
-    }
-    */
-
 	TIME_PROFILER_START_TIMER(GoalPose);
 
     bool is_feasible = true;
@@ -538,10 +447,6 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 	}
 
 	TIME_PROFILER_END_TIMER(Torque);
-
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-        cost = 0;
 
 	return is_feasible;
 }
@@ -761,13 +666,6 @@ ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(FrictionCone)
 bool TrajectoryCostFrictionCone::evaluate(
 	const NewEvalManager* evaluation_manager, int point, double& cost) const
 {
-    if (PhaseManager::getInstance()->getPhase() == 0 &&
-            (point > 0 && point < evaluation_manager->getTrajectory()->getNumPoints() - 1))
-    {
-        cost = 0;
-        return true;
-    }
-
 	TIME_PROFILER_START_TIMER(FrictionCone);
 
 	bool is_feasible = true;
