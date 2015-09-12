@@ -75,7 +75,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 2;
+    int num_max_iterations = 3;
     //PlanningParameters::getInstance()->getMaxIterations();
 
     //++iteration_;
