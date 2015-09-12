@@ -106,7 +106,7 @@ std::vector<std::string> InitTrajectoryFromFile(std::vector<Eigen::VectorXd>& wa
                         {
                             contactPoint(i,k) += offset[k];
                         }
-                        contactPoint(i,3) -= 1.2;
+                        contactPoint(i,3) -= 1;
                     }
                     contactPoints.push_back(contactPoint);
                 }

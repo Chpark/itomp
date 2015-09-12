@@ -71,8 +71,8 @@ int main(int argc, char **argv)
     displayInitialWaypoints(rs, node_handle, robot_model, hierarchy, waypoints);
 
     moveit_msgs::DisplayTrajectory display_trajectory;
-    //for (unsigned int i = 0; i < waypoints.size() - 1; ++i)
-    for (unsigned int i = 0; i < 1; ++i)
+    unsigned int last = waypoints.size() - 2;
+    for (unsigned int i = 1; i <= last; ++i)
     {
         planning_interface::MotionPlanRequest req;
         planning_interface::MotionPlanResponse res;
@@ -90,7 +90,8 @@ int main(int argc, char **argv)
 
         for (unsigned int j = i; j <= i + 1; ++j)
         {
-            moveit_msgs::Constraints constraint = setRootJointAndContactPointConstraints(hierarchy, waypoints[j], contactPoints[j]);
+            moveit_msgs::Constraints constraint;
+            setRootJointConstraint(constraint, hierarchy, waypoints[j]);
             req.trajectory_constraints.constraints.push_back(constraint);
         }
         setRobotStateFrom(robot_states[0], hierarchy, waypoints, i);
@@ -98,22 +99,22 @@ int main(int argc, char **argv)
 
         displayStates(robot_states[0], robot_states[1], node_handle, robot_model);
         doPlan("whole_body", req, res, robot_states[0], robot_states[1], planning_scene, planner_instance);
-        //visualizeResult(res, node_handle, 0, 1.0);
+
+        if (i == last)
+        {
+            for (int j = 0; j < 10; ++j)
+                res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
+        }
 
         moveit_msgs::MotionPlanResponse response;
         res.getMessage(response);
 
         if (i == 0)
             display_trajectory.trajectory_start = response.trajectory_start;
-        display_trajectory.trajectory.push_back(response.trajectory);
 
-        // test
-        /*
-        display_trajectory.trajectory_start = response.trajectory_start;
-        display_trajectory.trajectory.clear();
         display_trajectory.trajectory.push_back(response.trajectory);
-        */
     }
+
 
     ROS_INFO("Visualizing the trajectory");
     static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
