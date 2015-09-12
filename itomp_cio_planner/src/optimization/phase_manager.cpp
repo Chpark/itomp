@@ -23,7 +23,22 @@ void PhaseManager::init(int num_points)
 
 bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 {
-    int state = (int)(PlanningParameters::getInstance()->getTemporaryVariable(0) + 0.0001);
+    int state = (int)(PlanningParameters::getInstance()->getTemporaryVariable(0) + ITOMP_EPS);
+
+    if (getPhase() == 0)
+    {
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            return true;
+        if (index.point == 0 || index.point == num_points_ -1)
+           return false;
+    }
+    else
+    {
+        if (index.point == 0 || index.point == num_points_ -1)
+           return false;
+    }
+
+    return true;
 
     switch(state)
     {

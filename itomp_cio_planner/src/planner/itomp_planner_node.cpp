@@ -148,9 +148,9 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
             if (planning_info.cost > PlanningParameters::getInstance()->getFailureCost())
             {
-                res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
+                //res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
                 ROS_INFO("Planning failure - cost : %f", planning_info.cost);
-                return false;
+                //return false;
             }
         }
 	}
