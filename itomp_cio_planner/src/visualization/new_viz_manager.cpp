@@ -162,13 +162,13 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
     const double SCALE_FORCE_LINE = 0.005;
     const double SCALE_DISPLACEMENT_LINE = 0.0025;
     const double SCALE_SPHERE = 0.03;
-    geometry_msgs::Point point_from, point_to, point_body;
 
     int num_contacts = contact_variables[0].size();
 
     visualization_msgs::MarkerArray ma;
     visualization_msgs::Marker marker_cf;
     visualization_msgs::Marker marker_cp;
+    visualization_msgs::Marker marker_cp_line;
     visualization_msgs::Marker marker_displacement;
 
     marker_cf.header.frame_id = reference_frame_;
@@ -187,6 +187,8 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
     marker_cp.scale.y = SCALE_SPHERE;
     marker_cp.scale.z = SCALE_SPHERE;
 
+    marker_cp_line = marker_cf;
+
     marker_displacement = marker_cf;
     marker_displacement.scale.x = SCALE_DISPLACEMENT_LINE;
     marker_displacement.scale.y = SCALE_DISPLACEMENT_LINE;
@@ -195,67 +197,44 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
 
     for (int point = 0; point < trajectory->getNumPoints(); ++point)
     {
+        int marker_id = 0;
         marker_cf.ns = "contact_" + boost::lexical_cast<std::string>(point);
         marker_cp.ns = marker_cf.ns;
+        marker_cp_line.ns = marker_cf.ns;
         marker_displacement.ns = marker_cf.ns;
         for (int i = 0; i < num_contacts; ++i)
         {
+            double max_contact_active_value = 0.0;
             for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
             {
-                marker_cf.points.clear();
-                marker_cp.points.clear();
-                marker_displacement.points.clear();
-                marker_cf.id = i * NUM_ENDEFFECTOR_CONTACT_POINTS + c;
-                marker_cp.id = marker_cf.id + NUM_ENDEFFECTOR_CONTACT_POINTS * num_contacts;
-                marker_displacement.id = marker_cp.id + NUM_ENDEFFECTOR_CONTACT_POINTS * num_contacts;
-                marker_cf.color = colors_[i + 1];
-                marker_cp.color = marker_cf.color;
-
                 const Eigen::Vector3d& point_position = contact_variables[point][i].projected_point_positions_[c];
                 const Eigen::Vector3d& contact_force = contact_variables[point][i].getPointForce(c);
 
-                point_from.x = point_position(0);
-                point_from.y = point_position(1);
-                point_from.z = point_position(2);
-
-                point_to.x = contact_force(0) * 0.001 + point_from.x;
-                point_to.y = contact_force(1) * 0.001 + point_from.y;
-                point_to.z = contact_force(2) * 0.001 + point_from.z;
-
-                marker_cf.points.push_back(point_from);
-                marker_cf.points.push_back(point_to);
-                marker_cp.points.push_back(point_from);
+                Eigen::Vector3d point_to = point_position + contact_force * 0.001;
 
                 double contact_active_value = getContactActiveValue(i, c, contact_variables[point]);
                 contact_active_value = std::min(1.0, contact_active_value);
-                marker_cf.color.r *= contact_active_value;
-                marker_cf.color.g *= contact_active_value;
-                marker_cf.color.b *= contact_active_value;
-                marker_cp.color.r *= contact_active_value;
-                marker_cp.color.g *= contact_active_value;
-                marker_cp.color.b *= contact_active_value;
+                if (contact_active_value > max_contact_active_value)
+                    max_contact_active_value = contact_active_value;
+
+                setLineMarker(marker_cf, marker_id++, point_position, point_to, colors_[i + 1], contact_active_value);
+                setPointMarker(marker_cp, marker_id++, point_position, colors_[i + 1], contact_active_value);
 
                 ma.markers.push_back(marker_cf);
                 ma.markers.push_back(marker_cp);
+            }
+            const Eigen::Vector3d& endeffector_position = contact_variables[point][i].projected_position_;
+            setPointMarker(marker_cp, marker_id++, endeffector_position, colors_[i + 1], max_contact_active_value);
+            ma.markers.push_back(marker_cp);
 
-                /*
-                int rbdl_contact_point_id = planning_group_->contact_points_[i].getContactPointRBDLIds(c);
-                const RigidBodyDynamics::Math::SpatialTransform& contact_point_transform = models[point].X_base[rbdl_contact_point_id];
-                const Eigen::Vector3d& body_point_position = contact_point_transform.r;
-
-                point_body.x = body_point_position(0);
-                point_body.y = body_point_position(1);
-                point_body.z = body_point_position(2);
-
-                marker_displacement.points.push_back(point_from);
-                marker_displacement.points.push_back(point_body);
-
-                marker_displacement.color = colors_[WHITE];
-                marker_displacement.color.r *= 0.5 * contact_active_value;
-                marker_displacement.color.g *= 0.5 * contact_active_value;
-                marker_displacement.color.b *= 0.6 * contact_active_value;
-                ma.markers.push_back(marker_displacement);
-                */
+            for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
+            {
+                const Eigen::Vector3d& point_position = contact_variables[point][i].projected_point_positions_[c];
+                const Eigen::Vector3d& next_point_position = contact_variables[point][i].projected_point_positions_[(c + 1) % NUM_ENDEFFECTOR_CONTACT_POINTS];
+                setLineMarker(marker_cf, marker_id++, endeffector_position, point_position, colors_[i + 1], 0);
+                ma.markers.push_back(marker_cf);
+                setLineMarker(marker_cf, marker_id++, point_position, next_point_position, colors_[i + 1], 0);
+                ma.markers.push_back(marker_cf);
             }
         }
     }
@@ -341,6 +320,44 @@ void NewVizManager::renderContactSurface()
     msg.mesh_resource = contact_file;
     ma.markers.push_back(msg);
     vis_marker_array_publisher_contacts_.publish(ma);
+}
+
+void NewVizManager::setPointMarker(visualization_msgs::Marker& marker, unsigned int id, const Eigen::Vector3d& pos, const visualization_msgs::Marker::_color_type& color, double color_scale)
+{
+     marker.id = id;
+
+    marker.points.clear();
+    geometry_msgs::Point position;
+    position.x = pos(0);
+    position.y = pos(1);
+    position.z = pos(2);
+    marker.points.push_back(position);
+
+    marker.color = color;
+    marker.color.r *= color_scale;
+    marker.color.g *= color_scale;
+    marker.color.b *= color_scale;
+}
+
+void NewVizManager::setLineMarker(visualization_msgs::Marker& marker, unsigned int id, const Eigen::Vector3d& pos1, const Eigen::Vector3d& pos2, const visualization_msgs::Marker::_color_type& color, double color_scale)
+{
+    marker.id = id;
+
+    marker.points.clear();
+    geometry_msgs::Point position;
+    position.x = pos1(0);
+    position.y = pos1(1);
+    position.z = pos1(2);
+    marker.points.push_back(position);
+    position.x = pos2(0);
+    position.y = pos2(1);
+    position.z = pos2(2);
+    marker.points.push_back(position);
+
+    marker.color = color;
+    marker.color.r *= color_scale;
+    marker.color.g *= color_scale;
+    marker.color.b *= color_scale;
 }
 
 }

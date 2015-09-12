@@ -40,6 +40,9 @@ public:
 	ros::Publisher& getVisualizationMarkerArrayPublisher();
 
 private:
+    void setPointMarker(visualization_msgs::Marker& marker, unsigned int id, const Eigen::Vector3d& pos, const visualization_msgs::Marker::_color_type& color, double color_scale = 1.0);
+    void setLineMarker(visualization_msgs::Marker& marker, unsigned int id, const Eigen::Vector3d& pos1, const Eigen::Vector3d& pos2, const visualization_msgs::Marker::_color_type& color, double color_scale = 1.0);
+
     ros::Publisher vis_marker_array_publisher_path_;
     ros::Publisher vis_marker_array_publisher_contacts_;
     ros::Publisher trajectory_publisher_;
