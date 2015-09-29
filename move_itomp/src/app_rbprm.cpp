@@ -81,9 +81,9 @@ int main(int argc, char **argv)
         {
             double cur_pos = waypoints[i](j);
             double next_pos = waypoints[i + 1](j);
-            while (next_pos - cur_pos > M_PI)
+            while (next_pos - cur_pos > M_PI + 0.1)
                 next_pos -= 2 * M_PI;
-            while (next_pos - cur_pos < -M_PI)
+            while (next_pos - cur_pos < -M_PI - 0.1)
                 next_pos += 2 * M_PI;
             waypoints[i + 1](j) = next_pos;
         }
