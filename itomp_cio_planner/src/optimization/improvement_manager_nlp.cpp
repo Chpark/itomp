@@ -25,7 +25,7 @@ const bool WRITE_TRAJECTORY_FILE = false;
 ImprovementManagerNLP::ImprovementManagerNLP()
 {
     evaluation_count_ = 0;
-    eps_ = 1e-1;//ITOMP_EPS;
+    eps_ = ITOMP_EPS;
     best_cost_ = std::numeric_limits<double>::max();
 }
 
