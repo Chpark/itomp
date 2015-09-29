@@ -100,9 +100,23 @@ public:
 	std::string getEnvironmentModel() const;
 	const std::vector<double>& getEnvironmentModelPosition() const;
 	double getEnvironmentModelScale() const;
+    std::string getContactModel() const;
+    const std::vector<double>& getContactModelPosition() const;
+    double getContactModelScale() const;
+
 	bool getHasRoot6d() const;
 
 	const std::map<std::string, std::vector<std::string> >& getContactPoints() const;
+
+    const std::vector<double>& getWorkspaceMin() const;
+    const std::vector<double>& getWorkspaceMax() const;
+
+    bool getUseDefaultContactGround() const;
+    bool getCIEvaluationOnPoints() const;
+
+    double getFailureCost() const;
+
+    bool getContactZPlaneOnly() const;
 
 private:
 	int updateIndex;
@@ -164,8 +178,21 @@ private:
 	std::string environment_model_;
 	std::vector<double> environment_model_position_;
 	double environment_model_scale_;
+    std::string contact_model_;
+    std::vector<double> contact_model_position_;
+    double contact_model_scale_;
 
 	bool has_root_6d_;
+
+    std::vector<double> workspace_min_;
+    std::vector<double> workspace_max_;
+
+    bool use_default_contact_ground_;
+    bool ci_evaluation_on_points_;
+
+    double failure_cost_;
+
+    bool contact_z_plane_only_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -177,7 +204,7 @@ inline int PlanningParameters::getUpdateIndex() const
 }
 
 inline void PlanningParameters::setTrajectoryDuration(
-		double trajectory_duration)
+	double trajectory_duration)
 {
 	trajectory_duration_ = trajectory_duration;
 }
@@ -396,6 +423,21 @@ inline double PlanningParameters::getEnvironmentModelScale() const
 	return environment_model_scale_;
 }
 
+inline std::string PlanningParameters::getContactModel() const
+{
+    return contact_model_;
+}
+
+inline const std::vector<double>& PlanningParameters::getContactModelPosition() const
+{
+    return contact_model_position_;
+}
+
+inline double PlanningParameters::getContactModelScale() const
+{
+    return contact_model_scale_;
+}
+
 inline bool PlanningParameters::getHasRoot6d() const
 {
 	return has_root_6d_;
@@ -409,6 +451,36 @@ inline double PlanningParameters::getFrictionConeCostWeight() const
 inline const std::map<std::string, std::vector<std::string> >& PlanningParameters::getContactPoints() const
 {
 	return contact_points_;
+}
+
+inline const std::vector<double>& PlanningParameters::getWorkspaceMin() const
+{
+    return workspace_min_;
+}
+
+inline const std::vector<double>& PlanningParameters::getWorkspaceMax() const
+{
+    return workspace_max_;
+}
+
+inline bool PlanningParameters::getUseDefaultContactGround() const
+{
+    return use_default_contact_ground_;
+}
+
+inline bool PlanningParameters::getCIEvaluationOnPoints() const
+{
+    return ci_evaluation_on_points_;
+}
+
+inline double PlanningParameters::getFailureCost() const
+{
+    return failure_cost_;
+}
+
+inline bool PlanningParameters::getContactZPlaneOnly() const
+{
+    return contact_z_plane_only_;
 }
 
 }

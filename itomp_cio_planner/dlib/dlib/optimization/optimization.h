@@ -9,6 +9,7 @@
 #include "optimization_search_strategies.h"
 #include "optimization_stop_strategies.h"
 #include "optimization_line_search.h"
+//#include <itomp_cio_planner/util/jacobian.h>
 
 namespace dlib
 {
@@ -204,6 +205,9 @@ namespace dlib
         {
             s = search_strategy.get_next_direction(x, f_value, g);
 
+            // project s to the null space of contact positions
+            //Jacobian::projectToNullSpace(x, s);
+
             double alpha = line_search(
                         make_line_search_function(f,x,s, f_value),
                         f_value,
@@ -214,6 +218,11 @@ namespace dlib
 
             // Take the search step indicated by the above line search
             x += alpha*s;
+            /*
+            s *= alpha;
+            Jacobian::projectToNullSpace(x, s);
+            x += s;
+            */
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
@@ -535,10 +544,23 @@ namespace dlib
 
             // Take the search step indicated by the above line search
             x = clamp(x + alpha*s, x_lower, x_upper);
+            f_value = f(x);
             g = der(x);
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
+
+            if (!is_finite(f_value))
+            {
+                std::cout << "f value is not finite\n" << f_value << std::endl;
+                break;
+            }
+            if (!is_finite(g))
+            {
+                std::cout << "g is not finite\n" << g << std::endl;
+                break;
+            }
+
         }
 
         return f_value;
@@ -665,7 +687,7 @@ namespace dlib
             g = -der(x);
 
             // Don't forget to negate the output from the line search since it is  from the
-            // unnegated version of f() 
+            // unnegated osion of f()
             f_value *= -1;
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");

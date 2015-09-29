@@ -14,7 +14,7 @@ public:
 	virtual ~ImprovementManager();
 
 	virtual void initialize(const NewEvalManagerPtr& evaluation_manager,
-			const ItompPlanningGroupConstPtr& planning_group);
+							const ItompPlanningGroupConstPtr& planning_group);
 	virtual bool updatePlanningParameters();
 	virtual void runSingleIteration(int iteration) = 0;
 

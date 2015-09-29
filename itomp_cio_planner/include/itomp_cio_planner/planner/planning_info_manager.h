@@ -16,36 +16,36 @@ namespace itomp_cio_planner
 class PlanningInfo
 {
 public:
-  PlanningInfo() :
-      time(0), iterations(0), cost(0), success(0)
-  {
-  }
+	PlanningInfo() :
+		time(0), iterations(0), cost(0), success(0)
+	{
+	}
 
-  PlanningInfo& operator+=(const PlanningInfo &rhs)
-  {
-    time += rhs.time;
-    iterations += rhs.iterations;
-    cost += rhs.cost;
-    success += rhs.success;
-    return *this;
-  }
-  double time;
-  int iterations;
-  double cost;
-  int success;
+	PlanningInfo& operator+=(const PlanningInfo &rhs)
+	{
+		time += rhs.time;
+		iterations += rhs.iterations;
+		cost += rhs.cost;
+		success += rhs.success;
+		return *this;
+	}
+	double time;
+	int iterations;
+	double cost;
+	int success;
 };
 
 class PlanningInfoManager
 {
 public:
-  PlanningInfoManager() {}
+	PlanningInfoManager() {}
 
-  void reset(int trials, int component);
-  void write(int trials, int component, const PlanningInfo& info);
-  void printSummary() const;
+	void reset(int trials, int component);
+	void write(int trials, int component, const PlanningInfo& info);
+	void printSummary() const;
 
 protected:
-  std::vector<std::vector<PlanningInfo> > planning_info_;
+	std::vector<std::vector<PlanningInfo> > planning_info_;
 };
 
 }

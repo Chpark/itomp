@@ -13,22 +13,33 @@ set(ROS_BUILD_TYPE Debug)
 
 rosbuild_init()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ignored-qualifiers")
+
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
+file(GLOB_RECURSE MOVE_ITOMP_HEADER_FILES RELATIVE ${PROJECT_SOURCE_DIR} *.h)
 
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
 rosbuild_add_executable(move_itomp src/move_itomp.cpp)
 rosbuild_add_executable(cio_test src/cio_test.cpp)
-rosbuild_add_executable(apartment src/apartment.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
+rosbuild_add_executable(apartment 
+src/apartment.cpp
+${MOVE_ITOMP_HEADER_FILES}
+)
+rosbuild_add_executable(app_rbprm
+src/app_rbprm.cpp
+src/move_itomp_util.cpp
+src/rbprm_reader.cpp
+${MOVE_ITOMP_HEADER_FILES}
+)
+
+
+# mixamo walking animation visualize
+rosbuild_add_executable(walking_rbprm
+src/walking_rbprm.cpp
+src/move_itomp_util.cpp
+src/rbprm_reader.cpp
+${MOVE_ITOMP_HEADER_FILES}
+)

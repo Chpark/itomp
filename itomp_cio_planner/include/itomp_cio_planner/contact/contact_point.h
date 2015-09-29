@@ -5,8 +5,8 @@
  *      Author: chpark
  */
 
-#ifndef CONTACTPOINT_H_
-#define CONTACTPOINT_H_
+#ifndef CONTACT_POINT_H_
+#define CONTACT_POINT_H_
 
 #include <itomp_cio_planner/common.h>
 
@@ -48,4 +48,4 @@ inline unsigned int ContactPoint::getContactPointRBDLIds(int point_index) const
 
 };
 
-#endif /* CONTACTPOINT_H_ */
+#endif /* CONTACT_POINT_H_ */

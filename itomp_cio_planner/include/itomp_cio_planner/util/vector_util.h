@@ -20,7 +20,7 @@ void kdlVecToEigenVec(std::vector<KDLType>& kdl_v, std::vector<Eigen::Map<EigenT
 
 template<typename KDLType, typename EigenType>
 void kdlVecVecToEigenVecVec(std::vector<std::vector<KDLType> >& kdl_vv,
-		std::vector<std::vector<Eigen::Map<EigenType> > > & eigen_vv, int rows, int cols)
+							std::vector<std::vector<Eigen::Map<EigenType> > > & eigen_vv, int rows, int cols)
 {
 	int size = kdl_vv.size();
 	eigen_vv.resize(size);
@@ -32,7 +32,7 @@ void kdlVecVecToEigenVecVec(std::vector<std::vector<KDLType> >& kdl_vv,
 
 template<typename VecType>
 void getVectorVelocities(int start, int end, double discretization, const std::vector<VecType>& pos, std::vector<
-		VecType>& vel, const VecType& zeroVec)
+						 VecType>& vel, const VecType& zeroVec)
 {
 	const double invTime = 1.0 / discretization;
 
@@ -68,15 +68,15 @@ void getVectorVelocitiesAndAccelerations(int start, int end, double discretizati
 class Vector4d
 {
 public:
-  Vector4d() {}
-  Vector4d(double x, double y, double z, double w)
-  {
-    data_[0] = x;
-    data_[1] = y;
-    data_[2] = z;
-    data_[3] = w;
-  }
-  double data_[4];
+	Vector4d() {}
+	Vector4d(double x, double y, double z, double w)
+	{
+		data_[0] = x;
+		data_[1] = y;
+		data_[2] = z;
+		data_[3] = w;
+	}
+	double data_[4];
 };
 
 }

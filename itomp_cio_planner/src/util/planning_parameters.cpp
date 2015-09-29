@@ -12,7 +12,7 @@ namespace itomp_cio_planner
 {
 
 PlanningParameters::PlanningParameters() :
-		num_time_steps_(0), updateIndex(-1)
+	num_time_steps_(0), updateIndex(-1)
 {
 }
 
@@ -29,39 +29,39 @@ void PlanningParameters::initFromNodeHandle()
 	node_handle.param("planning_time_limit", planning_time_limit_, 1.0);
 	node_handle.param("max_iterations", max_iterations_, 500);
 	node_handle.param("max_iterations_after_collision_free",
-			max_iterations_after_collision_free_, 2);
+					  max_iterations_after_collision_free_, 2);
 	node_handle.param("num_trajectories", num_trajectories_, 1);
 	node_handle.param("trajectory_duration", trajectory_duration_, 5.0);
 	node_handle.param("trajectory_discretization", trajectory_discretization_,
-			0.05);
+					  0.05);
 
 	node_handle.param("smoothness_cost_weight", smoothness_cost_weight_,
-			0.0001);
+					  0.0001);
 	node_handle.param("obstacle_cost_weight", obstacle_cost_weight_, 1.0);
 	node_handle.param("state_validity_cost_weight", state_validity_cost_weight_,
-			0.0);
+					  0.0);
 	node_handle.param("contact_invariant_cost_weight",
-			contact_invariant_cost_weight_, 1.0);
+					  contact_invariant_cost_weight_, 1.0);
 	node_handle.param("physics_violation_cost_weight",
-			physics_violation_cost_weight_, 1.0);
+					  physics_violation_cost_weight_, 1.0);
 	node_handle.param("goal_pose_cost_weight", goal_pose_cost_weight_, 0.0);
 	node_handle.param("CoM_cost_weight", com_cost_weight_, 0.0);
 	node_handle.param("endeffector_velocity_cost_weight",
-			endeffector_velocity_cost_weight_, 0.0);
+					  endeffector_velocity_cost_weight_, 0.0);
 	node_handle.param("torque_cost_weight", torque_cost_weight_, 0.0);
 	node_handle.param("RVO_cost_weight", rvo_cost_weight_, 0.0);
 	node_handle.param("ROM_cost_weight", rom_cost_weight_, 0.0);
 	node_handle.param("FTR_cost_weight", ftr_cost_weight_, 1.0);
 	node_handle.param("cartesian_trajectory_cost_weight",
-			cartesian_trajectory_cost_weight_, 0.0);
+					  cartesian_trajectory_cost_weight_, 0.0);
 	node_handle.param("singularity_cost_weight", singularity_cost_weight_, 0.0);
 	node_handle.param("friction_cone_cost_weight", friction_cone_cost_weight_,
-			0.0);
+					  0.0);
 
 	node_handle.param("smoothness_cost_velocity", smoothness_cost_velocity_,
-			0.0);
+					  0.0);
 	node_handle.param("smoothness_cost_acceleration",
-			smoothness_cost_acceleration_, 1.0);
+					  smoothness_cost_acceleration_, 1.0);
 	node_handle.param("smoothness_cost_jerk", smoothness_cost_jerk_, 0.0);
 	node_handle.param("ridge_factor", ridge_factor_, 0.0);
 
@@ -89,19 +89,19 @@ void PlanningParameters::initFromNodeHandle()
 					{
 						std::string endeffector = it->second;
 						group_endeffector_names_.insert(
-								std::make_pair<std::string, std::string>(
-										component, endeffector));
+							std::make_pair<std::string, std::string>(
+								component, endeffector));
 					}
 					else if (it->second.getType()
-							== XmlRpc::XmlRpcValue::TypeArray)
+							 == XmlRpc::XmlRpcValue::TypeArray)
 					{
 						int size = it->second.size();
 						for (int i = 0; i < size; ++i)
 						{
 							std::string endeffector = it->second[i];
 							group_endeffector_names_.insert(
-									std::make_pair<std::string, std::string>(
-											component, endeffector));
+								std::make_pair<std::string, std::string>(
+									component, endeffector));
 						}
 					}
 				}
@@ -112,7 +112,7 @@ void PlanningParameters::initFromNodeHandle()
 	node_handle.param("keyframe_duration", keyframe_duration_, 0.5);
 	node_handle.param("friction_coefficient", friction_coefficient_, 2.0);
 	node_handle.param<std::string>("lower_body_root", lower_body_root_,
-			"pelvis_link");
+								   "pelvis_link");
 
 	temporary_variables_.clear();
 	if (node_handle.hasParam("temp"))
@@ -213,7 +213,7 @@ void PlanningParameters::initFromNodeHandle()
 				{
 					std::string endeffector_name = it->first;
 					ROS_ASSERT(
-							it->second.getType() == XmlRpc::XmlRpcValue::TypeArray);
+						it->second.getType() == XmlRpc::XmlRpcValue::TypeArray);
 					int size = it->second.size();
 					for (int i = 0; i < size; ++i)
 					{
@@ -245,8 +245,80 @@ void PlanningParameters::initFromNodeHandle()
 	}
 	node_handle.param("environment_model_scale", environment_model_scale_, 1.0);
 
+    node_handle.param<std::string>("contact_model", contact_model_, "");
+    contact_model_position_.clear();
+    if (node_handle.hasParam("contact_model_position"))
+    {
+        XmlRpc::XmlRpcValue segment;
+
+        node_handle.getParam("contact_model_position", segment);
+
+        if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+        {
+            int size = segment.size();
+            for (int i = 0; i < size; ++i)
+            {
+                double value = segment[i];
+                contact_model_position_.push_back(value);
+            }
+        }
+    }
+    node_handle.param("contact_model_scale", contact_model_scale_, 1.0);
+
+
 	node_handle.param("has_root_6d", has_root_6d_, true);
+
+    workspace_min_.clear();
+    if (node_handle.hasParam("workspace_min"))
+    {
+        XmlRpc::XmlRpcValue segment;
+
+        node_handle.getParam("workspace_min", segment);
+
+        if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+        {
+            int size = segment.size();
+            for (int i = 0; i < size; ++i)
+            {
+                double value = segment[i];
+                workspace_min_.push_back(value);
+            }
+        }
+    }
+    workspace_max_.clear();
+    if (node_handle.hasParam("workspace_max"))
+    {
+        XmlRpc::XmlRpcValue segment;
+
+        node_handle.getParam("workspace_max", segment);
+
+        if (segment.getType() == XmlRpc::XmlRpcValue::TypeArray)
+        {
+            int size = segment.size();
+            for (int i = 0; i < size; ++i)
+            {
+                double value = segment[i];
+                workspace_max_.push_back(value);
+            }
+        }
+    }
+    if (workspace_min_.size() < 3)
+    {
+        workspace_min_.resize(3, -30);
+    }
+    if (workspace_max_.size() < 3)
+    {
+        workspace_max_.resize(3, 30);
+    }
+
+    node_handle.param("use_default_contact_ground", use_default_contact_ground_, true);
+    node_handle.param("ci_evaluation_on_points", ci_evaluation_on_points_, false);
+
+    node_handle.param("failure_cost", failure_cost_, 100000.0);
+
+    node_handle.param("contact_z_plane_only", contact_z_plane_only_, false);
 }
 
 } // namespace
+
 

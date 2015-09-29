@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/contact/contact_point.h>
 #include <itomp_cio_planner/util/exponential_map.h>
+#include <rbdl/Model.h>
 
 namespace itomp_cio_planner
 {
@@ -36,10 +37,10 @@ public:
 	/////////////////////
 
 	void ComputeProjectedPointPositions(
-			const Eigen::Vector3d& projected_position,
-			const Eigen::Vector3d& projected_orientation,
-			const RigidBodyDynamics::Model& model,
-			const ContactPoint& contact_point);
+		const Eigen::Vector3d& projected_position,
+		const Eigen::Vector3d& projected_orientation,
+		const RigidBodyDynamics::Model& model,
+		const ContactPoint& contact_point);
 
 	// from FK
 	Eigen::Vector3d projected_position_;
@@ -63,8 +64,9 @@ inline void ContactVariables::setVariable(double value)
 }
 inline double ContactVariables::getVariable() const
 {
-	double variable = serialized_position_(0);
-	variable = 0.5 * tanh(4 * variable - 2) + 0.5;
+    double variable = serialized_position_(0);
+    //variable = std::abs(variable);
+    //variable = 0.5 * tanh(4 * variable - 2) + 0.5;
 	return variable;
 }
 inline double ContactVariables::getRawVariable() const
@@ -93,37 +95,38 @@ inline Eigen::Vector3d ContactVariables::getOrientation() const
 inline void ContactVariables::setPointForce(int point_index,
 		const Eigen::Vector3d& point_force)
 {
-	serialized_forces_.block(3 * point_index, 0, 3, 1) =
-			point_force;
+    double scale = 60 * 9.8;
+
+    serialized_forces_.block(3 * point_index, 0, 3, 1) = point_force / scale;
 }
 inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
 {
-	Eigen::Vector3d force =
-			serialized_forces_.block(3 * point_index, 0, 3, 1);
-	double scale = 150 * 100;
+    Eigen::Vector3d force =	serialized_forces_.block(3 * point_index, 0, 3, 1);
+
+    // TODO: scale = mass * gravity
+
+    double scale = 60 * 9.8;
 	force *= scale;
-	if (force(2) < 0.0)
-		force(2) = -force(2);
 
 	return force;
 }
 
 inline void ContactVariables::ComputeProjectedPointPositions(
-		const Eigen::Vector3d& projected_position,
-		const Eigen::Vector3d& projected_orientation,
-		const RigidBodyDynamics::Model& model,
-		const ContactPoint& contact_point)
+	const Eigen::Vector3d& projected_position,
+	const Eigen::Vector3d& projected_orientation,
+	const RigidBodyDynamics::Model& model,
+	const ContactPoint& contact_point)
 {
 	projected_position_ = projected_position;
 	projected_orientation_ = projected_orientation;
 	for (int i = 0; i < NUM_ENDEFFECTOR_CONTACT_POINTS; ++i)
 	{
 		RigidBodyDynamics::Math::SpatialTransform x_base_lambda(
-				exponential_map::ExponentialMapToRotation(
-						projected_orientation), projected_position);
+			exponential_map::ExponentialMapToRotation(
+				projected_orientation), projected_position);
 		RigidBodyDynamics::Math::SpatialTransform x_base =
-				model.X_lambda[contact_point.getContactPointRBDLIds(i)]
-						* x_base_lambda;
+			model.X_lambda[contact_point.getContactPointRBDLIds(i)]
+			* x_base_lambda;
 
 		projected_point_positions_[i] = x_base.r;
 

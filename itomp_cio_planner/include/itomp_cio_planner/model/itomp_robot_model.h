@@ -13,10 +13,26 @@
 #include <sensor_msgs/JointState.h>
 #include <ros/console.h>
 #include <rbdl/rbdl.h>
-#include <rbdl/rbdl_urdfreader.h>
 
 namespace itomp_cio_planner
 {
+
+struct ItompRobotModelIKData
+{
+    Eigen::Vector3d root_to_hip;
+    Eigen::Vector3d hip_to_knee;
+    Eigen::Vector3d knee_to_ankle;
+    Eigen::Vector3d ankle_to_ee;
+
+    double h1;
+    double h2;
+    double ph1;
+    double ph2;
+
+    double max_stretch;
+
+    Eigen::Affine3d ee_to_root;
+};
 
 class ItompRobotModel
 {
@@ -79,7 +95,17 @@ public:
 
 	const std::set<std::string>& getContactPointNames() const;
 
+    bool getGroupEndeffectorPos(const std::string& group_name, const robot_state::RobotState& robot_state, Eigen::Affine3d& ee_pose) const;
+    bool computeStandIKState(robot_state::RobotState& robot_state, Eigen::Affine3d& root_pose, const Eigen::Affine3d& left_foot_pose, const Eigen::Affine3d& right_foot_pose) const;
+    bool getRootPose(const std::string& group_name, const Eigen::Affine3d& ee_pose, Eigen::Affine3d& root_pose) const;
+
 private:
+    void initializeIKData(const std::string& group_name) const;
+    bool computeInverseKinematics(const std::string& group_name, const Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose,
+                                  std::vector<double>& joint_values) const;
+    bool adjustRootZ(const std::string& group_name, Eigen::Affine3d& root_pose, const Eigen::Affine3d& dest_pose) const;
+
+
 	robot_model::RobotModelConstPtr moveit_robot_model_;
 	std::string reference_frame_; /**< Reference frame for all kinematics operations */
 
@@ -97,6 +123,8 @@ private:
 	std::map<std::string, ItompPlanningGroupConstPtr> planning_groups_; /**< Planning group information */
 	std::vector<std::string> rbdl_number_to_joint_name_; /**< Mapping from RBDL joint number (1-base) to URDF joint name */
 	std::map<std::string, int> joint_name_to_rbdl_number_; /**< Mapping from URDF joint name to RBDL joint number (1-base) */
+
+    mutable std::map<std::string, ItompRobotModelIKData> ik_data_map_;
 };
 ITOMP_DEFINE_SHARED_POINTERS(ItompRobotModel);
 
@@ -112,7 +140,7 @@ inline const ItompPlanningGroupConstPtr& ItompRobotModel::getPlanningGroup(const
 
 inline int ItompRobotModel::getNumJoints() const
 {
-  return num_rbdl_joints_;
+	return num_rbdl_joints_;
 }
 
 inline int ItompRobotModel::getNumKDLJoints() const
@@ -185,7 +213,7 @@ inline const robot_model::RobotModelConstPtr& ItompRobotModel::getMoveitRobotMod
 
 inline const RigidBodyDynamics::Model& ItompRobotModel::getRBDLRobotModel() const
 {
-  return rbdl_robot_model_;
+	return rbdl_robot_model_;
 }
 
 }

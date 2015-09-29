@@ -1,0 +1,92 @@
+num_trials: 1
+planning_time_limit: 120.0
+max_iterations: 1000
+max_iterations_after_collision_free: 0
+num_trajectories: 1
+
+smoothness_cost_weight: 0.000
+obstacle_cost_weight: 100000.0
+torque_cost_weight: 0.0000
+state_validity_cost_weight: 0.0
+contact_invariant_cost_weight: 1.0
+physics_violation_cost_weight: 0.1
+goal_pose_cost_weight: 000.0
+endeffector_velocity_cost_weight: 0.000
+CoM_cost_weight: 0.0
+RVO_cost_weight: 0.0
+FTR_cost_weight: 0.000
+ROM_cost_weight: 0.0
+cartesian_trajectory_cost_weight: 0.0
+singularity_cost_weight: 0.0
+#friction_cone_cost_weight: 1.000
+friction_cone_cost_weight: 0.000
+smoothness_cost_velocity: 0.0
+smoothness_cost_acceleration: 1.0
+smoothness_cost_jerk: 0.0
+ridge_factor: 0.0
+
+temp: [1000.0, 1000.0, 0.0]
+
+print_planning_info: false
+
+animate_path: true
+animate_endeffector: true
+group_endeffectors:
+  lower_body: [LeftFoot_endeffector_link, RightFoot_endeffector_link, LeftToeBase_endeffector_link, RightToeBase_endeffector_link]
+  whole_body: [LeftFoot_endeffector_link, RightFoot_endeffector_link, LeftToeBase_endeffector_link, RightToeBase_endeffector_link]
+#trajectory_duration: 7.50
+#trajectory_discretization: 0.25
+#keyframe_duration: 0.25
+trajectory_duration: 1.00
+trajectory_discretization: 0.05
+keyframe_duration: 0.25
+friction_coefficient: 2.0
+lower_body_root: Hips_x_link
+planning_step_size: 5.0
+
+collision_links:
+  pelvis_link: true
+  torso_x_link: true
+  head_x_link: true
+  head_endeffector_link: true
+  upper_left_leg_x_link: true
+  lower_left_leg_link: true
+  left_foot_x_link: true
+  upper_right_leg_x_link: true
+  lower_right_leg_link: true
+  right_foot_x_link: true
+  upper_left_arm_x_link: true
+  lower_left_arm_link: true
+  left_hand_x_link: true
+  left_hand_endeffector_link: true
+  upper_right_arm_x_link: true
+  lower_right_arm_link: true
+  right_hand_x_link: true
+  right_hand_endeffector_link: true
+
+use_cumulative_costs: true
+use_smooth_noises: true
+
+num_rollouts: 10
+num_reused_rollouts: 5
+noise_stddev: 2.0
+noise_decay: [0.999, 0.999, 0.999, 0.999, 0.999, 0.999, 0.999]
+
+num_contacts: 4
+contact_variable_initial_values: [0.2, 0.2, 0.2, 0.2]
+contact_variable_goal_values: [0.2, 0.2, 0.0, 0.0]
+
+contact_points:
+  LeftFoot_endeffector_link : [LeftFoot_cp_1_link, LeftFoot_cp_2_link, LeftFoot_cp_3_link, LeftFoot_cp_4_link]
+  RightFoot_endeffector_link : [RightFoot_cp_1_link, RightFoot_cp_2_link, RightFoot_cp_3_link, RightFoot_cp_4_link]
+  LeftToeBase_endeffector_link : [LeftToeBase_cp_1_link, LeftToeBase_cp_2_link, LeftToeBase_cp_3_link, LeftToeBase_cp_4_link]
+  RightToeBase_endeffector_link : [RightToeBase_cp_1_link, RightToeBase_cp_2_link, RightToeBase_cp_3_link, RightToeBase_cp_4_link]
+
+environment_model: package://beta_description/environment/walking.obj
+environment_model_position: [0.0, 0.0, 0.0]
+environment_model_scale: 1.0
+contact_model: package://beta_description/environment/walking.obj
+contact_model_position: [0.0, 0.0, 0.0]
+contact_model_scale: 1.0
+contact_z_plane_only: true
+ci_evaluation_on_points: true

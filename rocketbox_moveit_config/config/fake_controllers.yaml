@@ -4,9 +4,9 @@ controller_list:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
       - base_prismatic_joint_z
-      - base_revolute_joint_x
-      - base_revolute_joint_y
       - base_revolute_joint_z
+      - base_revolute_joint_y
+      - base_revolute_joint_x
       - upper_left_leg_z_joint
       - upper_left_leg_y_joint
       - upper_left_leg_x_joint
@@ -26,9 +26,9 @@ controller_list:
       - base_prismatic_joint_x
       - base_prismatic_joint_y
       - base_prismatic_joint_z
-      - base_revolute_joint_x
-      - base_revolute_joint_y
       - base_revolute_joint_z
+      - base_revolute_joint_y
+      - base_revolute_joint_x
       - torso_z_joint
       - torso_y_joint
       - torso_x_joint
@@ -95,6 +95,56 @@ controller_list:
       - left_foot_y_joint
       - left_foot_x_joint
   - name: fake_right_leg_controller
+    joints:
+      - upper_right_leg_z_joint
+      - upper_right_leg_y_joint
+      - upper_right_leg_x_joint
+      - lower_right_leg_joint
+      - right_foot_z_joint
+      - right_foot_y_joint
+      - right_foot_x_joint
+  - name: fake_left_leg_ee_controller
+    joints:
+      []
+  - name: fake_right_leg_ee_controller
+    joints:
+      []
+  - name: fake_left_arm_ee_controller
+    joints:
+      []
+  - name: fake_right_arm_ee_controller
+    joints:
+      []
+  - name: fake_left_arm_ik_controller
+    joints:
+      - upper_left_specula_joint
+      - upper_left_arm_z_joint
+      - upper_left_arm_y_joint
+      - upper_left_arm_x_joint
+      - lower_left_arm_joint
+      - left_hand_z_joint
+      - left_hand_y_joint
+      - left_hand_x_joint
+  - name: fake_right_arm_ik_controller
+    joints:
+      - upper_right_specula_joint
+      - upper_right_arm_z_joint
+      - upper_right_arm_y_joint
+      - upper_right_arm_x_joint
+      - lower_right_arm_joint
+      - right_hand_z_joint
+      - right_hand_y_joint
+      - right_hand_x_joint
+  - name: fake_left_leg_ik_controller
+    joints:
+      - upper_left_leg_z_joint
+      - upper_left_leg_y_joint
+      - upper_left_leg_x_joint
+      - lower_left_leg_joint
+      - left_foot_z_joint
+      - left_foot_y_joint
+      - left_foot_x_joint
+  - name: fake_right_leg_ik_controller
     joints:
       - upper_right_leg_z_joint
       - upper_right_leg_y_joint

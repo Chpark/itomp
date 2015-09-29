@@ -9,6 +9,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include <stddef.h>
 #include <math.h> // TODO : cmath
@@ -30,9 +31,11 @@
 
 inline int safeDoubleToInt(double a)
 {
-  return (int) (a + 1E-7);
+	return (int) (a + 1E-7);
 }
 
 const int NUM_ENDEFFECTOR_CONTACT_POINTS = 4;
+
+const double ITOMP_EPS = 1E-7;
 
 #endif

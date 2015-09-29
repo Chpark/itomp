@@ -9,7 +9,7 @@ class PerformanceProfiler: public Singleton<PerformanceProfiler>
 {
 public:
 	PerformanceProfiler() :
-			num_threads_(1), get_time_func_(NULL)
+		num_threads_(1), get_time_func_(NULL)
 	{
 	}
 	virtual ~PerformanceProfiler()
@@ -84,63 +84,31 @@ inline void PerformanceProfiler::startIteration()
 
 inline void PerformanceProfiler::printIterationTime(bool show_percentage)
 {
-	for (std::map<std::string, Entry>::iterator it = entries_.begin();
-			it != entries_.end(); ++it)
-	{
-		printf("%s ", it->first.c_str());
-	}
-	printf("\n");
+    std::cout << "Elapsed Time\n";
+    std::cout.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
-		double elpased = it->second.getIterationElapsed();
-		printf("%f ", elpased);
-		sum += elpased;
-	}
-	printf("\n");
-
-	if (show_percentage)
-	{
-		for (std::map<std::string, Entry>::iterator it = entries_.begin();
-				it != entries_.end(); ++it)
-		{
-			double percentage = it->second.getIterationElapsed() / sum * 100.0;
-			printf("%.2f ", percentage);
-		}
-		printf("\n");
+        double elapsed = it->second.getIterationElapsed();
+        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
+        sum += elapsed;
 	}
 }
 
 inline void PerformanceProfiler::printTotalTime(bool show_percentage)
 {
-	for (std::map<std::string, Entry>::iterator it = entries_.begin();
-			it != entries_.end(); ++it)
-	{
-		printf("%s ", it->first.c_str());
-	}
-	printf("\n");
+    std::cout << "Total Elapsed Time\n";
+    std::cout.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
-		double elpased = it->second.getTotalElapsed();
-		printf("%f ", elpased);
-		sum += elpased;
-	}
-	printf("\n");
-
-	if (show_percentage)
-	{
-		for (std::map<std::string, Entry>::iterator it = entries_.begin();
-				it != entries_.end(); ++it)
-		{
-			double percentage = it->second.getTotalElapsed() / sum * 100.0;
-			printf("%.2f ", percentage);
-		}
-		printf("\n");
+        double elapsed = it->second.getTotalElapsed();
+        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
+        sum += elapsed;
 	}
 }
 
