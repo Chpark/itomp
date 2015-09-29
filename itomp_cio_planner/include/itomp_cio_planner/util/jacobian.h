@@ -46,6 +46,9 @@ public:
 	template <typename T>
 	static void projectToNullSpace(T& x, T& s)
 	{
+        assert(false);
+
+        /*
 		int parameter_length = x.size();
 
 		const itomp_cio_planner::ParameterTrajectoryConstPtr parameter_trajectory =
@@ -86,28 +89,13 @@ public:
 			}
 			GetProjection(i, q, a);
 
-			/*
-			printf("From : ");
-			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-				printf("%f ", s(i * num_parameter_elements + j));
-			printf("\n");
-			printf("To   : ");
-			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-				printf("%f ", a(group_to_full_joint_indices[j]));
-			printf("\n");
-			printf("To(O): ");
-			for (int j = 0; j < a.rows(); ++j)
-				printf("%f ", a(j));
-			printf("\n");
-			*/
-
 			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
 			{
 				// copy from a to s
 				s(i * num_parameter_elements + j) = a(group_to_full_joint_indices[j]);
 			}
 		}
-
+        */
 	}
 
 private:

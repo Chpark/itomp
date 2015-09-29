@@ -2,9 +2,7 @@
 #define ITOMP_OPTIMIZER_H_
 
 #include <itomp_cio_planner/common.h>
-#include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
-#include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
 #include <itomp_cio_planner/optimization/improvement_manager.h>
 #include <itomp_cio_planner/planner/planning_info_manager.h>
@@ -17,7 +15,6 @@ class ItompOptimizer
 {
 public:
 	ItompOptimizer(int trajectory_index,
-				   const FullTrajectoryPtr& full_trajectory,
                    const ItompTrajectoryPtr& itomp_trajectory,
 				   const ItompRobotModelConstPtr& robot_model,
 				   const planning_scene::PlanningSceneConstPtr& planning_scene,
@@ -31,8 +28,7 @@ public:
 	const PlanningInfo& getPlanningInfo() const;
 
 private:
-	void initialize(const FullTrajectoryPtr& full_trajectory,
-                    const ItompTrajectoryPtr& itomp_trajectory,
+    void initialize(const ItompTrajectoryPtr& itomp_trajectory,
 					const ItompRobotModelConstPtr& robot_model,
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
@@ -49,7 +45,7 @@ private:
 	NewEvalManagerPtr evaluation_manager_;
 	ImprovementManagerPtr improvement_manager_;
 
-	std::vector<Eigen::MatrixXd> best_parameter_trajectory_;
+    ItompTrajectory::ParameterVector best_parameter_trajectory_;
 	double best_parameter_cost_;
 	bool is_best_parameter_feasible_;
 	int best_parameter_iteration_;

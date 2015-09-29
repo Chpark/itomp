@@ -21,6 +21,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${OpenMP_EXE_LINKER_FLAGS}")
 endif()
 
+# supress some warnings
+SET(CXX_ADDITIONAL_FLAGS "-Wno-ignored-qualifiers")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CXX_ADDITIONAL_FLAGS}")
+
 #set the default path for built executables to the "bin" directory
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 #set the default path for built libraries to the "lib" directory
@@ -38,9 +42,6 @@ src/model/rbdl_model_util.cpp
 src/model/rbdl_urdf_reader.cpp
 src/model/treefksolverjointposaxis.cpp
 src/model/treefksolverjointposaxis_partial.cpp
-src/trajectory/trajectory.cpp
-src/trajectory/full_trajectory.cpp
-src/trajectory/parameter_trajectory.cpp
 src/trajectory/trajectory_factory.cpp
 src/trajectory/new_trajectory.cpp
 src/trajectory/element_trajectory.cpp

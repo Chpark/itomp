@@ -29,43 +29,23 @@ bool TrajectoryCostSmoothness::evaluate(
 {
 	TIME_PROFILER_START_TIMER(Smoothness);
 
-	const FullTrajectoryConstPtr trajectory =
-		evaluation_manager->getFullTrajectory();
-	ROS_ASSERT(trajectory->hasAcceleration());
+    const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
+    const ElementTrajectoryConstPtr traj_acc = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+            ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    const Eigen::MatrixXd mat_acc = traj_acc->getTrajectoryPoint(point);
 
 	cost = 0;
 	double value;
 
-	const Eigen::MatrixXd mat_acc = trajectory->getComponentTrajectory(
-										FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-										Trajectory::TRAJECTORY_TYPE_ACCELERATION);
-	const Eigen::MatrixXd mat_vel = trajectory->getComponentTrajectory(
-										FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-										Trajectory::TRAJECTORY_TYPE_VELOCITY);
-	for (int i = 0; i < mat_vel.cols(); ++i)
+    for (int i = 0; i < mat_acc.cols(); ++i)
 	{
 		value = mat_acc(point, i);
 		cost += value * value;
 	}
 
 	// normalize cost (independent to # of joints)
-	cost /= trajectory->getComponentSize(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
+    cost /= traj_acc->getNumElements();
 
-
-	/*
-	 const Eigen::VectorXd pos = trajectory->getComponentTrajectory(
-	 FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
-	 for (int i = 6; i < pos.rows(); ++i)
-	 {
-	 value = std::abs((double) pos(i));
-	 value = std::max(0.0, value - 0.3);
-	 //cost += value * value;
-	 }*/
-
-	// normalize cost (independent to # of joints)
-	//cost /= trajectory->getComponentSize(
-	//	FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
 	TIME_PROFILER_END_TIMER(Smoothness);
 
 	return true;
@@ -87,7 +67,8 @@ void TrajectoryCostObstacle::postEvaluate(const NewEvalManager* evaluation_manag
 
 bool TrajectoryCostObstacle::isInvariant(const NewEvalManager* evaluation_manager, const ItompTrajectoryIndex& index) const
 {
-    return (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    return (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
+            index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
 }
 
 bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, int point, double& cost) const
@@ -289,7 +270,7 @@ bool TrajectoryCostGoalPose::evaluate(const NewEvalManager* evaluation_manager,
     bool is_feasible = true;
     cost = 0;
 
-    if (point == evaluation_manager->getFullTrajectory()->getNumPoints() - 1)
+    if (point == evaluation_manager->getTrajectory()->getNumPoints() - 1)
     {
         Eigen::Vector3d current_goal_pos;
         const robot_state::RobotStatePtr& state = evaluation_manager->getRobotState(point);
@@ -472,15 +453,11 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 
 	TIME_PROFILER_START_TIMER(FTR);
 
-	const FullTrajectoryConstPtr full_trajectory =
-		evaluation_manager->getFullTrajectory();
-	const ItompPlanningGroupConstPtr& planning_group =
-		evaluation_manager->getPlanningGroup();
-	const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(
-			point);
-
-	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-								   FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+    const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
+    const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
+    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+    const Eigen::VectorXd& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 	// TODO:
 	const char* endeffector_chain_group_names[] =
@@ -490,27 +467,20 @@ bool TrajectoryCostFTR::evaluate(const NewEvalManager* evaluation_manager,
 	int num_joints = q.cols();
 	positions.resize(num_joints);
 
-	robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(
-				point);
+    robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
 	robot_state->setVariablePositions(q.data());
 
-	const std::vector<ContactVariables>& contact_variables =
-		evaluation_manager->contact_variables_[point];
+    const std::vector<ContactVariables>& contact_variables = evaluation_manager->contact_variables_[point];
 	int num_contacts = contact_variables.size();
 	for (int i = 0; i < num_contacts; ++i)
 	{
 		std::string chain_name = endeffector_chain_group_names[i];
-		Eigen::MatrixXd jacobianFull =
-			(robot_state->getJacobian(
-				 evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(
-					 chain_name)));
-		Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3,
-								   jacobianFull.cols());
+        Eigen::MatrixXd jacobianFull = (robot_state->getJacobian(evaluation_manager->getItompRobotModel()->getMoveitRobotModel()->getJointModelGroup(chain_name)));
+        Eigen::MatrixXd jacobian = jacobianFull.block(0, 0, 3, jacobianFull.cols());
 		Eigen::MatrixXd jacobian_transpose = jacobian.transpose();
 
 		int rbdl_body_id = planning_group->contact_points_[i].getRBDLBodyId();
-		RigidBodyDynamics::Math::SpatialTransform contact_body_transform =
-			model.X_base[rbdl_body_id];
+        RigidBodyDynamics::Math::SpatialTransform contact_body_transform = model.X_base[rbdl_body_id];
 
 		Eigen::Vector3d orientation =
 			contact_variables[i].projected_orientation_;
@@ -578,59 +548,34 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
 
 	TIME_PROFILER_START_TIMER(ROM);
 
-	const FullTrajectoryConstPtr full_trajectory =
-		evaluation_manager->getFullTrajectory();
+    const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
 
 	// joint angle vector q at waypoint 'point'
-	const Eigen::VectorXd& q = full_trajectory->getComponentTrajectory(
-								   FullTrajectory::TRAJECTORY_COMPONENT_JOINT).row(point);
+    const Eigen::VectorXd& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 	// implement
 	// first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
 	double x, y, z;
-	z = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_arm_z_joint"));
-	y = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_arm_y_joint"));
-	x = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_arm_x_joint"));
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_x_joint"));
 
 	cost += roms_[0].ResidualRadius(z, y, x);
 
-	z = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_leg_z_joint"));
-	y = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_leg_y_joint"));
-	x = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_right_leg_x_joint"));
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_x_joint"));
 	cost += roms_[1].ResidualRadius(z, y, x);
 
-	z = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_arm_z_joint"));
-	y = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_arm_y_joint"));
-	x = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_arm_x_joint"));
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_x_joint"));
 	cost += roms_[2].ResidualRadius(z, y, x);
 
-	z = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_leg_z_joint"));
-	y = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_leg_y_joint"));
-	x = q(
-			evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber(
-				"upper_left_leg_x_joint"));
+    z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_z_joint"));
+    y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_y_joint"));
+    x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_x_joint"));
 	cost += roms_[3].ResidualRadius(z, y, x);
 
 	TIME_PROFILER_END_TIMER(ROM);

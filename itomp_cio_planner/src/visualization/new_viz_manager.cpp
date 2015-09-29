@@ -224,7 +224,7 @@ void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,
                 ma.markers.push_back(marker_cp);
             }
             const Eigen::Vector3d& endeffector_position = contact_variables[point][i].projected_position_;
-            setPointMarker(marker_cp, marker_id++, endeffector_position, colors_[i + 1], max_contact_active_value);
+            setPointMarker(marker_cp, marker_id++, endeffector_position, colors_[i + 1], 0);
             ma.markers.push_back(marker_cp);
 
             for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)

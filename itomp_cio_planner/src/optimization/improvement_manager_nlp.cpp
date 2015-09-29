@@ -57,24 +57,17 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
     TIME_PROFILER_INIT(getROSWallTime, num_threads_);
     TIME_PROFILER_ADD_ENTRY(FK);
 
-    const ParameterTrajectoryConstPtr& parameter_trajectory = evaluation_manager_->getParameterTrajectory();
-    num_parameter_types_ = parameter_trajectory->hasVelocity() ? 2 : 1;
-    num_parameter_points_ = parameter_trajectory->getNumPoints();
-    num_parameter_elements_ = parameter_trajectory->getNumElements();
-    int num_points = evaluation_manager_->getFullTrajectory()->getNumPoints();
+    int num_points = evaluation_manager_->getTrajectory()->getNumPoints();
 
     int num_costs =	TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
 
     derivatives_evaluation_manager_.resize(num_threads_);
-    evaluation_parameters_.resize(num_threads_);
     evaluation_cost_matrices_.resize(num_threads_);
     for (int i = 0; i < num_threads_; ++i)
     {
         derivatives_evaluation_manager_[i].reset(new NewEvalManager(*evaluation_manager));
-        evaluation_parameters_[i].resize(Trajectory::TRAJECTORY_TYPE_NUM, Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
         evaluation_cost_matrices_[i] = Eigen::MatrixXd(num_points, num_costs);
 	}
-    best_parameter_.resize(Trajectory::TRAJECTORY_TYPE_NUM, Eigen::MatrixXd(num_parameter_points_, num_parameter_elements_));
 }
 
 bool ImprovementManagerNLP::updatePlanningParameters()
@@ -91,7 +84,7 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
 {
     best_cost_ = std::numeric_limits<double>::max();
 
-    int num_variables = num_parameter_elements_ * num_parameter_points_ * num_parameter_types_;
+    int num_variables = evaluation_manager_->getTrajectory()->getNumParameters();
 
     column_vector variables(num_variables);
 
@@ -144,47 +137,8 @@ void ImprovementManagerNLP::runSingleIteration(int iteration)
     trajectory_file.close();
 }
 
-void ImprovementManagerNLP::writeToOptimizationVariables(
-    column_vector& variables,
-    const std::vector<Eigen::MatrixXd>& evaluation_parameter)
-{
-    int write_index = 0;
-
-    for (int k = 0; k < num_parameter_types_; ++k)
-	{
-        for (int j = 0; j < num_parameter_points_; ++j)
-		{
-            for (int i = 0; i < num_parameter_elements_; ++i)
-			{
-                variables(write_index++, 0) = evaluation_parameter[k](j, i);
-			}
-		}
-	}
-}
-
-void ImprovementManagerNLP::readFromOptimizationVariables(
-    const column_vector& variables,
-    std::vector<Eigen::MatrixXd>& evaluation_parameter)
-{
-    int read_index = 0;
-
-    double value;
-    for (int k = 0; k < num_parameter_types_; ++k)
-    {
-        for (int j = 0; j < num_parameter_points_; ++j)
-		{
-            for (int i = 0; i < num_parameter_elements_; ++i)
-			{
-                evaluation_parameter[k](j, i) = variables(read_index++, 0);
-			}
-		}
-	}
-}
-
 double ImprovementManagerNLP::evaluate(const column_vector& variables)
 {
-    readFromOptimizationVariables(variables, evaluation_parameters_[0]);
-    evaluation_manager_->setParameters(evaluation_parameters_[0]);
     evaluation_manager_->setParameters(variables);
 
     double cost = evaluation_manager_->evaluate();
@@ -206,7 +160,6 @@ double ImprovementManagerNLP::evaluate(const column_vector& variables)
     if (cost < best_cost_)
 	{
         best_cost_ = cost;
-        best_parameter_ = evaluation_parameters_[0];
         best_param_ = variables;
     }
 
@@ -226,14 +179,10 @@ column_vector ImprovementManagerNLP::derivative_ref(const column_vector& variabl
         const double old_val = e(i);
 
         e(i) += eps_;
-        readFromOptimizationVariables(e, evaluation_parameters_[0]);
-        evaluation_manager_->setParameters(evaluation_parameters_[0]);
         evaluation_manager_->setParameters(e);
         const double delta_plus = evaluation_manager_->evaluate();
 
         e(i) = old_val - eps_;
-        readFromOptimizationVariables(e, evaluation_parameters_[0]);
-        evaluation_manager_->setParameters(evaluation_parameters_[0]);
         evaluation_manager_->setParameters(e);
         double delta_minus = evaluation_manager_->evaluate();
 
@@ -529,23 +478,14 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
                                    variables, x_lower, x_upper);
 
-    evaluation_manager_->setParameters(best_parameter_);
     evaluation_manager_->setParameters(variables);
     evaluation_manager_->evaluate();
     evaluation_manager_->printTrajectoryCost(0, true);
     evaluation_manager_->render();
-
-    /*
-    COMPUTE_COST_DERIVATIVE = true;
-    derivative(best_param_);
-    COMPUTE_COST_DERIVATIVE = false;
-    */
 }
 
 void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 {
-    //return;
-
     int num_variables = variables.size();
     MultivariateGaussian noise_generator(VectorXd::Zero(num_variables),
                                          MatrixXd::Identity(num_variables, num_variables));

@@ -34,7 +34,6 @@ ItompPlannerNode::~ItompPlannerNode()
     PlanningParameters::getInstance()->destroy();
 
     optimizer_.reset();
-    trajectory_.reset();
     itomp_trajectory_.reset();
     itomp_robot_model_.reset();
 }
@@ -52,11 +51,6 @@ bool ItompPlannerNode::init()
 	NewVizManager::getInstance()->initialize(itomp_robot_model_);
 
     TrajectoryFactory::getInstance()->initialize(TrajectoryFactory::TRAJECTORY_CIO);
-
-    trajectory_.reset(TrajectoryFactory::getInstance()->CreateFullTrajectory(itomp_robot_model_,
-                      PlanningParameters::getInstance()->getTrajectoryDuration(),
-                      PlanningParameters::getInstance()->getTrajectoryDiscretization(),
-                      PlanningParameters::getInstance()->getPhaseDuration()));
     itomp_trajectory_.reset(
         TrajectoryFactory::getInstance()->CreateItompTrajectory(itomp_robot_model_,
                 PlanningParameters::getInstance()->getTrajectoryDuration(),
@@ -103,7 +97,6 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
         //ROS_INFO("Planning Trial [%d]", c);
 
 		// initialize trajectory with start state
-        trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_, true);
         itomp_trajectory_->setStartState(req.start_state.joint_state, itomp_robot_model_);
 
         // read start state
@@ -119,7 +112,6 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             sensor_msgs::JointState goal_joint_state = getGoalStateFromGoalConstraints(itomp_robot_model_, req);
 
 			/// optimize
-            trajectory_->setGroupGoalState(goal_joint_state, planning_group, itomp_robot_model_, req.trajectory_constraints, req.path_constraints, true);
             itomp_trajectory_->setGoalState(goal_joint_state, planning_group, itomp_robot_model_, req.trajectory_constraints);
 
             robot_state::RobotState goal_state(*initial_robot_state);
@@ -134,7 +126,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             //if (!adjustStartGoalPositions(*initial_robot_state, goal_state, read_start_state_from_previous_step))
               //  res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
-            optimizer_ = boost::make_shared<ItompOptimizer>(0, trajectory_, itomp_trajectory_,
+            optimizer_ = boost::make_shared<ItompOptimizer>(0, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
                          trajectory_start_time, req.trajectory_constraints.constraints);
 
@@ -241,7 +233,7 @@ void ItompPlannerNode::fillInResult(const robot_state::RobotStatePtr& robot_stat
 
 	robot_state::RobotState ks = *robot_state;
 	std::vector<double> positions(num_all_joints);
-	double dt = trajectory_->getDiscretization();
+    double dt = itomp_trajectory_->getDiscretization();
     // TODO:
     int num_return_points = joint_trajectory->getNumPoints();
     for (std::size_t i = 0; i < num_return_points; ++i)

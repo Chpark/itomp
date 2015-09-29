@@ -5,7 +5,7 @@ max_iterations_after_collision_free: 0
 num_trajectories: 1
 
 smoothness_cost_weight: 0.000
-obstacle_cost_weight: 0.0
+obstacle_cost_weight: 100000.0
 torque_cost_weight: 0.0000
 state_validity_cost_weight: 0.0
 contact_invariant_cost_weight: 10.0
@@ -38,8 +38,11 @@ group_endeffectors:
   left_arm: left_hand_endeffector_link
   right_arm: right_hand_endeffector_link
   unified_body: right_hand_endeffector_link
-trajectory_duration: 6.75
-trajectory_discretization: 0.25
+#trajectory_duration: 4.0
+#trajectory_discretization: 0.25
+#keyframe_duration: 0.25
+trajectory_duration: 1.0
+trajectory_discretization: 0.05
 keyframe_duration: 0.25
 friction_coefficient: 2.0
 lower_body_root: pelvis_link
@@ -83,8 +86,12 @@ contact_points:
   left_hand_endeffector_link : [left_hand_cp_1_link, left_hand_cp_2_link, left_hand_cp_3_link, left_hand_cp_4_link]
   right_hand_endeffector_link : [right_hand_cp_1_link, right_hand_cp_2_link, right_hand_cp_3_link, right_hand_cp_4_link]
 
-environment_model: package://beta_description/environment/climb_new.obj
-environment_model_position: [0.0, 0.0, 0.0]
+environment_model: package://beta_description/environment/dodge_new2.obj
+environment_model_position: [1.65, 0.0, 0.0]
 environment_model_scale: 1.0
-
+contact_model: package://beta_description/environment/dodge_new2.obj
+contact_model_position: [1.65, 0.0, 0.0]
+contact_model_scale: 1.0
+contact_z_plane_only: true
+ci_evaluation_on_points: true
 

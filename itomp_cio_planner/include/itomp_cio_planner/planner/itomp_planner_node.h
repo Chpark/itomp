@@ -4,7 +4,6 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/planner/planning_info_manager.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
-#include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
 #include <itomp_cio_planner/optimization/itomp_optimizer.h>
 #include <moveit/planning_interface/planning_interface.h>
@@ -53,7 +52,6 @@ private:
 	robot_model::RobotModelConstPtr robot_model_;
 	ItompRobotModelPtr itomp_robot_model_;
 
-	FullTrajectoryPtr trajectory_;
     ItompTrajectoryPtr itomp_trajectory_;
 	ItompOptimizerPtr optimizer_;
 	PlanningInfoManager planning_info_manager_;

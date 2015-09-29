@@ -111,7 +111,7 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
 		Eigen::Vector3d& position_out, const Eigen::Vector3d& normal_in, Eigen::Vector3d& normal,
         double current_min_distance, bool ignore_Z) const
 {
-    bool NO_INTERPOLATED = false;
+    bool NO_INTERPOLATED = true;
 	bool updated = false;
 
     if (NO_INTERPOLATED)

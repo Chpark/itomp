@@ -409,7 +409,7 @@ void ItompTrajectory::interpolateTrajectory(unsigned int trajectory_point_begin,
 
 void ItompTrajectory::setParameters(const ParameterVector& parameters, const ItompPlanningGroupConstPtr& planning_group)
 {
-    unsigned int num_parameters = parameter_to_index_map_.size();
+    unsigned int num_parameters = getNumParameters();
 
     ROS_ASSERT(num_parameters > 0);
     ROS_ASSERT(num_parameters == parameters.size());

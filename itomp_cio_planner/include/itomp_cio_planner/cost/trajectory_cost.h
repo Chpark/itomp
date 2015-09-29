@@ -3,7 +3,6 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
-#include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/cost/trajectory_cost_helper.h>
 
 namespace itomp_cio_planner

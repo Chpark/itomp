@@ -13,7 +13,6 @@ namespace itomp_cio_planner
 {
 
 ItompOptimizer::ItompOptimizer(int trajectory_index,
-							   const FullTrajectoryPtr& full_trajectory,
                                const ItompTrajectoryPtr& itomp_trajectory,
 							   const ItompRobotModelConstPtr& robot_model,
 							   const planning_scene::PlanningSceneConstPtr& planning_scene,
@@ -23,12 +22,11 @@ ItompOptimizer::ItompOptimizer(int trajectory_index,
     trajectory_index_(trajectory_index), planning_start_time_(planning_start_time), iteration_(-1),
     best_parameter_cost_(std::numeric_limits<double>::max()), is_best_parameter_feasible_(false), best_parameter_iteration_(-1)
 {
-    initialize(full_trajectory, itomp_trajectory, robot_model, planning_scene, planning_group,
+    initialize(itomp_trajectory, robot_model, planning_scene, planning_group,
                trajectory_start_time, trajectory_constraints);
 }
 
-void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
-                                const ItompTrajectoryPtr& itomp_trajectory,
+void ItompOptimizer::initialize(const ItompTrajectoryPtr& itomp_trajectory,
 								const ItompRobotModelConstPtr& robot_model,
 								const planning_scene::PlanningSceneConstPtr& planning_scene,
 								const ItompPlanningGroupConstPtr& planning_group,
@@ -42,14 +40,14 @@ void ItompOptimizer::initialize(const FullTrajectoryPtr& full_trajectory,
 
     NewEvalManager::ref_evaluation_manager_ = NULL;
 	evaluation_manager_ = boost::make_shared<NewEvalManager>();
-    evaluation_manager_->initialize(full_trajectory, itomp_trajectory, robot_model,
+    evaluation_manager_->initialize(itomp_trajectory, robot_model,
 									planning_scene, planning_group, planning_start_time_,
                                     trajectory_start_time, trajectory_constraints);
 	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
     PhaseManager::getInstance()->init(itomp_trajectory->getNumPoints());
 
-	best_parameter_trajectory_.resize(Trajectory::TRAJECTORY_TYPE_NUM);
+    best_parameter_trajectory_.set_size(itomp_trajectory->getNumParameters(), 1);
 }
 
 ItompOptimizer::~ItompOptimizer()

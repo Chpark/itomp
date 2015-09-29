@@ -3,9 +3,7 @@
 
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/model/itomp_robot_model.h>
-#include <itomp_cio_planner/trajectory/full_trajectory.h>
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
-#include <itomp_cio_planner/trajectory/parameter_trajectory.h>
 #include <itomp_cio_planner/contact/contact_variables.h>
 #include <kdl/frames.hpp>
 #include <kdl/jntarray.hpp>
@@ -28,32 +26,22 @@ public:
 
     NewEvalManager& operator=(const NewEvalManager& manager);
 
-	void initialize(const FullTrajectoryPtr& full_trajectory,
-                    const ItompTrajectoryPtr& itomp_trajectory,
+    void initialize(const ItompTrajectoryPtr& itomp_trajectory,
 					const ItompRobotModelConstPtr& robot_model,
 					const planning_scene::PlanningSceneConstPtr& planning_scene,
 					const ItompPlanningGroupConstPtr& planning_group,
 					double planning_start_time, double trajectory_start_time,
                     const std::vector<moveit_msgs::Constraints>& trajectory_constraints);
 
-	const FullTrajectoryConstPtr& getFullTrajectory() const;
-	const ParameterTrajectoryConstPtr& getParameterTrajectory() const;
     const ItompTrajectoryConstPtr& getTrajectory() const;
     ItompTrajectoryPtr& getTrajectoryNonConst();
 
-	void getParameters(std::vector<Eigen::MatrixXd>& parameters) const;
-	void setParameters(const std::vector<Eigen::MatrixXd>& parameters);
     void getParameters(ItompTrajectory::ParameterVector& parameters) const;
     void setParameters(const ItompTrajectory::ParameterVector& parameters);
 
 	double evaluate();
-	void evaluateParameterPoint(double value, int type, int point, int element,
-								int& full_point_begin, int& full_point_end, bool first);
-    void evaluateParameterPointItomp(double value, int parameter_index,
-                                unsigned int& point_begin, unsigned int& point_end, bool first);
+    void evaluateParameterPoint(double value, int parameter_index, unsigned int& point_begin, unsigned int& point_end, bool first);
 
-	void computeDerivatives(const std::vector<Eigen::MatrixXd>& parameters,
-							int type, int point, double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der = NULL);
     void computeDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
                             double* derivative_out, double eps);
     void computeCostDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
@@ -83,16 +71,9 @@ private:
 	void initializeContactVariables();
 
 	void performFullForwardKinematicsAndDynamics(int point_begin, int point_end);
-	void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element);
     void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, const ItompTrajectoryIndex& index);
 
-	void setParameterModified();
-
-	bool evaluatePointRange(int point_begin, int point_end,
-							Eigen::MatrixXd& cost_matrix, int type = -1, int element = -1);
-    bool evaluatePointRange(int point_begin, int point_end,
-                            Eigen::MatrixXd& cost_matrix,
-                            const ItompTrajectoryIndex& index);
+    bool evaluatePointRange(int point_begin, int point_end, Eigen::MatrixXd& cost_matrix, const ItompTrajectoryIndex& index);
 
 	bool isDerivative() const;
 
@@ -105,7 +86,6 @@ private:
 	double planning_start_time_;
 	double trajectory_start_time_;
 	bool last_trajectory_feasible_;
-    bool parameter_modified_;
     double best_cost_;
 
 	std::vector<RigidBodyDynamics::Model> rbdl_models_;
@@ -120,10 +100,10 @@ private:
     static const NewEvalManager* ref_evaluation_manager_;
 
     // non-shared pointer members
-    FullTrajectoryPtr full_trajectory_;
-    ParameterTrajectoryPtr parameter_trajectory_;
-    FullTrajectoryConstPtr full_trajectory_const_;
-    ParameterTrajectoryConstPtr parameter_trajectory_const_;
+    //FullTrajectoryPtr full_trajectory_;
+    //ParameterTrajectoryPtr parameter_trajectory_;
+    //FullTrajectoryConstPtr full_trajectory_const_;
+    //ParameterTrajectoryConstPtr parameter_trajectory_const_;
     ItompTrajectoryPtr itomp_trajectory_;
     ItompTrajectoryConstPtr itomp_trajectory_const_;
     std::vector<robot_state::RobotStatePtr> robot_state_;
@@ -146,16 +126,6 @@ ITOMP_DEFINE_SHARED_POINTERS(NewEvalManager)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-inline const FullTrajectoryConstPtr& NewEvalManager::getFullTrajectory() const
-{
-	return full_trajectory_const_;
-}
-
-inline const ParameterTrajectoryConstPtr& NewEvalManager::getParameterTrajectory() const
-{
-	return parameter_trajectory_const_;
-}
-
 inline const ItompTrajectoryConstPtr& NewEvalManager::getTrajectory() const
 {
     return itomp_trajectory_const_;
@@ -169,11 +139,6 @@ inline ItompTrajectoryPtr& NewEvalManager::getTrajectoryNonConst()
 inline bool NewEvalManager::isLastTrajectoryFeasible() const
 {
 	return last_trajectory_feasible_;
-}
-
-inline void NewEvalManager::setParameterModified()
-{
-	parameter_modified_ = true;
 }
 
 inline double NewEvalManager::getTrajectoryCost() const

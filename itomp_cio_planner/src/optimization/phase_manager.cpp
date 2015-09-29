@@ -25,6 +25,10 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 {
     int state = (int)(PlanningParameters::getInstance()->getTemporaryVariable(0) + ITOMP_EPS);
 
+    if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE &&
+            index.element >= 36)
+        return false;
+
     switch (getPhase())
     {
     case 0:

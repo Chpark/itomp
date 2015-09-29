@@ -93,6 +93,6 @@ environment_model_scale: 1.0
 contact_model: package://beta_description/environment/climb_new.obj
 contact_model_position: [0.0, 0.0, 0.0]
 contact_model_scale: 1.0
-contact_z_plane_only: true
+contact_z_plane_only: false
 ci_evaluation_on_points: true
 

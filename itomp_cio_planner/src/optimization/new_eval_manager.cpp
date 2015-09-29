@@ -28,7 +28,6 @@ const NewEvalManager* NewEvalManager::ref_evaluation_manager_ = NULL;
 
 NewEvalManager::NewEvalManager() :
     last_trajectory_feasible_(false),
-    parameter_modified_(true),
     best_cost_(std::numeric_limits<double>::max())
 {
     if (ref_evaluation_manager_ == NULL)
@@ -42,7 +41,6 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
       planning_start_time_(manager.planning_start_time_),
       trajectory_start_time_(manager.trajectory_start_time_),
       last_trajectory_feasible_(manager.last_trajectory_feasible_),
-      parameter_modified_(manager.parameter_modified_),
       best_cost_(manager.best_cost_),
       rbdl_models_(manager.rbdl_models_),
       joint_torques_(manager.joint_torques_),
@@ -51,10 +49,6 @@ NewEvalManager::NewEvalManager(const NewEvalManager& manager)
       evaluation_cost_matrix_(manager.evaluation_cost_matrix_),
       trajectory_constraints_(manager.trajectory_constraints_)
 {
-    full_trajectory_.reset(manager.full_trajectory_->createClone());
-    full_trajectory_const_ = full_trajectory_;
-    parameter_trajectory_.reset(TrajectoryFactory::getInstance()->CreateParameterTrajectory(full_trajectory_, planning_group_));
-    parameter_trajectory_const_ = parameter_trajectory_;
     itomp_trajectory_.reset(new ItompTrajectory(*manager.getTrajectory()));
     itomp_trajectory_const_ = itomp_trajectory_;
 
@@ -82,7 +76,6 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     planning_start_time_ = manager.planning_start_time_;
     trajectory_start_time_ = manager.trajectory_start_time_;
     last_trajectory_feasible_ = manager.last_trajectory_feasible_;
-    parameter_modified_ = manager.parameter_modified_;
     best_cost_ = manager.best_cost_;
     rbdl_models_ = manager.rbdl_models_;
     joint_torques_ = manager.joint_torques_;
@@ -92,10 +85,6 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     trajectory_constraints_ = manager.trajectory_constraints_;
 
     // allocate
-    full_trajectory_.reset(manager.full_trajectory_->createClone());
-    full_trajectory_const_ = full_trajectory_;
-    parameter_trajectory_.reset(TrajectoryFactory::getInstance()->CreateParameterTrajectory(full_trajectory_, planning_group_));
-    parameter_trajectory_const_ = parameter_trajectory_;
     itomp_trajectory_.reset(new ItompTrajectory(*manager.getTrajectory()));
     itomp_trajectory_const_ = itomp_trajectory_;
 
@@ -113,15 +102,13 @@ NewEvalManager& NewEvalManager::operator=(const NewEvalManager& manager)
     return *this;
 }
 
-void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
-                                const ItompTrajectoryPtr& itomp_trajectory,
+void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
                                 const ItompRobotModelConstPtr& robot_model,
                                 const planning_scene::PlanningSceneConstPtr& planning_scene,
                                 const ItompPlanningGroupConstPtr& planning_group,
                                 double planning_start_time, double trajectory_start_time,
                                 const std::vector<moveit_msgs::Constraints>& trajectory_constraints)
 {
-    full_trajectory_const_ = full_trajectory_ = full_trajectory;
     itomp_trajectory_const_ = itomp_trajectory_ = itomp_trajectory;
 
 	robot_model_ = robot_model;
@@ -131,23 +118,23 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 	planning_start_time_ = planning_start_time;
 	trajectory_start_time_ = trajectory_start_time;
 
-	TrajectoryCostManager::getInstance()->buildActiveCostFunctions(this);
-    evaluation_cost_matrix_.setZero(full_trajectory_->getNumPoints(), TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
+    int num_points = itomp_trajectory_->getNumPoints();
+    int num_joints = itomp_trajectory_->getNumJoints();
 
-    int num_joints = full_trajectory_->getComponentSize(FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-    rbdl_models_.resize(full_trajectory_->getNumPoints(), robot_model_->getRBDLRobotModel());
-    joint_torques_.resize(full_trajectory_->getNumPoints(), Eigen::VectorXd(num_joints));
-	external_forces_.resize(full_trajectory_->getNumPoints(),
+	TrajectoryCostManager::getInstance()->buildActiveCostFunctions(this);
+    evaluation_cost_matrix_.setZero(num_points, TrajectoryCostManager::getInstance()->getNumActiveCostFunctions());
+
+
+    rbdl_models_.resize(num_points, robot_model_->getRBDLRobotModel());
+    joint_torques_.resize(num_points, Eigen::VectorXd(num_joints));
+    external_forces_.resize(num_points,
                             std::vector<RigidBodyDynamics::Math::SpatialVector>(robot_model_->getRBDLRobotModel().mBodies.size(), RigidBodyDynamics::Math::SpatialVectorZero));
 
-	robot_state_.resize(full_trajectory_->getNumPoints());
-	for (int i = 0; i < full_trajectory_->getNumPoints(); ++i)
+    robot_state_.resize(num_points);
+    for (int i = 0; i < num_points; ++i)
         robot_state_[i].reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
 	initializeContactVariables();
-
-    parameter_trajectory_.reset(TrajectoryFactory::getInstance()->CreateParameterTrajectory(full_trajectory_, planning_group));
-    parameter_trajectory_const_ = parameter_trajectory_;
 
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     itomp_trajectory_->interpolateKeyframes(planning_group);
@@ -164,82 +151,30 @@ void NewEvalManager::initialize(const FullTrajectoryPtr& full_trajectory,
 
 double NewEvalManager::evaluate()
 {
-	if (parameter_modified_)
-	{
-        full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_, planning_group_);
-		parameter_modified_ = false;
-	}
+    int num_points = itomp_trajectory_->getNumPoints();
 
-    performFullForwardKinematicsAndDynamics(0, full_trajectory_->getNumPoints());
+    performFullForwardKinematicsAndDynamics(0, num_points);
 
     std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
-	for (int c = 0; c < cost_functions.size(); ++c)
-	{
-		cost_functions[c]->preEvaluate(this);
-	}
+    // cost weight changed
+    if (cost_functions.size() != evaluation_cost_matrix_.cols())
+        evaluation_cost_matrix_ = Eigen::MatrixXd::Zero(evaluation_cost_matrix_.rows(),	cost_functions.size());
 
-    last_trajectory_feasible_ = evaluatePointRange(0, full_trajectory_->getNumPoints(), evaluation_cost_matrix_);
-
-	for (int c = 0; c < cost_functions.size(); ++c)
-	{
-		cost_functions[c]->postEvaluate(this);
-	}
+    last_trajectory_feasible_ = true;
+    for (int c = 0; c < cost_functions.size(); ++c)
+    {
+        cost_functions[c]->preEvaluate(this);
+        for (int i = 0; i < num_points; ++i)
+        {
+            double cost = 0.0;
+            last_trajectory_feasible_ &= cost_functions[c]->evaluate(this, i, cost);
+            evaluation_cost_matrix_(i, c) = cost_functions[c]->getWeight() * cost;
+        }
+        cost_functions[c]->postEvaluate(this);
+    }
+    last_trajectory_feasible_ = false;
 
 	return getTrajectoryCost();
-}
-
-void NewEvalManager::computeDerivatives(
-	const std::vector<Eigen::MatrixXd>& parameters, int type, int point,
-	double* out, double eps, double* d_p, double* d_m, std::vector<std::vector<double> >* cost_der)
-{
-	//debug_ = true;
-
-	setParameters(parameters);
-    full_trajectory_->updateFromParameterTrajectory(parameter_trajectory_, planning_group_);
-    parameter_modified_ = false;
-
-    int num_cost_functions = TrajectoryCostManager::getInstance()->getNumActiveCostFunctions();
-
-	for (int i = 0; i < parameter_trajectory_->getNumElements(); ++i)
-	{
-		const double value = parameters[type](point, i);
-		int begin, end;
-
-		evaluateParameterPoint(value + eps, type, point, i, begin, end, true);
-        const double delta_plus = (evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
-
-		if (cost_der)
-		{
-			for (int j = 0; j < num_cost_functions; ++j)
-			{
-				double dp = evaluation_cost_matrix_.block(begin, j, end - begin, 1).sum();
-				(*cost_der)[j][i] = dp;
-			}
-		}
-
-		evaluateParameterPoint(value - eps, type, point, i, begin, end, false);
-        const double delta_minus = (evaluation_cost_matrix_.block(begin, 0, end - begin, num_cost_functions).sum());
-
-
-		*(out + i) = (delta_plus - delta_minus) / (2 * eps);
-
-		*(d_p + i) = delta_plus;
-		*(d_m + i) = delta_minus;
-
-		if (cost_der)
-		{
-			for (int j = 0; j < num_cost_functions; ++j)
-			{
-				double dp = (*cost_der)[j][i];
-				double dm = evaluation_cost_matrix_.block(begin, j, end - begin, 1).sum();
-				(*cost_der)[j][i] = (dp - dm) / (2 * eps);
-			}
-		}
-
-		full_trajectory_->restoreBackupTrajectories();
-	}
-
-	//debug_ = false;
 }
 
 void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajectory::ParameterVector& parameters,
@@ -255,10 +190,10 @@ void NewEvalManager::computeDerivatives(int parameter_index, const ItompTrajecto
     const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
     if (PhaseManager::getInstance()->updateParameter(index))
     {
-        evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+        evaluateParameterPoint(value + eps, parameter_index, point_begin, point_end, true);
         const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
-        evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+        evaluateParameterPoint(value - eps, parameter_index, point_begin, point_end, false);
         const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
 
         derivative = (delta_plus - delta_minus) / (2 * eps);
@@ -284,12 +219,12 @@ void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTraj
     const ItompTrajectoryIndex& index = itomp_trajectory_->getTrajectoryIndex(parameter_index);
     if (PhaseManager::getInstance()->updateParameter(index))
     {
-        evaluateParameterPointItomp(value + eps, parameter_index, point_begin, point_end, true);
+        evaluateParameterPoint(value + eps, parameter_index, point_begin, point_end, true);
         const double delta_plus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
         for (int i = 0; i < num_cost_functions; ++i)
             cost_delta_plus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
 
-        evaluateParameterPointItomp(value - eps, parameter_index, point_begin, point_end, false);
+        evaluateParameterPoint(value - eps, parameter_index, point_begin, point_end, false);
         const double delta_minus = (evaluation_cost_matrix_.block(point_begin, 0, point_end - point_begin, num_cost_functions).sum());
         for (int i = 0; i < num_cost_functions; ++i)
             cost_delta_minus[i] = (evaluation_cost_matrix_.block(point_begin, i, point_end - point_begin, 1).sum());
@@ -305,20 +240,7 @@ void NewEvalManager::computeCostDerivatives(int parameter_index, const ItompTraj
 
 }
 
-void NewEvalManager::evaluateParameterPoint(double value, int type, int point,
-		int element, int& full_point_begin, int& full_point_end, bool first)
-{
-	full_trajectory_->directChangeForDerivatives(value, planning_group_, type,
-			point, element, full_point_begin, full_point_end, first);
-
-	performPartialForwardKinematicsAndDynamics(full_point_begin, full_point_end,
-			element);
-
-	evaluatePointRange(full_point_begin, full_point_end,
-					   evaluation_cost_matrix_, type, element);
-}
-
-void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_index,
+void NewEvalManager::evaluateParameterPoint(double value, int parameter_index,
         unsigned int& point_begin, unsigned int& point_end, bool first)
 {
     itomp_trajectory_->directChangeForDerivativeComputation(parameter_index, value, point_begin, point_end, first);
@@ -337,14 +259,11 @@ void NewEvalManager::evaluateParameterPointItomp(double value, int parameter_ind
     evaluatePointRange(point_begin, point_end, evaluation_cost_matrix_, index);
 }
 
-bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
-                                        Eigen::MatrixXd& cost_matrix,
-                                        const ItompTrajectoryIndex& index)
+bool NewEvalManager::evaluatePointRange(int point_begin, int point_end, Eigen::MatrixXd& cost_matrix, const ItompTrajectoryIndex& index)
 {
     bool is_feasible = true;
 
-    const std::vector<TrajectoryCostPtr>& cost_functions =
-        TrajectoryCostManager::getInstance()->getCostFunctionVector();
+    const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
     // cost weight changed
     if (cost_functions.size() != cost_matrix.cols())
@@ -371,43 +290,6 @@ bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
     }
     is_feasible = false;
     return is_feasible;
-}
-
-bool NewEvalManager::evaluatePointRange(int point_begin, int point_end,
-										Eigen::MatrixXd& cost_matrix, int type, int element)
-{
-	bool is_feasible = true;
-
-	const std::vector<TrajectoryCostPtr>& cost_functions =
-		TrajectoryCostManager::getInstance()->getCostFunctionVector();
-
-	// cost weight changed
-	if (cost_functions.size() != cost_matrix.cols())
-        cost_matrix = Eigen::MatrixXd::Zero(cost_matrix.rows(),	cost_functions.size());
-
-	for (int c = 0; c < cost_functions.size(); ++c)
-	{
-        /*
-		if (cost_functions[c]->isInvariant(this, type, element))
-		{
-			for (int i = point_begin; i < point_end; ++i)
-				cost_matrix(i, c) = 0.0;
-		}
-		else
-        */
-		{
-			for (int i = point_begin; i < point_end; ++i)
-			{
-				double cost = 0.0;
-
-				is_feasible &= cost_functions[c]->evaluate(this, i, cost);
-
-				cost_matrix(i, c) = cost_functions[c]->getWeight() * cost;
-			}
-		}
-	}
-	is_feasible = false;
-	return is_feasible;
 }
 
 void NewEvalManager::render()
@@ -556,113 +438,6 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
 
 	TIME_PROFILER_END_TIMER(FK);
 }
-void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, int parameter_element)
-{
-    ROS_ASSERT(false);
-	TIME_PROFILER_START_TIMER(FK);
-    /*
-
-	if (!full_trajectory_->hasVelocity()
-			|| !full_trajectory_->hasAcceleration())
-		return;
-
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		rbdl_models_[point] = ref_evaluation_manager_->rbdl_models_[point];
-	}
-
-	bool dynamics_only = (parameter_element
-						  >= parameter_trajectory_->getNumJoints());
-	int num_contacts = planning_group_->getNumContacts();
-
-	for (int point = point_begin; point < point_end; ++point)
-	{
-		const Eigen::VectorXd& q = full_trajectory_->getComponentTrajectory(
-									   FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-									   Trajectory::TRAJECTORY_TYPE_POSITION).row(point);
-
-		const Eigen::VectorXd& q_dot = full_trajectory_->getComponentTrajectory(
-										   FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-										   Trajectory::TRAJECTORY_TYPE_VELOCITY).row(point);
-		const Eigen::VectorXd& q_ddot =
-			full_trajectory_->getComponentTrajectory(
-				FullTrajectory::TRAJECTORY_COMPONENT_JOINT,
-				Trajectory::TRAJECTORY_TYPE_ACCELERATION).row(point);
-
-		if (dynamics_only)
-		{
-			// compute contact variables
-			full_trajectory_->getContactVariables(point,
-												  contact_variables_[point]);
-			for (int i = 0; i < num_contacts; ++i)
-			{
-				const Eigen::Vector3d contact_position =
-					contact_variables_[point][i].getPosition();
-				const Eigen::Vector3d contact_orientation =
-					contact_variables_[point][i].getOrientation();
-
-				Eigen::Vector3d contact_normal, proj_position, proj_orientation;
-				GroundManager::getInstance()->getNearestGroundPosition(
-					contact_position, contact_orientation, proj_position,
-					proj_orientation, contact_normal);
-
-				int rbdl_endeffector_id =
-					planning_group_->contact_points_[i].getRBDLBodyId();
-
-				contact_variables_[point][i].ComputeProjectedPointPositions(
-					proj_position, proj_orientation, rbdl_models_[point],
-					planning_group_->contact_points_[i]);
-			}
-
-			// compute external forces
-			for (int i = 0; i < num_contacts; ++i)
-			{
-				for (int c = 0; c < NUM_ENDEFFECTOR_CONTACT_POINTS; ++c)
-				{
-					int rbdl_point_id =
-						planning_group_->contact_points_[i].getContactPointRBDLIds(
-							c);
-
-					Eigen::Vector3d point_position =
-						contact_variables_[point][i].projected_point_positions_[c];
-
-					Eigen::Vector3d contact_force =
-						contact_variables_[point][i].getPointForce(c);
-
-					Eigen::Vector3d contact_torque = point_position.cross(
-														 contact_force);
-
-					RigidBodyDynamics::Math::SpatialVector& ext_force =
-						external_forces_[point][rbdl_point_id];
-					for (int j = 0; j < 3; ++j)
-					{
-						ext_force(j) = contact_torque(j);
-						ext_force(j + 3) = contact_force(j);
-					}
-				}
-			}
-
-			updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot,
-                                  joint_torques_[point], &external_forces_[point]);
-		}
-		else
-		{
-			contact_variables_[point] =
-				ref_evaluation_manager_->contact_variables_[point];
-            joint_torques_[point] = ref_evaluation_manager_->joint_torques_[point];
-			external_forces_[point] =
-				ref_evaluation_manager_->external_forces_[point];
-
-			updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
-                                               q_ddot, joint_torques_[point], &external_forces_[point], NULL,
-											   planning_group_->group_joints_[parameter_element].rbdl_affected_body_ids_);
-
-		}
-	}
-    */
-
-	TIME_PROFILER_END_TIMER(FK);
-}
 
 void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, const ItompTrajectoryIndex& index)
 {
@@ -670,8 +445,7 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
 
     bool dynamics_only = (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
     int num_contacts = planning_group_->getNumContacts();
-    int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
+    int num_joints = itomp_trajectory_->getNumJoints();
 
     // copy only variables will be updated
     for (int point = point_begin; point < point_end; ++point)
@@ -826,33 +600,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
     TIME_PROFILER_END_TIMER(FK);
 }
 
-void NewEvalManager::getParameters(
-	std::vector<Eigen::MatrixXd>& parameters) const
-{
-	parameters[Trajectory::TRAJECTORY_TYPE_POSITION] =
-		parameter_trajectory_->getTrajectory(
-			Trajectory::TRAJECTORY_TYPE_POSITION);
-
-	if (parameter_trajectory_->hasVelocity())
-		parameters[Trajectory::TRAJECTORY_TYPE_VELOCITY] =
-			parameter_trajectory_->getTrajectory(
-				Trajectory::TRAJECTORY_TYPE_VELOCITY);
-}
-
-void NewEvalManager::setParameters(
-	const std::vector<Eigen::MatrixXd>& parameters)
-{
-	parameter_trajectory_->getTrajectory(Trajectory::TRAJECTORY_TYPE_POSITION) =
-		parameters[Trajectory::TRAJECTORY_TYPE_POSITION];
-
-	if (parameter_trajectory_->hasVelocity())
-		parameter_trajectory_->getTrajectory(
-			Trajectory::TRAJECTORY_TYPE_VELOCITY) =
-				parameters[Trajectory::TRAJECTORY_TYPE_VELOCITY];
-
-	setParameterModified();
-}
-
 void NewEvalManager::getParameters(ItompTrajectory::ParameterVector& parameters) const
 {
     itomp_trajectory_->getParameters(parameters);
@@ -861,7 +608,7 @@ void NewEvalManager::getParameters(ItompTrajectory::ParameterVector& parameters)
 void NewEvalManager::setParameters(const ItompTrajectory::ParameterVector& parameters)
 {
     itomp_trajectory_->setParameters(parameters, planning_group_);
-    itomp_trajectory_->avoidNeighbors(trajectory_constraints_);
+    //itomp_trajectory_->avoidNeighbors(trajectory_constraints_);
 }
 
 void NewEvalManager::printTrajectoryCost(int iteration, bool details)
@@ -917,10 +664,6 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             cout << setw(max_cost_name_length) << cost_functions[c]->getName();
             cout << " : " << fixed << sub_cost << std::endl;
         }
-
-
-
-
 	}
 }
 
@@ -999,10 +742,8 @@ void NewEvalManager::initializeContactVariables()
 		 cout << tau.transpose() << endl;
 		 */
 
-		full_trajectory_->setContactVariables(point, contact_variables_[point]);
         itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
 	}
-	full_trajectory_->interpolateContactVariables();
 }
 
 void NewEvalManager::resetBestTrajectoryCost()
@@ -1014,7 +755,6 @@ void NewEvalManager::printLinkTransforms() const
 {
     std::ofstream trajectory_file;
     trajectory_file.open("link_transforms.txt");
-
 
     for (int i = 0; i < itomp_trajectory_->getNumPoints(); ++i)
     {

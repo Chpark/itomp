@@ -83,13 +83,16 @@ public:
     void interpolateKeyframes();
 
     void copy(int point_src, int point_dest, SUB_COMPONENT_TYPE sub_component_type,
-               const std::vector<unsigned int>* element_indices = NULL);
+              const std::vector<unsigned int>* element_indices = NULL);
 
     int getParameterJointIndex(int trajectory_index) const;
 
     double getDiscretization() const;
 
     bool avoidNeighbors(const std::vector<moveit_msgs::Constraints>& neighbors);
+
+    int getNumJoints() const;
+    unsigned int getNumParameters() const;
 
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
@@ -149,6 +152,17 @@ inline void ItompTrajectory::interpolateStartEnd(SUB_COMPONENT_TYPE sub_componen
         const std::vector<unsigned int>* element_indices)
 {
     interpolate(0, getNumPoints() - 1, sub_component_type, element_indices);
+}
+
+inline int ItompTrajectory::getNumJoints() const
+{
+    return getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
+}
+
+inline unsigned int ItompTrajectory::getNumParameters() const
+{
+    return parameter_to_index_map_.size();
 }
 
 }
