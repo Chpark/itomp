@@ -411,20 +411,17 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
         double joint_torque = evaluation_manager->joint_torques_[point](i);
 
         // TODO
-        double weight = 1e-6;
+        double weight = 1.0;
         if (i <= 6)
-            weight = 1e-6;
+            weight = 0;
         if (i <= 8) // torso
-            weight = 1e-4;
+            weight = 1.0;
         else if (i <= 11) // head
-            weight = 1e-5;
+            weight = 0.1;
 
         double acc = q_ddot(i);
 
-        // TODO: penaly for high torque
-
-        // penalty for high acc
-        cost += weight * acc * acc;
+        cost += weight * joint_torque * joint_torque;
 	}
 
 	TIME_PROFILER_END_TIMER(Torque);
