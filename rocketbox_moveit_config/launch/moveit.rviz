@@ -10,8 +10,10 @@ Panels:
         - /MotionPlanning1/Planning Request1
         - /MotionPlanning1/Planning Metrics1
         - /MotionPlanning1/Planned Path1
-        - /Marker1
         - /MarkerArray1
+        - /MarkerArray1/Namespaces1
+        - /MarkerArray2
+        - /MarkerArray2/Namespaces1
       Splitter Ratio: 0.579462
     Tree Height: 837
   - Class: rviz/Help
@@ -44,7 +46,9 @@ Visualization Manager:
       Value: true
     - Class: moveit_rviz_plugin/MotionPlanning
       Enabled: true
+      Move Group Namespace: ""
       MoveIt_Goal_Tolerance: 0
+      MoveIt_Planning_Attempts: 10
       MoveIt_Planning_Time: 5
       MoveIt_Use_Constraint_Aware_IK: true
       MoveIt_Warehouse_Host: 127.0.0.1
@@ -61,32 +65,26 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_prismatic_dummy2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_prismatic_dummy3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_revolute_dummy1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_revolute_dummy2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           head_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           head_x_link:
             Alpha: 1
             Show Axes: false
@@ -104,27 +102,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_x_link:
             Alpha: 1
             Show Axes: false
@@ -142,27 +135,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_x_link:
             Alpha: 1
             Show Axes: false
@@ -204,27 +192,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_x_link:
             Alpha: 1
             Show Axes: false
@@ -242,27 +225,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_x_link:
             Alpha: 1
             Show Axes: false
@@ -400,32 +378,26 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_prismatic_dummy2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_prismatic_dummy3:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_revolute_dummy1:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           base_revolute_dummy2:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           head_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           head_x_link:
             Alpha: 1
             Show Axes: false
@@ -443,27 +415,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_foot_x_link:
             Alpha: 1
             Show Axes: false
@@ -481,27 +448,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           left_hand_x_link:
             Alpha: 1
             Show Axes: false
@@ -543,27 +505,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_foot_x_link:
             Alpha: 1
             Show Axes: false
@@ -581,27 +538,22 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_2_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_3_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_cp_4_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_endeffector_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-            Value: true
           right_hand_x_link:
             Alpha: 1
             Show Axes: false
@@ -696,49 +648,598 @@ Visualization Manager:
         Show Robot Collision: false
         Show Robot Visual: false
       Value: true
-    - Class: rviz/Marker
+    - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /itomp_planner/visualization_marker
-      Name: Marker
+      Marker Topic: /itomp_planner/animate_contacts
+      Name: MarkerArray
       Namespaces:
-        itomp_best_cf: true
-        itomp_best_cf_ia: true
-        itomp_best_cp: true
-        itomp_best_cp_ia: true
-        itomp_best_ee: true
-        itomp_cf: true
-        itomp_cf_ia: true
-        itomp_cp: true
-        itomp_cp_ia: true
-        itomp_ee: true
-        kf_0: true
-        kf_16: true
-        kf_24: true
-        kf_32: true
-        kf_8: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /itomp_planner/visualization_marker_array
+      Marker Topic: /itomp_planner/animate_path
       Name: MarkerArray
       Namespaces:
-        kf_0: true
-        kf_16: true
-        kf_24: true
-        kf_32: true
-        kf_8: true
+        {}
       Queue Size: 100
       Value: true
-    - Class: rviz/MarkerArray
+    - Attached Body Color: 150; 50; 150
+      Class: moveit_rviz_plugin/RobotState
+      Collision Enabled: false
       Enabled: true
-      Marker Topic: /move_itomp/visualization_marker_array
-      Name: MarkerArray
-      Namespaces:
-        environment: true
-        environment2: true
-      Queue Size: 100
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_prismatic_dummy1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_prismatic_dummy2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_prismatic_dummy3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_revolute_dummy1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_revolute_dummy2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_hand_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        lower_left_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_left_leg_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_right_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_right_leg_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pelvis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hand_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        root_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        torso_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_specula_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_left_arm_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_leg_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_left_leg_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_leg_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_specula_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_right_arm_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_leg_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_right_leg_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_leg_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotState
+      Robot Alpha: 1
+      Robot Description: robot_description
+      Robot State Topic: /move_itomp/display_start_state
+      Show All Links: true
+      Show Highlights: true
       Value: true
+      Visual Enabled: true
+    - Attached Body Color: 150; 50; 150
+      Class: moveit_rviz_plugin/RobotState
+      Collision Enabled: false
+      Enabled: false
+      Links:
+        All Links Enabled: true
+        Expand Joint Details: false
+        Expand Link Details: false
+        Expand Tree: false
+        Link Tree Style: Links in Alphabetic Order
+        base_prismatic_dummy1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_prismatic_dummy2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_prismatic_dummy3:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_revolute_dummy1:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        base_revolute_dummy2:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        head_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        head_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_foot_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_foot_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        left_hand_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        left_hand_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        lower_left_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_left_leg_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_right_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        lower_right_leg_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        pelvis_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_foot_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_foot_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_3_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_cp_4_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_endeffector_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        right_hand_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        right_hand_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        root_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        torso_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        torso_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_specula_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_left_arm_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_arm_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_leg_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_left_leg_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_left_leg_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_specula_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_right_arm_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_arm_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_leg_x_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        upper_right_leg_y_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        upper_right_leg_z_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+      Name: RobotState
+      Robot Alpha: 1
+      Robot Description: robot_description
+      Robot State Topic: /move_itomp/display_goal_state
+      Show All Links: true
+      Show Highlights: true
+      Value: false
+      Visual Enabled: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -754,22 +1255,22 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 7.70732
+      Distance: 6.12831
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: -2.64326
-        Y: 1.28496
-        Z: 4.61937e-07
+        X: 1.62126
+        Y: -0.251252
+        Z: 9.43622e-07
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.329797
+      Pitch: 0.459797
       Target Frame: root_link
       Value: XYOrbit (rviz)
-      Yaw: 4.73994
+      Yaw: 3.37676
     Saved: ~
 Window Geometry:
   Displays:
