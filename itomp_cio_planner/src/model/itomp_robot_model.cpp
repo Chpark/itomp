@@ -201,10 +201,6 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 			joint_segment_mapping_.insert(make_pair(joint_name, segment_name));
 		}
 
-		// create the fk solver:
-		fk_solver_ = new KDL::TreeFkSolverJointPosAxis(kdl_tree_,
-				moveit_robot_model_->getRootLinkName());
-
 		kdl_number_to_urdf_name_.resize(num_kdl_joints_);
 		// Create the inverse mapping - KDL segment to joint name
 		// (at the same time) Create a mapping from KDL numbers to URDF joint names and vice versa
@@ -311,10 +307,6 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 				}
 
 			}
-			group->fk_solver_.reset(
-				new KDL::TreeFkSolverJointPosAxisPartial(kdl_tree_,
-						moveit_robot_model_->getRootLinkName(),
-						active_joints));
 
 			for (int i = 0; i < group->num_joints_; i++)
 			{

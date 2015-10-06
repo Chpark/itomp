@@ -115,7 +115,6 @@ private:
 	std::map<std::string, std::string> segment_joint_mapping_; /**< Segment -> Joint mapping for KDL tree */
 	std::vector<std::string> kdl_number_to_urdf_name_; /**< Mapping from KDL joint number to URDF joint name */
 	std::map<std::string, int> urdf_name_to_kdl_number_; /**< Mapping from URDF joint name to KDL joint number */
-	KDL::TreeFkSolverJointPosAxis *fk_solver_; /**< Forward kinematics solver for the tree */
 
 	RigidBodyDynamics::Model rbdl_robot_model_;
 	int num_rbdl_joints_;
@@ -173,11 +172,6 @@ inline const std::string ItompRobotModel::rbdlNumberToJointName(int rbdl_number)
 		return std::string("");
 	else
 		return rbdl_number_to_joint_name_[rbdl_number];
-}
-
-inline const KDL::TreeFkSolverJointPosAxis* ItompRobotModel::getForwardKinematicsSolver() const
-{
-	return fk_solver_;
 }
 
 inline const std::string& ItompRobotModel::getReferenceFrame() const
