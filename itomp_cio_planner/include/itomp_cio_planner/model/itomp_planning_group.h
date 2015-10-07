@@ -5,7 +5,6 @@
 #include <itomp_cio_planner/common.h>
 #include <kdl/tree.hpp>
 #include <itomp_cio_planner/model/itomp_robot_joint.h>
-#include <itomp_cio_planner/model/treefksolverjointposaxis_partial.hpp>
 #include <itomp_cio_planner/contact/contact_point.h>
 
 namespace itomp_cio_planner
@@ -18,12 +17,11 @@ public:
 	int num_joints_; /**< Number of joints used in planning */
 	std::vector<ItompRobotJoint> group_joints_; /**< Joints used in planning */
 	std::vector<ContactPoint> contact_points_;
-	std::map<int, int> kdl_to_group_joint_;
 	std::map<int, int> rbdl_to_group_joint_;
 
 	int getNumContacts() const;
 };
-ITOMP_DEFINE_SHARED_POINTERS(ItompPlanningGroup);
+ITOMP_DEFINE_SHARED_POINTERS(ItompPlanningGroup)
 
 ////////////////////////////////////////////////////////////////////////////////
 

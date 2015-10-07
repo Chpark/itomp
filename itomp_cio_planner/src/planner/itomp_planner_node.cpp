@@ -1,5 +1,6 @@
 #include <itomp_cio_planner/planner/itomp_planner_node.h>
 #include <itomp_cio_planner/model/itomp_planning_group.h>
+#include <itomp_cio_planner/model/itomp_robot_model_ik.h>
 #include <itomp_cio_planner/trajectory/trajectory_factory.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
 #include <itomp_cio_planner/util/joint_state_util.h>
@@ -546,9 +547,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
                 velocities[1] = Eigen::Vector3d::Zero();
                 mid_orientation_use_goal_orientation = false;
                 Eigen::Affine3d ee_pose;
-                if (!itomp_robot_model_->getGroupEndeffectorPos("left_leg", initial_state, ee_pose))
+                if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos("left_leg", initial_state, ee_pose))
                     return false;
-                if (!itomp_robot_model_->getRootPose("left_leg", ee_pose, mid_transform))
+                if (!ItompRobotModelIKHelper::getInstance()->getRootPose("left_leg", ee_pose, mid_transform))
                     return false;
                 //ROS_INFO("Turn left at 2 step");
             }
@@ -562,9 +563,9 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
                 velocities[1] = Eigen::Vector3d::Zero();
                 mid_orientation_use_goal_orientation = false;
                 Eigen::Affine3d ee_pose;
-                if (!itomp_robot_model_->getGroupEndeffectorPos("right_leg", initial_state, ee_pose))
+                if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos("right_leg", initial_state, ee_pose))
                     return false;
-                if (!itomp_robot_model_->getRootPose("right_leg", ee_pose, mid_transform))
+                if (!ItompRobotModelIKHelper::getInstance()->getRootPose("right_leg", ee_pose, mid_transform))
                     return false;
                 //ROS_INFO("Turn right at 2 step");
             }
@@ -672,12 +673,12 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     std::map<eFOOT_INDEX, Eigen::Affine3d> foot_pose_0;
     std::map<eFOOT_INDEX, Eigen::Affine3d> foot_pose_1;
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_support_foot], initial_state, foot_pose_0[initial_support_foot]))
+    if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos(group_name_map[initial_support_foot], initial_state, foot_pose_0[initial_support_foot]))
         return false;
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_back_foot], initial_state, foot_pose_0[initial_back_foot]))
+    if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos(group_name_map[initial_back_foot], initial_state, foot_pose_0[initial_back_foot]))
         return false;
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_back_foot], mid_state, foot_pose_1[initial_back_foot]))
+    if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos(group_name_map[initial_back_foot], mid_state, foot_pose_1[initial_back_foot]))
         return false;
     foot_pose_1[initial_back_foot].translation() += foot_pos_1 * move_dir;
 
@@ -691,7 +692,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
     foot_pose_1[initial_back_foot].linear() = exponential_map::ExponentialMapToRotation(orientation_out);
     */
 
-    if (!itomp_robot_model_->getGroupEndeffectorPos(group_name_map[initial_support_foot], goal_state, foot_pose_1[initial_support_foot]))
+    if (!ItompRobotModelIKHelper::getInstance()->getGroupEndeffectorPos(group_name_map[initial_support_foot], goal_state, foot_pose_1[initial_support_foot]))
         return false;
     foot_pose_1[initial_support_foot].translation() += foot_pos_2 * move_dir;
 
@@ -861,7 +862,7 @@ bool ItompPlannerNode::adjustStartGoalPositions(robot_state::RobotState& initial
             right_foot_pose = foot_pose_1[RIGHT_FOOT];
         }
 
-        if (!itomp_robot_model_->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose))
+        if (!ItompRobotModelIKHelper::getInstance()->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose))
             return false;
 
         if (PlanningParameters::getInstance()->getPrintPlanningInfo())

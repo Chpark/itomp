@@ -13,7 +13,7 @@ class ContactVariables
 {
 public:
 	ContactVariables();
-	virtual ~ContactVariables()
+    virtual ~ContactVariables()
 	{
 	}
 
@@ -31,6 +31,9 @@ public:
 	void setPointForce(int point_index, const Eigen::Vector3d& point_force);
 	Eigen::Vector3d getPointForce(int point_index) const;
 
+    void setFixed(bool fixed);
+    bool isFixedn() const;
+
 	Eigen::VectorXd serialized_position_;
 	Eigen::VectorXd serialized_forces_;
 
@@ -46,7 +49,6 @@ public:
 	Eigen::Vector3d projected_position_;
 	Eigen::Vector3d projected_orientation_;
 	std::vector<Eigen::Vector3d> projected_point_positions_;
-
 };
 
 /////////////////////////////

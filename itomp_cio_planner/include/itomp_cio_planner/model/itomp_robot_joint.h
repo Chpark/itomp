@@ -10,7 +10,6 @@ namespace itomp_cio_planner
 class ItompRobotJoint
 {
 public:
-	int kdl_joint_index_; /**< Index for use in a KDL joint array */
 	int group_joint_index_; /**< Joint index in a planning group*/
 	std::string joint_name_; /**< Name of the joint */
 	std::string link_name_; /**< Name of the corresponding link (from planning.yaml) */
