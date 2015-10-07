@@ -41,7 +41,7 @@ bool ConstructModel (RigidBodyDynamics::Model* rbdl_model, ModelPtr urdf_model, 
     const boost::shared_ptr<const urdf::Link>& root = urdf_model->getRoot ();
     Vector3d root_inertial_rpy = Vector3d::Zero();
     Vector3d root_inertial_position = Vector3d::Zero();
-    Matrix3d root_inertial_inertia = Matrix3d::Identity();
+    Matrix3d root_inertial_inertia = Matrix3d::Zero();
     double root_inertial_mass = 0.0;
 
     if (root->inertial)
@@ -83,7 +83,7 @@ bool ConstructModel (RigidBodyDynamics::Model* rbdl_model, ModelPtr urdf_model, 
         {
             cout << "    " << j << ": " << root_joint.mJointAxes[j].transpose() << endl;
         }
-        cout << "  body inertia: " << endl << root_link.mSpatialInertia << endl;
+        cout << "  body inertia: " << endl << root_link.mInertia << endl;
         cout << "  body mass   : " << root_link.mMass << endl;
         cout << "  body name   : " << root->name << endl;
     }
@@ -101,7 +101,7 @@ bool ConstructModel (RigidBodyDynamics::Model* rbdl_model, ModelPtr urdf_model, 
     while (link_stack.size() > 0)
     {
         LinkPtr cur_link = link_stack.top();
-        int joint_idx = joint_index_stack.top();
+        unsigned int joint_idx = joint_index_stack.top();
 
         if (joint_idx < cur_link->child_joints.size())
         {
@@ -116,7 +116,7 @@ bool ConstructModel (RigidBodyDynamics::Model* rbdl_model, ModelPtr urdf_model, 
 
             if (verbose)
             {
-                for (int i = 1; i < joint_index_stack.size() - 1; i++)
+                for (unsigned int i = 1; i < joint_index_stack.size() - 1; i++)
                 {
                     cout << "  ";
                 }
@@ -251,7 +251,7 @@ bool ConstructModel (RigidBodyDynamics::Model* rbdl_model, ModelPtr urdf_model, 
             {
                 cout << "    " << j << ": " << rbdl_joint.mJointAxes[j].transpose() << endl;
             }
-            cout << "  body inertia: " << endl << rbdl_body.mSpatialInertia << endl;
+            cout << "  body inertia: " << endl << rbdl_body.mInertia << endl;
             cout << "  body mass   : " << rbdl_body.mMass << endl;
             cout << "  body name   : " << urdf_child->name << endl;
         }

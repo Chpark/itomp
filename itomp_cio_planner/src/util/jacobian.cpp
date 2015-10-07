@@ -190,8 +190,8 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
 	for (int i = 0; i < evaluation_manager_->getPlanningGroup()->getNumContacts(); ++i)
 	{
 		int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
-		itomp_cio_planner::CalcFullJacobian(const_cast<RigidBodyDynamics::Model&>(evaluation_manager_->getRBDLModel(point)), q, rbdl_body_id,
-											Eigen::Vector3d::Zero(), jacobian, true);
+        RigidBodyDynamics::CalcBodySpatialJacobian(const_cast<RigidBodyDynamics::Model&>(evaluation_manager_->getRBDLModel(point)), q, rbdl_body_id,
+                                                   jacobian, true);
 		jacobianMerged.block(3 * i, 0, 3, q.rows()) = jacobian.block(0, 0, 3, q.rows());
 	}
 	j.SetJacobian(jacobianMerged);

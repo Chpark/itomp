@@ -113,6 +113,9 @@ bool ItompRobotModel::init(const robot_model::RobotModelConstPtr& robot_model)
 				switch (rbdl_joint.mJointType)
 				{
 				case RigidBodyDynamics::JointTypeRevolute:
+                case RigidBodyDynamics::JointTypeRevoluteX:
+                case RigidBodyDynamics::JointTypeRevoluteY:
+                case RigidBodyDynamics::JointTypeRevoluteZ:
 					if (const robot_model::RevoluteJointModel* revolute_joint =
 								dynamic_cast<const robot_model::RevoluteJointModel*>(joint_model))
 					{

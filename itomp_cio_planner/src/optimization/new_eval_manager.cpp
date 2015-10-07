@@ -717,7 +717,7 @@ void NewEvalManager::initializeContactVariables()
 				Eigen::Vector3d contact_torque;
 
                 int rbdl_body_id = planning_group_->contact_points_[i].getContactPointRBDLIds(j);
-                CalcFullJacobian(rbdl_models_[point], q, rbdl_body_id, Eigen::Vector3d::Zero(), jacobian, false);
+                RigidBodyDynamics::CalcBodySpatialJacobian(rbdl_models_[point], q, rbdl_body_id, jacobian, false);
 
 				contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
 				// set forces to 0

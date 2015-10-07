@@ -5,21 +5,24 @@
  * Licensed under the zlib license. See LICENSE for more details.
  */
 
-#ifndef _RBDLCONFIG_H
-#define _RBDLCONFIG_H
+#ifndef RBDL_CONFIG_H
+#define RBDL_CONFIG_H
 
-#define RBDL_API_VERSION (2 << 16) + (3 << 8) + 2
+#define RBDL_API_VERSION (2 << 16) + (4 << 8) + 0
 
 /* #undef RBDL_USE_SIMPLE_MATH */
 /* #undef RBDL_ENABLE_LOGGING */
 #define RBDL_BUILD_REVISION "unknown"
 #define RBDL_BUILD_TYPE "unknown"
 #define RBDL_BUILD_BRANCH "unknown"
-/* #undef BUILD_ADDON_LUAMODEL */
+/* #undef RBDL_BUILD_ADDON_LUAMODEL */
+#define RBDL_BUILD_ADDON_URDFREADER
+#define RBDL_BUILD_STATIC
 
 /* compatibility defines */
 #ifdef _WIN32
 	#define __func__ __FUNCTION__
+	#define M_PI 3.1415926535897932384
 #endif
 
 // Handle portable symbol export.
@@ -51,7 +54,7 @@
 #  endif // __GNUC__ >= 4
 # endif // defined _WIN32 || defined __CYGWIN__
 
-# ifdef RBDL_STATIC
+# ifdef RBDL_BUILD_STATIC
 // If one is using the library statically, get rid of
 // extra information.
 #  define RBDL_DLLAPI
@@ -65,6 +68,6 @@
 #   define RBDL_DLLAPI RBDL_DLLIMPORT
 #  endif // RBDL_EXPORTS
 #  define RBDL_LOCAL RBDL_DLLLOCAL
-# endif // RBDL_STATIC
+# endif // RBDL_BUILD_STATIC
 
 #endif

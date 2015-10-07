@@ -40,19 +40,6 @@ void CalcFullJacobian(RigidBodyDynamics::Model & model,
 					  const RigidBodyDynamics::Math::VectorNd & Q, unsigned int body_id,
 					  const RigidBodyDynamics::Math::Vector3d & point_position,
 					  RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics = true);
-
-void CalcFullJacobianBasePosition(RigidBodyDynamics::Model & model,
-								  const RigidBodyDynamics::Math::VectorNd & Q, unsigned int body_id,
-								  const RigidBodyDynamics::Math::Vector3d & point_base_pos,
-								  RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics = true);
-
-void InverseDynamics2(RigidBodyDynamics::Model &model,
-					  const RigidBodyDynamics::Math::VectorNd &Q,
-					  const RigidBodyDynamics::Math::VectorNd &QDot,
-					  const RigidBodyDynamics::Math::VectorNd &QDDot,
-					  RigidBodyDynamics::Math::VectorNd &Tau,
-					  std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext);
-
 }
 
 #endif /* RBDL_MODEL_UTIL_H_ */
