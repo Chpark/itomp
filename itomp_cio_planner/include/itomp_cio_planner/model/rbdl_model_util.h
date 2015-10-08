@@ -28,7 +28,8 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 						   const RigidBodyDynamics::Math::VectorNd &QDot,
 						   const RigidBodyDynamics::Math::VectorNd &QDDot,
 						   RigidBodyDynamics::Math::VectorNd &Tau,
-                           const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext);
+                           const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+                           const std::vector<double> *joint_forces);
 
 void UpdatePartialKinematics(RigidBodyDynamics::Model & model,
 							 const RigidBodyDynamics::Math::VectorNd& Q,
