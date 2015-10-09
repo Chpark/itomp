@@ -75,6 +75,11 @@ private:
 
     bool evaluatePointRange(int point_begin, int point_end, Eigen::MatrixXd& cost_matrix, const ItompTrajectoryIndex& index);
 
+    void computePassiveForces(int point,
+                              const RigidBodyDynamics::Math::VectorNd &q,
+                              const RigidBodyDynamics::Math::VectorNd &q_dot,
+                              std::vector<double>& passive_forces);
+
 	bool isDerivative() const;
 
     // shared constant pointer members

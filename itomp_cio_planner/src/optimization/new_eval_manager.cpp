@@ -23,7 +23,6 @@ using namespace Eigen;
 namespace itomp_cio_planner
 {
 
-const double PASSIVE_FORCE_RATIO = 1.0;
 const NewEvalManager* NewEvalManager::ref_evaluation_manager_ = NULL;
 
 NewEvalManager::NewEvalManager() :
@@ -411,27 +410,8 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
         }
 
         // passive forces
-        const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
-        const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
         std::vector<double> passive_forces(num_joints + 1, 0.0);
-        for (int i = 1; i <= num_joints; ++i)
-        {
-            int q_index = rbdl_models_[point].mJoints[i].q_index;
-
-            if (q_index < 6)
-            {
-
-            }
-            else if (q_index < 12)
-            {
-                passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
-                //passive_force = -K_P * q(q_index);
-            }
-            else
-            {
-                //passive_force = -K_D * q_dot(q_index);
-            }
-        }
+        computePassiveForces(point, q, q_dot, passive_forces);
 
         updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point], &passive_forces);
 	}
@@ -527,8 +507,6 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                     GroundManager::getInstance()->getNearestContactPosition(contact_position, contact_orientation,
                             proj_position, proj_orientation, contact_normal, i < 2);
 
-                    int rbdl_endeffector_id = planning_group_->contact_points_[i].getRBDLBodyId();
-
                     contact_variables_[point][i].ComputeProjectedPointPositions(proj_position, proj_orientation,
                             rbdl_models_[point], planning_group_->contact_points_[i]);
                 }
@@ -556,7 +534,11 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                 }
             }
 
-            updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point]);
+            // passive forces
+            std::vector<double> passive_forces(num_joints + 1, 0.0);
+            computePassiveForces(point, q, q_dot, passive_forces);
+
+            updatePartialDynamics(rbdl_models_[point], q, q_dot, q_ddot, joint_torques_[point], &external_forces_[point], &passive_forces);
         }
         else
         {
@@ -564,31 +546,9 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
             joint_torques_[point] = ref_evaluation_manager_->joint_torques_[point];
             external_forces_[point] = ref_evaluation_manager_->external_forces_[point];
 
-
-
             // passive forces
-            const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
-            const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
             std::vector<double> passive_forces(num_joints + 1, 0.0);
-
-            int i = index.element + 1;
-            int q_index = rbdl_models_[point].mJoints[i].q_index;
-            // TODO: needs reverse map if q_index != index.element
-            ROS_ASSERT(q_index == index.element);
-            double passive_force = 0.0;
-            if (q_index < 6)
-            {
-
-            }
-            else if (q_index < 12)
-            {
-                passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
-                //passive_force = -K_P * q(q_index);
-            }
-            else
-            {
-                //passive_force = -K_D * q_dot(q_index);
-            }
+            computePassiveForces(point, q, q_dot, passive_forces);
 
             updatePartialKinematicsAndDynamics(rbdl_models_[point], q, q_dot,
                                                q_ddot, joint_torques_[point], &external_forces_[point], &passive_forces,
@@ -638,7 +598,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             if (cost_functions[c]->getName().size() > max_cost_name_length)
                 max_cost_name_length = cost_functions[c]->getName().size();
 
-
+        /*
         cout.precision(3);
         for (int c = 0; c < cost_functions.size(); ++c)
         {
@@ -655,7 +615,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             }
             std::cout << std::endl;
         }
-
+        */
 
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -744,6 +704,29 @@ void NewEvalManager::initializeContactVariables()
 
         itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
 	}
+
+
+    // check fixed contacts
+    for (int i = 0; i < num_contacts; ++i)
+    {
+        int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+        Eigen::Vector3d pos_start = rbdl_models_[0].X_base[rbdl_body_id].r;
+        Eigen::Vector3d pos_goal = rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r;
+
+        Eigen::Vector3d normal_start = rbdl_models_[0].X_base[rbdl_body_id].E * Eigen::Vector3d(0, 0, 1.0);
+        Eigen::Vector3d normal_goal = rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E * Eigen::Vector3d(0, 0, 1.0);
+
+        double pos_diff = (pos_start - pos_goal).squaredNorm();
+        double normal_diff = (normal_start - normal_goal).squaredNorm();
+
+        if (pos_diff < 0.1 && normal_diff < 0.1)
+        {
+            cout << "Contact " << i << " fixed" << endl;
+            //planning_group_->is_fixed_ = true;
+        }
+
+    }
+
 }
 
 void NewEvalManager::resetBestTrajectoryCost()
@@ -778,6 +761,60 @@ void NewEvalManager::printLinkTransforms() const
         }
     }
     trajectory_file.close();
+}
+
+void NewEvalManager::computePassiveForces(int point,
+                                          const RigidBodyDynamics::Math::VectorNd &q,
+                                          const RigidBodyDynamics::Math::VectorNd &q_dot,
+                                          std::vector<double>& passive_forces)
+{
+    const double PASSIVE_FORCE_RATIO = 10.0;
+    const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
+    const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
+
+    int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                     ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
+
+    // rocket_box
+    /*
+    for (int i = 1; i <= num_joints; ++i)
+    {
+        int q_index = rbdl_models_[point].mJoints[i].q_index;
+
+        if (q_index < 6)
+        {
+
+        }
+        else if (q_index < 12)
+        {
+            passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
+            //passive_force = -K_P * q(q_index);
+        }
+        else
+        {
+            //passive_force = -K_D * q_dot(q_index);
+        }
+    }
+    */
+
+    // beta
+
+    for (int i = 1; i <= num_joints; ++i)
+    {
+        int q_index = rbdl_models_[point].mJoints[i].q_index;
+
+        if ((q_index >= 3 && q_index <= 5) ||
+            (q_index >= 50 && q_index <= 58) ||
+            (q_index >= 71 && q_index <= 79))
+        {
+            passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
+        }
+        else
+        {
+            //passive_forces[i] = -K_D * q_dot(q_index);
+        }
+    }
+
 }
 
 }

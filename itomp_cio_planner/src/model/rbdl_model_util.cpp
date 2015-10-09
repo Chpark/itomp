@@ -219,7 +219,8 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 						   const RigidBodyDynamics::Math::VectorNd &QDot,
 						   const RigidBodyDynamics::Math::VectorNd &QDDot,
 						   RigidBodyDynamics::Math::VectorNd &Tau,
-                           const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext)
+                           const std::vector<RigidBodyDynamics::Math::SpatialVector> *f_ext,
+                           const std::vector<double> *joint_forces)
 {
 	unsigned int i;
 
@@ -234,6 +235,9 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
         {
             model.f[i].setZero();
         }
+
+        if (joint_forces != NULL && (*joint_forces)[i] != 0.0)
+            model.f[i] -= model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];

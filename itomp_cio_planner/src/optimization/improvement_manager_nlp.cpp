@@ -293,7 +293,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     for (int i = 0; i < variables.size(); ++i)
     {
-        if (std::abs(der(i) - der_reference(i)) > max_der * 0.1)
+        if (std::abs(der(i) - der_reference(i)) > 0.001)
         {
             const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
 
@@ -334,16 +334,20 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     */
 
 
+    /*
     // normalize der;
     double norm = 0.0;
     for (int i = 0; i < der.size(); ++i)
         norm += der(i) * der(i);
     norm = std::sqrt(norm);
-    if (norm > ITOMP_EPS)
+    std::cout << "norm : " << norm << std::endl;
+    if (norm > 1000.0)
     {
+        norm *= 0.001;
         for (int i = 0; i < der.size(); ++i)
             der(i) /= norm;
     }
+    */
 
     return der;
 }
