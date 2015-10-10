@@ -624,6 +624,22 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             cout << setw(max_cost_name_length) << cost_functions[c]->getName();
             cout << " : " << fixed << sub_cost << std::endl;
         }
+
+        /*
+        std::cout << "torques\n";
+        for (int point = 0; point < itomp_trajectory_->getNumPoints(); ++point)
+        {
+            std::cout << "[" << point << "] : ";
+            for (int i = 0; i < joint_torques_[point].rows(); ++i)
+            {
+                // actuated joints
+                double joint_torque = joint_torques_[point](i);
+                std::cout << joint_torque << " ";
+            }
+            std::cout << std::endl;
+        }
+        std::cout << std::endl;
+        */
 	}
 }
 
@@ -768,7 +784,7 @@ void NewEvalManager::computePassiveForces(int point,
                                           const RigidBodyDynamics::Math::VectorNd &q_dot,
                                           std::vector<double>& passive_forces)
 {
-    const double PASSIVE_FORCE_RATIO = 10.0;
+    const double PASSIVE_FORCE_RATIO = 100.0;
     const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
     const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
 
@@ -804,8 +820,8 @@ void NewEvalManager::computePassiveForces(int point,
         int q_index = rbdl_models_[point].mJoints[i].q_index;
 
         if ((q_index >= 3 && q_index <= 5) ||
-            (q_index >= 50 && q_index <= 58) ||
-            (q_index >= 71 && q_index <= 79))
+            (q_index >= 49 && q_index <= 54) ||
+            (q_index >= 65 && q_index <= 70))
         {
             passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
         }

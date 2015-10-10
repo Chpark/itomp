@@ -412,12 +412,14 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 
         // TODO
         double weight = 1.0;
+        /*
         if (i <= 6)
             weight = 0;
         if (i <= 8) // torso
             weight = 1.0;
         else if (i <= 11) // head
             weight = 0.1;
+            */
 
         double acc = q_ddot(i);
 

@@ -19,7 +19,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
 	// Reset the velocity of the root body
 	model.v[0].setZero();
-	model.a[0] = spatial_gravity * -1.;
+    model.a[0] = spatial_gravity;
 
 	for (i = 1; i < model.mBodies.size(); i++)
 	{
@@ -69,7 +69,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
             model.f[i] -= model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
-            model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)
@@ -166,7 +166,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
             model.f[i] -= model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
-            model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
 	}
 
 	for (int id = body_ids.size() - 1; id > 0; --id)
@@ -240,7 +240,7 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
             model.f[i] -= model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
-            model.f[i] -= model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)
