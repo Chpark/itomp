@@ -784,9 +784,8 @@ void NewEvalManager::computePassiveForces(int point,
                                           const RigidBodyDynamics::Math::VectorNd &q_dot,
                                           std::vector<double>& passive_forces)
 {
-    const double PASSIVE_FORCE_RATIO = 100.0;
-    const double K_P = 50.0 * PASSIVE_FORCE_RATIO;
-    const double K_D = 1.0 * PASSIVE_FORCE_RATIO;
+    const double K_P = 50.0 * PlanningParameters::getInstance()->getPassiveForceRatio();
+    const double K_D = 1.0 * PlanningParameters::getInstance()->getPassiveForceRatio();
 
     int num_joints = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                      ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getNumElements();
@@ -819,7 +818,7 @@ void NewEvalManager::computePassiveForces(int point,
     {
         int q_index = rbdl_models_[point].mJoints[i].q_index;
 
-        if ((q_index >= 3 && q_index <= 5) ||
+        if ((q_index >= 3 && q_index <= 4) ||
             (q_index >= 49 && q_index <= 54) ||
             (q_index >= 65 && q_index <= 70))
         {

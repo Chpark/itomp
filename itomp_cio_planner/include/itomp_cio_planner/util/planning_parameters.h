@@ -118,6 +118,8 @@ public:
 
     bool getContactZPlaneOnly() const;
 
+    double getPassiveForceRatio() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -193,6 +195,8 @@ private:
     double failure_cost_;
 
     bool contact_z_plane_only_;
+
+    double passive_force_ratio_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -481,6 +485,11 @@ inline double PlanningParameters::getFailureCost() const
 inline bool PlanningParameters::getContactZPlaneOnly() const
 {
     return contact_z_plane_only_;
+}
+
+inline double PlanningParameters::getPassiveForceRatio() const
+{
+    return passive_force_ratio_;
 }
 
 }

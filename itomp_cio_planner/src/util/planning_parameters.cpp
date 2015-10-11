@@ -317,6 +317,8 @@ void PlanningParameters::initFromNodeHandle()
     node_handle.param("failure_cost", failure_cost_, 100000.0);
 
     node_handle.param("contact_z_plane_only", contact_z_plane_only_, false);
+
+    node_handle.param("passive_force_ratio", passive_force_ratio_, 1.0);
 }
 
 } // namespace

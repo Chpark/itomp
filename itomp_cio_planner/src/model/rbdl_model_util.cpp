@@ -66,7 +66,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
         }
 
         if (joint_forces != NULL && (*joint_forces)[i] != 0.0)
-            model.f[i] -= model.S[i] * (*joint_forces)[i];
+            model.f[i] += model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
@@ -163,7 +163,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
         }
 
         if (joint_forces != NULL && (*joint_forces)[i] != 0.0)
-            model.f[i] -= model.S[i] * (*joint_forces)[i];
+            model.f[i] += model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
@@ -237,7 +237,7 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
         }
 
         if (joint_forces != NULL && (*joint_forces)[i] != 0.0)
-            model.f[i] -= model.S[i] * (*joint_forces)[i];
+            model.f[i] += model.S[i] * (*joint_forces)[i];
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
