@@ -52,10 +52,10 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         break;
     case 1:
     {
-        if (index.component != ItompTrajectory::COMPONENT_TYPE_POSITION)
-            return true;
 
-        if (index.point == 0 || index.point == num_points_ -1)
+
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
+            if (index.point == 0 || index.point == num_points_ -1)
             return false;
     }
         break;
