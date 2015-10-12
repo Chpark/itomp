@@ -128,8 +128,9 @@ void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 								const robot_state::RobotStatePtr& robot_state, bool is_best)
 {
 	if (!is_best)
-		return;
+        return;
 
+    // marker array
 	visualization_msgs::MarkerArray ma;
     std::vector<std::string> link_names = robot_model_->getMoveitRobotModel()->getLinkModelNames();
     std_msgs::ColorRGBA color = colors_[WHITE];
@@ -148,7 +149,45 @@ void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
         for (int i = 0; i < ma.markers.size(); ++i)
             ma.markers[i].mesh_use_embedded_materials = true;
         vis_marker_array_publisher_path_.publish(ma);
-	}
+    }
+
+
+    // MotionPlanning -> Planned Path -> trajectory
+    moveit_msgs::DisplayTrajectory display_trajectory;
+
+    int num_all_joints = robot_state->getVariableCount();
+
+    ElementTrajectoryConstPtr joint_trajectory = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+    robot_trajectory::RobotTrajectoryPtr response_trajectory = boost::make_shared<robot_trajectory::RobotTrajectory>(robot_model_->getMoveitRobotModel(), "");
+
+    robot_state::RobotState ks = *robot_state;
+    std::vector<double> positions(num_all_joints);
+    double dt = trajectory->getDiscretization();
+    // TODO:
+    int num_return_points = joint_trajectory->getNumPoints();
+    for (std::size_t i = 0; i < num_return_points; ++i)
+    {
+        for (std::size_t j = 0; j < num_all_joints; j++)
+        {
+            positions[j] = (*joint_trajectory)(i, j);
+        }
+
+        ks.setVariablePositions(&positions[0]);
+        // TODO: copy vel/acc
+        ks.update();
+
+        response_trajectory->addSuffixWayPoint(ks, dt);
+    }
+
+    moveit_msgs::RobotTrajectory trajectory_msg;
+    response_trajectory->getRobotTrajectoryMsg(trajectory_msg);
+
+    display_trajectory.trajectory.push_back(trajectory_msg);
+
+    ros::NodeHandle node_handle;
+    static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/itomp_planner/display_planned_path", 1, true);
+    display_publisher.publish(display_trajectory);
 }
 
 void NewVizManager::animateContacts(const ItompTrajectoryConstPtr& trajectory,

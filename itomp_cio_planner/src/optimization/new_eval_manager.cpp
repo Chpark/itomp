@@ -818,8 +818,8 @@ void NewEvalManager::computePassiveForces(int point,
     {
         int q_index = rbdl_models_[point].mJoints[i].q_index;
 
-        if ((q_index >= 3 && q_index <= 4) ||
-            (q_index >= 49 && q_index <= 54) ||
+        if ((q_index >= 3 && q_index <= 5) ||
+            (q_index >= 46 && q_index <= 54) ||
             (q_index >= 65 && q_index <= 70))
         {
             passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
