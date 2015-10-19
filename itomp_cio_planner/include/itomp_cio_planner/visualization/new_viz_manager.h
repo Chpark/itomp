@@ -32,6 +32,7 @@ public:
                          const std::vector<std::vector<ContactVariables> >& contact_variables,
                          const std::vector<RigidBodyDynamics::Model>& models,
                          bool is_best);
+    void animateInternalForces(const ItompTrajectoryConstPtr& trajectory, const std::vector<RigidBodyDynamics::Model>& models, bool forces, bool torques);
 
     void displayTrajectory(const ItompTrajectoryConstPtr& trajectory);
     void renderContactSurface();
@@ -45,6 +46,7 @@ private:
 
     ros::Publisher vis_marker_array_publisher_path_;
     ros::Publisher vis_marker_array_publisher_contacts_;
+    ros::Publisher vis_marker_array_publisher_internal_forces_;
     ros::Publisher trajectory_publisher_;
 
 	ItompRobotModelConstPtr robot_model_;

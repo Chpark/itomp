@@ -24,6 +24,7 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
 	ros::NodeHandle node_handle;
     vis_marker_array_publisher_path_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_path", 10);
     vis_marker_array_publisher_contacts_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_contacts", 10);
+    vis_marker_array_publisher_internal_forces_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_internal_forces", 10);
     trajectory_publisher_ = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/itomp_planner/display_planned_path", 10);
 
 	robot_model_ = robot_model;
@@ -397,6 +398,82 @@ void NewVizManager::setLineMarker(visualization_msgs::Marker& marker, unsigned i
     marker.color.r *= color_scale;
     marker.color.g *= color_scale;
     marker.color.b *= color_scale;
+}
+
+void NewVizManager::animateInternalForces(const ItompTrajectoryConstPtr& trajectory, const std::vector<RigidBodyDynamics::Model>& models, bool forces, bool torques)
+{
+    const double SCALE_FORCE_LINE = 0.005;
+    const double SCALE_FORCE = 0.001;
+
+    visualization_msgs::MarkerArray ma;
+    visualization_msgs::Marker marker_force;
+    visualization_msgs::Marker marker_link;
+    visualization_msgs::Marker marker_torque;
+    visualization_msgs::Marker marker_CoMtoLink;
+
+    marker_force.header.frame_id = reference_frame_;
+    marker_force.header.stamp = ros::Time::now();
+    marker_force.action = visualization_msgs::Marker::ADD;
+    marker_force.pose.orientation.w = 1.0;
+    marker_force.type = visualization_msgs::Marker::LINE_LIST;
+    marker_force.scale.x = SCALE_FORCE_LINE;
+    marker_force.scale.y = SCALE_FORCE_LINE;
+    marker_force.scale.z = SCALE_FORCE_LINE;
+    marker_force.color = colors_[BLUE];
+
+    marker_link = marker_force;
+    marker_link.color = colors_[WHITE];
+
+    marker_torque = marker_force;
+    marker_torque.color = colors_[GREEN];
+
+    marker_CoMtoLink = marker_force;
+    marker_CoMtoLink.color = colors_[RED];
+
+    for (int point = 0; point < 1/*trajectory->getNumPoints()*/; ++point)
+    {
+        int marker_id = 0;
+        marker_force.ns = "link_force_" + boost::lexical_cast<std::string>(point);
+        marker_link.ns = "link_" + boost::lexical_cast<std::string>(point);
+        marker_torque.ns = "link_torque_" + boost::lexical_cast<std::string>(point);
+        marker_CoMtoLink.ns = "link_CoMtoLink_" + boost::lexical_cast<std::string>(point);
+
+        const Eigen::Vector3d com(0, 0, 0);
+
+        for (int i = 1; i < models[point].mBodies.size(); i++)
+        {
+            const RigidBodyDynamics::Math::SpatialTransform x_base = models[point].X_base[i];
+            RigidBodyDynamics::Math::SpatialTransform inv_X_base = x_base.inverse();
+            const RigidBodyDynamics::Math::SpatialVector f = inv_X_base.apply(models[point].f[i]);
+
+            const Eigen::Vector3d link_position = x_base.r;
+            const Eigen::Vector3d link_force(f(3), f(4), f(5));
+            const Eigen::Vector3d link_torque(f(0), f(1), f(2));
+
+            if (forces)
+            {
+                setLineMarker(marker_force, marker_id++, link_position, link_force * SCALE_FORCE + link_position, colors_[BLUE]);
+                ma.markers.push_back(marker_force);
+
+                unsigned int lambda = models[point].lambda[i];
+                if (lambda != 0)
+                {
+                    const Eigen::Vector3d parent_link_position = models[point].X_base[lambda].r;
+                    setLineMarker(marker_link, marker_id++, link_position, parent_link_position, colors_[WHITE]);
+                    ma.markers.push_back(marker_link);
+                }
+            }
+
+            if (torques)
+            {
+                setLineMarker(marker_torque, marker_id++, link_position, link_torque * SCALE_FORCE + link_position, colors_[GREEN]);
+                setLineMarker(marker_CoMtoLink, marker_id++, link_position, com, colors_[RED]);
+                ma.markers.push_back(marker_torque);
+                ma.markers.push_back(marker_CoMtoLink);
+            }
+        }
+    }
+    vis_marker_array_publisher_internal_forces_.publish(ma);
 }
 
 }

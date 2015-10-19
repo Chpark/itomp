@@ -307,6 +307,9 @@ void NewEvalManager::render()
         NewVizManager::getInstance()->animateEndeffectors(itomp_trajectory_, rbdl_models_, is_best);
         NewVizManager::getInstance()->animateContacts(itomp_trajectory_, contact_variables_, rbdl_models_, is_best);
 	}
+
+    if (is_best)
+        NewVizManager::getInstance()->animateInternalForces(itomp_trajectory_, rbdl_models_, true, true);
 }
 
 void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, int point_end)
