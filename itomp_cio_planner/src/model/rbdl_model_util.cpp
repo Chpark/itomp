@@ -85,7 +85,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
         }
 	}
 }
@@ -109,7 +109,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 	RigidBodyDynamics::Math::SpatialVector propagated_force = model.f[i];
 	while (lambda != 0)
 	{
-		propagated_force = model.X_lambda[i].applyTranspose(propagated_force);
+        propagated_force = model.X_lambda[i].inverse().applyTranspose(propagated_force);
 		model.f[lambda] -= propagated_force;
 
 		i = lambda;
@@ -184,7 +184,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
         }
 	}
 
@@ -205,7 +205,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
 		if (lambda != 0)
 		{
-            propagated_force = model.X_lambda[i].applyTranspose(propagated_force);
+            propagated_force = model.X_lambda[i].inverse().applyTranspose(propagated_force);
 			model.f[lambda] += propagated_force;
 		}
 
@@ -256,7 +256,7 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
         }
 	}
 }
