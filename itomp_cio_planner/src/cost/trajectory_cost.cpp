@@ -79,6 +79,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	bool is_feasible = true;
 
+    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
+
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
     robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
     const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
@@ -170,6 +173,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
+    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
+
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
     const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
 
@@ -246,6 +252,9 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	bool is_feasible = true;
 	cost = 0;
+
+    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
 
@@ -397,6 +406,9 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 	bool is_feasible = true;
 	cost = 0;
 
+    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
+
 	TIME_PROFILER_START_TIMER(Torque);
 
     const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
@@ -545,8 +557,22 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
+    if (PhaseManager::getInstance()->getPhase() > 1)
+        return is_feasible;
+
+    if (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
+
 	TIME_PROFILER_START_TIMER(ROM);
 
+    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+    const RigidBodyDynamics::Math::SpatialTransform& right_hand_transform = model.X_base[81];
+    const Eigen::Quaterniond right_hand_orientation(right_hand_transform.E);
+    Eigen::Quaterniond orientation_y(Eigen::AngleAxisd(-0.5 * M_PI, Eigen::Vector3d::UnitY()));
+    double angle = right_hand_orientation.angularDistance(orientation_y);
+    cost = angle * angle;
+
+    /*
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
 
 	// joint angle vector q at waypoint 'point'
@@ -576,6 +602,7 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
     y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_y_joint"));
     x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_x_joint"));
 	cost += roms_[3].ResidualRadius(z, y, x);
+    */
 
 	TIME_PROFILER_END_TIMER(ROM);
 

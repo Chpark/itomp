@@ -25,44 +25,38 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 {
     int state = (int)(PlanningParameters::getInstance()->getTemporaryVariable(0) + ITOMP_EPS);
 
-    /*
-    if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE &&
-            index.element >= 36)
-        return false;
-        */
-
-    //if (index.component != ItompTrajectory::COMPONENT_TYPE_POSITION)
-      //  return true;
-
     switch (getPhase())
     {
     case 0:
     {
-
         if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
             return true;
-        return false;
-
-        /*
-        if (index.point == 0 || index.point == num_points_ -1)
-            if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-                return false;
-                */
+        if (index.point != 0)
+            return false;
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+              if (index.element >= 72 && index.element <= 80)
+                  return true;
+            return false;
     }
         break;
     case 1:
     {
-
-
-        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            return true;
+        if (index.point != num_points_ - 1)
             return false;
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+              if (index.element >= 72 && index.element <= 80)
+                  return true;
+            return false;
+
     }
         break;
     case 2:
     {
-        if (index.point == 0 || index.point == num_points_ -1)
-           return false;
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
+            if (index.point == 0 || index.point == num_points_ -1)
+            return false;
     }
         break;
     }
