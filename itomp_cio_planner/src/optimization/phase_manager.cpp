@@ -29,34 +29,68 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     {
     case 0:
     {
-        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
-            return true;
         if (index.point != 0)
             return false;
-        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
-              if (index.element >= 72 && index.element <= 80)
-                  return true;
-            return false;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE ||
+            index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+            return true;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            if (index.element >= 72 && index.element <= 80 ||
+                index.element >= 6 && index.element <= 25)
+                return true;
+
+        return false;
     }
         break;
     case 1:
     {
-        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
-            return true;
-        if (index.point != num_points_ - 1)
-            return false;
-        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION && index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
-              if (index.element >= 72 && index.element <= 80)
-                  return true;
+        if (index.point != 0)
             return false;
 
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE ||
+            index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+            return true;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            if (index.element >= 72 && index.element <= 80 ||
+                index.element >= 6 && index.element <= 45)
+                  return true;
+        return false;
     }
         break;
     case 2:
     {
-        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
+        if (index.point != num_points_ - 1)
             return false;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE ||
+            index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+            return true;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            if (index.element >= 72 && index.element <= 80 ||
+                index.element >= 6 && index.element <= 25)
+                return true;
+
+        return false;
+    }
+        break;
+    case 3:
+    {
+        if (index.point != num_points_ - 1)
+            return false;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE ||
+            index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+            return true;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            if (index.element >= 72 && index.element <= 80 ||
+                index.element >= 6 && index.element <= 45)
+                  return true;
+        return false;
     }
         break;
     }

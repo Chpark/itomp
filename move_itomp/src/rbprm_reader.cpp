@@ -136,13 +136,13 @@ void displayInitialWaypoints(robot_state::RobotState& state,
     visualization_msgs::MarkerArray ma;
     std::vector<std::string> link_names = robot_model->getLinkModelNames();
     std_msgs::ColorRGBA color;
-    color.a = 0.5;
+    color.a = 1.0;
     color.r = 1.0;
     color.g = 1.0;
     color.b = 0.0;
 
-    //ros::Duration dur(3600.0);
-    ros::Duration dur(0.25);
+    ros::Duration dur(3600.0);
+    //ros::Duration dur(0.25);
 
     for (unsigned int point = 0; point < waypoints.size(); ++point)
     {
@@ -151,7 +151,7 @@ void displayInitialWaypoints(robot_state::RobotState& state,
         setRobotStateFrom(state, hierarchy, waypoints, point);
 
 
-        double time = 0.05;
+        double time = point == 0 ? 2.00 : 0.05;
         ros::WallDuration timer(time);
         timer.sleep();
 
@@ -241,6 +241,60 @@ void setRobotStateFrom(robot_state::RobotState& state,
         jointValue = waypoints[index](id);
         state.setJointPositions(*cit, &jointValue);
     }
+}
+
+void writeTrajectoryToPRMFile(const std::vector<std::string>& hierarchy, moveit_msgs::DisplayTrajectory& display_trajectory, const std::string& original_filename)
+{
+    const std::string filename = original_filename.substr(0, original_filename.size() - 4) + "_modified.prm";
+    std::ofstream out (filename.c_str());
+
+    const std::vector<std::string>& joint_names = display_trajectory.trajectory[0].joint_trajectory.joint_names;
+
+
+    out << "HIERARCHY" << std::endl;
+    for (int i=0; i<hierarchy.size(); i++)
+        out << hierarchy[i] << std::endl;
+    out << std::endl;
+
+    out << "MOTION" << std::endl;
+
+    const int num_frames = display_trajectory.trajectory.size() + 1;
+    out << "Frames: " << num_frames << std::endl;
+
+    out << "Frame Time: 1" << std::endl;
+
+    out << std::setprecision(4);
+
+    for (int i=0; i < display_trajectory.trajectory.size(); ++i)
+    {
+        int point = 0;
+
+        while (point == 0 ||
+               i == display_trajectory.trajectory.size() - 1 && point == display_trajectory.trajectory[i].joint_trajectory.points.size() - 1)
+        {
+            for (int j=0; j < hierarchy.size(); j++)
+            {
+                double value = 0.0;
+
+                for (int k=0; k < display_trajectory.trajectory[i].joint_trajectory.points[point].positions.size(); ++k)
+                {
+                    if (hierarchy[j] == display_trajectory.trajectory[i].joint_trajectory.joint_names[k])
+                    {
+                        value = display_trajectory.trajectory[i].joint_trajectory.points[point].positions[k];
+                        if (j == 2) value += 1.0; // base_prismatic_joint_z
+                        break;
+                    }
+                }
+
+                out << value << ' ';
+            }
+            out << std::endl;
+
+            point += display_trajectory.trajectory[i].joint_trajectory.points.size() - 1;
+        }
+    }
+
+    out.close();
 }
 
 }

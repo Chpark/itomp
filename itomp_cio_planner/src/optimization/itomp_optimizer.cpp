@@ -73,7 +73,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 3;
+    int num_max_iterations = 4;
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
@@ -106,8 +106,10 @@ bool ItompOptimizer::optimize()
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
 
+            /*
             if (iteration_ == 2)
                 evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
+                */
 		}
 	}
 

@@ -78,8 +78,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;
+    cost = 0.0;
 
-    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    if (PhaseManager::getInstance()->getPhase() <= 3 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
@@ -173,7 +174,10 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    static int phase;
+    phase = PhaseManager::getInstance()->getPhase();
+
+    if (PhaseManager::getInstance()->getPhase() <= 3 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
@@ -185,6 +189,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 
     if (PlanningParameters::getInstance()->getCIEvaluationOnPoints())
 	{
+        static double minz;
+        minz = 1e9;
+
         for (int i = 0; i < num_contacts; ++i)
         {
             for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
@@ -211,8 +218,15 @@ bool TrajectoryCostContactInvariant::evaluate(
                 double c = getContactActiveValue(i, j, contact_variables);
 
                 cost += c * (position_diff_cost + contact_body_velocity_cost);
+
+                if (minz > fabs(position_diff[2]))
+                    minz = fabs(position_diff[2]);
             }
         }
+
+        static int aa = 0;
+        if (minz > 0)
+            aa++;
 	}
     else
     {
@@ -253,7 +267,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    if (PhaseManager::getInstance()->getPhase() <= 3 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
@@ -406,7 +420,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() <= 1 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    if (PhaseManager::getInstance()->getPhase() <= 3 &&point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
 	TIME_PROFILER_START_TIMER(Torque);
@@ -557,7 +571,7 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() > 1)
+    if (PhaseManager::getInstance()->getPhase() > 3)
         return is_feasible;
 
     if (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)

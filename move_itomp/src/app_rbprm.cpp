@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     moveit_msgs::DisplayTrajectory display_trajectory;
     unsigned int last = waypoints.size() - 2;
-    for (unsigned int i = 1; i <= last; ++i)
+    for (unsigned int i = 1; i <= 1; ++i)
     {
         planning_interface::MotionPlanRequest req;
         planning_interface::MotionPlanResponse res;
@@ -122,6 +122,9 @@ int main(int argc, char **argv)
     display_publisher.publish(display_trajectory);
     ros::WallDuration timer(1.0);
     timer.sleep();
+
+    // write prm file
+    //writeTrajectoryToPRMFile(hierarchy, display_trajectory, initialpath);
 
 	ROS_INFO("Done");
 

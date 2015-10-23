@@ -38,6 +38,9 @@ void setRobotStateFrom(robot_state::RobotState& state,
                        const std::vector<std::string>& hierarchy,
                        const std::vector<Eigen::VectorXd>& waypoints,
                        int index);
+
+void writeTrajectoryToPRMFile(const std::vector<std::string>& hierarchy, moveit_msgs::DisplayTrajectory& display_trajectory, const std::string& original_filename);
+
 }
 #endif
 
