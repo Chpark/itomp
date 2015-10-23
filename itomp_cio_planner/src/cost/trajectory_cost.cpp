@@ -79,6 +79,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	bool is_feasible = true;
 
+    if (PhaseManager::getInstance()->getPhase() <= 1 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+            return is_feasible;
+
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
     robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
     const planning_scene::PlanningSceneConstPtr planning_scene = evaluation_manager->getPlanningScene();
@@ -170,6 +173,9 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
+    if (PhaseManager::getInstance()->getPhase() <= 1 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+            return is_feasible;
+
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
     const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
 
@@ -246,6 +252,9 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 
 	bool is_feasible = true;
 	cost = 0;
+
+    if (PhaseManager::getInstance()->getPhase() <= 1 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+            return is_feasible;
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
 
@@ -396,6 +405,9 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 {
 	bool is_feasible = true;
 	cost = 0;
+
+    if (PhaseManager::getInstance()->getPhase() <= 1 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+            return is_feasible;
 
 	TIME_PROFILER_START_TIMER(Torque);
 

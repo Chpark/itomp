@@ -109,74 +109,21 @@ bool ItompOptimizer::optimize()
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
 
-            /*
-            if (iteration_ == 2)
+            if (iteration_ == 1)
             {
-                for (int i = 1; i < evaluation_manager_->getTrajectory()->getNumPoints(); ++i)
+
+                evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+                int num_points = evaluation_manager_->getTrajectoryNonConst()->getNumPoints();
+                for (int i = 1; i < num_points - 1 - 4; ++i)
                 {
-                    robot_state::RobotState robot_state(*evaluation_manager_->getRobotState(i));
-                    const std::vector<const robot_model::LinkModel*>& robot_link_models = evaluation_manager_->getItompRobotModel()->getMoveitRobotModel()->getLinkModels();
-
-                    Eigen::Affine3d root_pose;
-                    Eigen::Affine3d left_foot_pose;
-                    Eigen::Affine3d right_foot_pose;
-
-                    ElementTrajectoryPtr& joint_traj = evaluation_manager_->getTrajectoryNonConst()->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
-
-                    for (unsigned int j = 0; j < robot_state.getVariableCount(); ++j)
-                        robot_state.getVariablePositions()[j] = joint_traj->getTrajectoryPoint(i)(j);
-                    robot_state.update(true);
-                    root_pose = robot_state.getGlobalLinkTransform(robot_link_models[6]);
-
-                    evaluation_manager_->getItompRobotModel()->getGroupEndeffectorPos("left_leg", robot_state, left_foot_pose);
-                    evaluation_manager_->getItompRobotModel()->getGroupEndeffectorPos("right_leg", robot_state, right_foot_pose);
-
-                    Eigen::Vector3d normal_out, pos_out, orientation_out;
-                    GroundManager::getInstance()->getNearestContactPosition(left_foot_pose.translation(), exponential_map::RotationToExponentialMap(left_foot_pose.linear()),
-                                                                      pos_out, orientation_out, normal_out);
-                    //GroundManager::getInstance()->getNearestZPosition(left_foot_pose.translation(), exponential_map::RotationToExponentialMap(left_foot_pose.linear()),
-                      //                                                pos_out, orientation_out, normal_out);
-
-                    if ((i == 40 || normal_out.dot(left_foot_pose.translation() - pos_out) < 0.0) ||
-                        (PhaseManager::getInstance()->support_foot_ == 1 && i <= 20) ||
-                        (PhaseManager::getInstance()->support_foot_ != 1 && i >= 20))
-                    {
-                        left_foot_pose.translation() = pos_out;
-                        left_foot_pose.linear() = exponential_map::ExponentialMapToRotation(orientation_out);
-                    }
-                    GroundManager::getInstance()->getNearestContactPosition(right_foot_pose.translation(), exponential_map::RotationToExponentialMap(right_foot_pose.linear()),
-                                                                      pos_out, orientation_out, normal_out);
-                    if ((i == 40 || normal_out.dot(right_foot_pose.translation() - pos_out) < 0.0) ||
-                        (PhaseManager::getInstance()->support_foot_ == 2 && i <= 20) ||
-                        (PhaseManager::getInstance()->support_foot_ != 2 && i >= 20))
-                    {
-                        right_foot_pose.translation() = pos_out;
-                        right_foot_pose.linear() = exponential_map::ExponentialMapToRotation(orientation_out);
-                    }
-
-                    evaluation_manager_->getItompRobotModel()->computeStandIKState(robot_state, root_pose, left_foot_pose, right_foot_pose);
-
-                    Eigen::MatrixXd::RowXpr traj_point = joint_traj->getTrajectoryPoint(i);
-                    if (i % 5 == 0)
-                    {
-                        for (int k = 0; k < robot_state.getVariableCount(); ++k)
-                        {
-                            double value = robot_state.getVariablePosition(k);
-                            if (k == 5)
-                            {
-                                double prev_value = joint_traj->getTrajectoryPoint(i - 5)(k);
-                                while (value - prev_value > M_PI)
-                                    value -= 2.0 * M_PI;
-                                while (value - prev_value < -M_PI)
-                                    value += 2.0 * M_PI;
-                            }
-                            traj_point(k) = value;
-                        }
-                    }
+                    evaluation_manager_->getTrajectoryNonConst()->copy(0, i, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+                }
+                for (int i = 1; i < 4; ++i)
+                {
+                    evaluation_manager_->getTrajectoryNonConst()->copy(num_points - 1, num_points - 1 - i, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
                 }
             }
-            */
+
 		}
 	}
 
