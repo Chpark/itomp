@@ -5,6 +5,7 @@
 #include <ros/node_handle.h>
 #include <moveit_msgs/DisplayTrajectory.h>
 #include <boost/lexical_cast.hpp>
+#include <rbdl/rbdl_utils.h>
 
 using namespace std;
 
@@ -25,6 +26,7 @@ void NewVizManager::initialize(const ItompRobotModelConstPtr& robot_model)
     vis_marker_array_publisher_path_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_path", 10);
     vis_marker_array_publisher_contacts_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_contacts", 10);
     vis_marker_array_publisher_internal_forces_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_internal_forces", 10);
+    vis_marker_array_publisher_center_of_mass_ = node_handle.advertise<visualization_msgs::MarkerArray>("itomp_planner/animate_center_of_mass", 10);
     trajectory_publisher_ = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/itomp_planner/display_planned_path", 10);
 
 	robot_model_ = robot_model;
@@ -474,6 +476,83 @@ void NewVizManager::animateInternalForces(const ItompTrajectoryConstPtr& traject
         }
     }
     vis_marker_array_publisher_internal_forces_.publish(ma);
+}
+
+void NewVizManager::animateCenterOfMass(const ItompTrajectoryConstPtr& trajectory, std::vector<RigidBodyDynamics::Model>& models)
+{
+    const double SCALE_FORCE_LINE = 0.005;
+    const double SCALE_FORCE = 0.001;
+    const double SCALE_SPHERE = 0.01;
+
+    visualization_msgs::MarkerArray ma;
+    visualization_msgs::Marker marker_com;
+    visualization_msgs::Marker marker_com_vel;
+    visualization_msgs::Marker marker_com_angular_momentum;
+
+    marker_com.header.frame_id = reference_frame_;
+    marker_com.header.stamp = ros::Time::now();
+    marker_com.action = visualization_msgs::Marker::ADD;
+    marker_com.pose.orientation.w = 1.0;
+    marker_com.type = visualization_msgs::Marker::SPHERE_LIST;
+    marker_com.scale.x = SCALE_SPHERE;
+    marker_com.scale.y = SCALE_SPHERE;
+    marker_com.scale.z = SCALE_SPHERE;
+    marker_com.color = colors_[YELLOW];
+
+    marker_com_vel = marker_com;
+    marker_com_vel.color = colors_[BLUE];
+    marker_com_vel.scale.x = SCALE_FORCE_LINE;
+    marker_com_vel.scale.y = SCALE_FORCE_LINE;
+    marker_com_vel.scale.z = SCALE_FORCE_LINE;
+
+    marker_com_angular_momentum = marker_com_vel;
+    marker_com_angular_momentum.color = colors_[GREEN];
+
+    marker_com_vel.ns = "com";
+    marker_com_vel.ns = "com_vel";
+    marker_com_angular_momentum.ns = "com_am";
+
+    marker_com.id = 0;
+    marker_com_vel.id = 1;
+    marker_com_angular_momentum.id = 2;
+
+    for (int point = 0; point < trajectory->getNumPoints(); ++point)
+    {
+        double mass;
+        RigidBodyDynamics::Math::Vector3d com;
+        RigidBodyDynamics::Math::Vector3d com_velocity;
+        RigidBodyDynamics::Math::Vector3d angular_momentum;
+
+        const Eigen::VectorXd& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& qdot = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        RigidBodyDynamics::Utils::CalcCenterOfMass(models[point], q, qdot, mass, com, &com_velocity, &angular_momentum, false);
+
+        geometry_msgs::Point position;
+        position.x = com(0);
+        position.y = com(1);
+        position.z = com(2);
+        marker_com.points.push_back(position);
+        marker_com_vel.points.push_back(position);
+        marker_com_angular_momentum.points.push_back(position);
+
+        position.x = com(0) + com_velocity(0) * SCALE_FORCE;
+        position.y = com(1) + com_velocity(1) * SCALE_FORCE;
+        position.z = com(2) + com_velocity(2) * SCALE_FORCE;
+        marker_com_vel.points.push_back(position);
+
+        position.x = com(0) + angular_momentum(0) * SCALE_FORCE;
+        position.y = com(1) + angular_momentum(1) * SCALE_FORCE;
+        position.z = com(2) + angular_momentum(2) * SCALE_FORCE;
+        marker_com_angular_momentum.points.push_back(position);
+    }
+    ma.markers.push_back(marker_com);
+    ma.markers.push_back(marker_com_vel);
+    ma.markers.push_back(marker_com_angular_momentum);
+    vis_marker_array_publisher_center_of_mass_.publish(ma);
 }
 
 }

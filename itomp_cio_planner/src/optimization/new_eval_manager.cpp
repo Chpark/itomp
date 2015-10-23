@@ -309,7 +309,10 @@ void NewEvalManager::render()
 	}
 
     if (is_best)
+    {
         NewVizManager::getInstance()->animateInternalForces(itomp_trajectory_, rbdl_models_, true, true);
+        NewVizManager::getInstance()->animateCenterOfMass(itomp_trajectory_, rbdl_models_);
+    }
 }
 
 void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, int point_end)
