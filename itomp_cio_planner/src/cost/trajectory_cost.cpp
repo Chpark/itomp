@@ -39,7 +39,7 @@ bool TrajectoryCostSmoothness::evaluate(
 
     for (int i = 0; i < mat_acc.cols(); ++i)
 	{
-		value = mat_acc(point, i);
+        value = mat_acc(i);
 		cost += value * value;
 	}
 
@@ -78,6 +78,9 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 	TIME_PROFILER_START_TIMER(Obstacle);
 
 	bool is_feasible = true;
+
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+        return is_feasible;
 
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
     robot_state::RobotStatePtr robot_state = evaluation_manager->getRobotState(point);
@@ -122,7 +125,8 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                 contact_map.begin(); it != contact_map.end(); ++it)
     {
         const collision_detection::Contact& contact = it->second[0];
-        cost += contact.depth * contact.depth * collision_scale;
+        if (contact.depth > 0.01)
+            cost += contact.depth * contact.depth * collision_scale;
     }
 
 
@@ -137,7 +141,8 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                 contact_map.begin(); it != contact_map.end(); ++it)
     {
         const collision_detection::Contact& contact = it->second[0];
-        cost += self_collision_scale * contact.depth * contact.depth;
+        if (contact.depth > 0.01)
+            cost += self_collision_scale * contact.depth * contact.depth;
     }
 
 
@@ -170,6 +175,11 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
+    /*
+    if (PhaseManager::getInstance()->getPhase() == 0 && point != 0)
+        return is_feasible;
+        */
+
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
     const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
 
@@ -188,16 +198,21 @@ bool TrajectoryCostContactInvariant::evaluate(
                 const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_point_id];
 
                 const Eigen::Vector3d& body_position = contact_body_transform.r;
-                Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
-                //Eigen::Vector3d position_diff = body_position - GroundManager::getInstance()->getProjPosition(contact_variables[i].projected_point_positions_[j]);
+                //Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
+
+                Eigen::Vector3d orientation(exponential_map::RotationToExponentialMap(contact_body_transform.E));
+                Eigen::Vector3d projected_position, normal;
+                GroundManager::getInstance()->getNearestContactPosition(body_position, orientation, projected_position, orientation, normal);
+                Eigen::Vector3d position_diff = body_position - projected_position;
 
                 Eigen::Quaterniond body_orientation(contact_body_transform.E);
                 Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
                 double angle = body_orientation.angularDistance(projected_orientation);
+                angle = 0.0;
 
                 double position_diff_cost = 0.0;// = position_diff.squaredNorm() + angle * angle;
-                position_diff_cost += position_diff(0) * position_diff(0)// * 0.01
-                                      + position_diff(1) * position_diff(1)// * 0.01
+                position_diff_cost += position_diff(0) * position_diff(0) * 0.01
+                                      + position_diff(1) * position_diff(1) * 0.01
                                       + position_diff(2) * position_diff(2)
                                       + angle * angle * 0.01;
                 double contact_body_velocity_cost = model.v[rbdl_point_id].squaredNorm();
