@@ -7,10 +7,11 @@
 namespace bvh_writer
 {
 
-void writeRocketboxTrajectoryBVHFile(moveit_msgs::DisplayTrajectory& display_trajectory, const std::string& filename)
+void writeWalkingTrajectoryBVHFile(const robot_model::RobotModelPtr robot_model, const moveit_msgs::DisplayTrajectory& display_trajectory, const std::string& filename)
 {
     std::ofstream out (filename.c_str());
 
+    const std::vector<std::string>& model_joint_names = robot_model->getJointModelNames();
     const std::vector<std::string>& joint_names = display_trajectory.trajectory[0].joint_trajectory.joint_names;
 
 
@@ -27,27 +28,29 @@ void writeRocketboxTrajectoryBVHFile(moveit_msgs::DisplayTrajectory& display_tra
     {
         for (int j=0; j < display_trajectory.trajectory[i].joint_trajectory.points.size(); ++j)
         {
-            for (int k=0; k < display_trajectory.trajectory[i].joint_trajectory.points[j].positions.size(); ++k)
+            for (int k=1; k < model_joint_names.size(); ++k)
             {
-                double value = display_trajectory.trajectory[i].joint_trajectory.points[j].positions[k];
+                if (model_joint_names[k].find("_endeffector_") != std::string::npos ||
+                    model_joint_names[k].find("_cp_") != std::string::npos)
+                    continue;
 
-                // radian to degree for angles (k>=3)
-                if (k >= 3)
-                    value *= 180.0 / M_PI;
+                double value = 0.0;
 
-                // duplicate rotation channels for endeffector and contact point
-                if (joint_names[k].find("_endeffector_") != std::string::npos ||
-                    joint_names[k].find("_cp_") != std::string::npos)
+                for (int l=0; l < joint_names.size(); ++l)
                 {
-                    out << value << ' '
-                        << value << ' '
-                        << value << ' ';
+                    if (model_joint_names[k] == joint_names[l])
+                    {
+                        value = display_trajectory.trajectory[i].joint_trajectory.points[j].positions[l];
+
+                        // radian to degree for angles (k=0: virtual joint, k=1~3: base prismatic joints)
+                        if (k >= 4)
+                            value *= 180.0 / M_PI;
+
+                        break;
+                    }
                 }
 
-                else
-                {
-                    out << value << ' ';
-                }
+                out << value << ' ';
             }
 
             out << std::endl;
