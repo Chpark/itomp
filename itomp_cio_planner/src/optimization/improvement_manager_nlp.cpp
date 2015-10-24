@@ -333,21 +333,19 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     */
 
-
-    /*
     // normalize der;
     double norm = 0.0;
     for (int i = 0; i < der.size(); ++i)
         norm += der(i) * der(i);
     norm = std::sqrt(norm);
     std::cout << "norm : " << norm << std::endl;
-    if (norm > 1000.0)
+    if (norm > 1.0)
     {
-        norm *= 0.001;
+        //norm *= 0.001;
         for (int i = 0; i < der.size(); ++i)
             der(i) /= norm;
     }
-    */
+
 
     return der;
 }
