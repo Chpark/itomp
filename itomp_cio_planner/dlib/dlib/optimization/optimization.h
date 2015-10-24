@@ -9,7 +9,7 @@
 #include "optimization_search_strategies.h"
 #include "optimization_stop_strategies.h"
 #include "optimization_line_search.h"
-//#include <itomp_cio_planner/util/jacobian.h>
+#include <itomp_cio_planner/util/jacobian.h>
 
 namespace dlib
 {
@@ -523,6 +523,7 @@ namespace dlib
         while(stop_strategy.should_continue_search(x, f_value, g))
         {
             s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
+            Jacobian::projectToNullSpace(x, s);
             s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
 
             double alpha = backtracking_line_search(
@@ -543,7 +544,11 @@ namespace dlib
                 last_alpha = alpha;
 
             // Take the search step indicated by the above line search
-            x = clamp(x + alpha*s, x_lower, x_upper);
+            s *= alpha;
+            Jacobian::projectToNullSpace(x, s);
+            x = clamp(x + s, x_lower, x_upper);
+            //x = x + s;
+            //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
             g = der(x);
 
@@ -561,6 +566,8 @@ namespace dlib
                 break;
             }
 
+            if (f_value == 0.0)
+                break;
         }
 
         return f_value;

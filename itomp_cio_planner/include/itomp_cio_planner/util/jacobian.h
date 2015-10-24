@@ -4,12 +4,8 @@
 
 #include <Eigen/Dense>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
-/*
-namespace itomp_cio_planner
-{
-class NewEvalManager;
-}
-*/
+#include <itomp_cio_planner/trajectory/itomp_trajectory.h>
+
 namespace planner
 {
 class Node;
@@ -43,60 +39,7 @@ public:
 
 	// temporary
 	static void GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorXd& a);
-	template <typename T>
-	static void projectToNullSpace(T& x, T& s)
-	{
-        assert(false);
-
-        /*
-		int parameter_length = x.size();
-
-		const itomp_cio_planner::ParameterTrajectoryConstPtr parameter_trajectory =
-			evaluation_manager_->getParameterTrajectory();
-		const itomp_cio_planner::FullTrajectoryConstPtr full_trajectory =
-			evaluation_manager_->getFullTrajectory();
-
-		int num_parameter_types = parameter_trajectory->hasVelocity() ? 2 : 1;
-		int num_parameter_points = parameter_trajectory->getNumPoints();
-		int num_parameter_elements = parameter_trajectory->getNumElements();
-		int num_variables = num_parameter_elements * num_parameter_points * num_parameter_types;
-
-		if (parameter_length != num_variables)
-			return;
-
-		std::vector<Eigen::MatrixXd> parameters(itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_NUM,
-												Eigen::MatrixXd(num_parameter_points, num_parameter_elements));
-		evaluation_manager_->setParameters(parameters);
-		evaluation_manager_->updateFromParameterTrajectory();
-
-		int num_full_joints = full_trajectory->getComponentSize(
-								  itomp_cio_planner::FullTrajectory::TRAJECTORY_COMPONENT_JOINT);
-
-		const std::vector<int>& group_to_full_joint_indices = parameter_trajectory->getGroupToFullJointIndices();
-		for (int i = 0; i < num_parameter_points; ++i)
-		{
-			int parameter_traj_index = full_trajectory->getKeyframeStartIndex()
-									   + i * full_trajectory->getNumKeyframeIntervalPoints();
-
-			Eigen::VectorXd q = full_trajectory->getTrajectory(
-									itomp_cio_planner::Trajectory::TRAJECTORY_TYPE_POSITION).block(
-									parameter_traj_index, 0, 1, num_full_joints).transpose();
-			Eigen::VectorXd a(num_full_joints);
-			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-			{
-				// copy from s to a
-				a(group_to_full_joint_indices[j]) = s(i * num_parameter_elements + j);
-			}
-			GetProjection(i, q, a);
-
-			for (int j = 0; j < parameter_trajectory->getNumJoints(); ++j)
-			{
-				// copy from a to s
-				s(i * num_parameter_elements + j) = a(group_to_full_joint_indices[j]);
-			}
-		}
-        */
-	}
+    static void projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s);
 
 private:
 	void ComputeSVD();

@@ -764,5 +764,25 @@ bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>
     return true;
 }
 
+void ItompTrajectory::setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const
+{
+    trajectory_data = getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+    for (unsigned int i = 0; i < parameters.size(); ++i)
+    {
+        const ItompTrajectoryIndex& index = getTrajectoryIndex(i);
+        if (index.sub_component == SUB_COMPONENT_TYPE_JOINT && index.component == COMPONENT_TYPE_POSITION && index.point == point)
+            trajectory_data(index.element) = parameters(i, 0);
+    }
+}
+void ItompTrajectory::getJointPositions(ParameterVector& parameters, const Eigen::VectorXd& trajectory_data, int point) const
+{
+    for (unsigned int i = 0; i < parameters.size(); ++i)
+    {
+        const ItompTrajectoryIndex& index = getTrajectoryIndex(i);
+        if (index.sub_component == SUB_COMPONENT_TYPE_JOINT && index.component == COMPONENT_TYPE_POSITION && index.point == point)
+            parameters(i, 0) = trajectory_data(index.element);
+    }
+}
+
 }
 

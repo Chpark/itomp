@@ -604,7 +604,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             if (cost_functions[c]->getName().size() > max_cost_name_length)
                 max_cost_name_length = cost_functions[c]->getName().size();
 
-        /*
+
         cout.precision(3);
         for (int c = 0; c < cost_functions.size(); ++c)
         {
@@ -621,7 +621,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
             }
             std::cout << std::endl;
         }
-        */
+
 
 
         for (int c = 0; c < cost_functions.size(); ++c)
@@ -663,7 +663,7 @@ void NewEvalManager::initializeContactVariables()
 
     for (int point = 0; point < itomp_trajectory_->getNumPoints(); ++point)
 	{
-        const Eigen::VectorXd& q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+        Eigen::VectorXd q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
         const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
@@ -678,6 +678,40 @@ void NewEvalManager::initializeContactVariables()
 
 		std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
         ext_forces.resize(rbdl_models_[point].mBodies.size(), RigidBodyDynamics::Math::SpatialVectorZero);
+
+        if (point == 0 || point == itomp_trajectory_->getNumPoints() - 1)
+        {
+            std::vector<unsigned int> body_ids;
+            std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
+            std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
+
+            for (int i = 0; i < num_contacts; ++i)
+            {
+                int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+
+                Eigen::Vector3d contact_normal, proj_position, proj_orientation;
+                GroundManager::getInstance()->getNearestContactPosition(rbdl_models_[point].X_base[rbdl_body_id].r, exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E),
+                        proj_position, proj_orientation, contact_normal);
+
+                proj_position(0) = rbdl_models_[point].X_base[rbdl_body_id].r(0);
+                proj_position(1) = rbdl_models_[point].X_base[rbdl_body_id].r(1);
+
+                body_ids.push_back(rbdl_body_id);
+                RigidBodyDynamics::Math::Vector3d target_pos(proj_position);
+                target_positions.push_back(target_pos);
+                RigidBodyDynamics::Math::Matrix3d target_orientation = exponential_map::ExponentialMapToRotation(proj_orientation);
+                target_orientations.push_back(target_orientation);
+            }
+
+            if (itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
+            {
+                updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
+                itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
+            }
+            else
+                ROS_INFO("IK failed");
+        }
 
 		for (int i = 0; i < num_contacts; ++i)
 		{

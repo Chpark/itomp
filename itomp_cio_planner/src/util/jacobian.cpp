@@ -1,6 +1,8 @@
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/util/jacobian.h>
 #include <itomp_cio_planner/model/rbdl_model_util.h>
+#include "dlib/optimization.h"
+#include <itomp_cio_planner/optimization/phase_manager.h>
 
 itomp_cio_planner::NewEvalManager* Jacobian::evaluation_manager_ = NULL;
 
@@ -184,21 +186,56 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
 {
 	Jacobian j;
 
-	Eigen::MatrixXd jacobian(6, q.rows());
-	Eigen::MatrixXd jacobianMerged(3 * 4, q.rows());
+    RigidBodyDynamics::Model model = evaluation_manager_->getRBDLModel(point);
+    std::vector<unsigned int> body_ids;
+    for (int i = 0; i < evaluation_manager_->getPlanningGroup()->getNumContacts(); ++i)
+    {
+        int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
+        body_ids.push_back(rbdl_body_id);
+    }
 
-	for (int i = 0; i < evaluation_manager_->getPlanningGroup()->getNumContacts(); ++i)
-	{
-		int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
-        RigidBodyDynamics::CalcBodySpatialJacobian(const_cast<RigidBodyDynamics::Model&>(evaluation_manager_->getRBDLModel(point)), q, rbdl_body_id,
-                                                   jacobian, true);
-		jacobianMerged.block(3 * i, 0, 3, q.rows()) = jacobian.block(0, 0, 3, q.rows());
-	}
-	j.SetJacobian(jacobianMerged);
-	a = j.GetNullspace() * a;
-	//ROS_INFO("Jacobian");
-	//std::cout << jacobianMerged << std::endl << std::endl;
-	//ROS_INFO("NULLSPACE");
-	//std::cout << j.GetNullspace() << std::endl << std::endl;
+    Eigen::MatrixXd jacobianMerged = Eigen::MatrixXd::Zero(6 * body_ids.size(), model.qdot_size);
+    UpdateKinematicsCustom (model, &q, NULL, NULL);
+
+    for (unsigned int k = 0; k < body_ids.size(); k++)
+    {
+        Eigen::MatrixXd G (Eigen::MatrixXd::Zero(6, model.qdot_size));
+        itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, false);
+
+        for (unsigned int i = 0; i < 6; i++)
+        {
+            for (unsigned int j = 0; j < model.qdot_size; j++)
+            {
+                unsigned int row = k * 6 + i;
+                jacobianMerged(row, j) = G(i,j);
+            }
+        }
+    }
+
+    j.SetJacobian(jacobianMerged);
+    a = j.GetNullspace() * a;
 }
 
+void Jacobian::projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
+{
+    if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() != 0)
+        return;
+
+    itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();
+
+    Eigen::VectorXd q;
+    Eigen::VectorXd a;
+
+    std::vector<unsigned int> projection_indices;
+    projection_indices.push_back(0);
+    projection_indices.push_back(trajectory->getNumPoints() - 1);
+
+    for (unsigned int i = 0; i < projection_indices.size(); ++i)
+    {
+        unsigned int index = projection_indices[i];
+        trajectory->setJointPositions(q, x, index);
+        trajectory->setJointPositions(a, s, index);
+        GetProjection(index, q, a);
+        trajectory->getJointPositions(s, a, index);
+    }
+}
