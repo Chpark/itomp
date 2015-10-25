@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <move_itomp/move_itomp_util.h>
 #include <move_itomp/rbprm_reader.h>
+#include <move_itomp/bvh_writer.h>
 
 const double INV_SQRT_2 = 1.0 / std::sqrt((long double) 2.0);
 
@@ -124,6 +125,8 @@ int main(int argc, char **argv)
     timer.sleep();
 
 	ROS_INFO("Done");
+
+    bvh_writer::writeWalkingTrajectoryBVHFile(robot_model, display_trajectory, "walking_optimized.bvh");
 
 	return 0;
 }
