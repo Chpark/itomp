@@ -511,6 +511,9 @@ namespace dlib
         double f_value = f(x);
         g = der(x);
 
+        T best_x = x;
+        double best_f = f_value;
+
         Jacobian::projectToNullSpace(x, g);
 
         if (f_value == 0 || length(g) == 0)
@@ -574,6 +577,18 @@ namespace dlib
 
             if (f_value == 0.0)
                 break;
+
+            if (f_value < best_f)
+            {
+                best_x = x;
+                best_f = f_value;
+            }
+        }
+
+        if (f_value > best_f)
+        {
+            x = best_x;
+            f_value = best_f;
         }
 
         return f_value;
