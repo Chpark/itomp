@@ -73,7 +73,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 3;
+    int num_max_iterations = 5;
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
