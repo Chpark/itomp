@@ -335,18 +335,27 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     */
 
     // normalize der;
+    for (int i = 0; i < der.size(); ++i)
+    {
+        if (der(i) > 1e10)
+            der(i) = 1e10;
+        if (der(i) < -1e10)
+            der(i) = -1e10;
+    }
 
-    double scale = (PhaseManager::getInstance()->getPhase() <= 2) ? 1.0 : 1000.0;
+    double scale = (PhaseManager::getInstance()->getPhase() <= 2) ? 1000.0 : 1000.0;
     double norm = 0.0;
     for (int i = 0; i < der.size(); ++i)
         norm += der(i) * der(i);
     norm = std::sqrt(norm);
-    std::cout << "norm : " << norm << std::endl;
+    //std::cout << "norm : " << norm << std::endl;
     if (norm > scale)
     {
         norm /= scale;
         for (int i = 0; i < der.size(); ++i)
+        {
             der(i) /= norm;
+        }
     }
 
 
@@ -477,9 +486,11 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
 
     evaluation_manager_->render();
 
+    int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
+    if (PhaseManager::getInstance()->getPhase() > 2)
+        max_iterations *= 10;
     dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
-                                   dlib::objective_delta_stop_strategy(eps_,
-                                           PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+                                   dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
                                    variables, x_lower, x_upper);
