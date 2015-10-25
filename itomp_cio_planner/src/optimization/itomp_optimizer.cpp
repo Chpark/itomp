@@ -107,6 +107,11 @@ bool ItompOptimizer::optimize()
 
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
+
+            if (iteration_ == 1)
+            {
+                evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+            }
 		}
 	}
 

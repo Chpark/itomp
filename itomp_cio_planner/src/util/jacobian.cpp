@@ -178,7 +178,7 @@ void Jacobian::ComputeSVD()
 	if(computeJacSVD_)
 	{
 		computeJacSVD_ = false;
-		svd_ = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobian_, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        svd_ = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobian_, Eigen::ComputeThinV);
 	}
 }
 
@@ -190,10 +190,18 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     std::vector<unsigned int> body_ids;
     for (int i = 0; i < evaluation_manager_->getPlanningGroup()->getNumContacts(); ++i)
     {
+        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 2)
+            continue;
+
+        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 0 && i == 3)
+            continue;
+
         int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
         body_ids.push_back(rbdl_body_id);
     }
 
+    if (body_ids.size() == 0)
+        return;
     Eigen::MatrixXd jacobianMerged = Eigen::MatrixXd::Zero(6 * body_ids.size(), model.qdot_size);
     UpdateKinematicsCustom (model, &q, NULL, NULL);
 
@@ -202,9 +210,9 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
         Eigen::MatrixXd G (Eigen::MatrixXd::Zero(6, model.qdot_size));
         itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, false);
 
-        for (unsigned int i = 0; i < 6; i++)
+        for (unsigned int j = 0; j < model.qdot_size; j++)
         {
-            for (unsigned int j = 0; j < model.qdot_size; j++)
+            for (unsigned int i = 0; i < 6; i++)
             {
                 unsigned int row = k * 6 + i;
                 jacobianMerged(row, j) = G(i,j);
@@ -216,11 +224,8 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     a = j.GetNullspace() * a;
 }
 
-void Jacobian::projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
+void Jacobian::projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
 {
-    if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() != 0)
-        return;
-
     itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();
 
     Eigen::VectorXd q;
@@ -228,12 +233,18 @@ void Jacobian::projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<do
 
     std::vector<unsigned int> projection_indices;
     projection_indices.push_back(0);
+    if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() != 0)
+    {
+        for (unsigned int i = 1; i < trajectory->getNumPoints() - 1; ++i)
+            projection_indices.push_back(i);
+    }
     projection_indices.push_back(trajectory->getNumPoints() - 1);
 
     for (unsigned int i = 0; i < projection_indices.size(); ++i)
     {
         unsigned int index = projection_indices[i];
-        trajectory->setJointPositions(q, x, index);
+        if (!trajectory->setJointPositions(q, x, index))
+            continue;
         trajectory->setJointPositions(a, s, index);
         GetProjection(index, q, a);
         trajectory->getJointPositions(s, a, index);

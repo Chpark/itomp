@@ -511,6 +511,11 @@ namespace dlib
         double f_value = f(x);
         g = der(x);
 
+        Jacobian::projectToNullSpace(x, g);
+
+        if (f_value == 0 || length(g) == 0)
+            return f_value;
+
         DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
         DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
 
@@ -523,7 +528,6 @@ namespace dlib
         while(stop_strategy.should_continue_search(x, f_value, g))
         {
             s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
-            Jacobian::projectToNullSpace(x, s);
             s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
 
             double alpha = backtracking_line_search(
@@ -551,6 +555,8 @@ namespace dlib
             //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
             g = der(x);
+
+            Jacobian::projectToNullSpace(x, g);
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");

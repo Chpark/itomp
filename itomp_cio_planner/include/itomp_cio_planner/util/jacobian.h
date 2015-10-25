@@ -5,6 +5,8 @@
 #include <Eigen/Dense>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
 #include <itomp_cio_planner/trajectory/itomp_trajectory.h>
+#include "dlib/assert.h"
+#include "dlib/matrix.h"
 
 namespace planner
 {
@@ -39,7 +41,7 @@ public:
 
 	// temporary
 	static void GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorXd& a);
-    static void projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s);
+    static void projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s);
 
 private:
 	void ComputeSVD();
@@ -95,5 +97,100 @@ inline void PseudoInverseSVDDLS(const Eigen::MatrixXd& m, const Eigen::JacobiSVD
 	}
 	Jinv = (V * Sinv.asDiagonal() * U.transpose());
 }
+
+/*
+template <typename funct, typename T>
+class line_search_funct2
+{
+public:
+    line_search_funct2(const funct& f_, const T& start_, const T& direction_)
+        : f(f_),start(start_), direction(direction_), matrix_r(0), scalar_r(0)
+    {}
+
+    line_search_funct2(const funct& f_, const T& start_, const T& direction_, T& r)
+        : f(f_),start(start_), direction(direction_), matrix_r(&r), scalar_r(0)
+    {}
+
+    line_search_funct2(const funct& f_, const T& start_, const T& direction_, double& r)
+        : f(f_),start(start_), direction(direction_), matrix_r(0), scalar_r(&r)
+    {}
+
+    double operator()(const double& x) const
+    {
+        return get_value(f(x));
+    }
+
+private:
+
+    double get_value (const double& r) const
+    {
+        // save a copy of this value for later
+        if (scalar_r)
+            *scalar_r = r;
+
+        return r;
+    }
+
+    const funct& f;
+    const T& start;
+    const T& direction;
+    T* matrix_r;
+    double* scalar_r;
+};
+
+template <typename funct, typename T>
+const line_search_funct2<funct,T> make_line_search_function2(const funct& f, const T& start, const T& direction, double& f_out)
+{
+    COMPILE_TIME_ASSERT(dlib::is_matrix<T>::value);
+    DLIB_ASSERT (
+        is_col_vector(start) && is_col_vector(direction) && start.size() == direction.size(),
+        "\tline_search_funct make_line_search_function(f,start,direction)"
+        << "\n\tYou have to supply column vectors to this function"
+        << "\n\tstart.nc():     " << start.nc()
+        << "\n\tdirection.nc(): " << direction.nc()
+        << "\n\tstart.nr():     " << start.nr()
+        << "\n\tdirection.nr(): " << direction.nr()
+    );
+    return line_search_funct2<funct,T>(f,start,direction,f_out);
+}
+
+template <typename funct, typename EXP1, typename EXP2, typename T>
+struct clamped_function_object2
+{
+    clamped_function_object2(
+        const funct& f_,
+        const dlib::matrix_exp<EXP1>& x_lower_,
+        const dlib::matrix_exp<EXP2>& x_upper_,
+        const T& start_,
+        const T& direction_
+    ) : f(f_), x_lower(x_lower_), x_upper(x_upper_), start(start_), direction(direction_)
+    {
+    }
+
+    double operator() (
+        const double& x
+    ) const
+    {
+        T diff = clamp(start + x * direction, x_lower, x_upper) - start;
+        Jacobian::projectToNullSpace(start, diff);
+        return f(start + diff);
+    }
+
+    const funct& f;
+    const dlib::matrix_exp<EXP1>& x_lower;
+    const dlib::matrix_exp<EXP2>& x_upper;
+    const T& start;
+    const T& direction;
+};
+
+template <typename funct, typename EXP1, typename EXP2, typename T>
+clamped_function_object2<funct,EXP1,EXP2,T> clamp_function2(
+    const funct& f,
+    const dlib::matrix_exp<EXP1>& x_lower,
+    const dlib::matrix_exp<EXP2>& x_upper,
+    const T& start,
+    const T& direction
+) { return clamped_function_object2<funct,EXP1,EXP2,T>(f,x_lower,x_upper,start,direction); }
+*/
 
 #endif //_CLASS_JACOBIAN

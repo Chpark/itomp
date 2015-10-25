@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
@@ -334,17 +335,20 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     */
 
     // normalize der;
+
+    double scale = (PhaseManager::getInstance()->getPhase() <= 2) ? 1.0 : 1000.0;
     double norm = 0.0;
     for (int i = 0; i < der.size(); ++i)
         norm += der(i) * der(i);
     norm = std::sqrt(norm);
     std::cout << "norm : " << norm << std::endl;
-    if (norm > 1.0)
+    if (norm > scale)
     {
-        //norm *= 0.001;
+        norm /= scale;
         for (int i = 0; i < der.size(); ++i)
             der(i) /= norm;
     }
+
 
 
     return der;
@@ -471,7 +475,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
     }
     */
 
-
+    evaluation_manager_->render();
 
     dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_,
