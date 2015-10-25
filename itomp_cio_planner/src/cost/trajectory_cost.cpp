@@ -147,8 +147,13 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
     {
         const collision_detection::Contact& contact = it->second[0];
 
+        // climb first motion
         if ((contact.body_name_1 == "left_foot_x_joint_x_link" || contact.body_name_2 == "left_foot_x_joint_x_link") &&
                 std::abs(contact.normal(1)) > 0.9)
+                    continue;
+        // climb last motion
+        if ((contact.body_name_1 == "left_hand_x_joint_x_link" || contact.body_name_2 == "left_hand_x_joint_x_link") &&
+                std::abs(contact.normal(0)) > 0.9)
                     continue;
 
         if (contact.depth > 0.01)
@@ -168,7 +173,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
     {
         const collision_detection::Contact& contact = it->second[0];
         if (contact.depth > 0.01)
-            cost += self_collision_scale * contact.depth * contact.depth;
+            cost += self_collision_scale * (contact.depth - 0.01) * (contact.depth - 0.01);
     }
 
 
