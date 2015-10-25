@@ -763,6 +763,7 @@ void NewEvalManager::initializeContactVariables()
 
 
     // check fixed contacts
+    planning_group_->is_fixed_.resize(num_contacts, false);
     for (int i = 0; i < num_contacts; ++i)
     {
         int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
@@ -778,7 +779,7 @@ void NewEvalManager::initializeContactVariables()
         if (pos_diff < 0.1 && normal_diff < 0.1)
         {
             cout << "Contact " << i << " fixed" << endl;
-            //planning_group_->is_fixed_ = true;
+            planning_group_->is_fixed_[i] = true;
         }
 
     }

@@ -193,8 +193,11 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
         if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 2)
             continue;
 
-        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 0 && i == 3)
-            continue;
+        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 0)
+        {
+            if (!evaluation_manager_->getPlanningGroup()->is_fixed_[i])
+                continue;
+        }
 
         int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
         body_ids.push_back(rbdl_body_id);

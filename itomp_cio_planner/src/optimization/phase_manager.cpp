@@ -16,9 +16,10 @@ PhaseManager::~PhaseManager()
 
 }
 
-void PhaseManager::init(int num_points)
+void PhaseManager::init(int num_points, const ItompPlanningGroupConstPtr& planning_group)
 {
     num_points_ = num_points;
+    planning_group_ = planning_group;
 }
 
 bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
