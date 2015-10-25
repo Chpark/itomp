@@ -343,7 +343,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
             der(i) = -1e10;
     }
 
-    double scale = (PhaseManager::getInstance()->getPhase() <= 2) ? 1000.0 : 1000.0;
+    double scale = (PhaseManager::getInstance()->getPhase() <= 0) ? 1.0 : 1000.0;
     double norm = 0.0;
     for (int i = 0; i < der.size(); ++i)
         norm += der(i) * der(i);

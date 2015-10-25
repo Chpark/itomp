@@ -112,10 +112,16 @@ bool ItompOptimizer::optimize()
             {
                 evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
             }
+            //if (iteration_ == 1)
+            {
+                evaluation_manager_->correctContacts();
+            }
+            evaluation_manager_->render();
 		}
 	}
 
 	evaluation_manager_->setParameters(best_parameter_trajectory_);
+    evaluation_manager_->correctContacts();
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(iteration_);
 

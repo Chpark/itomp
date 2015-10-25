@@ -554,6 +554,7 @@ namespace dlib
             s *= alpha;
             Jacobian::projectToNullSpace(x, s);
             x = clamp(x + s, x_lower, x_upper);
+            Jacobian::projectToNullSpace(x, s);
             //x = x + s;
             //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
