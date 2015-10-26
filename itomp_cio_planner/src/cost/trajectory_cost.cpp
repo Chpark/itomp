@@ -230,8 +230,13 @@ bool TrajectoryCostContactInvariant::evaluate(
                 const RigidBodyDynamics::Math::SpatialTransform& contact_body_transform = model.X_base[rbdl_point_id];
 
                 const Eigen::Vector3d& body_position = contact_body_transform.r;
-                //Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
+                Eigen::Vector3d position_diff = body_position - contact_variables[i].projected_point_positions_[j];
 
+                Eigen::Quaterniond body_orientation(contact_body_transform.E);
+                Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
+                double angle = body_orientation.angularDistance(projected_orientation);
+
+                /*
                 Eigen::Vector3d orientation(exponential_map::RotationToExponentialMap(contact_body_transform.E));
                 Eigen::Vector3d projected_position, normal;
                 GroundManager::getInstance()->getNearestContactPosition(body_position, orientation, projected_position, orientation, normal);
@@ -241,6 +246,7 @@ bool TrajectoryCostContactInvariant::evaluate(
                 Eigen::Quaterniond projected_orientation = exponential_map::ExponentialMapToQuaternion(contact_variables[i].projected_orientation_);
                 double angle = body_orientation.angularDistance(projected_orientation);
                 angle = 0.0;
+                */
 
                 double position_diff_cost = 0.0;// = position_diff.squaredNorm() + angle * angle;
                 position_diff_cost += position_diff(0) * position_diff(0) * 0.0
