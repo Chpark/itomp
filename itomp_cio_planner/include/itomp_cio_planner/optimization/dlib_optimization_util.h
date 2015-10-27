@@ -12,6 +12,132 @@
 
 namespace itomp_cio_planner
 {
+class lbfgs_search_strategy
+{
+public:
+    explicit lbfgs_search_strategy(unsigned long max_size_) : max_size(max_size_), been_used(false)
+    {
+        DLIB_ASSERT (
+            max_size > 0,
+            "\t lbfgs_search_strategy(max_size)"
+            << "\n\t max_size can't be zero"
+        );
+    }
+
+    lbfgs_search_strategy(const lbfgs_search_strategy& item)
+    {
+        max_size = item.max_size;
+        been_used = item.been_used;
+        prev_x = item.prev_x;
+        prev_derivative = item.prev_derivative;
+        prev_direction = item.prev_direction;
+        alpha = item.alpha;
+        dh_temp = item.dh_temp;
+    }
+
+    double get_wolfe_rho (
+    ) const { return 0.01; }
+
+    double get_wolfe_sigma (
+    ) const { return 0.9; }
+
+    unsigned long get_max_line_search_iterations (
+    ) const { return 14; }
+
+    template <typename T>
+    const dlib::matrix<double,0,1>& get_next_direction (
+        const T& x,
+        const double ,
+        const T& funct_derivative
+    )
+    {
+        prev_direction = -funct_derivative;
+
+        if (been_used == false)
+        {
+            been_used = true;
+        }
+        else
+        {
+            // add an element into the stored data sequence
+            dh_temp.s = x - prev_x;
+            dh_temp.y = funct_derivative - prev_derivative;
+            double temp = dot(dh_temp.s, dh_temp.y);
+            // only accept this bit of data if temp isn't zero
+            if (std::abs(temp) > std::numeric_limits<double>::epsilon())
+            {
+                dh_temp.rho = 1/temp;
+                data.add(data.size(), dh_temp);
+            }
+            else
+            {
+                data.clear();
+            }
+
+            if (data.size() > 0)
+            {
+                // This block of code is from algorithm 7.4 in the Nocedal book.
+
+                alpha.resize(data.size());
+                for (unsigned long i = data.size()-1; i < data.size(); --i)
+                {
+                    alpha[i] = data[i].rho*dot(data[i].s, prev_direction);
+                    prev_direction -= alpha[i]*data[i].y;
+                }
+
+                // Take a guess at what the first H matrix should be.  This formula below is what is suggested
+                // in the book Numerical Optimization by Nocedal and Wright in the chapter on Large Scale
+                // Unconstrained Optimization (in the L-BFGS section).
+                double H_0 = 1.0/data[data.size()-1].rho/dot(data[data.size()-1].y, data[data.size()-1].y);
+                H_0 = dlib::put_in_range(0.001, 1000.0, H_0);
+                prev_direction *= H_0;
+
+                for (unsigned long i = 0; i < data.size(); ++i)
+                {
+                    double beta = data[i].rho*dot(data[i].y, prev_direction);
+                    prev_direction += data[i].s * (alpha[i] - beta);
+                }
+            }
+
+        }
+
+        if (data.size() > max_size)
+        {
+            // remove the oldest element in the data sequence
+            data.remove(0, dh_temp);
+        }
+
+        prev_x = x;
+        prev_derivative = funct_derivative;
+        return prev_direction;
+    }
+
+private:
+
+    struct data_helper
+    {
+        dlib::matrix<double,0,1> s;
+        dlib::matrix<double,0,1> y;
+        double rho;
+
+        friend void swap(data_helper& a, data_helper& b)
+        {
+            a.s.swap(b.s);
+            a.y.swap(b.y);
+            std::swap(a.rho, b.rho);
+        }
+    };
+    dlib::sequence<data_helper>::kernel_2a data;
+
+    unsigned long max_size;
+    bool been_used;
+    dlib::matrix<double,0,1> prev_x;
+    dlib::matrix<double,0,1> prev_derivative;
+    dlib::matrix<double,0,1> prev_direction;
+    std::vector<double> alpha;
+
+    data_helper dh_temp;
+};
 // ----------------------------------------------------------------------------------------
 //                    Functions that perform unconstrained optimization
 // ----------------------------------------------------------------------------------------
