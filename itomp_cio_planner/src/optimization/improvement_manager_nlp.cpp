@@ -307,58 +307,13 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     */
 
 
-    /*
-    double max_der = std::abs(der(0));
-    int max_der_index = 0;
-    for (int i = 1; i < der.size(); ++i)
-    {
-        if (std::abs(der(i) > max_der))
-        {
-            der(max_der_index) = 0.0;
-
-            max_der_index = i;
-            max_der = der(i);
-        }
-        else
-            der(i) = 0.0;
-    }
-    */
-
-    /*
-    const ItompTrajectoryIndex& max_itomp_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(max_der_index);
     for (int i = 0; i < der.size(); ++i)
     {
-        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-        if (index.sub_component != max_itomp_index.sub_component)
-            der(i) = 0.0;
+        if (der(i) > 1e6)
+            der(i) = 1e6;
+        if (der(i) < -1e6)
+            der(i) = -1e6;
     }
-    */
-
-    // normalize der;
-    for (int i = 0; i < der.size(); ++i)
-    {
-        if (der(i) > 1e10)
-            der(i) = 1e10;
-        if (der(i) < -1e10)
-            der(i) = -1e10;
-    }
-
-    double scale = (PhaseManager::getInstance()->getPhase() <= 0) ? 1.0 : 1000.0;
-    double norm = 0.0;
-    for (int i = 0; i < der.size(); ++i)
-        norm += der(i) * der(i);
-    norm = std::sqrt(norm);
-    //std::cout << "norm : " << norm << std::endl;
-    if (norm > scale)
-    {
-        norm /= scale;
-        for (int i = 0; i < der.size(); ++i)
-        {
-            der(i) /= norm;
-        }
-    }
-
-
 
     return der;
 }
@@ -466,30 +421,12 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
         }
     }
 
-
-    /*
-    if (iteration == 2)
-    {
-        for (int i = 0; i < variables.size(); ++i)
-        {
-            ItompTrajectoryIndex index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-            if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION &&
-                    index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
-                    index.element == 2 && index.point >= 16 && index.point <= 44)
-            {
-                variables(i) += 0.1;
-            }
-        }
-        evaluation_manager_->setParameters(variables);
-    }
-    */
-
     evaluation_manager_->render();
 
     int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
     if (PhaseManager::getInstance()->getPhase() > 2)
         max_iterations *= 10;
-    dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
+    itomp_cio_planner::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),

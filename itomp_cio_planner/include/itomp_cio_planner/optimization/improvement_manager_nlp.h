@@ -4,7 +4,7 @@
 #include <itomp_cio_planner/optimization/improvement_manager.h>
 #include <itomp_cio_planner/common.h>
 #include <itomp_cio_planner/optimization/new_eval_manager.h>
-#include "dlib/optimization.h"
+#include <itomp_cio_planner/optimization/dlib_optimization_util.h>
 
 namespace itomp_cio_planner
 {
