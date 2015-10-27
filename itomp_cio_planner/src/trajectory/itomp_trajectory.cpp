@@ -424,6 +424,8 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
         ElementTrajectoryPtr& et = getElementTrajectory(index.component, index.sub_component);
         Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.point);
         row(index.element) = parameters(i, 0);
+        if (index.component == COMPONENT_TYPE_VELOCITY)
+            row(index.element) *= 10.0;
     }
     interpolateKeyframes();
 }
@@ -442,6 +444,8 @@ void ItompTrajectory::getParameters(ParameterVector& parameters) const
         ElementTrajectoryConstPtr et = getElementTrajectory(index.component, index.sub_component);
         Eigen::MatrixXd::ConstRowXpr row = et->getTrajectoryPoint(index.point);
         parameters(i, 0) = row(index.element);
+        if (index.component == COMPONENT_TYPE_VELOCITY)
+            parameters(i, 0) *= 0.1;
     }
 }
 
@@ -467,6 +471,8 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
         return;
 
     // set value
+    if (index.component == COMPONENT_TYPE_VELOCITY)
+        value *= 10.0;
     getElementTrajectory(index.component, index.sub_component)->at(point, element) = value;
 
     interpolateTrajectory(trajectory_point_begin, trajectory_point_end, index);
