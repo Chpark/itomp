@@ -231,20 +231,31 @@ void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
 {
     // normalize der;
     double max_der = 0.1;
+    itomp_cio_planner::ItompTrajectoryIndex max_index;
     for (int i = 0; i < s.size(); ++i)
     {
-        if (std::abs(s(i)) > max_der)
-            max_der = std::abs(s(i));
+        const itomp_cio_planner::ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+        {
+            if (std::abs(s(i)) > max_der)
+            {
+                max_der = std::abs(s(i));
+                max_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+            }
+        }
     }
     double scale = 0.1 / max_der;
     for (int i = 0; i < s.size(); ++i)
     {
-        s(i) *= scale;
+        const itomp_cio_planner::ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            s(i) *= scale;
     }
 }
 
 void Jacobian::projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
 {
+    return;
     itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();
 
     Eigen::VectorXd q;
