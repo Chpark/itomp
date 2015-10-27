@@ -227,6 +227,22 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     a = j.GetNullspace() * a;
 }
 
+void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
+{
+    // normalize der;
+    double max_der = 0.1;
+    for (int i = 0; i < s.size(); ++i)
+    {
+        if (std::abs(s(i)) > max_der)
+            max_der = std::abs(s(i));
+    }
+    double scale = 0.1 / max_der;
+    for (int i = 0; i < s.size(); ++i)
+    {
+        s(i) *= scale;
+    }
+}
+
 void Jacobian::projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
 {
     itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();

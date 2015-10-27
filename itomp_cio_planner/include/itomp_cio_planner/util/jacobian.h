@@ -42,6 +42,7 @@ public:
 	// temporary
 	static void GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorXd& a);
     static void projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s);
+    static void scale(dlib::matrix<double, 0, 1>& s);
 
 private:
 	void ComputeSVD();
@@ -98,7 +99,7 @@ inline void PseudoInverseSVDDLS(const Eigen::MatrixXd& m, const Eigen::JacobiSVD
 	Jinv = (V * Sinv.asDiagonal() * U.transpose());
 }
 
-/*
+
 template <typename funct, typename T>
 class line_search_funct2
 {
@@ -172,6 +173,7 @@ struct clamped_function_object2
     ) const
     {
         T diff = clamp(start + x * direction, x_lower, x_upper) - start;
+        //T diff = x * direction;
         Jacobian::projectToNullSpace(start, diff);
         return f(start + diff);
     }
@@ -191,6 +193,6 @@ clamped_function_object2<funct,EXP1,EXP2,T> clamp_function2(
     const T& start,
     const T& direction
 ) { return clamped_function_object2<funct,EXP1,EXP2,T>(f,x_lower,x_upper,start,direction); }
-*/
+
 
 #endif //_CLASS_JACOBIAN
