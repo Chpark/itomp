@@ -306,14 +306,35 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     */
 
+    double der_max[2][3];
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+        {
+            der_max[i][j] = 0.0;
+        }
 
     for (int i = 0; i < der.size(); ++i)
     {
-        if (der(i) > 1e6)
-            der(i) = 1e6;
-        if (der(i) < -1e6)
-            der(i) = -1e6;
+        const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        double max_scale = 1e10;
+
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            max_scale = 1e6;
+
+        if (der(i) > max_scale)
+            der(i) = max_scale;
+        if (der(i) < -max_scale)
+            der(i) = -max_scale;
+
+        if (std::abs(der(i)) > der_max[index.component][index.sub_component])
+            der_max[index.component][index.sub_component] = std::abs(der(i)) ;
     }
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+        {
+            std::cout << der_max[i][j] << " ";
+        }
+    std::cout << std::endl;
 
     return der;
 }
@@ -409,7 +430,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 break;
 
             case ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE:
-                x_lower(i) = 0.0;
+                x_lower(i) = -1.0;
                 x_upper(i) = 1.0;
 
                 break;
@@ -426,7 +447,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
     int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
     if (PhaseManager::getInstance()->getPhase() > 2)
         max_iterations *= 10;
-    itomp_cio_planner::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
+    itomp_cio_planner::find_min_box_constrained(dlib::cg_search_strategy(),//itomp_cio_planner::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
