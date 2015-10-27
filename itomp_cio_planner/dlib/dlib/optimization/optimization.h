@@ -532,9 +532,11 @@ namespace dlib
         {
             s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
             s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
+            Jacobian::scale(s);
+            Jacobian::projectToNullSpace(x, s);
 
             double alpha = backtracking_line_search(
-                        make_line_search_function(clamp_function(f,x_lower,x_upper), x, s, f_value),
+                        make_line_search_function2(clamp_function2(f,x_lower,x_upper,x,s), x, s, f_value),
                         f_value,
                         dot(g,s), // compute gradient for the line search
                         last_alpha, 
@@ -552,8 +554,10 @@ namespace dlib
 
             // Take the search step indicated by the above line search
             s *= alpha;
+            Jacobian::scale(s);
             Jacobian::projectToNullSpace(x, s);
             x = clamp(x + s, x_lower, x_upper);
+            Jacobian::scale(s);
             Jacobian::projectToNullSpace(x, s);
             //x = x + s;
             //x = clamp(x + alpha*s, x_lower, x_upper);
