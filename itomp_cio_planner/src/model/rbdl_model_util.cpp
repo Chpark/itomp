@@ -321,6 +321,7 @@ bool InverseKinematics6D (
         const std::vector<Vector3d>& target_pos,
         const std::vector<Matrix3d>& target_ori,
         VectorNd &Qres,
+        const std::map<int, int>& rbdl_to_group_index_map,
         double step_tol,
         double lambda,
         unsigned int max_iter
@@ -339,7 +340,7 @@ bool InverseKinematics6D (
         UpdateKinematicsCustom (model, &Qres, NULL, NULL);
         for (unsigned int k = 0; k < body_id.size(); k++) {
             MatrixNd G (MatrixNd::Zero(6, model.qdot_size));
-            CalcPointJacobian6D(model, Qres, body_id[k], Vector3d::Zero(), G, false);
+            CalcPointJacobian6D(model, Qres, body_id[k], Vector3d::Zero(), G, rbdl_to_group_index_map, false);
             Vector3d point_base = CalcBodyToBaseCoordinates (model, Qres, body_id[k], Vector3d::Zero(), false);
             LOG << "current_pos = " << point_base.transpose() << std::endl;
 
@@ -438,6 +439,7 @@ void CalcPointJacobian6D (
         unsigned int body_id,
         const Vector3d &point_position,
         MatrixNd &G,
+        const std::map<int, int>& rbdl_to_group_index_map,
         bool update_kinematics
     )
 {
@@ -468,15 +470,19 @@ void CalcPointJacobian6D (
     while (j != 0) {
         unsigned int q_index = model.mJoints[j].q_index;
 
-        if (model.mJoints[j].mDoFCount == 3) {
-            //G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
-            G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
-        } else {
-            G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+        if (rbdl_to_group_index_map.find(q_index) != rbdl_to_group_index_map.end())
+        {
 
-            Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
-            Matrix3d mat = aa.toRotationMatrix();
-            G.block(0, q_index, 3, 1) = mat.eulerAngles(0, 1, 2);
+            if (model.mJoints[j].mDoFCount == 3) {
+                //G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
+                G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
+            } else {
+                G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+
+                Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
+                Matrix3d mat = aa.toRotationMatrix();
+                G.block(0, q_index, 3, 1) = mat.eulerAngles(0, 1, 2);
+            }
         }
 
         j = model.lambda[j];

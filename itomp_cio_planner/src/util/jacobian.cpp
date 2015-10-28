@@ -211,7 +211,7 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     for (unsigned int k = 0; k < body_ids.size(); k++)
     {
         Eigen::MatrixXd G (Eigen::MatrixXd::Zero(6, model.qdot_size));
-        itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, false);
+        itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, evaluation_manager_->getPlanningGroup()->rbdl_to_group_joint_, false);
 
         for (unsigned int j = 0; j < model.qdot_size; j++)
         {

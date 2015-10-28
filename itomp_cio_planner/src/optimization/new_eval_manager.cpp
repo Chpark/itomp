@@ -140,6 +140,7 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     //itomp_trajectory_->interpolateKeyframes(planning_group);
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
+    itomp_trajectory_->getElementTrajectory(0, 0)->printTrajectory(std::cout);
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
     collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
@@ -748,7 +749,8 @@ void NewEvalManager::initializeContactVariables()
                 target_orientations.push_back(target_orientation);
             }
 
-            if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_))
+            const std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
                 ROS_INFO("IK failed");
             updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
             itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
@@ -874,7 +876,7 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 
-        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_))
+        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_->rbdl_to_group_joint_))
             ROS_INFO("IK failed");
 
         // repeat above
