@@ -137,7 +137,7 @@ void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 	visualization_msgs::MarkerArray ma;
     std::vector<std::string> link_names = robot_model_->getMoveitRobotModel()->getLinkModelNames();
     std_msgs::ColorRGBA color = colors_[WHITE];
-    color.a = 0.1;
+    color.a = 1.0;
 	ros::Duration dur(3600.0);
 
     for (unsigned int point = 0; point < trajectory->getNumPoints(); ++point)

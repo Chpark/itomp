@@ -417,6 +417,29 @@ void NewEvalManager::performFullForwardKinematicsAndDynamics(int point_begin, in
             }
         }
 
+        // compute forces pushing box
+        //const RigidBodyDynamics::Model& rbdl_model = getRBDLModel(point);
+        //rbdl_model
+        const double box_mass = 50.0;
+        const double mu_kinetic = 0.4;
+        const double gravity = 9.8;
+        const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+        const int hands_ids[2] = {55, 76};
+        for (int i=0; i<2; i++)
+        {
+            const int rbdl_id = hands_ids[i];
+
+            RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_id];
+            for (int j = 0; j < 3; ++j)
+            {
+                ext_force(j) = 0.0;
+                ext_force(j + 3) = 0.0;
+            }
+
+            // force to X-axis direction
+            ext_force(3) = force_on_hand;
+        }
+
         // passive forces
         std::vector<double> passive_forces(num_joints + 1, 0.0);
         computePassiveForces(point, q, q_dot, passive_forces);
@@ -540,6 +563,29 @@ void NewEvalManager::performPartialForwardKinematicsAndDynamics(int point_begin,
                         }
                     }
                 }
+            }
+
+            // compute forces pushing box
+            //const RigidBodyDynamics::Model& rbdl_model = getRBDLModel(point);
+            //rbdl_model
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            const int hands_ids[2] = {55, 76};
+            for (int i=0; i<2; i++)
+            {
+                const int rbdl_id = hands_ids[i];
+
+                RigidBodyDynamics::Math::SpatialVector& ext_force = external_forces_[point][rbdl_id];
+                for (int j = 0; j < 3; ++j)
+                {
+                    ext_force(j) = 0.0;
+                    ext_force(j + 3) = 0.0;
+                }
+
+                // force to X-axis direction
+                ext_force(3) = force_on_hand;
             }
 
             // passive forces
@@ -687,7 +733,8 @@ void NewEvalManager::initializeContactVariables()
             std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
             std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
-            for (int i = 0; i < num_contacts; ++i)
+            // IK toe
+            for (int i = 2; i < num_contacts; ++i)
             {
                 int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
@@ -698,11 +745,38 @@ void NewEvalManager::initializeContactVariables()
                 proj_position(0) = rbdl_models_[point].X_base[rbdl_body_id].r(0);
                 proj_position(1) = rbdl_models_[point].X_base[rbdl_body_id].r(1);
 
+                /*
+                const Eigen::Vector3d position_bias(-0.2, 0.0, 0.0);
+                proj_position += position_bias;
+                */
+
                 body_ids.push_back(rbdl_body_id);
                 RigidBodyDynamics::Math::Vector3d target_pos(proj_position);
                 target_positions.push_back(target_pos);
                 RigidBodyDynamics::Math::Matrix3d target_orientation = exponential_map::ExponentialMapToRotation(proj_orientation);
                 target_orientations.push_back(target_orientation);
+
+                cout << "body id: " << rbdl_body_id << endl
+                     << "original position:" << endl
+                     << rbdl_models_[point].X_base[rbdl_body_id].r << endl
+                     << "origianl orientation:" << endl
+                     << rbdl_models_[point].X_base[rbdl_body_id].E << endl
+                     << "target position:" << endl
+                     << target_pos << endl
+                     << "target orientation:" << endl
+                     << target_orientation << endl
+                     << "axis:" << endl
+                     << rbdl_models_[point].S[rbdl_body_id] << endl
+                     << endl;
+            }
+
+            // IK hands
+            const int hand_body_ids[] = {
+                rbdl_models_[point]->GetBodyId("lwrist"),
+                rbdl_models_[point]->GetBodyId("rwrist"),
+            };
+            for (int i=0; i<2; i++)
+            {
             }
 
             if (itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
