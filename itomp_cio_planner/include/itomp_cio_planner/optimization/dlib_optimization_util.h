@@ -184,8 +184,8 @@ private:
         if (f_value == 0 || length(g) == 0)
             return f_value;
 
-        DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
-        DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
+        DLIB_ASSERT(dlib::is_finite(f_value), "The objective function generated non-finite outputs");
+        DLIB_ASSERT(dlib::is_finite(g), "The objective function generated non-finite outputs");
 
         while(stop_strategy.should_continue_search(x, f_value, g) && f_value > min_f)
         {
@@ -209,8 +209,8 @@ private:
             Jacobian::projectToNullSpace(x, s);
             x += s;
 
-            DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
-            DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
+            DLIB_ASSERT(dlib::is_finite(f_value), "The objective function generated non-finite outputs");
+            DLIB_ASSERT(dlib::is_finite(g), "The objective function generated non-finite outputs");
 
             if (f_value < best_f)
             {
@@ -295,8 +295,8 @@ private:
         if (f_value == 0 || length(g) == 0)
             return f_value;
 
-        DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
-        DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
+        DLIB_ASSERT(dlib::is_finite(f_value), "The objective function generated non-finite outputs");
+        DLIB_ASSERT(dlib::is_finite(g), "The objective function generated non-finite outputs");
 
         // gap_eps determines how close we have to get to a bound constraint before we
         // start basically dropping it from the optimization and consider it to be an
