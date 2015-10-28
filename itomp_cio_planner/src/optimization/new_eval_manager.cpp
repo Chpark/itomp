@@ -138,7 +138,8 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
 	initializeContactVariables();
 
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
-    itomp_trajectory_->interpolateKeyframes(planning_group);
+    //itomp_trajectory_->interpolateKeyframes(planning_group);
+    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
     collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
@@ -709,6 +710,8 @@ void NewEvalManager::initializeContactVariables()
                 double d = proj_dir.dot(contact_normal);
                 proj_position = rbdl_models_[point].X_base[rbdl_body_id].r + d * contact_normal;
 
+                Matrix3d proj_orientation_mat = exponential_map::ExponentialMapToRotation(proj_orientation);
+
 
                 Eigen::Vector3d diff = rbdl_models_[point].X_base[rbdl_body_id].r - proj_position;
                 if (diff.norm() > 0.15)
@@ -718,6 +721,20 @@ void NewEvalManager::initializeContactVariables()
                     planning_group_->is_fixed_[i] = false;
                     continue;
                 }
+                else
+                {
+                    if (point == itomp_trajectory_->getNumPoints() - 1)
+                    {
+                        double dist = (proj_position - rbdl_models_[0].X_base[rbdl_body_id].r).norm();
+                        cout << "[" << point << ":" << i << "] start-end dist : " << dist << endl;
+                        if (dist < 0.1)
+                        {
+                            proj_position = rbdl_models_[0].X_base[rbdl_body_id].r;
+                            proj_orientation_mat = rbdl_models_[0].X_base[rbdl_body_id].E;
+                            cout << "[" << point << ":" << i << "] set as the start position" << endl;
+                        }
+                    }
+                }
 
                 cout << "[" << point << ":" << i << "] corrected using IK" << endl;
 
@@ -726,12 +743,12 @@ void NewEvalManager::initializeContactVariables()
                 body_ids.push_back(rbdl_body_id);
                 RigidBodyDynamics::Math::Vector3d target_pos(proj_position);
                 target_positions.push_back(target_pos);
-                RigidBodyDynamics::Math::Matrix3d target_orientation = exponential_map::ExponentialMapToRotation(proj_orientation);
+                RigidBodyDynamics::Math::Matrix3d target_orientation = proj_orientation_mat;
 
                 target_orientations.push_back(target_orientation);
             }
 
-            if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
+            if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_))
                 ROS_INFO("IK failed");
             updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
             itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
@@ -857,7 +874,7 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 
-        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
+        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_))
             ROS_INFO("IK failed");
 
         // repeat above
