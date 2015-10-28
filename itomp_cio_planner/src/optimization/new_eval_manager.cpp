@@ -734,7 +734,7 @@ void NewEvalManager::initializeContactVariables()
             std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
             // IK toe
-            for (int i = 2; i < num_contacts - 1; ++i)
+            for (int i = 2; i < num_contacts; ++i)
             {
                 int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
@@ -744,7 +744,6 @@ void NewEvalManager::initializeContactVariables()
 
                 proj_position(0) = rbdl_models_[point].X_base[rbdl_body_id].r(0);
                 proj_position(1) = rbdl_models_[point].X_base[rbdl_body_id].r(1);
-                proj_position(2) = rbdl_models_[point].X_base[rbdl_body_id].r(2);
 
                 /*
                 const Eigen::Vector3d position_bias(-0.2, 0.0, 0.0);
@@ -773,8 +772,8 @@ void NewEvalManager::initializeContactVariables()
 
             // IK hands
             const int hand_body_ids[] = {
-                rbdl_models_[point].GetBodyId("lwrist"),
-                rbdl_models_[point].GetBodyId("rwrist"),
+                rbdl_models_[point]->GetBodyId("lwrist"),
+                rbdl_models_[point]->GetBodyId("rwrist"),
             };
             for (int i=0; i<2; i++)
             {
