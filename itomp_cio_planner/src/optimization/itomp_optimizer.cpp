@@ -45,7 +45,7 @@ void ItompOptimizer::initialize(const ItompTrajectoryPtr& itomp_trajectory,
                                     trajectory_start_time, trajectory_constraints);
 	improvement_manager_->initialize(evaluation_manager_, planning_group);
 
-    PhaseManager::getInstance()->init(itomp_trajectory->getNumPoints());
+    PhaseManager::getInstance()->init(itomp_trajectory->getNumPoints(), planning_group);
 
     best_parameter_trajectory_.set_size(itomp_trajectory->getNumParameters(), 1);
 }
@@ -73,7 +73,7 @@ bool ItompOptimizer::optimize()
 	++iteration_;
 
 	int iteration_after_feasible_solution = 0;
-    int num_max_iterations = 3;
+    int num_max_iterations = 5;
 
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
@@ -107,10 +107,21 @@ bool ItompOptimizer::optimize()
 
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
+
+            if (iteration_ == 1)
+            {
+                evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+            }
+            //if (iteration_ == 1)
+            {
+                evaluation_manager_->correctContacts();
+            }
+            evaluation_manager_->render();
 		}
 	}
 
 	evaluation_manager_->setParameters(best_parameter_trajectory_);
+    evaluation_manager_->correctContacts();
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(iteration_);
 

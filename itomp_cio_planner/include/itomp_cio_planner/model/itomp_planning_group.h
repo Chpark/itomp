@@ -18,6 +18,7 @@ public:
 	std::vector<ItompRobotJoint> group_joints_; /**< Joints used in planning */
 	std::vector<ContactPoint> contact_points_;
 	std::map<int, int> rbdl_to_group_joint_;
+    mutable std::vector<bool> is_fixed_;
 
 	int getNumContacts() const;
 };

@@ -9,7 +9,7 @@
 #include "optimization_search_strategies.h"
 #include "optimization_stop_strategies.h"
 #include "optimization_line_search.h"
-//#include <itomp_cio_planner/util/jacobian.h>
+#include <itomp_cio_planner/util/jacobian.h>
 
 namespace dlib
 {
@@ -511,6 +511,14 @@ namespace dlib
         double f_value = f(x);
         g = der(x);
 
+        T best_x = x;
+        double best_f = f_value;
+
+        Jacobian::projectToNullSpace(x, g);
+
+        if (f_value == 0 || length(g) == 0)
+            return f_value;
+
         DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
         DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
 
@@ -543,9 +551,16 @@ namespace dlib
                 last_alpha = alpha;
 
             // Take the search step indicated by the above line search
-            x = clamp(x + alpha*s, x_lower, x_upper);
+            s *= alpha;
+            Jacobian::projectToNullSpace(x, s);
+            x = clamp(x + s, x_lower, x_upper);
+            Jacobian::projectToNullSpace(x, s);
+            //x = x + s;
+            //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
             g = der(x);
+
+            Jacobian::projectToNullSpace(x, g);
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
@@ -561,6 +576,20 @@ namespace dlib
                 break;
             }
 
+            if (f_value == 0.0)
+                break;
+
+            if (f_value < best_f)
+            {
+                best_x = x;
+                best_f = f_value;
+            }
+        }
+
+        if (f_value > best_f)
+        {
+            x = best_x;
+            f_value = best_f;
         }
 
         return f_value;

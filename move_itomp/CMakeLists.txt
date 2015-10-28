@@ -32,6 +32,7 @@ rosbuild_add_executable(app_rbprm
 src/app_rbprm.cpp
 src/move_itomp_util.cpp
 src/rbprm_reader.cpp
+src/bvh_writer.cpp
 ${MOVE_ITOMP_HEADER_FILES}
 )
 

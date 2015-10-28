@@ -69,6 +69,8 @@ public:
 
 private:
 	void initializeContactVariables();
+    void correctContacts(bool update_kinematics = true);
+    void correctContacts(int point_begin, int point_end, bool update_kinematics = true);
 
 	void performFullForwardKinematicsAndDynamics(int point_begin, int point_end);
     void performPartialForwardKinematicsAndDynamics(int point_begin, int point_end, const ItompTrajectoryIndex& index);

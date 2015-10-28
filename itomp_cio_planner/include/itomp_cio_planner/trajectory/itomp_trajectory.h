@@ -94,6 +94,9 @@ public:
     int getNumJoints() const;
     unsigned int getNumParameters() const;
 
+    bool setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const;
+    void getJointPositions(ParameterVector& parameters, const Eigen::VectorXd& trajectory_data, int point) const;
+
 protected:
     ItompTrajectory(const std::string& name, unsigned int num_points, const std::vector<NewTrajectoryPtr>& components,
                     unsigned int num_keyframes, unsigned int keyframe_interval, double duration, double discretization);

@@ -37,10 +37,25 @@ void UpdatePartialKinematics(RigidBodyDynamics::Model & model,
 							 const RigidBodyDynamics::Math::VectorNd& QDDot,
 							 const std::vector<unsigned int>& body_ids);
 
-void CalcFullJacobian(RigidBodyDynamics::Model & model,
-					  const RigidBodyDynamics::Math::VectorNd & Q, unsigned int body_id,
-					  const RigidBodyDynamics::Math::Vector3d & point_position,
-					  RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics = true);
+bool InverseKinematics6D(RigidBodyDynamics::Model &model,
+                         const RigidBodyDynamics::Math::VectorNd &Qinit,
+                         const std::vector<unsigned int>& body_id,
+                         const std::vector<RigidBodyDynamics::Math::Vector3d>& target_pos,
+                         const std::vector<RigidBodyDynamics::Math::Matrix3d>& target_ori,
+                         RigidBodyDynamics::Math::VectorNd &Qres,
+                         double step_tol = 1.0e-12,
+                         double lambda = 0.01,
+                         unsigned int max_iter = 50
+                        );
+
+void CalcPointJacobian6D (
+        RigidBodyDynamics::Model &model,
+        const RigidBodyDynamics::Math::VectorNd &Q,
+        unsigned int body_id,
+        const RigidBodyDynamics::Math::Vector3d &point_position,
+        RigidBodyDynamics::Math::MatrixNd &G,
+        bool update_kinematics
+    );
 }
 
 #endif /* RBDL_MODEL_UTIL_H_ */

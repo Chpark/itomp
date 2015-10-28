@@ -314,110 +314,160 @@ void UpdatePartialKinematics(RigidBodyDynamics::Model & model,
 	}
 }
 
-void CalcFullJacobian(RigidBodyDynamics::Model & model,
-					  const RigidBodyDynamics::Math::VectorNd & Q, unsigned int body_id,
-					  const RigidBodyDynamics::Math::Vector3d & point_position,
-					  RigidBodyDynamics::Math::MatrixNd & G, bool update_kinematics)
+bool InverseKinematics6D (
+        Model &model,
+        const VectorNd &Qinit,
+        const std::vector<unsigned int>& body_id,
+        const std::vector<Vector3d>& target_pos,
+        const std::vector<Matrix3d>& target_ori,
+        VectorNd &Qres,
+        double step_tol,
+        double lambda,
+        unsigned int max_iter
+        )
 {
-    /*
-	// update the Kinematics if necessary
-	if (update_kinematics)
-	{
-		UpdateKinematicsCustom(model, &Q, NULL, NULL);
-	}
 
-    Vector3d point_base_pos = CalcBodyToBaseCoordinates(model, Q, body_id, point_position, false);
-	SpatialMatrix point_trans = Xtrans_mat(point_base_pos);
+    assert (Qinit.size() == model.q_size);
+    assert (body_id.size() == target_pos.size());
 
-	assert(G.rows() == 6 && G.cols() == model.qdot_size);
+    MatrixNd J = MatrixNd::Zero(6 * body_id.size(), model.qdot_size);
+    VectorNd e = VectorNd::Zero(6 * body_id.size());
 
-	G.setZero();
+    Qres = Qinit;
 
-	// we have to make sure that only the joints that contribute to the
-	// bodies motion also get non-zero columns in the jacobian.
-	// VectorNd e = VectorNd::Zero(Q.size() + 1);
-	char *e = new char[Q.size() + 1];
-	if (e == NULL)
-	{
-		std::cerr << "Error: allocating memory." << std::endl;
-		abort();
-	}
-	memset(&e[0], 0, Q.size() + 1);
+    for (unsigned int ik_iter = 0; ik_iter < max_iter; ik_iter++) {
+        UpdateKinematicsCustom (model, &Qres, NULL, NULL);
+        for (unsigned int k = 0; k < body_id.size(); k++) {
+            MatrixNd G (MatrixNd::Zero(6, model.qdot_size));
+            CalcPointJacobian6D(model, Qres, body_id[k], Vector3d::Zero(), G, false);
+            Vector3d point_base = CalcBodyToBaseCoordinates (model, Qres, body_id[k], Vector3d::Zero(), false);
+            LOG << "current_pos = " << point_base.transpose() << std::endl;
 
-	unsigned int reference_body_id = body_id;
+            Vector3d target_euler = target_ori[k].eulerAngles(0, 1, 2);
+            Matrix3d body_world_ori = CalcBodyWorldOrientation(model, Qres, body_id[k], false);
+            Vector3d body_euler = body_world_ori.eulerAngles(0, 1, 2);
 
-	if (model.IsFixedBodyId(body_id))
-	{
-		unsigned int fbody_id = body_id - model.fixed_body_discriminator;
-		reference_body_id = model.mFixedBodies[fbody_id].mMovableParent;
-	}
+            for (unsigned int i = 0; i < 6; i++) {
+                for (unsigned int j = 0; j < model.qdot_size; j++) {
+                    unsigned int row = k * 6 + i;
+                    LOG << "i = " << i << " j = " << j << " k = " << k << " row = " << row << " col = " << j << std::endl;
+                    J(row, j) = G (i,j);
+                }
 
-	unsigned int j = reference_body_id;
+                if (i < 3)
+                {
+                    e[k * 6 + i] = -(target_euler[i] - body_euler[i]);
+                }
+                else
+                {
+                    e[k * 6 + i] = target_pos[k][i - 3] - point_base[i - 3];
+                }
+            }
 
-	// e[j] is set to 1 if joint j contributes to the jacobian that we are
-	// computing. For all other joints the column will be zero.
-	while (j != 0)
-	{
-		e[j] = 1;
-		j = model.lambda[j];
-	}
+            LOG << J << std::endl;
 
-	for (j = 1; j < model.mBodies.size(); j++)
-	{
-		if (e[j] == 1)
-		{
-			unsigned int q_index = model.mJoints[j].q_index;
+            // abort if we are getting "close"
+            if (e.norm() < step_tol) {
+                LOG << "Reached target close enough after " << ik_iter << " steps" << std::endl;
+                return true;
+            }
+        }
 
-			if (model.mJoints[j].mDoFCount == 3)
-			{
-				Matrix63 S_base = point_trans
-								  * spatial_inverse(model.X_base[j].toMatrix())
-								  * model.multdof3_S[j];
+        LOG << "J = " << J << std::endl;
+        LOG << "e = " << e.transpose() << std::endl;
 
-				// TODO
-				G(0, q_index) = S_base(0, 0);
-				G(1, q_index) = S_base(1, 0);
-				G(2, q_index) = S_base(2, 0);
+        //std::cout << "iteration " << ik_iter << " " << e.norm() << std::endl;
 
-				G(0, q_index + 1) = S_base(0, 1);
-				G(1, q_index + 1) = S_base(1, 1);
-				G(2, q_index + 1) = S_base(2, 1);
+        MatrixNd JJTe_lambda2_I = J * J.transpose() + lambda*lambda * MatrixNd::Identity(e.size(), e.size());
 
-				G(0, q_index + 2) = S_base(0, 2);
-				G(1, q_index + 2) = S_base(1, 2);
-				G(2, q_index + 2) = S_base(2, 2);
+        VectorNd z (body_id.size() * 6);
+#ifndef RBDL_USE_SIMPLE_MATH
+        z = JJTe_lambda2_I.colPivHouseholderQr().solve (e);
+#else
+        bool solve_successful = LinSolveGaussElimPivot (JJTe_lambda2_I, e, z);
+        assert (solve_successful);
+#endif
 
-				G(3, q_index) = S_base(3, 0);
-				G(4, q_index) = S_base(4, 0);
-				G(5, q_index) = S_base(5, 0);
+        LOG << "z = " << z << std::endl;
 
-				G(3, q_index + 1) = S_base(3, 1);
-				G(4, q_index + 1) = S_base(4, 1);
-				G(5, q_index + 1) = S_base(5, 1);
+        VectorNd delta_theta = J.transpose() * z;
+        LOG << "change = " << delta_theta << std::endl;
 
-				G(3, q_index + 2) = S_base(3, 2);
-				G(4, q_index + 2) = S_base(4, 2);
-				G(5, q_index + 2) = S_base(5, 2);
-			}
-			else
-			{
-				SpatialVector S_base;
-				S_base = point_trans
-						 * spatial_inverse(model.X_base[j].toMatrix())
-						 * model.S[j];
-				// TODO
-				G(0, q_index) = S_base[0];
-				G(1, q_index) = S_base[1];
-				G(2, q_index) = S_base[2];
-				G(3, q_index) = S_base[3];
-				G(4, q_index) = S_base[4];
-				G(5, q_index) = S_base[5];
-			}
-		}
-	}
+        Qres = Qres + delta_theta;
+        LOG << "Qres = " << Qres.transpose() << std::endl;
 
-	delete[] e;
-    */
+        if (delta_theta.norm() < step_tol) {
+            LOG << "reached convergence after " << ik_iter << " steps" << std::endl;
+            return true;
+        }
+
+        VectorNd test_1 (z.size());
+        VectorNd test_res (z.size());
+
+        test_1.setZero();
+
+        for (unsigned int i = 0; i < z.size(); i++) {
+            test_1[i] = 1.;
+
+            VectorNd test_delta = J.transpose() * test_1;
+
+            test_res[i] = test_delta.squaredNorm();
+
+            test_1[i] = 0.;
+        }
+
+        LOG << "test_res = " << test_res.transpose() << std::endl;
+    }
+
+    return false;
+}
+
+void CalcPointJacobian6D (
+        Model &model,
+        const VectorNd &Q,
+        unsigned int body_id,
+        const Vector3d &point_position,
+        MatrixNd &G,
+        bool update_kinematics
+    )
+{
+    LOG << "-------- " << __func__ << " --------" << std::endl;
+
+    // update the Kinematics if necessary
+    if (update_kinematics) {
+        UpdateKinematicsCustom (model, &Q, NULL, NULL);
+    }
+
+    SpatialTransform point_trans = SpatialTransform (Matrix3d::Identity(), CalcBodyToBaseCoordinates (model, Q, body_id, point_position, false));
+
+    assert (G.rows() == 6 && G.cols() == model.qdot_size );
+
+    unsigned int reference_body_id = body_id;
+
+    if (model.IsFixedBodyId(body_id)) {
+        unsigned int fbody_id = body_id - model.fixed_body_discriminator;
+        reference_body_id = model.mFixedBodies[fbody_id].mMovableParent;
+    }
+
+    unsigned int j = reference_body_id;
+
+    SpatialTransform point_rot = SpatialTransform (model.X_base[j].E, Math::Vector3d::Zero());
+
+    // e[j] is set to 1 if joint j contributes to the jacobian that we are
+    // computing. For all other joints the column will be zero.
+    while (j != 0) {
+        unsigned int q_index = model.mJoints[j].q_index;
+
+        if (model.mJoints[j].mDoFCount == 3) {
+            G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
+            G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
+        } else {
+            G.block(0, q_index, 3, 1) = point_rot.apply(model.X_base[j].inverse().apply(model.S[j])).block(0, 0, 3, 1);
+            G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+        }
+
+        j = model.lambda[j];
+    }
 }
 
 }
