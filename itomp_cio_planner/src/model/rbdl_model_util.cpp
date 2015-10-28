@@ -345,6 +345,17 @@ bool InverseKinematics6D (
 
             Matrix3d body_world_ori = CalcBodyWorldOrientation(model, Qres, body_id[k], false);
             Vector3d euler_diff = (target_ori[k] * body_world_ori.transpose()).eulerAngles(0, 1, 2);
+            //Eigen::Quaterniond quat_diff((target_ori[k] * body_world_ori.transpose()));
+            Eigen::Quaterniond quat_from(body_world_ori);
+            Eigen::Quaterniond quat_target(target_ori[k]);
+            Matrix3d skew = Matrix3d::Zero();
+            skew(0, 1) = -quat_target.vec()[2];
+            skew(1, 0) = quat_target.vec()[2];
+            skew(0, 2) = quat_target.vec()[1];
+            skew(2, 0) = -quat_target.vec()[1];
+            skew(1, 2) = -quat_target.vec()[0];
+            skew(2, 1) = quat_target.vec()[0];
+            Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
 
             for (unsigned int i = 0; i < 6; i++) {
                 for (unsigned int j = 0; j < model.qdot_size; j++) {
@@ -355,7 +366,7 @@ bool InverseKinematics6D (
 
                 if (i < 3)
                 {
-                    e[k * 6 + i] = -euler_diff(i);
+                    e[k * 6 + i] = -ori_diff[i];
                 }
                 else
                 {
