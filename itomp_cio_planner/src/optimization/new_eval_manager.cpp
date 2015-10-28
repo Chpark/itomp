@@ -19,6 +19,8 @@
 #include <ecl/geometry/polynomial.hpp>
 #include <ecl/geometry.hpp>
 
+#include <iostream>
+
 using namespace std;
 using namespace Eigen;
 
@@ -733,7 +735,7 @@ void NewEvalManager::initializeContactVariables()
             std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
             std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
-            // IK toe
+            // IK toes
             for (int i = 2; i < num_contacts; ++i)
             {
                 int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
@@ -745,38 +747,31 @@ void NewEvalManager::initializeContactVariables()
                 proj_position(0) = rbdl_models_[point].X_base[rbdl_body_id].r(0);
                 proj_position(1) = rbdl_models_[point].X_base[rbdl_body_id].r(1);
 
-                /*
-                const Eigen::Vector3d position_bias(-0.2, 0.0, 0.0);
-                proj_position += position_bias;
-                */
-
                 body_ids.push_back(rbdl_body_id);
                 RigidBodyDynamics::Math::Vector3d target_pos(proj_position);
                 target_positions.push_back(target_pos);
                 RigidBodyDynamics::Math::Matrix3d target_orientation = exponential_map::ExponentialMapToRotation(proj_orientation);
                 target_orientations.push_back(target_orientation);
-
-                cout << "body id: " << rbdl_body_id << endl
-                     << "original position:" << endl
-                     << rbdl_models_[point].X_base[rbdl_body_id].r << endl
-                     << "origianl orientation:" << endl
-                     << rbdl_models_[point].X_base[rbdl_body_id].E << endl
-                     << "target position:" << endl
-                     << target_pos << endl
-                     << "target orientation:" << endl
-                     << target_orientation << endl
-                     << "axis:" << endl
-                     << rbdl_models_[point].S[rbdl_body_id] << endl
-                     << endl;
             }
 
             // IK hands
-            const int hand_body_ids[] = {
-                rbdl_models_[point]->GetBodyId("lwrist"),
-                rbdl_models_[point]->GetBodyId("rwrist"),
+            const int hand_rbdl_body_ids[] =
+            {
+                rbdl_models_[point].GetBodyId("lwrist_x_link"),
+                rbdl_models_[point].GetBodyId("rwrist_x_link"),
+            };
+            const RigidBodyDynamics::Math::Matrix3d hand_target_orientations[2] =
+            {
+                RigidBodyDynamics::Math::Matrix3d( 1.0, 0.0, 0.0,  0.0,  1.0, 0.0,   0.0, 0.0, 1.0),
+                RigidBodyDynamics::Math::Matrix3d(-1.0, 0.0, 0.0,  0.0, -1.0, 0.0,   0.0, 0.0, 1.0),
             };
             for (int i=0; i<2; i++)
             {
+                int rbdl_body_id = hand_rbdl_body_ids[i];
+
+                body_ids.push_back(rbdl_body_id);
+                target_positions.push_back(rbdl_models_[point].X_base[rbdl_body_id].r);
+                target_orientations.push_back(hand_target_orientations[i]);
             }
 
             if (itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
@@ -875,16 +870,37 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
         std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
         std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
-        ecl::QuinticPolynomial poly;
-        poly = ecl::QuinticPolynomial::Interpolation(0, 0.0, 0.0, 0.0,
-                                                     itomp_trajectory_->getNumPoints() - 1, 1.0, 0.0, 0.0);
-        double t = poly(point);
-        for (int i = 0; i < num_contacts; ++i)
+        double t = (double) point / (itomp_trajectory_->getNumPoints() - 1);
+
+        // IK toes
+        for (int i = 2; i < num_contacts; ++i)
         {
             if (!getPlanningGroup()->is_fixed_[i])
                 continue;
 
             int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+            body_ids.push_back(rbdl_body_id);
+
+            RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
+            RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
+            RigidBodyDynamics::Math::Vector3d target_pos(start_pos * (1.0 - t) + goal_pos * t);
+            target_positions.push_back(target_pos);
+
+            Quaterniond start_ori(rbdl_models_[0].X_base[rbdl_body_id].E);
+            Quaterniond end_ori(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E);
+            RigidBodyDynamics::Math::Matrix3d target_orientation(Eigen::Matrix3d(start_ori.slerp(t, end_ori)));
+            target_orientations.push_back(target_orientation);
+        }
+
+        // IK hands
+        const int hands_rbdl_body_ids[2] =
+        {
+            rbdl_models_[point].GetBodyId("lwrist_x_link"),
+            rbdl_models_[point].GetBodyId("rwrist_x_link"),
+        };
+        for (int i=0; i<2; i++)
+        {
+            int rbdl_body_id = hands_rbdl_body_ids[i];
             body_ids.push_back(rbdl_body_id);
 
             RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);

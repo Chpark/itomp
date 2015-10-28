@@ -203,6 +203,10 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
         body_ids.push_back(rbdl_body_id);
     }
 
+    // always fix hands
+    body_ids.push_back(model.GetBodyId("lwrist_x_link"));
+    body_ids.push_back(model.GetBodyId("rwrist_x_link"));
+
     if (body_ids.size() == 0)
         return;
     Eigen::MatrixXd jacobianMerged = Eigen::MatrixXd::Zero(6 * body_ids.size(), model.qdot_size);
