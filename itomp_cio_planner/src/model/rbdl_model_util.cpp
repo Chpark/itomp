@@ -343,9 +343,17 @@ bool InverseKinematics6D (
             Vector3d point_base = CalcBodyToBaseCoordinates (model, Qres, body_id[k], Vector3d::Zero(), false);
             LOG << "current_pos = " << point_base.transpose() << std::endl;
 
-            Vector3d target_euler = target_ori[k].eulerAngles(0, 1, 2);
             Matrix3d body_world_ori = CalcBodyWorldOrientation(model, Qres, body_id[k], false);
-            Vector3d body_euler = body_world_ori.eulerAngles(0, 1, 2);
+            Eigen::Quaterniond quat_from(body_world_ori);
+            Eigen::Quaterniond quat_target(target_ori[k]);
+            Matrix3d skew = Matrix3d::Zero();
+            skew(0, 1) = -quat_target.vec()[2];
+            skew(1, 0) = quat_target.vec()[2];
+            skew(0, 2) = quat_target.vec()[1];
+            skew(2, 0) = -quat_target.vec()[1];
+            skew(1, 2) = -quat_target.vec()[0];
+            skew(2, 1) = quat_target.vec()[0];
+            Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
 
             for (unsigned int i = 0; i < 6; i++) {
                 for (unsigned int j = 0; j < model.qdot_size; j++) {
@@ -356,7 +364,7 @@ bool InverseKinematics6D (
 
                 if (i < 3)
                 {
-                    e[k * 6 + i] = -(target_euler[i] - body_euler[i]);
+                    e[k * 6 + i] = -ori_diff[i];
                 }
                 else
                 {
@@ -451,7 +459,7 @@ void CalcPointJacobian6D (
 
     unsigned int j = reference_body_id;
 
-    SpatialTransform point_rot = SpatialTransform (model.X_base[j].E, Math::Vector3d::Zero());
+    Matrix3d point_rot = model.X_base[j].E;
 
     // e[j] is set to 1 if joint j contributes to the jacobian that we are
     // computing. For all other joints the column will be zero.
@@ -459,11 +467,24 @@ void CalcPointJacobian6D (
         unsigned int q_index = model.mJoints[j].q_index;
 
         if (model.mJoints[j].mDoFCount == 3) {
-            G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
+            //G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
             G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
         } else {
-            G.block(0, q_index, 3, 1) = point_rot.apply(model.X_base[j].inverse().apply(model.S[j])).block(0, 0, 3, 1);
             G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+
+            Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
+            Matrix3d mat = aa.toRotationMatrix();
+            Eigen::Quaterniond quat_from = Eigen::Quaterniond::Identity();
+            Eigen::Quaterniond quat_target(mat);
+            Matrix3d skew = Matrix3d::Zero();
+            skew(0, 1) = -quat_target.vec()[2];
+            skew(1, 0) = quat_target.vec()[2];
+            skew(0, 2) = quat_target.vec()[1];
+            skew(2, 0) = -quat_target.vec()[1];
+            skew(1, 2) = -quat_target.vec()[0];
+            skew(2, 1) = quat_target.vec()[0];
+            Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
+            G.block(0, q_index, 3, 1) = ori_diff;
         }
 
         j = model.lambda[j];
