@@ -343,9 +343,8 @@ bool InverseKinematics6D (
             Vector3d point_base = CalcBodyToBaseCoordinates (model, Qres, body_id[k], Vector3d::Zero(), false);
             LOG << "current_pos = " << point_base.transpose() << std::endl;
 
-            Vector3d target_euler = target_ori[k].eulerAngles(0, 1, 2);
             Matrix3d body_world_ori = CalcBodyWorldOrientation(model, Qres, body_id[k], false);
-            Vector3d body_euler = body_world_ori.eulerAngles(0, 1, 2);
+            Vector3d euler_diff = (target_ori[k] * body_world_ori.transpose()).eulerAngles(0, 1, 2);
 
             for (unsigned int i = 0; i < 6; i++) {
                 for (unsigned int j = 0; j < model.qdot_size; j++) {
@@ -356,7 +355,7 @@ bool InverseKinematics6D (
 
                 if (i < 3)
                 {
-                    e[k * 6 + i] = -(target_euler[i] - body_euler[i]);
+                    e[k * 6 + i] = -euler_diff(i);
                 }
                 else
                 {
@@ -451,7 +450,7 @@ void CalcPointJacobian6D (
 
     unsigned int j = reference_body_id;
 
-    SpatialTransform point_rot = SpatialTransform (model.X_base[j].E, Math::Vector3d::Zero());
+    Matrix3d point_rot = model.X_base[j].E;
 
     // e[j] is set to 1 if joint j contributes to the jacobian that we are
     // computing. For all other joints the column will be zero.
@@ -459,11 +458,14 @@ void CalcPointJacobian6D (
         unsigned int q_index = model.mJoints[j].q_index;
 
         if (model.mJoints[j].mDoFCount == 3) {
-            G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
+            //G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
             G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
         } else {
-            G.block(0, q_index, 3, 1) = point_rot.apply(model.X_base[j].inverse().apply(model.S[j])).block(0, 0, 3, 1);
             G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+
+            Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
+            Matrix3d mat = aa.toRotationMatrix();
+            G.block(0, q_index, 3, 1) = mat.eulerAngles(0, 1, 2);
         }
 
         j = model.lambda[j];
