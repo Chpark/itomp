@@ -1046,7 +1046,7 @@ void NewEvalManager::readBVHFile()
         char buffer[256];
         if (bvh_file.is_open())
         {
-            std::out << "read bvh file : " << bvh_file << std::endl;
+            std::cout << "read bvh file : " << bvh_file << std::endl;
             bvh_file.getline(buffer, 256);
             bvh_file.getline(buffer, 256);
             bvh_file.getline(buffer, 256);
