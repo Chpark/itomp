@@ -11,6 +11,12 @@ void ContactVariables::setPointForce(int point_index, const Eigen::Vector3d& poi
     //serialized_forces_.block(3 * point_index, 0, 3, 1) = point_force / scale;
 
     double magnitude = point_force.norm() / scale;
+    if (magnitude < 1e-14)
+    {
+        serialized_forces_.block(4 * point_index, 0, 3, 1) = Eigen::Vector3d::Zero();
+        serialized_forces_(4 * point_index + 3) = magnitude;
+        return;
+    }
     Eigen::Quaterniond q;
     q.setFromTwoVectors(Eigen::Vector3d(0, 0, 1), point_force);
     serialized_forces_.block(4 * point_index, 0, 3, 1) = exponential_map::QuaternionToExponentialMap(q);
@@ -23,6 +29,10 @@ Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
     //force *= scale;
 
     double magnitude = serialized_forces_(4 * point_index + 3);
+    if (magnitude < 1e-14)
+    {
+        return Eigen::Vector3d::Zero();
+    }
     Eigen::Vector3d orientation = serialized_forces_.block(4 * point_index, 0, 3, 1);
     Eigen::Vector3d force = exponential_map::ExponentialMapToRotation(orientation) * Eigen::Vector3d(0, 0, 1);
     force *= magnitude * scale;
