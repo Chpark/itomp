@@ -231,6 +231,7 @@ void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
 {
     // normalize der;
     double max_der = 0.1;
+    double max_der2 = 1.0;
     itomp_cio_planner::ItompTrajectoryIndex max_index;
     for (int i = 0; i < s.size(); ++i)
     {
@@ -243,13 +244,23 @@ void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
                 max_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
             }
         }
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+        {
+            if (std::abs(s(i)) > max_der2)
+            {
+                max_der2 = std::abs(s(i));
+            }
+        }
     }
     double scale = 0.1 / max_der;
+    double scale2 = 1.0 / max_der2;
     for (int i = 0; i < s.size(); ++i)
     {
         const itomp_cio_planner::ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
         if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             s(i) *= scale;
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            s(i) *= scale2;
     }
 }
 

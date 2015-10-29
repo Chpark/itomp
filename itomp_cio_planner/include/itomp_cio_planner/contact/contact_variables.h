@@ -56,7 +56,7 @@ public:
 inline ContactVariables::ContactVariables()
 {
 	serialized_position_.resize(7);
-	serialized_forces_.resize(NUM_ENDEFFECTOR_CONTACT_POINTS * 3);
+    serialized_forces_.resize(NUM_ENDEFFECTOR_CONTACT_POINTS * 4);
 	projected_point_positions_.resize(NUM_ENDEFFECTOR_CONTACT_POINTS);
 }
 
@@ -92,25 +92,6 @@ inline void ContactVariables::setOrientation(const Eigen::Vector3d& orientation)
 inline Eigen::Vector3d ContactVariables::getOrientation() const
 {
 	return serialized_position_.block(4, 0, 3, 1);
-}
-
-inline void ContactVariables::setPointForce(int point_index,
-		const Eigen::Vector3d& point_force)
-{
-    double scale = 60 * 9.8;
-
-    serialized_forces_.block(3 * point_index, 0, 3, 1) = point_force / scale;
-}
-inline Eigen::Vector3d ContactVariables::getPointForce(int point_index) const
-{
-    Eigen::Vector3d force =	serialized_forces_.block(3 * point_index, 0, 3, 1);
-
-    // TODO: scale = mass * gravity
-
-    double scale = 60 * 9.8;
-	force *= scale;
-
-	return force;
 }
 
 inline void ContactVariables::ComputeProjectedPointPositions(

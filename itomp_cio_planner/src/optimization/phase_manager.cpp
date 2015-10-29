@@ -71,7 +71,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
             if (index.point == 0 || index.point == num_points_ -1)
                 return true;
 
-            int contact_id = index.element / 12;
+            int contact_id = index.element / 16;
             if (planning_group_->is_fixed_[contact_id])
                 return true;
         }
@@ -89,7 +89,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
 
         if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
         {
-            int contact_id = index.element / 12;
+            int contact_id = index.element / 16;
             if (planning_group_->is_fixed_[contact_id])
                 return true;
 

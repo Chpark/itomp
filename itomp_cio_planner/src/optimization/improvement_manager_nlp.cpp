@@ -430,8 +430,14 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 break;
 
             case ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE:
-                x_lower(i) = -1.0;
-                x_upper(i) = 1.0;
+                
+                x_lower(i) = -10.0;
+                x_upper(i) = 10.0;
+                if (index.element % 4 == 3)
+                {
+                    x_lower(i) = 0.0;
+                    x_upper(i) = 10.0;
+                }
 
                 break;
 

@@ -54,7 +54,7 @@ ItompTrajectory* TrajectoryFactory::CreateItompTrajectory(const ItompRobotModelC
     std::string name = "trajectory";
     unsigned int num_joints = robot_model->getNumJoints();
     unsigned int num_contact_positions = PlanningParameters::getInstance()->getNumContacts() * 7; // var + pos(3) + ori(3)
-    unsigned int num_contact_forces = PlanningParameters::getInstance()->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 3; // n * force(3)
+    unsigned int num_contact_forces = PlanningParameters::getInstance()->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 4; // n * force(3)
 
     std::vector<NewTrajectoryPtr> components(3);
     std::vector<NewTrajectoryPtr> components_sub(3);
