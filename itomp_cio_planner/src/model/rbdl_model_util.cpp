@@ -376,13 +376,14 @@ bool InverseKinematics6D (
             }
 
             LOG << J << std::endl;
-
-            // abort if we are getting "close"
-            if (e.norm() < step_tol) {
-                LOG << "Reached target close enough after " << ik_iter << " steps" << std::endl;
-                return true;
-            }
         }
+
+        // abort if we are getting "close"
+        if (e.norm() < step_tol) {
+            LOG << "Reached target close enough after " << ik_iter << " steps" << std::endl;
+            return true;
+        }
+
 
         LOG << "J = " << J << std::endl;
         LOG << "e = " << e.transpose() << std::endl;
