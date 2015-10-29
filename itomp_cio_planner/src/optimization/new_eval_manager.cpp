@@ -140,6 +140,7 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     //itomp_trajectory_->interpolateKeyframes(planning_group);
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
+    readBVHFile();
     itomp_trajectory_->getElementTrajectory(0, 0)->printTrajectory(std::cout);
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
@@ -1031,6 +1032,61 @@ void NewEvalManager::computePassiveForces(int point,
         }
     }
 
+}
+
+void NewEvalManager::readBVHFile()
+{
+    ros::NodeHandle node_handle("/move_itomp");
+    std::string filename;
+    if (node_handle.getParam("/move_itomp/bvh_filename", filename))
+    {
+        Eigen::MatrixXd filedata(itomp_trajectory_->getNumPoints(), itomp_trajectory_->getNumJoints());
+        std::ifstream bvh_file;
+        bvh_file.open(filename.c_str());
+        char buffer[256];
+        if (bvh_file.is_open())
+        {
+            std::out << "read bvh file : " << bvh_file << std::endl;
+            bvh_file.getline(buffer, 256);
+            bvh_file.getline(buffer, 256);
+            bvh_file.getline(buffer, 256);
+            for (int point = 0; point < itomp_trajectory_->getNumPoints(); ++point)
+            {
+                for (int j = 0; j < planning_group_->num_joints_; ++j)
+                {
+                    bvh_file >> filedata(point, j);
+                    if (j > 2)
+                        filedata(point, j) *= M_PI / 180.0;
+                }
+            }
+            bvh_file.close();
+        }
+
+        itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->printTrajectory(std::cout);
+        Eigen::MatrixXd new_q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getData();
+
+        int target_joint = 0;
+        for (int j = 0; j < itomp_trajectory_->getNumJoints(); ++j)
+        {
+            if (j >= 24 && j <= 28)
+                continue;
+            if (j >= 41 && j <= 45)
+                continue;
+            if (j >= 55 && j <= 59)
+                continue;
+            if (j >= 69 && j <= 74)
+                continue;
+            for (int point = 0; point < itomp_trajectory_->getNumPoints(); ++point)
+            {
+                new_q(point, j) = filedata(point, target_joint);
+            }
+            ++target_joint;
+        }
+
+
+        itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getData() = new_q;
+        itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->printTrajectory(std::cout);
+    }
 }
 
 }

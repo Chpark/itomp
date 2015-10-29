@@ -84,6 +84,8 @@ private:
 
 	bool isDerivative() const;
 
+    void readBVHFile();
+
     // shared constant pointer members
     ItompRobotModelConstPtr robot_model_;
     planning_scene::PlanningSceneConstPtr planning_scene_;
