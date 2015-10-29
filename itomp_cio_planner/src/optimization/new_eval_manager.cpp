@@ -793,7 +793,7 @@ void NewEvalManager::initializeContactVariables()
 
 				contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
 				// set forces to 0
-                if (planning_group_->is_fixed_[i] == true)
+                if (num_fixed_contacts > 0 && planning_group_->is_fixed_[i] == true)
                     contact_force = -1.0 / num_fixed_contacts / NUM_ENDEFFECTOR_CONTACT_POINTS * tau.block(0, 0, 3, 1);
                 else
                     contact_force = Eigen::Vector3d::Zero();
