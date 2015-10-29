@@ -726,13 +726,17 @@ void NewEvalManager::initializeContactVariables()
                 {
                     if (point == itomp_trajectory_->getNumPoints() - 1)
                     {
+                        Eigen::Vector3d normal_start = rbdl_models_[0].X_base[rbdl_body_id].E * Eigen::Vector3d(0, 0, 1.0);
+                        Eigen::Vector3d normal_goal = rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E * Eigen::Vector3d(0, 0, 1.0);
+                        double dot_normal = normal_start.dot(normal_goal);
+
                         double dist = (proj_position - rbdl_models_[0].X_base[rbdl_body_id].r).norm();
-                        cout << "[" << point << ":" << i << "] start-end dist : " << dist << endl;
-                        if (dist < 0.1)
+                        cout << "[" << point << ":" << i << "] start-end dist : " << dist << " ori normal dot : " << dot_normal << endl;
+                        if ((dist < 0.15 && dot_normal > 0.8))
                         {
                             proj_position = rbdl_models_[0].X_base[rbdl_body_id].r;
                             proj_orientation_mat = rbdl_models_[0].X_base[rbdl_body_id].E;
-                            cout << "[" << point << ":" << i << "] set as the start position" << endl;
+                            cout << "[" << point << ":" << i << "] set to the start position" << endl;
                         }
                     }
                 }
@@ -756,6 +760,13 @@ void NewEvalManager::initializeContactVariables()
             itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
 
+        }
+
+        int num_fixed_contacts = 0;
+        for (int i = 0; i < num_contacts; ++i)
+        {
+            if (planning_group_->is_fixed_[i] == true)
+                ++num_fixed_contacts;
         }
 
 		for (int i = 0; i < num_contacts; ++i)
@@ -782,9 +793,12 @@ void NewEvalManager::initializeContactVariables()
 
 				contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
 				// set forces to 0
-				contact_force = 0.0 / num_contacts * tau.block(0, 0, 3, 1);
+                if (planning_group_->is_fixed_[i] == true)
+                    contact_force = -1.0 / num_fixed_contacts / NUM_ENDEFFECTOR_CONTACT_POINTS * tau.block(0, 0, 3, 1);
+                else
+                    contact_force = Eigen::Vector3d::Zero();
 
-				contact_torque = contact_position.cross(contact_force);
+                contact_torque = contact_position.cross(contact_force);
 
                 RigidBodyDynamics::Math::SpatialVector& ext_force = ext_forces[rbdl_body_id];
                 ext_force.set(contact_torque.coeff(0), contact_torque.coeff(1), contact_torque.coeff(2),
@@ -864,11 +878,18 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
             RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
             RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
             RigidBodyDynamics::Math::Vector3d target_pos(start_pos * (1.0 - t) + goal_pos * t);
-            target_positions.push_back(target_pos);
 
             Quaterniond start_ori(rbdl_models_[0].X_base[rbdl_body_id].E);
             Quaterniond end_ori(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E);
             RigidBodyDynamics::Math::Matrix3d target_orientation(Eigen::Matrix3d(start_ori.slerp(t, end_ori)));
+
+            if (!getPlanningGroup()->is_fixed_[i])
+            {
+                target_pos = rbdl_models_[point].X_base[rbdl_body_id].r;
+                target_orientation = rbdl_models_[point].X_base[rbdl_body_id].E;
+            }
+
+            target_positions.push_back(target_pos);
             target_orientations.push_back(target_orientation);
         }
 
@@ -904,6 +925,9 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
 
             for (int i = 0; i < num_contacts; ++i)
             {
+                if (!getPlanningGroup()->is_fixed_[i])
+                    continue;
+
                 int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
                 contact_variables_[point][i].setVariable(0.0);
@@ -912,30 +936,6 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
                 const Eigen::Vector3d prev_orientation = (point == 0) ? Eigen::Vector3d::Zero() : contact_variables_[point - 1][i].getOrientation();
                 const Eigen::Vector3d* prev_orientation_p = (point == 0) ? NULL : &prev_orientation;
                 contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E, prev_orientation_p));
-
-
-                for (int j = 0; j < NUM_ENDEFFECTOR_CONTACT_POINTS; ++j)
-                {
-                    Eigen::MatrixXd jacobian(6, q.rows());
-                    Eigen::Vector3d contact_position;
-                    Eigen::Vector3d contact_force;
-                    Eigen::Vector3d contact_torque;
-
-                    int rbdl_body_id = planning_group_->contact_points_[i].getContactPointRBDLIds(j);
-                    RigidBodyDynamics::CalcBodySpatialJacobian(rbdl_models_[point], q, rbdl_body_id, jacobian, false);
-
-                    contact_position = rbdl_models_[point].X_base[rbdl_body_id].r;
-                    // set forces to 0
-                    contact_force = 0.0 / num_contacts * tau.block(0, 0, 3, 1);
-
-                    contact_torque = contact_position.cross(contact_force);
-
-                    RigidBodyDynamics::Math::SpatialVector& ext_force = ext_forces[rbdl_body_id];
-                    ext_force.set(contact_torque.coeff(0), contact_torque.coeff(1), contact_torque.coeff(2),
-                                  contact_force.coeff(0), contact_force.coeff(1), contact_force.coeff(2));
-
-                    contact_variables_[point][i].setPointForce(j, contact_force);
-                }
             }
 
             // to validate
