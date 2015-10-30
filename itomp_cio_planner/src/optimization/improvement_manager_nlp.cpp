@@ -58,6 +58,7 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
 
     TIME_PROFILER_INIT(getROSWallTime, num_threads_);
     TIME_PROFILER_ADD_ENTRY(FK);
+    TIME_PROFILER_ADD_ENTRY(LoadBalancing);
 
     int num_points = evaluation_manager_->getTrajectory()->getNumPoints();
 
@@ -485,6 +486,8 @@ void ImprovementManagerNLP::addNoiseToVariables(column_vector& variables)
 
 void ImprovementManagerNLP::computeEvaluationOrder(long variable_size)
 {
+    TIME_PROFILER_START_TIMER(LoadBalancing);
+
     evaluation_order_.resize(variable_size);
 
     std::vector<long> indices_of_joint_param; // slow due to collision checking
@@ -514,6 +517,8 @@ void ImprovementManagerNLP::computeEvaluationOrder(long variable_size)
         write_index += (i + 1) * indices_of_non_joint_param.size() / num_threads_ - i * indices_of_non_joint_param.size() / num_threads_;
     }
     ROS_ASSERT(write_index == variable_size);
+
+    TIME_PROFILER_START_TIMER(LoadBalancing);
 }
 
 }
