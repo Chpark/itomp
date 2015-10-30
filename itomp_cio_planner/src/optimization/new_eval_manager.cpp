@@ -753,7 +753,34 @@ void NewEvalManager::initializeContactVariables()
                 target_orientations.push_back(target_orientation);
             }
 
-            const std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            // align hands
+            target_positions[0](0) = target_positions[1](0) = (target_positions[0](0) + target_positions[1](0)) / 2.0;
+            target_orientations[0] = RigidBodyDynamics::Math::Matrix3d(1, 0, 0,  0, 1, 0,  0, 0, 1);
+            target_orientations[1] = RigidBodyDynamics::Math::Matrix3d(-1, 0, 0,  0, -1, 0,  0, 0, 1);
+
+            std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            // erase root, torso, ...
+            /*
+            rbdl_to_group_joint.erase(  0 );
+            rbdl_to_group_joint.erase(  1 );
+            rbdl_to_group_joint.erase(  2 );
+            rbdl_to_group_joint.erase(  3 );
+            rbdl_to_group_joint.erase(  4 );
+            rbdl_to_group_joint.erase(  5 );
+            rbdl_to_group_joint.erase( 31 );
+            rbdl_to_group_joint.erase( 32 );
+            rbdl_to_group_joint.erase( 33 );
+            rbdl_to_group_joint.erase( 34 );
+            rbdl_to_group_joint.erase( 35 );
+            rbdl_to_group_joint.erase( 36 );
+            rbdl_to_group_joint.erase( 37 );
+            rbdl_to_group_joint.erase( 38 );
+            rbdl_to_group_joint.erase( 39 );
+            rbdl_to_group_joint.erase( 40 );
+            rbdl_to_group_joint.erase( 41 );
+            rbdl_to_group_joint.erase( 42 );
+            */
+
             if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
                 ROS_INFO("IK failed");
             updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
@@ -867,9 +894,11 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
         poly = ecl::QuinticPolynomial::Interpolation(0, 0.0, 0.0, 0.0,
                                                      itomp_trajectory_->getNumPoints() - 1, 1.0, 0.0, 0.0);
         double t = poly(point);
+
+        // IK toes
         for (int i = 0; i < num_contacts; ++i)
         {
-            if (!getPlanningGroup()->is_fixed_[i])
+            if (i >= 2 && !getPlanningGroup()->is_fixed_[i])
                 continue;
 
             int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
@@ -883,21 +912,58 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
             Quaterniond end_ori(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E);
             RigidBodyDynamics::Math::Matrix3d target_orientation(Eigen::Matrix3d(start_ori.slerp(t, end_ori)));
 
-            if (!getPlanningGroup()->is_fixed_[i])
-            {
-                target_pos = rbdl_models_[point].X_base[rbdl_body_id].r;
-                target_orientation = rbdl_models_[point].X_base[rbdl_body_id].E;
-            }
-
             target_positions.push_back(target_pos);
             target_orientations.push_back(target_orientation);
+        }
+
+        // IK hands
+        for (int i=0; i<2; i++)
+        {
+            const double h = (double)point / (itomp_trajectory_->getNumPoints() - 1);
+            const double h0 = (1-h)*(1-h)*(1-h), h1 = 3*(1-h)*(1-h)*h, h2 = 3*(1-h)*h*h, h3 = h*h*h;
+
+            const int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+
+            const RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
+            const RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
+            const RigidBodyDynamics::Math::Vector3d dir(1.0, 0.0, 0.0);
+            const RigidBodyDynamics::Math::Vector3d start_vel = (goal_pos - start_pos).dot(dir) * dir;
+            const RigidBodyDynamics::Math::Vector3d goal_vel = (goal_pos - start_pos).dot(dir) * dir;
+            const RigidBodyDynamics::Math::Vector3d target_pos(h0 * start_pos + h1 * (start_pos + start_vel / 3) + h2 * (goal_pos - goal_vel / 3) + h3 * goal_pos);
+
+            std::cout << i << ' ' << start_vel.transpose() << std::endl;
+
+            target_positions[i] = target_pos;
         }
 
         Eigen::VectorXd q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 
-        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_->rbdl_to_group_joint_))
+        std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+        // erase root, torso, ...
+        /*
+        rbdl_to_group_joint.erase(  0 );
+        rbdl_to_group_joint.erase(  1 );
+        rbdl_to_group_joint.erase(  2 );
+        rbdl_to_group_joint.erase(  3 );
+        rbdl_to_group_joint.erase(  4 );
+        rbdl_to_group_joint.erase(  5 );
+        rbdl_to_group_joint.erase( 31 );
+        rbdl_to_group_joint.erase( 32 );
+        rbdl_to_group_joint.erase( 33 );
+        rbdl_to_group_joint.erase( 34 );
+        rbdl_to_group_joint.erase( 35 );
+        rbdl_to_group_joint.erase( 36 );
+        rbdl_to_group_joint.erase( 37 );
+        rbdl_to_group_joint.erase( 38 );
+        rbdl_to_group_joint.erase( 39 );
+        rbdl_to_group_joint.erase( 40 );
+        rbdl_to_group_joint.erase( 41 );
+        rbdl_to_group_joint.erase( 42 );
+        */
+
+        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
             ROS_INFO("IK failed");
 
         // repeat above

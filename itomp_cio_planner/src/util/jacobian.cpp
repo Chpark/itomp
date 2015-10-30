@@ -266,7 +266,7 @@ void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
 
 void Jacobian::projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
 {
-    return;
+    //return;
     itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();
 
     Eigen::VectorXd q;

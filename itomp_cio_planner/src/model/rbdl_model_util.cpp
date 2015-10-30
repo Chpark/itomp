@@ -481,7 +481,25 @@ void CalcPointJacobian6D (
 
                 Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
                 Matrix3d mat = aa.toRotationMatrix();
-                G.block(0, q_index, 3, 1) = mat.eulerAngles(0, 1, 2);
+                Eigen::Quaterniond quat_from = Eigen::Quaterniond::Identity();
+                Eigen::Quaterniond quat_target(mat);
+                Matrix3d skew = Matrix3d::Zero();
+                skew(0, 1) = -quat_target.vec()[2];
+                skew(1, 0) = quat_target.vec()[2];
+                skew(0, 2) = quat_target.vec()[1];
+                skew(2, 0) = -quat_target.vec()[1];
+                skew(1, 2) = -quat_target.vec()[0];
+                skew(2, 1) = quat_target.vec()[0];
+                Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
+                G.block(0, q_index, 3, 1) = ori_diff;
+            }
+        }
+        else
+        {
+            if (model.mJoints[j].mDoFCount == 3) {
+                G.block(0, q_index, 6, 3).setZero();
+            } else {
+                G.block(0, q_index, 6, 1).setZero();
             }
         }
 
