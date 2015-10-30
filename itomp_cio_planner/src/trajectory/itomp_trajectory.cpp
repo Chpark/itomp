@@ -8,6 +8,8 @@
 
 using namespace std;
 
+//#define DOF3_JOINT
+
 namespace itomp_cio_planner
 {
 
@@ -330,7 +332,7 @@ void ItompTrajectory::interpolateKeyframes()
     if (keyframe_interval_ <= 1)
         return;
 
-    /*
+#ifdef DOF3_JOINT
     std::set<unsigned int> DOF3;
     DOF3.insert(3);
     DOF3.insert(6);
@@ -349,7 +351,7 @@ void ItompTrajectory::interpolateKeyframes()
     DOF3.insert(60);
     DOF3.insert(63);
     DOF3.insert(66);
-    */
+#endif
 
     // cubic interpolation of pos, vel, acc
     // update trajectory between (k, k+1]
@@ -359,8 +361,10 @@ void ItompTrajectory::interpolateKeyframes()
         unsigned int num_sub_component_elements = getElementTrajectory(0, s)->getNumElements();
         for (unsigned int j = 0; j < num_sub_component_elements; ++j)
         {
-            //if (s != SUB_COMPONENT_TYPE_JOINT || j < 3)
+#ifdef DOF3_JOINT
+            if (s != SUB_COMPONENT_TYPE_JOINT || j < 3)
             {
+#endif
                 for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
                 {
                     ecl::CubicPolynomial poly;
@@ -388,8 +392,9 @@ void ItompTrajectory::interpolateKeyframes()
                     //std::cout << "Acc " << cur_keyframe_index << " : " << poly.dderivative( (double)cur_keyframe_index * discretization_ ) << std::endl;
                     //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
                 }
+#ifdef DOF3_JOINT
             }
-            /*
+
             else if (DOF3.find(j) != DOF3.end())
             {
                 for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
@@ -437,7 +442,7 @@ void ItompTrajectory::interpolateKeyframes()
                     //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
                 }
             }
-            */
+#endif
         }
     }
 }
@@ -698,7 +703,7 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
         return;
     }
 
-    /*
+#ifdef DOF3_JOINT
     std::set<unsigned int> DOF3;
     DOF3.insert(3);
     DOF3.insert(6);
@@ -717,7 +722,7 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
     DOF3.insert(60);
     DOF3.insert(63);
     DOF3.insert(66);
-    */
+#endif
 
     Eigen::MatrixXd::RowXpr traj_start_point[] =
     {
@@ -737,8 +742,10 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
     for (unsigned int j = 0; j < elements; ++j)
     {
         unsigned int index = element_indices ? (*element_indices)[j] : j;
-        //if (sub_component_type != SUB_COMPONENT_TYPE_JOINT || index < 3)
+#ifdef DOF3_JOINT
+        if (sub_component_type != SUB_COMPONENT_TYPE_JOINT || index < 3)
         {
+#endif
             double x0 = traj_start_point[COMPONENT_TYPE_POSITION](index);
             double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](index);
             double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](index);
@@ -763,8 +770,9 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
                 traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative((i - point_start) * discretization_);
                 traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative((i - point_start) * discretization_);
             }
+#ifdef DOF3_JOINT
         }
-        /*
+
         else if (DOF3.find(index) != DOF3.end())
         {
             Eigen::Vector3d start_euler;
@@ -810,7 +818,7 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
                 traj_point[COMPONENT_TYPE_POSITION](index + 2) = interpolated_euler(2);
             }
         }
-        */
+#endif
 
     }
 }
