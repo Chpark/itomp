@@ -120,6 +120,8 @@ public:
 
     double getPassiveForceRatio() const;
 
+    int getMaxThreads() const;
+
 private:
 	int updateIndex;
 	double trajectory_duration_;
@@ -197,6 +199,8 @@ private:
     bool contact_z_plane_only_;
 
     double passive_force_ratio_;
+
+    int max_threads_;
 
 	friend class Singleton<PlanningParameters> ;
 };
@@ -490,6 +494,11 @@ inline bool PlanningParameters::getContactZPlaneOnly() const
 inline double PlanningParameters::getPassiveForceRatio() const
 {
     return passive_force_ratio_;
+}
+
+inline int PlanningParameters::getMaxThreads() const
+{
+    return max_threads_;
 }
 
 }
