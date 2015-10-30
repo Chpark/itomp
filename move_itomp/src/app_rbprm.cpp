@@ -73,8 +73,19 @@ int main(int argc, char **argv)
 
     moveit_msgs::DisplayTrajectory display_trajectory;
     unsigned int last = waypoints.size() - 2;
-    for (unsigned int i = 1; i <= last; ++i)
+    for (unsigned int i = motion; i <= last; ++i)
     {
+        {
+            std::stringstream ss;
+            ss << "truck_optimized_" << i << ".bvh";
+            //node_handle.setParam("bvh_filename", ss.str());
+        }
+        {
+            std::stringstream ss;
+            ss << "truck_" << i;
+            node_handle.setParam("motion_name", ss.str());
+        }
+
         planning_interface::MotionPlanRequest req;
         planning_interface::MotionPlanResponse res;
 
@@ -114,6 +125,15 @@ int main(int argc, char **argv)
             display_trajectory.trajectory_start = response.trajectory_start;
 
         display_trajectory.trajectory.push_back(response.trajectory);
+
+        moveit_msgs::DisplayTrajectory write_trajectory;
+        write_trajectory.trajectory.push_back(response.trajectory);
+
+        std::stringstream ss2;
+        ss2 << "truck_new_optimized_" << i << ".bvh";
+        bvh_writer::writeWalkingTrajectoryBVHFile(robot_model, write_trajectory, ss2.str());
+
+        break;
     }
 
 
@@ -126,7 +146,7 @@ int main(int argc, char **argv)
 
 	ROS_INFO("Done");
 
-    bvh_writer::writeWalkingTrajectoryBVHFile(robot_model, display_trajectory, "walking_optimized.bvh");
+    bvh_writer::writeWalkingTrajectoryBVHFile(robot_model, display_trajectory, "truck_optimized_all.bvh");
 
 	return 0;
 }
