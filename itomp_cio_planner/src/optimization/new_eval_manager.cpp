@@ -135,12 +135,13 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
     for (int i = 0; i < num_points; ++i)
         robot_state_[i].reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
-	initializeContactVariables();
 
+    // Phase 1
+    ros::WallTime phase_1_start_time = ros::WallTime::now();
+	initializeContactVariables();
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
-    //itomp_trajectory_->interpolateKeyframes(planning_group);
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
-    itomp_trajectory_->getElementTrajectory(0, 0)->printTrajectory(std::cout);
+    double phase_1_time = (ros::WallTime::now() - create_time).toSec();
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
     collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
@@ -302,7 +303,7 @@ void NewEvalManager::render()
     {
         NewVizManager::getInstance()->animatePath(itomp_trajectory_, robot_state_[0], is_best);
 
-        //if (is_best)
+        if (is_best)
             NewVizManager::getInstance()->displayTrajectory(itomp_trajectory_);
     }
 
