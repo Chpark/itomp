@@ -22,16 +22,16 @@ inline void debugJointArray(KDL::JntArray& joint_array)
 #define TIME_PROFILER_START_ITERATION PerformanceProfiler::getInstance()->startIteration();
 #define TIME_PROFILER_START_TIMER(name) PerformanceProfiler::getInstance()->startTimer(#name);
 #define TIME_PROFILER_END_TIMER(name) PerformanceProfiler::getInstance()->endTimer(#name);
-#define TIME_PROFILER_PRINT_TOTAL_TIME(show_percentage) PerformanceProfiler::getInstance()->printTotalTime(show_percentage);
-#define TIME_PROFILER_PRINT_ITERATION_TIME(show_percentage) PerformanceProfiler::getInstance()->printIterationTime(show_percentage);
+#define TIME_PROFILER_PRINT_TOTAL_TIME(out, show_percentage) PerformanceProfiler::getInstance()->printTotalTime(out, show_percentage);
+#define TIME_PROFILER_PRINT_ITERATION_TIME(out, show_percentage) PerformanceProfiler::getInstance()->printIterationTime(out, show_percentage);
 #else
 #define TIME_PROFILER_INIT(get_time_func, num_threads)
 #define TIME_PROFILER_ADD_ENTRY(name)
 #define TIME_PROFILER_START_ITERATION
 #define TIME_PROFILER_START_TIMER(name)
 #define TIME_PROFILER_END_TIMER(name)
-#define TIME_PROFILER_PRINT_TOTAL_TIME(show_percentage)
-#define TIME_PROFILER_PRINT_ITERATION_TIME(show_percentage)
+#define TIME_PROFILER_PRINT_TOTAL_TIME(out, show_percentage)
+#define TIME_PROFILER_PRINT_ITERATION_TIME(out, show_percentage)
 #endif
 
 }

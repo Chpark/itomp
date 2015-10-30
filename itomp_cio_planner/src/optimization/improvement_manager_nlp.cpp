@@ -3,6 +3,7 @@
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/util/itomp_debug.h>
 #include <omp.h>
 #include <boost/function.hpp>
 #include <boost/bind.hpp>
@@ -49,7 +50,7 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
     num_threads_ = omp_get_max_threads();
 
     omp_set_num_threads(num_threads_);
-    if (PlanningParameters::getInstance()->getPrintPlanningInfo())
+    //if (PlanningParameters::getInstance()->getPrintPlanningInfo())
         ROS_INFO("Use %d threads on %d processors", num_threads_, omp_get_num_procs());
 
     if (num_threads_ < 1)
