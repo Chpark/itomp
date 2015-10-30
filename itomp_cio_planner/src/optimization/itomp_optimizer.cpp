@@ -155,7 +155,8 @@ bool ItompOptimizer::optimize()
                     trajectory_file << motion_name << (iteration_ == 3 ? " P2 " : " P3 " ) << phase_time << " ";
 
                     TIME_PROFILER_PRINT_TOTAL_TIME(trajectory_file, false);
-                    trajectory_file << "\n";
+                    if (iteration_ == 5)
+                        trajectory_file << "\n";
                     trajectory_file.close();
                     TIME_PROFILER_RESET
                 }
