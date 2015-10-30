@@ -230,7 +230,7 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
 void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
 {
     // normalize der;
-    double max_der = 0.1;
+    double max_der = 1.0;
     double max_der2 = 1.0;
     itomp_cio_planner::ItompTrajectoryIndex max_index;
     for (int i = 0; i < s.size(); ++i)
@@ -252,7 +252,7 @@ void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
             }
         }
     }
-    double scale = 0.1 / max_der;
+    double scale = 1.0 / max_der;
     double scale2 = 1.0 / max_der2;
     for (int i = 0; i < s.size(); ++i)
     {
