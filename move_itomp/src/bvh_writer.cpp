@@ -31,7 +31,8 @@ void writeWalkingTrajectoryBVHFile(const robot_model::RobotModelPtr robot_model,
             for (int k=1; k < model_joint_names.size(); ++k)
             {
                 if (model_joint_names[k].find("_endeffector_") != std::string::npos ||
-                    model_joint_names[k].find("_cp_") != std::string::npos)
+                    model_joint_names[k].find("_cp_") != std::string::npos ||
+                    model_joint_names[k].find("_beam_") != std::string::npos)
                     continue;
 
                 double value = 0.0;

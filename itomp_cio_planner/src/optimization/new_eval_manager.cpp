@@ -698,9 +698,9 @@ void NewEvalManager::initializeContactVariables()
             std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
             // IK hands
-            const double hand_forward_distance = 0.30; // 20cm distance
+            const double hand_forward_distances[2] = {0.30, 0.20}; // 30cm distance
             const double beam_width = 0.10;
-            const RigidBodyDynamics::Math::Vector3d beam_from_spine(0.10, 0.00, 0.15);
+            const RigidBodyDynamics::Math::Vector3d beam_from_spine(0.161, -0.038, 0.26);
             const int spine_rbdl_body_id = rbdl_models_[point].GetBodyId("Spine2_x_link");
             const Eigen::Matrix3d beam_orientation_mat = rbdl_models_[point].X_base[spine_rbdl_body_id].E;
             const int hand_rbdl_body_ids[2] =
@@ -708,23 +708,14 @@ void NewEvalManager::initializeContactVariables()
                 rbdl_models_[point].GetBodyId("LeftHand_x_link"),
                 rbdl_models_[point].GetBodyId("RightHand_x_link"),
             };
-            const RigidBodyDynamics::Math::Vector3d beam_position = rbdl_models_[point].X_base[spine_rbdl_body_id].r + beam_orientation_mat * beam_from_spine;
+            const RigidBodyDynamics::Math::Vector3d beam_position = rbdl_models_[point].X_base[spine_rbdl_body_id].r + beam_orientation_mat.transpose() * beam_from_spine;
 
             body_ids.push_back(hand_rbdl_body_ids[0]);
             body_ids.push_back(hand_rbdl_body_ids[1]);
-            target_orientations.push_back(beam_orientation_mat * RigidBodyDynamics::Math::Matrix3d(0, 0, -1,  0, -1, 0,  -1, 0, 0));
-            target_orientations.push_back(beam_orientation_mat * RigidBodyDynamics::Math::Matrix3d(0, 0, 1,  0, -1, 0,  1, 0, 0));
-            target_positions.push_back(beam_position - beam_width / 2.0 * beam_orientation_mat.col(0) + hand_forward_distance * beam_orientation_mat.col(1));
-            target_positions.push_back(beam_position + beam_width / 2.0 * beam_orientation_mat.col(0) + hand_forward_distance * beam_orientation_mat.col(1));
-
-            for (int i=0; i<2; i++)
-            {
-                std::cout << "i = " << i << std::endl;
-                std::cout << "body_ids[i] = " << body_ids[i] << std::endl;
-                std::cout << "target_positions[i] = " << target_positions[i].transpose() << std::endl;
-                std::cout << "target_orientations[i] = " << std::endl
-                          << target_orientations[i].transpose() << std::endl;
-            }
+            target_orientations.push_back(beam_orientation_mat.transpose() * Eigen::AngleAxisd(0.1, Eigen::Vector3d::UnitY()) * RigidBodyDynamics::Math::Matrix3d(0, 0, -1,  0, -1, 0,  -1, 0, 0));
+            target_orientations.push_back(beam_orientation_mat.transpose() * RigidBodyDynamics::Math::Matrix3d(0, 0, 1,  0, -1, 0,  1, 0, 0));
+            target_positions.push_back(beam_position - beam_width / 2.0 * beam_orientation_mat.row(0).transpose() + hand_forward_distances[0] * beam_orientation_mat.row(1).transpose());
+            target_positions.push_back(beam_position + beam_width / 2.0 * beam_orientation_mat.row(0).transpose() + hand_forward_distances[1] * beam_orientation_mat.row(1).transpose());
 
             // IK toes
             for (int i = 2; i < num_contacts; ++i)
@@ -915,7 +906,30 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
         poly = ecl::QuinticPolynomial::Interpolation(0, 0.0, 0.0, 0.0,
                                                      itomp_trajectory_->getNumPoints() - 1, 1.0, 0.0, 0.0);
         double t = poly(point);
-        for (int i = 0; i < num_contacts; ++i)
+
+
+        // IK hands
+        const double hand_forward_distances[2] = {0.30, 0.20};
+        const double beam_width = 0.10;
+        const RigidBodyDynamics::Math::Vector3d beam_from_spine(0.161, -0.038, 0.26);
+        const int spine_rbdl_body_id = rbdl_models_[point].GetBodyId("Spine2_x_link");
+        const Eigen::Matrix3d beam_orientation_mat = rbdl_models_[point].X_base[spine_rbdl_body_id].E;
+        const int hand_rbdl_body_ids[2] =
+        {
+            rbdl_models_[point].GetBodyId("LeftHand_x_link"),
+            rbdl_models_[point].GetBodyId("RightHand_x_link"),
+        };
+        const RigidBodyDynamics::Math::Vector3d beam_position = rbdl_models_[point].X_base[spine_rbdl_body_id].r + beam_orientation_mat.transpose() * beam_from_spine;
+
+        body_ids.push_back(hand_rbdl_body_ids[0]);
+        body_ids.push_back(hand_rbdl_body_ids[1]);
+        target_orientations.push_back(beam_orientation_mat.transpose() * Eigen::AngleAxisd(0.1, Eigen::Vector3d::UnitY()) * RigidBodyDynamics::Math::Matrix3d(0, 0, -1,  0, -1, 0,  -1, 0, 0));
+        target_orientations.push_back(beam_orientation_mat.transpose() * RigidBodyDynamics::Math::Matrix3d(0, 0, 1,  0, -1, 0,  1, 0, 0));
+        target_positions.push_back(beam_position - beam_width / 2.0 * beam_orientation_mat.row(0).transpose() + hand_forward_distances[0] * beam_orientation_mat.row(1).transpose());
+        target_positions.push_back(beam_position + beam_width / 2.0 * beam_orientation_mat.row(0).transpose() + hand_forward_distances[1] * beam_orientation_mat.row(1).transpose());
+
+        // IK toes
+        for (int i = 2; i < num_contacts; ++i)
         {
             if (!getPlanningGroup()->is_fixed_[i])
                 continue;
@@ -945,7 +959,25 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
 
-        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_->rbdl_to_group_joint_))
+        std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+        // erase root, torso, ...
+        rbdl_to_group_joint.erase(  0 );
+        rbdl_to_group_joint.erase(  1 );
+        rbdl_to_group_joint.erase(  2 );
+        rbdl_to_group_joint.erase(  3 );
+        rbdl_to_group_joint.erase(  4 );
+        rbdl_to_group_joint.erase(  5 );
+        rbdl_to_group_joint.erase( 46 );
+        rbdl_to_group_joint.erase( 47 );
+        rbdl_to_group_joint.erase( 48 );
+        rbdl_to_group_joint.erase( 49 );
+        rbdl_to_group_joint.erase( 50 );
+        rbdl_to_group_joint.erase( 51 );
+        rbdl_to_group_joint.erase( 52 );
+        rbdl_to_group_joint.erase( 53 );
+        rbdl_to_group_joint.erase( 54 );
+
+        if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
             ROS_INFO("IK failed");
 
         // repeat above
