@@ -47,7 +47,7 @@ void ImprovementManagerNLP::initialize(const NewEvalManagerPtr& evaluation_manag
 
     ImprovementManager::initialize(evaluation_manager, planning_group);
 
-    num_threads_ = omp_get_max_threads();
+    num_threads_ = std::min(omp_get_max_threads(), PlanningParameters::getInstance()->getMaxThreads());
 
     omp_set_num_threads(num_threads_);
     //if (PlanningParameters::getInstance()->getPrintPlanningInfo())
@@ -256,7 +256,7 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         */
     }
 
-    TIME_PROFILER_PRINT_ITERATION_TIME();
+    //TIME_PROFILER_PRINT_ITERATION_TIME();
 
     // print derivatives per costs
 #ifdef COMPUTE_COST_DERIVATIVE
