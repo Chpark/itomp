@@ -319,7 +319,7 @@ void PlanningParameters::initFromNodeHandle()
     node_handle.param("contact_z_plane_only", contact_z_plane_only_, false);
 
     node_handle.param("passive_force_ratio", passive_force_ratio_, 1.0);
-    node_handle.param("max_thread", max_threads_, std::numeric_limits<int>::max());
+    node_handle.param("max_threads", max_threads_, std::numeric_limits<int>::max());
 }
 
 } // namespace
