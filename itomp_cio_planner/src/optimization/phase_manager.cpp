@@ -31,7 +31,7 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     case 0:
     {
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
+            if (/*index.point == 0 || */index.point == num_points_ -1)
             return true;
 
         return false;
@@ -48,7 +48,17 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         if (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
             return false;
 
-        return true;
+        if (!planning_group_->is_fixed_[0] && index.element >= 46 && index.element < 54)
+            return true;
+        if (!planning_group_->is_fixed_[1] && index.element >= 60 && index.element < 68)
+            return true;
+        if (!planning_group_->is_fixed_[2] && index.element >= 15 && index.element < 20)
+            return true;
+        if (!planning_group_->is_fixed_[3] && index.element >= 32 && index.element < 37)
+            return true;
+
+
+        return false;
     }
         break;
     case 2:
