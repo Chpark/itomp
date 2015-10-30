@@ -132,8 +132,6 @@ int main(int argc, char **argv)
         std::stringstream ss2;
         ss2 << "truck_new_optimized_" << i << ".bvh";
         bvh_writer::writeWalkingTrajectoryBVHFile(robot_model, write_trajectory, ss2.str());
-
-        break;
     }
 
 
