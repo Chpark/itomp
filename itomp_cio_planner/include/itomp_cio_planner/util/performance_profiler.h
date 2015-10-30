@@ -24,6 +24,9 @@ public:
 	// clear last iteration
 	void startIteration();
 
+    // clear all timings;
+    void reset();
+
     void printIterationTime(std::ostream& out_stream, bool show_percentage = false);
     void printTotalTime(std::ostream& out_stream, bool show_percentage = false);
 
@@ -39,6 +42,8 @@ protected:
 		void initialize(int num_threads);
 
 		void startIteration();
+
+        void reset(int num_threads);
 
 		void startTimer(double (*get_time_func)());
 		void endTimer(double (*get_time_func)());
@@ -81,6 +86,15 @@ inline void PerformanceProfiler::startIteration()
 	{
 		it->second.startIteration();
 	}
+}
+
+inline void PerformanceProfiler::reset()
+{
+    for (std::map<std::string, Entry>::iterator it = entries_.begin();
+            it != entries_.end(); ++it)
+    {
+        it->second.reset(num_threads_);
+    }
 }
 
 inline void PerformanceProfiler::printIterationTime(std::ostream& out_stream, bool show_percentage)
@@ -139,15 +153,24 @@ inline PerformanceProfiler::Entry::Entry(int num_threads)
 
 inline void PerformanceProfiler::Entry::initialize(int num_threads)
 {
-	timer_start_time_.resize(num_threads, 0.0);
-	total_elapsed_.resize(num_threads, 0.0);
-	iteration_elpased_.resize(num_threads, 0.0);
+    reset(num_threads);
 }
 
 inline void PerformanceProfiler::Entry::startIteration()
 {
 	for (int i = 0; i < iteration_elpased_.size(); ++i)
 		iteration_elpased_[i] = 0.0;
+}
+
+inline void PerformanceProfiler::Entry::reset(int num_threads)
+{
+    timer_start_time_.clear();
+    total_elapsed_.clear();
+    iteration_elpased_.clear();
+
+    timer_start_time_.resize(num_threads, 0.0);
+    total_elapsed_.resize(num_threads, 0.0);
+    iteration_elpased_.resize(num_threads, 0.0);
 }
 
 inline void PerformanceProfiler::Entry::startTimer(double (*get_time_func)())

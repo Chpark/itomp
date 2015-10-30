@@ -153,12 +153,11 @@ bool ItompOptimizer::optimize()
                     trajectory_file.open("performance.txt", ios::out | ios::app);
                     trajectory_file.precision(std::numeric_limits<double>::digits10);
                     trajectory_file << motion_name << (iteration_ == 3 ? " P2 " : " P3 " ) << phase_time << " ";
-                    if (iteration_ == 5)
-                    {
-                        TIME_PROFILER_PRINT_TOTAL_TIME(std::cout, false);
-                        trajectory_file << "\n";
-                    }
+
+                    TIME_PROFILER_PRINT_TOTAL_TIME(trajectory_file, false);
+                    trajectory_file << "\n";
                     trajectory_file.close();
+                    TIME_PROFILER_RESET
                 }
                 phase_start_time = ros::WallTime::now();
             }
