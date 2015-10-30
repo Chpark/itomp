@@ -4,6 +4,7 @@
 #include <itomp_cio_planner/contact/ground_manager.h>
 #include <itomp_cio_planner/visualization/new_viz_manager.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
+#include <itomp_cio_planner/util/itomp_debug.h>
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
 //#include <itomp_cio_planner/optimization/improvement_manager_chomp.h>
 
@@ -75,6 +76,8 @@ bool ItompOptimizer::optimize()
 	int iteration_after_feasible_solution = 0;
     int num_max_iterations = 5;
 
+    ros::WallTime phase_start_time = ros::WallTime::now();
+
 	if (!evaluation_manager_->isLastTrajectoryFeasible())
 	{
 		while (iteration_ < num_max_iterations)
@@ -138,6 +141,27 @@ bool ItompOptimizer::optimize()
                 }
             }
             */
+
+            if (iteration_ == 3 || iteration_ == 5)
+            {
+                double phase_time = (ros::WallTime::now() - phase_start_time).toSec();
+                ros::NodeHandle node_handle("/move_itomp");
+                std::string motion_name;
+                if (node_handle.getParam("/move_itomp/motion_name", motion_name))
+                {
+                    std::ofstream trajectory_file;
+                    trajectory_file.open("performance.txt", ios::out | ios::app);
+                    trajectory_file.precision(std::numeric_limits<double>::digits10);
+                    trajectory_file << motion_name << (iteration_ == 3 ? " P2 " : " P3 " ) << phase_time << " ";
+                    if (iteration_ == 5)
+                    {
+                        TIME_PROFILER_PRINT_TOTAL_TIME(std::cout, false);
+                        trajectory_file << "\n";
+                    }
+                    trajectory_file.close();
+                }
+                phase_start_time = ros::WallTime::now();
+            }
 		}
 	}
 

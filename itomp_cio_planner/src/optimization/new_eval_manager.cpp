@@ -141,7 +141,17 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
 	initializeContactVariables();
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
-    double phase_1_time = (ros::WallTime::now() - create_time).toSec();
+    double phase_1_time = (ros::WallTime::now() - phase_1_start_time).toSec();
+    ros::NodeHandle node_handle("/move_itomp");
+    std::string motion_name;
+    if (node_handle.getParam("/move_itomp/motion_name", motion_name))
+    {
+        std::ofstream trajectory_file;
+        trajectory_file.open("performance.txt", ios::out | ios::app);
+        trajectory_file.precision(std::numeric_limits<double>::digits10);
+        trajectory_file << motion_name << " P1 " << phase_1_time << " ";
+        trajectory_file.close();
+    }
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));
     collision_world_derivatives_.reset(new CollisionWorldFCLDerivatives(
@@ -592,7 +602,7 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-    //return;
+    return;
 
     const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 

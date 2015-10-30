@@ -2,6 +2,7 @@
 #define PERFORMANCE_PROFILER_H_
 
 #include <omp.h>
+#include <iostream>
 
 namespace itomp_cio_planner
 {
@@ -23,8 +24,8 @@ public:
 	// clear last iteration
 	void startIteration();
 
-	void printIterationTime(bool show_percentage = false);
-	void printTotalTime(bool show_percentage = false);
+    void printIterationTime(std::ostream& out_stream, bool show_percentage = false);
+    void printTotalTime(std::ostream& out_stream, bool show_percentage = false);
 
 	// thread-safe functions (in openMP)
 	void startTimer(const char* entry_name);
@@ -82,32 +83,32 @@ inline void PerformanceProfiler::startIteration()
 	}
 }
 
-inline void PerformanceProfiler::printIterationTime(bool show_percentage)
+inline void PerformanceProfiler::printIterationTime(std::ostream& out_stream, bool show_percentage)
 {
-    std::cout << "Elapsed Time\n";
-    std::cout.precision(std::numeric_limits<double>::digits10);
+    out_stream << "Elapsed Time ";
+    out_stream.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
         double elapsed = it->second.getIterationElapsed();
-        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
+        out_stream << it->first << " : " << std::fixed << elapsed << " ";// << std::endl;
         sum += elapsed;
 	}
 }
 
-inline void PerformanceProfiler::printTotalTime(bool show_percentage)
+inline void PerformanceProfiler::printTotalTime(std::ostream& out_stream, bool show_percentage)
 {
-    std::cout << "Total Elapsed Time\n";
-    std::cout.precision(std::numeric_limits<double>::digits10);
+    out_stream << "Total Elapsed Time ";
+    out_stream.precision(std::numeric_limits<double>::digits10);
 
 	double sum = 0.0;
 	for (std::map<std::string, Entry>::iterator it = entries_.begin();
 			it != entries_.end(); ++it)
 	{
         double elapsed = it->second.getTotalElapsed();
-        std::cout << it->first << " : " << std::fixed << elapsed << std::endl;
+        out_stream << it->first << " : " << std::fixed << elapsed << " " ;//std::endl;
         sum += elapsed;
 	}
 }

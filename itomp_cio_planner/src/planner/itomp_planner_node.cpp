@@ -127,6 +127,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
             //if (!adjustStartGoalPositions(*initial_robot_state, goal_state, read_start_state_from_previous_step))
               //  res.error_code_.val = moveit_msgs::MoveItErrorCodes::FAILURE;
 
+
             optimizer_ = boost::make_shared<ItompOptimizer>(0, itomp_trajectory_,
 						 itomp_robot_model_, planning_scene, planning_group, planning_start_time,
                          trajectory_start_time, req.trajectory_constraints.constraints);
