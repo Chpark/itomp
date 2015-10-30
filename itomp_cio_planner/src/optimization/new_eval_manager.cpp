@@ -697,7 +697,37 @@ void NewEvalManager::initializeContactVariables()
             std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
             std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
 
-            for (int i = 0; i < num_contacts; ++i)
+            // IK hands
+            const double hand_forward_distance = 0.30; // 20cm distance
+            const double beam_width = 0.10;
+            const RigidBodyDynamics::Math::Vector3d beam_from_spine(0.10, 0.00, 0.15);
+            const int spine_rbdl_body_id = rbdl_models_[point].GetBodyId("Spine2_x_link");
+            const Eigen::Matrix3d beam_orientation_mat = rbdl_models_[point].X_base[spine_rbdl_body_id].E;
+            const int hand_rbdl_body_ids[2] =
+            {
+                rbdl_models_[point].GetBodyId("LeftHand_x_link"),
+                rbdl_models_[point].GetBodyId("RightHand_x_link"),
+            };
+            const RigidBodyDynamics::Math::Vector3d beam_position = rbdl_models_[point].X_base[spine_rbdl_body_id].r + beam_orientation_mat * beam_from_spine;
+
+            body_ids.push_back(hand_rbdl_body_ids[0]);
+            body_ids.push_back(hand_rbdl_body_ids[1]);
+            target_orientations.push_back(beam_orientation_mat * RigidBodyDynamics::Math::Matrix3d(0, 0, -1,  0, -1, 0,  -1, 0, 0));
+            target_orientations.push_back(beam_orientation_mat * RigidBodyDynamics::Math::Matrix3d(0, 0, 1,  0, -1, 0,  1, 0, 0));
+            target_positions.push_back(beam_position - beam_width / 2.0 * beam_orientation_mat.col(0) + hand_forward_distance * beam_orientation_mat.col(1));
+            target_positions.push_back(beam_position + beam_width / 2.0 * beam_orientation_mat.col(0) + hand_forward_distance * beam_orientation_mat.col(1));
+
+            for (int i=0; i<2; i++)
+            {
+                std::cout << "i = " << i << std::endl;
+                std::cout << "body_ids[i] = " << body_ids[i] << std::endl;
+                std::cout << "target_positions[i] = " << target_positions[i].transpose() << std::endl;
+                std::cout << "target_orientations[i] = " << std::endl
+                          << target_orientations[i].transpose() << std::endl;
+            }
+
+            // IK toes
+            for (int i = 2; i < num_contacts; ++i)
             {
                 int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
 
@@ -753,13 +783,29 @@ void NewEvalManager::initializeContactVariables()
                 target_orientations.push_back(target_orientation);
             }
 
-            const std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            // erase root, torso, ...
+            rbdl_to_group_joint.erase(  0 );
+            rbdl_to_group_joint.erase(  1 );
+            rbdl_to_group_joint.erase(  2 );
+            rbdl_to_group_joint.erase(  3 );
+            rbdl_to_group_joint.erase(  4 );
+            rbdl_to_group_joint.erase(  5 );
+            rbdl_to_group_joint.erase( 46 );
+            rbdl_to_group_joint.erase( 47 );
+            rbdl_to_group_joint.erase( 48 );
+            rbdl_to_group_joint.erase( 49 );
+            rbdl_to_group_joint.erase( 50 );
+            rbdl_to_group_joint.erase( 51 );
+            rbdl_to_group_joint.erase( 52 );
+            rbdl_to_group_joint.erase( 53 );
+            rbdl_to_group_joint.erase( 54 );
+
             if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
                 ROS_INFO("IK failed");
             updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
             itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                                ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
-
         }
 
         int num_fixed_contacts = 0;
@@ -823,6 +869,7 @@ void NewEvalManager::initializeContactVariables()
 
     // check fixed contacts
 
+    // unfixed feet, fixed toes
     for (int i = 0; i < num_contacts; ++i)
     {
         int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
@@ -836,7 +883,8 @@ void NewEvalManager::initializeContactVariables()
 
         double pos_diff = (pos_start - pos_goal).squaredNorm();
 
-        if (planning_group_->is_fixed_[i] == true && pos_diff < 0.1 && dot_normal > 0.8)
+        // checking only for toes
+        if (i >= 2 && planning_group_->is_fixed_[i] == true && pos_diff < 0.1 && dot_normal > 0.8)
         {
             cout << "Contact " << i << " fixed" << endl;
         }

@@ -141,8 +141,8 @@ void displayInitialWaypoints(robot_state::RobotState& state,
     color.g = 1.0;
     color.b = 0.0;
 
-    //ros::Duration dur(3600.0);
-    ros::Duration dur(0.25);
+    ros::Duration dur(3600.0);
+    //ros::Duration dur(0.25);
 
     for (unsigned int point = 0; point < waypoints.size(); ++point)
     {
