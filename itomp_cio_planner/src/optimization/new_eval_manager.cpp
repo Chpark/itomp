@@ -661,9 +661,13 @@ void NewEvalManager::initializeContactVariables()
     ROS_ASSERT(num_contacts == PlanningParameters::getInstance()->getNumContacts());
 
     planning_group_->is_fixed_.resize(num_contacts);
+    start_fixed_.resize(num_contacts);
+    goal_fixed_.resize(num_contacts);
     for (int i = 0; i < num_contacts; ++i)
     {
         planning_group_->is_fixed_[i] = true;
+        start_fixed_[i] = true;
+        goal_fixed_[i] = true;
     }
 
 	// allocate
@@ -720,6 +724,10 @@ void NewEvalManager::initializeContactVariables()
                     cout << "[" << point << ":" << i << "] not corrected using IK : " << diff.norm() << endl;
 
                     planning_group_->is_fixed_[i] = false;
+                    if (point == 0)
+                        start_fixed_[i] = false;
+                    else
+                        goal_fixed_[i] = false;
                     continue;
                 }
                 else
@@ -731,15 +739,20 @@ void NewEvalManager::initializeContactVariables()
                         double dot_normal = normal_start.dot(normal_goal);
 
                         double dist = (proj_position - rbdl_models_[0].X_base[rbdl_body_id].r).norm();
-                        cout << "[" << point << ":" << i << "] start-end dist : " << dist << " ori normal dot : " << dot_normal << endl;
                         if ((dist < 0.15 && dot_normal > 0.8))
                         {
                             proj_position = rbdl_models_[0].X_base[rbdl_body_id].r;
                             proj_orientation_mat = rbdl_models_[0].X_base[rbdl_body_id].E;
-                            cout << "[" << point << ":" << i << "] set to the start position" << endl;
+                            cout << "[" << point << ":" << i << "] set to the start position : " << dist << " ori normal dot : " << dot_normal << endl;
+                        }
+                        else
+                        {
+                            planning_group_->is_fixed_[i] = false;
+                            cout << "[" << point << ":" << i << "] start-end dist : " << dist << " ori normal dot : " << dot_normal << endl;
                         }
                     }
                 }
+
 
                 cout << "[" << point << ":" << i << "] corrected using IK" << endl;
 
@@ -869,8 +882,8 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
         double t = poly(point);
         for (int i = 0; i < num_contacts; ++i)
         {
-            if (!getPlanningGroup()->is_fixed_[i])
-                continue;
+            //if (!getPlanningGroup()->is_fixed_[i])
+              //  continue;
 
             int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
             body_ids.push_back(rbdl_body_id);
@@ -943,6 +956,91 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
 
             itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
         }
+    }
+}
+
+void NewEvalManager::correctEndPointContacts(bool update_kinematics)
+{
+    int num_contacts = planning_group_->getNumContacts();
+    int point = itomp_trajectory_->getNumPoints() - 1;
+
+    std::vector<unsigned int> body_ids;
+    std::vector<RigidBodyDynamics::Math::Vector3d> target_positions;
+    std::vector<RigidBodyDynamics::Math::Matrix3d> target_orientations;
+
+    ecl::QuinticPolynomial poly;
+    poly = ecl::QuinticPolynomial::Interpolation(0, 0.0, 0.0, 0.0,
+                                                 itomp_trajectory_->getNumPoints() - 1, 1.0, 0.0, 0.0);
+    double t = poly(point);
+    for (int i = 0; i < num_contacts; ++i)
+    {
+        int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+
+        RigidBodyDynamics::Math::Vector3d target_pos;
+        RigidBodyDynamics::Math::Matrix3d target_orientation;
+
+        if (getPlanningGroup()->is_fixed_[i])
+        {
+            body_ids.push_back(rbdl_body_id);
+            target_pos = rbdl_models_[0].X_base[rbdl_body_id].r;
+            target_orientation = rbdl_models_[0].X_base[rbdl_body_id].E;
+        }
+        else if (!goal_fixed_[i])
+        {
+            continue;
+        }
+        else
+        {
+            body_ids.push_back(rbdl_body_id);
+            target_pos = contact_variables_[point][i].getPosition();
+            target_orientation = exponential_map::ExponentialMapToRotation(contact_variables_[point][i].getOrientation());
+        }
+
+        target_positions.push_back(target_pos);
+        target_orientations.push_back(target_orientation);
+    }
+
+    Eigen::VectorXd q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                               ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+
+    if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, planning_group_->rbdl_to_group_joint_))
+        ROS_INFO("IK failed");
+
+    // repeat above
+    itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
+
+    if (update_kinematics)
+    {
+        const Eigen::VectorXd& q_dot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_VELOCITY,
+                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        const Eigen::VectorXd& q_ddot = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_ACCELERATION,
+                                        ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        Eigen::VectorXd tau(q.rows());
+
+        updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
+
+        std::vector<RigidBodyDynamics::Math::SpatialVector> ext_forces;
+        ext_forces.resize(rbdl_models_[point].mBodies.size(), RigidBodyDynamics::Math::SpatialVectorZero);
+
+        for (int i = 0; i < num_contacts; ++i)
+        {
+            if (!getPlanningGroup()->is_fixed_[i])
+                continue;
+
+            int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+
+            contact_variables_[point][i].setVariable(0.0);
+            contact_variables_[point][i].setPosition(rbdl_models_[point].X_base[rbdl_body_id].r);
+
+            const Eigen::Vector3d prev_orientation = (point == 0) ? Eigen::Vector3d::Zero() : contact_variables_[point - 1][i].getOrientation();
+            const Eigen::Vector3d* prev_orientation_p = (point == 0) ? NULL : &prev_orientation;
+            contact_variables_[point][i].setOrientation(exponential_map::RotationToExponentialMap(rbdl_models_[point].X_base[rbdl_body_id].E, prev_orientation_p));
+        }
+        itomp_trajectory_->setContactVariables(point, contact_variables_[point]);
     }
 }
 

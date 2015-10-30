@@ -69,6 +69,7 @@ public:
 
 private:
 	void initializeContactVariables();
+    void correctEndPointContacts(bool update_kinematics = true);
     void correctContacts(bool update_kinematics = true);
     void correctContacts(int point_begin, int point_end, bool update_kinematics = true);
 
@@ -103,6 +104,9 @@ private:
 	Eigen::MatrixXd evaluation_cost_matrix_;
 
     std::vector<moveit_msgs::Constraints> trajectory_constraints_;
+
+    std::vector<bool> start_fixed_;
+    std::vector<bool> goal_fixed_;
 
     static const NewEvalManager* ref_evaluation_manager_;
 

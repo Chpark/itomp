@@ -109,13 +109,10 @@ bool ItompOptimizer::optimize()
 				break;
 
             if (iteration_ == 1)
-            {
+                evaluation_manager_->correctEndPointContacts();
+            if (iteration_ == 1)
                 evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
-            }
-            //if (iteration_ == 1)
-            {
-                evaluation_manager_->correctContacts();
-            }
+            evaluation_manager_->correctContacts(evaluation_manager_->getTrajectory()->getNumPoints() - 1, evaluation_manager_->getTrajectory()->getNumPoints(), true);
             evaluation_manager_->render();
 		}
 	}
