@@ -306,13 +306,14 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     */
 
+    /*
     double der_max[2][3];
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 3; ++j)
         {
             der_max[i][j] = 0.0;
         }
-
+*/
     for (int i = 0; i < der.size(); ++i)
     {
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
@@ -326,16 +327,17 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         if (der(i) < -max_scale)
             der(i) = -max_scale;
 
-        if (std::abs(der(i)) > der_max[index.component][index.sub_component])
-            der_max[index.component][index.sub_component] = std::abs(der(i)) ;
+  //      if (std::abs(der(i)) > der_max[index.component][index.sub_component])
+    //        der_max[index.component][index.sub_component] = std::abs(der(i)) ;
     }
+    /*
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 3; ++j)
         {
             std::cout << der_max[i][j] << " ";
         }
     std::cout << std::endl;
-
+*/
     return der;
 }
 

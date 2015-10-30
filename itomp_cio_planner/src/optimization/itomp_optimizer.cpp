@@ -114,6 +114,30 @@ bool ItompOptimizer::optimize()
                 evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
             evaluation_manager_->correctContacts(evaluation_manager_->getTrajectory()->getNumPoints() - 1, evaluation_manager_->getTrajectory()->getNumPoints(), true);
             evaluation_manager_->render();
+
+            /*
+            if (iteration_ == 1)
+            {
+
+                ItompTrajectoryIndex idx;
+                idx.component = 0;
+                idx.sub_component = 0;
+                idx.element = 62;
+
+                ElementTrajectoryPtr& et = evaluation_manager_->getTrajectoryNonConst()->getElementTrajectory(idx.component, idx.sub_component);
+
+
+                for (int i = 4; i < 32; i += 4)
+                {
+                    idx.point = i;
+                    Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(idx.point);
+                    if (i < 16)
+                        row(idx.element) -= 0.1 * M_PI * ((double)i / 16);
+                    else
+                        row(idx.element) -= 0.1 * M_PI * (2 - (double)i / 16);
+                }
+            }
+            */
 		}
 	}
 
