@@ -70,6 +70,16 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)
@@ -167,6 +177,16 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (int id = body_ids.size() - 1; id > 0; --id)
@@ -241,6 +261,16 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)

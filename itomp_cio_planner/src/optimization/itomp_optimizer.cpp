@@ -93,7 +93,7 @@ bool ItompOptimizer::optimize()
 
             ROS_INFO("Planning Phase %d...", iteration_);
 
-			improvement_manager_->runSingleIteration(iteration_);
+            improvement_manager_->runSingleIteration(iteration_);
 			evaluation_manager_->printTrajectoryCost(iteration_);
 
 			//bool is_cost_reduced = (evaluation_manager_->getTrajectoryCost() < best_parameter_cost_);

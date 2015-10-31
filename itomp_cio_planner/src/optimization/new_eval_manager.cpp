@@ -761,25 +761,9 @@ void NewEvalManager::initializeContactVariables()
             std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
             // erase root, torso, ...
             /*
-            rbdl_to_group_joint.erase(  0 );
-            rbdl_to_group_joint.erase(  1 );
-            rbdl_to_group_joint.erase(  2 );
-            rbdl_to_group_joint.erase(  3 );
-            rbdl_to_group_joint.erase(  4 );
-            rbdl_to_group_joint.erase(  5 );
-            rbdl_to_group_joint.erase( 31 );
-            rbdl_to_group_joint.erase( 32 );
-            rbdl_to_group_joint.erase( 33 );
-            rbdl_to_group_joint.erase( 34 );
-            rbdl_to_group_joint.erase( 35 );
-            rbdl_to_group_joint.erase( 36 );
-            rbdl_to_group_joint.erase( 37 );
-            rbdl_to_group_joint.erase( 38 );
-            rbdl_to_group_joint.erase( 39 );
-            rbdl_to_group_joint.erase( 40 );
-            rbdl_to_group_joint.erase( 41 );
-            rbdl_to_group_joint.erase( 42 );
-            */
+            for (int i=0; i<26; i++)
+                rbdl_to_group_joint.erase(i);
+                */
 
             if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
                 ROS_INFO("IK failed");
@@ -832,8 +816,8 @@ void NewEvalManager::initializeContactVariables()
                               contact_force.coeff(0), contact_force.coeff(1), contact_force.coeff(2));
 
 				contact_variables_[point][i].setPointForce(j, contact_force);
-			}
-		}
+            }
+        }
 
 		// to validate
         RigidBodyDynamics::InverseDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, &ext_forces);
@@ -931,8 +915,6 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
             const RigidBodyDynamics::Math::Vector3d goal_vel = (goal_pos - start_pos).dot(dir) * dir;
             const RigidBodyDynamics::Math::Vector3d target_pos(h0 * start_pos + h1 * (start_pos + start_vel / 3) + h2 * (goal_pos - goal_vel / 3) + h3 * goal_pos);
 
-            std::cout << i << ' ' << start_vel.transpose() << std::endl;
-
             target_positions[i] = target_pos;
         }
 
@@ -943,25 +925,10 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
         std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
         // erase root, torso, ...
         /*
-        rbdl_to_group_joint.erase(  0 );
-        rbdl_to_group_joint.erase(  1 );
-        rbdl_to_group_joint.erase(  2 );
-        rbdl_to_group_joint.erase(  3 );
-        rbdl_to_group_joint.erase(  4 );
-        rbdl_to_group_joint.erase(  5 );
-        rbdl_to_group_joint.erase( 31 );
-        rbdl_to_group_joint.erase( 32 );
-        rbdl_to_group_joint.erase( 33 );
-        rbdl_to_group_joint.erase( 34 );
-        rbdl_to_group_joint.erase( 35 );
-        rbdl_to_group_joint.erase( 36 );
-        rbdl_to_group_joint.erase( 37 );
-        rbdl_to_group_joint.erase( 38 );
-        rbdl_to_group_joint.erase( 39 );
-        rbdl_to_group_joint.erase( 40 );
-        rbdl_to_group_joint.erase( 41 );
-        rbdl_to_group_joint.erase( 42 );
-        */
+        for (int i=0; i<26; i++)
+            rbdl_to_group_joint.erase(i);
+            */
+
 
         if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
             ROS_INFO("IK failed");
