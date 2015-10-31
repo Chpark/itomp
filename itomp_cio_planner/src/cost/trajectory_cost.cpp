@@ -101,8 +101,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
                                 ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
     robot_state->setVariablePositions(mat.data());
 
-    const double self_collision_scale = 0.01;
-
+    const double self_collision_scale = 1.00;
 
     const CollisionWorldFCLDerivativesPtr& collision_world_derivatives = evaluation_manager->getCollisionWorldFCLDerivatives();
     const CollisionRobotFCLDerivativesPtr& collision_robot_derivatives = evaluation_manager->getCollisionRobotFCLDerivatives();
