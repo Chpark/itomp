@@ -330,6 +330,27 @@ void ItompTrajectory::interpolateKeyframes()
     if (keyframe_interval_ <= 1)
         return;
 
+    /*
+    std::set<unsigned int> DOF3;
+    DOF3.insert(3);
+    DOF3.insert(6);
+    DOF3.insert(9);
+    DOF3.insert(12);
+    DOF3.insert(15);
+    DOF3.insert(18);
+    DOF3.insert(21);
+    DOF3.insert(29);
+    DOF3.insert(32);
+    DOF3.insert(35);
+    DOF3.insert(38);
+    DOF3.insert(46);
+    DOF3.insert(49);
+    DOF3.insert(52);
+    DOF3.insert(60);
+    DOF3.insert(63);
+    DOF3.insert(66);
+    */
+
     // cubic interpolation of pos, vel, acc
     // update trajectory between (k, k+1]
     // acc is discontinuous at each keyframe
@@ -338,33 +359,85 @@ void ItompTrajectory::interpolateKeyframes()
         unsigned int num_sub_component_elements = getElementTrajectory(0, s)->getNumElements();
         for (unsigned int j = 0; j < num_sub_component_elements; ++j)
         {
-            for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
+            //if (s != SUB_COMPONENT_TYPE_JOINT || j < 3)
             {
-                ecl::CubicPolynomial poly;
-                unsigned int cur_keyframe_index = k * keyframe_interval_;
-                unsigned int next_keyframe_index = cur_keyframe_index + keyframe_interval_;
-
-                double cur_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j);
-                double cur_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j);
-                double next_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j);
-                double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
-
-                poly = ecl::CubicPolynomial::DerivativeInterpolation(
-                           (double)cur_keyframe_index * discretization_, cur_pos, cur_vel,
-                           (double)next_keyframe_index * discretization_, next_pos, next_vel);
-
-                for (unsigned int i = cur_keyframe_index + 1; i < next_keyframe_index; ++i)
+                for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
                 {
-                    double t = i * discretization_;
-                    getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
-                    getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
-                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
+                    ecl::CubicPolynomial poly;
+                    unsigned int cur_keyframe_index = k * keyframe_interval_;
+                    unsigned int next_keyframe_index = cur_keyframe_index + keyframe_interval_;
+
+                    double cur_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j);
+                    double cur_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j);
+                    double next_pos = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j);
+                    double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
+
+                    poly = ecl::CubicPolynomial::DerivativeInterpolation(
+                               (double)cur_keyframe_index * discretization_, cur_pos, cur_vel,
+                               (double)next_keyframe_index * discretization_, next_pos, next_vel);
+
+                    for (unsigned int i = cur_keyframe_index + 1; i < next_keyframe_index; ++i)
+                    {
+                        double t = i * discretization_;
+                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = poly(t);
+                        getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
+                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
+                    }
+                    if (false)//next_keyframe_index != num_points_ - 1)
+                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(next_keyframe_index, j) = poly.dderivative((double)next_keyframe_index * discretization_);
+                    //std::cout << "Acc " << cur_keyframe_index << " : " << poly.dderivative( (double)cur_keyframe_index * discretization_ ) << std::endl;
+                    //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
                 }
-                if (false)//next_keyframe_index != num_points_ - 1)
-                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(next_keyframe_index, j) = poly.dderivative((double)next_keyframe_index * discretization_);
-                //std::cout << "Acc " << cur_keyframe_index << " : " << poly.dderivative( (double)cur_keyframe_index * discretization_ ) << std::endl;
-                //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
             }
+            /*
+            else if (DOF3.find(j) != DOF3.end())
+            {
+                for (unsigned int k = 0; k < num_keyframes_ - 1; ++k)
+                {
+                    ecl::CubicPolynomial poly;
+                    unsigned int cur_keyframe_index = k * keyframe_interval_;
+                    unsigned int next_keyframe_index = cur_keyframe_index + keyframe_interval_;
+
+                    Eigen::Vector3d cur_euler;
+                    for (unsigned int i = 0; i < 3; ++i)
+                        cur_euler(i) = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(cur_keyframe_index, j + i);
+                    Eigen::Quaterniond cur_rot = Eigen::AngleAxisd(cur_euler(0), Eigen::Vector3d::UnitZ())
+                            * Eigen::AngleAxisd(cur_euler(1), Eigen::Vector3d::UnitY())
+                            * Eigen::AngleAxisd(cur_euler(2), Eigen::Vector3d::UnitX());
+
+                    double cur_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(cur_keyframe_index, j);
+
+                    Eigen::Vector3d next_euler;
+                    for (unsigned int i = 0; i < 3; ++i)
+                        next_euler(i) = getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(next_keyframe_index, j + i);
+                    Eigen::Quaterniond next_rot = Eigen::AngleAxisd(next_euler(0), Eigen::Vector3d::UnitZ())
+                            * Eigen::AngleAxisd(next_euler(1), Eigen::Vector3d::UnitY())
+                            * Eigen::AngleAxisd(next_euler(2), Eigen::Vector3d::UnitX());
+
+                    double next_vel = getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(next_keyframe_index, j);
+
+                    poly = ecl::CubicPolynomial::DerivativeInterpolation(
+                               (double)cur_keyframe_index * discretization_, 0, cur_vel,
+                               (double)next_keyframe_index * discretization_, 1, next_vel);
+
+                    for (unsigned int i = cur_keyframe_index + 1; i < next_keyframe_index; ++i)
+                    {
+                        double t = i * discretization_;
+                        Eigen::Vector3d interpolated_euler = cur_rot.slerp(poly(t), next_rot).
+                                toRotationMatrix().eulerAngles(2, 1, 0);
+                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j) = interpolated_euler(0);
+                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j + 1) = interpolated_euler(1);
+                        getElementTrajectory(COMPONENT_TYPE_POSITION, s)->at(i, j + 2) = interpolated_euler(2);
+                        getElementTrajectory(COMPONENT_TYPE_VELOCITY, s)->at(i, j) = poly.derivative(t);
+                        getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(i, j) = poly.dderivative(t);
+                    }
+                    //if (false)//next_keyframe_index != num_points_ - 1)
+                      //  getElementTrajectory(COMPONENT_TYPE_ACCELERATION, s)->at(next_keyframe_index, j) = poly.dderivative((double)next_keyframe_index * discretization_);
+                    //std::cout << "Acc " << cur_keyframe_index << " : " << poly.dderivative( (double)cur_keyframe_index * discretization_ ) << std::endl;
+                    //std::cout << "Acc " << next_keyframe_index << " : " << poly.dderivative( (double)next_keyframe_index * discretization_ ) << std::endl;
+                }
+            }
+            */
         }
     }
 }
@@ -424,6 +497,8 @@ void ItompTrajectory::setParameters(const ParameterVector& parameters, const Ito
         ElementTrajectoryPtr& et = getElementTrajectory(index.component, index.sub_component);
         Eigen::MatrixXd::RowXpr row = et->getTrajectoryPoint(index.point);
         row(index.element) = parameters(i, 0);
+        if (index.component == COMPONENT_TYPE_VELOCITY)
+            row(index.element) *= 10.0;
     }
     interpolateKeyframes();
 }
@@ -442,6 +517,8 @@ void ItompTrajectory::getParameters(ParameterVector& parameters) const
         ElementTrajectoryConstPtr et = getElementTrajectory(index.component, index.sub_component);
         Eigen::MatrixXd::ConstRowXpr row = et->getTrajectoryPoint(index.point);
         parameters(i, 0) = row(index.element);
+        if (index.component == COMPONENT_TYPE_VELOCITY)
+            parameters(i, 0) *= 0.1;
     }
 }
 
@@ -467,6 +544,8 @@ void ItompTrajectory::directChangeForDerivativeComputation(unsigned int paramete
         return;
 
     // set value
+    if (index.component == COMPONENT_TYPE_VELOCITY)
+        value *= 10.0;
     getElementTrajectory(index.component, index.sub_component)->at(point, element) = value;
 
     interpolateTrajectory(trajectory_point_begin, trajectory_point_end, index);
@@ -525,7 +604,7 @@ void ItompTrajectory::computeParameterToTrajectoryIndexMap(const ItompRobotModel
     }
 
     unsigned int num_contact_position_params = planning_group->getNumContacts() * 7; // var + pos(3) + ori(3)
-    unsigned int num_contact_force_params = planning_group->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 3; // n * force(3)
+    unsigned int num_contact_force_params = planning_group->getNumContacts() * NUM_ENDEFFECTOR_CONTACT_POINTS * 4; // n * force(3)
 
     unsigned int parameter_size = num_keyframes_ * 2 * (num_parameter_joints + num_contact_position_params + num_contact_force_params);
     parameter_to_index_map_.resize(parameter_size);
@@ -585,7 +664,7 @@ void ItompTrajectory::setContactVariables(int point, const std::vector<ContactVa
     for (int i = 0; i < num_contacts; ++i)
     {
         point_contact_positions.block(0, i * 7, 1, 7) = contact_variables[i].serialized_position_.transpose();
-        point_contact_forces.block(0, i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
+        point_contact_forces.block(0, i * 4 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 4 * NUM_ENDEFFECTOR_CONTACT_POINTS) =
             contact_variables[i].serialized_forces_.transpose();
     }
 }
@@ -604,7 +683,7 @@ void ItompTrajectory::getContactVariables(int point, std::vector<ContactVariable
     {
         contact_variables[i].serialized_position_.transpose() = point_contact_positions.block(0, i * 7, 1, 7);
         contact_variables[i].serialized_forces_.transpose() =
-            point_contact_forces.block(0, i * 3 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 3 * NUM_ENDEFFECTOR_CONTACT_POINTS);
+            point_contact_forces.block(0, i * 4 * NUM_ENDEFFECTOR_CONTACT_POINTS, 1, 4 * NUM_ENDEFFECTOR_CONTACT_POINTS);
     }
 }
 
@@ -618,6 +697,27 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
         interpolate(point_start, point_end, SUB_COMPONENT_TYPE_CONTACT_FORCE, element_indices);
         return;
     }
+
+    /*
+    std::set<unsigned int> DOF3;
+    DOF3.insert(3);
+    DOF3.insert(6);
+    DOF3.insert(9);
+    DOF3.insert(12);
+    DOF3.insert(15);
+    DOF3.insert(18);
+    DOF3.insert(21);
+    DOF3.insert(29);
+    DOF3.insert(32);
+    DOF3.insert(35);
+    DOF3.insert(38);
+    DOF3.insert(46);
+    DOF3.insert(49);
+    DOF3.insert(52);
+    DOF3.insert(60);
+    DOF3.insert(63);
+    DOF3.insert(66);
+    */
 
     Eigen::MatrixXd::RowXpr traj_start_point[] =
     {
@@ -637,31 +737,81 @@ void ItompTrajectory::interpolate(int point_start, int point_end, SUB_COMPONENT_
     for (unsigned int j = 0; j < elements; ++j)
     {
         unsigned int index = element_indices ? (*element_indices)[j] : j;
-
-        double x0 = traj_start_point[COMPONENT_TYPE_POSITION](index);
-        double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](index);
-        double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](index);
-
-        double x1 = traj_goal_point[COMPONENT_TYPE_POSITION](index);
-        double v1 = traj_goal_point[COMPONENT_TYPE_VELOCITY](index);
-        double a1 = traj_goal_point[COMPONENT_TYPE_ACCELERATION](index);
-
-        double duration = (point_end - point_start) * discretization_;
-
-        ecl::QuinticPolynomial poly;
-        poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration, x1, v1, a1);
-        for (unsigned int i = point_start + 1; i < point_end; ++i)
+        //if (sub_component_type != SUB_COMPONENT_TYPE_JOINT || index < 3)
         {
-            Eigen::MatrixXd::RowXpr traj_point[] =
+            double x0 = traj_start_point[COMPONENT_TYPE_POSITION](index);
+            double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](index);
+            double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](index);
+
+            double x1 = traj_goal_point[COMPONENT_TYPE_POSITION](index);
+            double v1 = traj_goal_point[COMPONENT_TYPE_VELOCITY](index);
+            double a1 = traj_goal_point[COMPONENT_TYPE_ACCELERATION](index);
+
+            double duration = (point_end - point_start) * discretization_;
+
+            ecl::QuinticPolynomial poly;
+            poly = ecl::QuinticPolynomial::Interpolation(0, x0, v0, a0, duration, x1, v1, a1);
+            for (unsigned int i = point_start + 1; i < point_end; ++i)
             {
-                getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(i),
-                getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(i),
-                getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(i)
-            };
-            traj_point[COMPONENT_TYPE_POSITION](index) = poly((i - point_start) * discretization_);
-            traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative((i - point_start) * discretization_);
-            traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative((i - point_start) * discretization_);
+                Eigen::MatrixXd::RowXpr traj_point[] =
+                {
+                    getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(i),
+                    getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(i),
+                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(i)
+                };
+                traj_point[COMPONENT_TYPE_POSITION](index) = poly((i - point_start) * discretization_);
+                traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative((i - point_start) * discretization_);
+                traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative((i - point_start) * discretization_);
+            }
         }
+        /*
+        else if (DOF3.find(index) != DOF3.end())
+        {
+            Eigen::Vector3d start_euler;
+            for (unsigned int k = 0; k < 3; ++k)
+            {
+                start_euler(k) = traj_start_point[COMPONENT_TYPE_POSITION](index + k);
+            }
+            Eigen::Quaterniond start_rot = Eigen::AngleAxisd(start_euler(0), Eigen::Vector3d::UnitZ())
+                    * Eigen::AngleAxisd(start_euler(1), Eigen::Vector3d::UnitY())
+                    * Eigen::AngleAxisd(start_euler(2), Eigen::Vector3d::UnitX());
+            double v0 = traj_start_point[COMPONENT_TYPE_VELOCITY](index);
+            double a0 = traj_start_point[COMPONENT_TYPE_ACCELERATION](index);
+
+            Eigen::Vector3d goal_euler;
+            for (unsigned int k = 0; k < 3; ++k)
+            {
+                goal_euler(k) = traj_goal_point[COMPONENT_TYPE_POSITION](index + k);
+            }
+            Eigen::Quaterniond goal_rot = Eigen::AngleAxisd(goal_euler(0), Eigen::Vector3d::UnitZ())
+                    * Eigen::AngleAxisd(goal_euler(1), Eigen::Vector3d::UnitY())
+                    * Eigen::AngleAxisd(goal_euler(2), Eigen::Vector3d::UnitX());
+            double v1 = traj_goal_point[COMPONENT_TYPE_VELOCITY](index);
+            double a1 = traj_goal_point[COMPONENT_TYPE_ACCELERATION](index);
+
+            double duration = (point_end - point_start) * discretization_;
+
+            ecl::QuinticPolynomial poly;
+            poly = ecl::QuinticPolynomial::Interpolation(0, 0, v0, a0, duration, 1, v1, a1);
+            for (unsigned int i = point_start + 1; i < point_end; ++i)
+            {
+                Eigen::MatrixXd::RowXpr traj_point[] =
+                {
+                    getElementTrajectory(COMPONENT_TYPE_POSITION, sub_component_type)->getTrajectoryPoint(i),
+                    getElementTrajectory(COMPONENT_TYPE_VELOCITY, sub_component_type)->getTrajectoryPoint(i),
+                    getElementTrajectory(COMPONENT_TYPE_ACCELERATION, sub_component_type)->getTrajectoryPoint(i)
+                };
+                traj_point[COMPONENT_TYPE_VELOCITY](index) = poly.derivative((i - point_start) * discretization_);
+                traj_point[COMPONENT_TYPE_ACCELERATION](index) = poly.dderivative((i - point_start) * discretization_);
+                Eigen::Vector3d interpolated_euler = start_rot.slerp(poly((i - point_start) * discretization_), goal_rot).
+                        toRotationMatrix().eulerAngles(2, 1, 0);
+                traj_point[COMPONENT_TYPE_POSITION](index) = interpolated_euler(0);
+                traj_point[COMPONENT_TYPE_POSITION](index + 1) = interpolated_euler(1);
+                traj_point[COMPONENT_TYPE_POSITION](index + 2) = interpolated_euler(2);
+            }
+        }
+        */
+
     }
 }
 
@@ -764,15 +914,20 @@ bool ItompTrajectory::avoidNeighbors(const std::vector<moveit_msgs::Constraints>
     return true;
 }
 
-void ItompTrajectory::setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const
+bool ItompTrajectory::setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const
 {
+    bool updated = false;
     trajectory_data = getElementTrajectory(COMPONENT_TYPE_POSITION, SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
     for (unsigned int i = 0; i < parameters.size(); ++i)
     {
         const ItompTrajectoryIndex& index = getTrajectoryIndex(i);
         if (index.sub_component == SUB_COMPONENT_TYPE_JOINT && index.component == COMPONENT_TYPE_POSITION && index.point == point)
+        {
             trajectory_data(index.element) = parameters(i, 0);
+            updated = true;
+        }
     }
+    return updated;
 }
 void ItompTrajectory::getJointPositions(ParameterVector& parameters, const Eigen::VectorXd& trajectory_data, int point) const
 {

@@ -13,7 +13,7 @@ public:
     PhaseManager();
     virtual ~PhaseManager();
 
-    void init(int num_points);
+    void init(int num_points, const ItompPlanningGroupConstPtr& planning_group);
 
     unsigned int getPhase() const;
     void setPhase(unsigned int phase);
@@ -27,6 +27,7 @@ public:
 private:
     unsigned int phase_;
     int num_points_;
+    ItompPlanningGroupConstPtr planning_group_;
 };
 
 inline unsigned int PhaseManager::getPhase() const

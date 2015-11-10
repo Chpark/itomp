@@ -178,7 +178,7 @@ void Jacobian::ComputeSVD()
 	if(computeJacSVD_)
 	{
 		computeJacSVD_ = false;
-		svd_ = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobian_, Eigen::ComputeThinU | Eigen::ComputeThinV);
+        svd_ = Eigen::JacobiSVD<Eigen::MatrixXd>(jacobian_, Eigen::ComputeThinV);
 	}
 }
 
@@ -190,21 +190,32 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     std::vector<unsigned int> body_ids;
     for (int i = 0; i < evaluation_manager_->getPlanningGroup()->getNumContacts(); ++i)
     {
+        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 2)
+            continue;
+
+        if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() > 0)
+        {
+            if (!evaluation_manager_->getPlanningGroup()->is_fixed_[i])
+                continue;
+        }
+
         int rbdl_body_id = evaluation_manager_->getPlanningGroup()->contact_points_[i].getRBDLBodyId();
         body_ids.push_back(rbdl_body_id);
     }
 
+    if (body_ids.size() == 0)
+        return;
     Eigen::MatrixXd jacobianMerged = Eigen::MatrixXd::Zero(6 * body_ids.size(), model.qdot_size);
     UpdateKinematicsCustom (model, &q, NULL, NULL);
 
     for (unsigned int k = 0; k < body_ids.size(); k++)
     {
         Eigen::MatrixXd G (Eigen::MatrixXd::Zero(6, model.qdot_size));
-        itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, false);
+        itomp_cio_planner::CalcPointJacobian6D(model, q, body_ids[k], Eigen::Vector3d::Zero(), G, evaluation_manager_->getPlanningGroup()->rbdl_to_group_joint_, false);
 
-        for (unsigned int i = 0; i < 6; i++)
+        for (unsigned int j = 0; j < model.qdot_size; j++)
         {
-            for (unsigned int j = 0; j < model.qdot_size; j++)
+            for (unsigned int i = 0; i < 6; i++)
             {
                 unsigned int row = k * 6 + i;
                 jacobianMerged(row, j) = G(i,j);
@@ -216,11 +227,46 @@ void Jacobian::GetProjection(int point, const Eigen::VectorXd& q, Eigen::VectorX
     a = j.GetNullspace() * a;
 }
 
-void Jacobian::projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
+void Jacobian::scale(dlib::matrix<double, 0, 1>& s)
 {
-    if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() != 0)
-        return;
+    // normalize der;
+    double max_der = 0.1;
+    double max_der2 = 1.0;
+    itomp_cio_planner::ItompTrajectoryIndex max_index;
+    for (int i = 0; i < s.size(); ++i)
+    {
+        const itomp_cio_planner::ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+        {
+            if (std::abs(s(i)) > max_der)
+            {
+                max_der = std::abs(s(i));
+                max_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+            }
+        }
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+        {
+            if (std::abs(s(i)) > max_der2)
+            {
+                max_der2 = std::abs(s(i));
+            }
+        }
+    }
+    double scale = 0.1 / max_der;
+    double scale2 = 1.0 / max_der2;
+    for (int i = 0; i < s.size(); ++i)
+    {
+        const itomp_cio_planner::ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            s(i) *= scale;
+        if (index.sub_component == itomp_cio_planner::ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            s(i) *= scale2;
+    }
+}
 
+void Jacobian::projectToNullSpace(const dlib::matrix<double, 0, 1>& x, dlib::matrix<double, 0, 1>& s)
+{
+    //return;
     itomp_cio_planner::ItompTrajectoryPtr trajectory = evaluation_manager_->getTrajectoryNonConst();
 
     Eigen::VectorXd q;
@@ -228,12 +274,18 @@ void Jacobian::projectToNullSpace(dlib::matrix<double, 0, 1>& x, dlib::matrix<do
 
     std::vector<unsigned int> projection_indices;
     projection_indices.push_back(0);
+    if (itomp_cio_planner::PhaseManager::getInstance()->getPhase() != 0)
+    {
+        for (unsigned int i = 1; i < trajectory->getNumPoints() - 1; ++i)
+            projection_indices.push_back(i);
+    }
     projection_indices.push_back(trajectory->getNumPoints() - 1);
 
     for (unsigned int i = 0; i < projection_indices.size(); ++i)
     {
         unsigned int index = projection_indices[i];
-        trajectory->setJointPositions(q, x, index);
+        if (!trajectory->setJointPositions(q, x, index))
+            continue;
         trajectory->setJointPositions(a, s, index);
         GetProjection(index, q, a);
         trajectory->getJointPositions(s, a, index);

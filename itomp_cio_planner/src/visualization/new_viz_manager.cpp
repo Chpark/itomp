@@ -137,7 +137,7 @@ void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 	visualization_msgs::MarkerArray ma;
     std::vector<std::string> link_names = robot_model_->getMoveitRobotModel()->getLinkModelNames();
     std_msgs::ColorRGBA color = colors_[WHITE];
-    color.a = 0.1;
+    color.a = 1.0;
 	ros::Duration dur(3600.0);
 
     for (unsigned int point = 0; point < trajectory->getNumPoints(); ++point)
@@ -445,8 +445,8 @@ void NewVizManager::animateInternalForces(const ItompTrajectoryConstPtr& traject
         for (int i = 1; i < models[point].mBodies.size(); i++)
         {
             const RigidBodyDynamics::Math::SpatialTransform x_base = models[point].X_base[i];
-            RigidBodyDynamics::Math::SpatialTransform inv_X_base = x_base.inverse();
-            const RigidBodyDynamics::Math::SpatialVector f = inv_X_base.apply(models[point].f[i]);
+            RigidBodyDynamics::Math::SpatialTransform inv_X_base = x_base;
+            const RigidBodyDynamics::Math::SpatialVector f = inv_X_base.applyTranspose(models[point].f[i]);
 
             const Eigen::Vector3d link_position = x_base.r;
             const Eigen::Vector3d link_force(f(3), f(4), f(5));
@@ -469,9 +469,9 @@ void NewVizManager::animateInternalForces(const ItompTrajectoryConstPtr& traject
             if (torques)
             {
                 setLineMarker(marker_torque, marker_id++, link_position, link_torque * SCALE_FORCE + link_position, colors_[GREEN]);
-                setLineMarker(marker_CoMtoLink, marker_id++, link_position, com, colors_[RED]);
+                //setLineMarker(marker_CoMtoLink, marker_id++, link_position, com, colors_[RED]);
                 ma.markers.push_back(marker_torque);
-                ma.markers.push_back(marker_CoMtoLink);
+                //ma.markers.push_back(marker_CoMtoLink);
             }
         }
     }

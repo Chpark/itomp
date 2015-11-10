@@ -43,7 +43,8 @@ bool InverseKinematics6D(RigidBodyDynamics::Model &model,
                          const std::vector<RigidBodyDynamics::Math::Vector3d>& target_pos,
                          const std::vector<RigidBodyDynamics::Math::Matrix3d>& target_ori,
                          RigidBodyDynamics::Math::VectorNd &Qres,
-                         double step_tol = 1.0e-12,
+                         const std::map<int, int>& rbdl_to_group_index_map,
+                         double step_tol = ITOMP_EPS,
                          double lambda = 0.01,
                          unsigned int max_iter = 50
                         );
@@ -54,6 +55,7 @@ void CalcPointJacobian6D (
         unsigned int body_id,
         const RigidBodyDynamics::Math::Vector3d &point_position,
         RigidBodyDynamics::Math::MatrixNd &G,
+        const std::map<int, int>& rbdl_to_group_index_map,
         bool update_kinematics
     );
 }

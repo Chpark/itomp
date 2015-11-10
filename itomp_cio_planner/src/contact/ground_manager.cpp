@@ -68,9 +68,9 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
     double min_dist = (inc ? (position_in(2) - 0) : std::numeric_limits<double>::max());
 
     Eigen::Matrix3d orientation_in_mat = exponential_map::ExponentialMapToRotation(orientation_in);
-    Eigen::Vector3d x_axis = orientation_in_mat.col(0);
-    Eigen::Vector3d y_axis = orientation_in_mat.col(1);
-    Eigen::Vector3d normal_in = orientation_in_mat.col(2);
+    Eigen::Vector3d x_axis = orientation_in_mat.row(0);
+    Eigen::Vector3d y_axis = orientation_in_mat.row(1);
+    Eigen::Vector3d normal_in = orientation_in_mat.row(2);
 
     Eigen::Vector3d temp_position_out;
 
@@ -98,9 +98,9 @@ void GroundManager::getNearestContactPosition(const Eigen::Vector3d& position_in
 		proj_x_axis = proj_y_axis.cross(normal);
 	}
 	Eigen::Matrix3d orientation_out_mat;
-	orientation_out_mat.col(0) = proj_x_axis;
-	orientation_out_mat.col(1) = proj_y_axis;
-	orientation_out_mat.col(2) = normal;
+    orientation_out_mat.row(0) = proj_x_axis;
+    orientation_out_mat.row(1) = proj_y_axis;
+    orientation_out_mat.row(2) = normal;
     orientation_out = exponential_map::RotationToExponentialMap(orientation_out_mat);
     //orientation_out.normalize();
 
@@ -131,8 +131,9 @@ bool GroundManager::getNearestMeshPosition(const Eigen::Vector3d& position_in,
                 distance = diff.norm();
             }
 
+            double normal_diff = 1.0 - normal_in.dot(triangle.normal_);
 
-            if (distance < current_min_distance)
+            if (distance + 0.1 * normal_diff < current_min_distance + 0.1 * (1.0 - normal_in.dot(normal)))
             {
                 current_min_distance = distance;
                 normal = triangle.normal_;

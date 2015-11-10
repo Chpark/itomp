@@ -94,7 +94,7 @@ public:
     int getNumJoints() const;
     unsigned int getNumParameters() const;
 
-    void setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const;
+    bool setJointPositions(Eigen::VectorXd& trajectory_data, const ParameterVector& parameters, int point) const;
     void getJointPositions(ParameterVector& parameters, const Eigen::VectorXd& trajectory_data, int point) const;
 
 protected:

@@ -1,4 +1,5 @@
 #include <itomp_cio_planner/optimization/improvement_manager_nlp.h>
+#include <itomp_cio_planner/optimization/phase_manager.h>
 #include <itomp_cio_planner/cost/trajectory_cost_manager.h>
 #include <itomp_cio_planner/util/multivariate_gaussian.h>
 #include <itomp_cio_planner/util/planning_parameters.h>
@@ -305,47 +306,35 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
     }
     */
 
-
-    /*
-    double max_der = std::abs(der(0));
-    int max_der_index = 0;
-    for (int i = 1; i < der.size(); ++i)
-    {
-        if (std::abs(der(i) > max_der))
+    double der_max[2][3];
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
         {
-            der(max_der_index) = 0.0;
-
-            max_der_index = i;
-            max_der = der(i);
+            der_max[i][j] = 0.0;
         }
-        else
-            der(i) = 0.0;
-    }
-    */
 
-    /*
-    const ItompTrajectoryIndex& max_itomp_index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(max_der_index);
     for (int i = 0; i < der.size(); ++i)
     {
         const ItompTrajectoryIndex& index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-        if (index.sub_component != max_itomp_index.sub_component)
-            der(i) = 0.0;
-    }
-    */
+        double max_scale = 1e10;
 
-    // normalize der;
-    double norm = 0.0;
-    for (int i = 0; i < der.size(); ++i)
-        norm += der(i) * der(i);
-    norm = std::sqrt(norm);
-    std::cout << "norm : " << norm << std::endl;
-    if (norm > 1.0)
-    {
-        //norm *= 0.001;
-        for (int i = 0; i < der.size(); ++i)
-            der(i) /= norm;
-    }
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
+            max_scale = 1e6;
 
+        if (der(i) > max_scale)
+            der(i) = max_scale;
+        if (der(i) < -max_scale)
+            der(i) = -max_scale;
+
+        if (std::abs(der(i)) > der_max[index.component][index.sub_component])
+            der_max[index.component][index.sub_component] = std::abs(der(i)) ;
+    }
+    for (int i = 0; i < 2; ++i)
+        for (int j = 0; j < 3; ++j)
+        {
+            std::cout << der_max[i][j] << " ";
+        }
+    std::cout << std::endl;
 
     return der;
 }
@@ -441,8 +430,14 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
                 break;
 
             case ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE:
-                x_lower(i) = 0.0;
-                x_upper(i) = 1.0;
+                
+                x_lower(i) = -10.0;
+                x_upper(i) = 10.0;
+                if (index.element % 4 == 3)
+                {
+                    x_lower(i) = 0.0;
+                    x_upper(i) = 10.0;
+                }
 
                 break;
 
@@ -453,29 +448,13 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
         }
     }
 
+    evaluation_manager_->render();
 
-    /*
-    if (iteration == 2)
-    {
-        for (int i = 0; i < variables.size(); ++i)
-        {
-            ItompTrajectoryIndex index = evaluation_manager_->getTrajectory()->getTrajectoryIndex(i);
-            if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION &&
-                    index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_JOINT &&
-                    index.element == 2 && index.point >= 16 && index.point <= 44)
-            {
-                variables(i) += 0.1;
-            }
-        }
-        evaluation_manager_->setParameters(variables);
-    }
-    */
-
-
-
-    dlib::find_min_box_constrained(dlib::lbfgs_search_strategy(10),
-                                   dlib::objective_delta_stop_strategy(eps_,
-                                           PlanningParameters::getInstance()->getMaxIterations()).be_verbose(),
+    int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
+    if (PhaseManager::getInstance()->getPhase() > 2)
+        max_iterations *= 10;
+    itomp_cio_planner::find_min_box_constrained(dlib::cg_search_strategy(),//itomp_cio_planner::lbfgs_search_strategy(10),
+                                   dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),
                                    variables, x_lower, x_upper);

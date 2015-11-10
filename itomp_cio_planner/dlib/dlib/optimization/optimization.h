@@ -511,6 +511,14 @@ namespace dlib
         double f_value = f(x);
         g = der(x);
 
+        T best_x = x;
+        double best_f = f_value;
+
+        Jacobian::projectToNullSpace(x, g);
+
+        if (f_value == 0 || length(g) == 0)
+            return f_value;
+
         DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
         DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
 
@@ -523,11 +531,12 @@ namespace dlib
         while(stop_strategy.should_continue_search(x, f_value, g))
         {
             s = search_strategy.get_next_direction(x, f_value, zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
-            Jacobian::projectToNullSpace(x, s);
             s = gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
+            Jacobian::scale(s);
+            Jacobian::projectToNullSpace(x, s);
 
             double alpha = backtracking_line_search(
-                        make_line_search_function(clamp_function(f,x_lower,x_upper), x, s, f_value),
+                        make_line_search_function2(clamp_function2(f,x_lower,x_upper,x,s), x, s, f_value),
                         f_value,
                         dot(g,s), // compute gradient for the line search
                         last_alpha, 
@@ -545,12 +554,17 @@ namespace dlib
 
             // Take the search step indicated by the above line search
             s *= alpha;
+            Jacobian::scale(s);
             Jacobian::projectToNullSpace(x, s);
             x = clamp(x + s, x_lower, x_upper);
+            Jacobian::scale(s);
+            Jacobian::projectToNullSpace(x, s);
             //x = x + s;
             //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
             g = der(x);
+
+            Jacobian::projectToNullSpace(x, g);
 
             DLIB_ASSERT(is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(is_finite(g), "The objective function generated non-finite outputs");
@@ -568,6 +582,18 @@ namespace dlib
 
             if (f_value == 0.0)
                 break;
+
+            if (f_value < best_f)
+            {
+                best_x = x;
+                best_f = f_value;
+            }
+        }
+
+        if (f_value > best_f)
+        {
+            x = best_x;
+            f_value = best_f;
         }
 
         return f_value;

@@ -70,6 +70,16 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)
@@ -85,7 +95,7 @@ void updateFullKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
         }
 	}
 }
@@ -109,7 +119,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 	RigidBodyDynamics::Math::SpatialVector propagated_force = model.f[i];
 	while (lambda != 0)
 	{
-        propagated_force = model.X_lambda[i].inverse().applyTranspose(propagated_force);
+        propagated_force = model.X_lambda[i].applyTranspose(propagated_force);
 		model.f[lambda] -= propagated_force;
 
 		i = lambda;
@@ -167,6 +177,16 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (int id = body_ids.size() - 1; id > 0; --id)
@@ -184,7 +204,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
         }
 	}
 
@@ -205,7 +225,7 @@ void updatePartialKinematicsAndDynamics(RigidBodyDynamics::Model &model,
 
 		if (lambda != 0)
 		{
-            propagated_force = model.X_lambda[i].inverse().applyTranspose(propagated_force);
+            propagated_force = model.X_lambda[i].applyTranspose(propagated_force);
 			model.f[lambda] += propagated_force;
 		}
 
@@ -241,6 +261,16 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 
         if (f_ext != NULL && (*f_ext)[i] != SpatialVectorZero)
             model.f[i] += model.X_base[i].toMatrixAdjoint() * (*f_ext)[i];
+
+        // box external force
+        if (i == 55 || i == 76)
+        {
+            const double box_mass = 50.0;
+            const double mu_kinetic = 0.4;
+            const double gravity = 9.8;
+            const double force_on_hand = box_mass * mu_kinetic * gravity / 2.0;
+            model.f[i] += model.X_base[i].toMatrixAdjoint() * (SpatialVector(0.0, 0.0, 0.0,  force_on_hand, 0.0, 0.0));
+        }
 	}
 
 	for (i = model.mBodies.size() - 1; i > 0; i--)
@@ -256,7 +286,7 @@ void updatePartialDynamics(RigidBodyDynamics::Model &model,
 
         if (model.lambda[i] != 0)
         {
-            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].inverse().applyTranspose(model.f[i]);
+            model.f[model.lambda[i]] = model.f[model.lambda[i]] + model.X_lambda[i].applyTranspose(model.f[i]);
         }
 	}
 }
@@ -321,6 +351,7 @@ bool InverseKinematics6D (
         const std::vector<Vector3d>& target_pos,
         const std::vector<Matrix3d>& target_ori,
         VectorNd &Qres,
+        const std::map<int, int>& rbdl_to_group_index_map,
         double step_tol,
         double lambda,
         unsigned int max_iter
@@ -339,13 +370,23 @@ bool InverseKinematics6D (
         UpdateKinematicsCustom (model, &Qres, NULL, NULL);
         for (unsigned int k = 0; k < body_id.size(); k++) {
             MatrixNd G (MatrixNd::Zero(6, model.qdot_size));
-            CalcPointJacobian6D(model, Qres, body_id[k], Vector3d::Zero(), G, false);
+            CalcPointJacobian6D(model, Qres, body_id[k], Vector3d::Zero(), G, rbdl_to_group_index_map, false);
             Vector3d point_base = CalcBodyToBaseCoordinates (model, Qres, body_id[k], Vector3d::Zero(), false);
             LOG << "current_pos = " << point_base.transpose() << std::endl;
 
-            Vector3d target_euler = target_ori[k].eulerAngles(0, 1, 2);
             Matrix3d body_world_ori = CalcBodyWorldOrientation(model, Qres, body_id[k], false);
-            Vector3d body_euler = body_world_ori.eulerAngles(0, 1, 2);
+            Vector3d euler_diff = (target_ori[k] * body_world_ori.transpose()).eulerAngles(0, 1, 2);
+            //Eigen::Quaterniond quat_diff((target_ori[k] * body_world_ori.transpose()));
+            Eigen::Quaterniond quat_from(body_world_ori);
+            Eigen::Quaterniond quat_target(target_ori[k]);
+            Matrix3d skew = Matrix3d::Zero();
+            skew(0, 1) = -quat_target.vec()[2];
+            skew(1, 0) = quat_target.vec()[2];
+            skew(0, 2) = quat_target.vec()[1];
+            skew(2, 0) = -quat_target.vec()[1];
+            skew(1, 2) = -quat_target.vec()[0];
+            skew(2, 1) = quat_target.vec()[0];
+            Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
 
             for (unsigned int i = 0; i < 6; i++) {
                 for (unsigned int j = 0; j < model.qdot_size; j++) {
@@ -356,7 +397,7 @@ bool InverseKinematics6D (
 
                 if (i < 3)
                 {
-                    e[k * 6 + i] = -(target_euler[i] - body_euler[i]);
+                    e[k * 6 + i] = -ori_diff[i];
                 }
                 else
                 {
@@ -428,6 +469,7 @@ void CalcPointJacobian6D (
         unsigned int body_id,
         const Vector3d &point_position,
         MatrixNd &G,
+        const std::map<int, int>& rbdl_to_group_index_map,
         bool update_kinematics
     )
 {
@@ -451,19 +493,44 @@ void CalcPointJacobian6D (
 
     unsigned int j = reference_body_id;
 
-    SpatialTransform point_rot = SpatialTransform (model.X_base[j].E, Math::Vector3d::Zero());
+    Matrix3d point_rot = model.X_base[j].E;
 
     // e[j] is set to 1 if joint j contributes to the jacobian that we are
     // computing. For all other joints the column will be zero.
     while (j != 0) {
         unsigned int q_index = model.mJoints[j].q_index;
 
-        if (model.mJoints[j].mDoFCount == 3) {
-            G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
-            G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
-        } else {
-            G.block(0, q_index, 3, 1) = point_rot.apply(model.X_base[j].inverse().apply(model.S[j])).block(0, 0, 3, 1);
-            G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+        if (rbdl_to_group_index_map.find(q_index) != rbdl_to_group_index_map.end())
+        {
+
+            if (model.mJoints[j].mDoFCount == 3) {
+                //G.block(0, q_index, 3, 3) = ((point_rot * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(0, 0, 3, 3);
+                G.block(3, q_index, 3, 3) = ((point_trans * model.X_base[j].inverse()).toMatrix() * model.multdof3_S[j]).block(3, 0, 3, 3);
+            } else {
+                G.block(3, q_index, 3, 1) = point_trans.apply(model.X_base[j].inverse().apply(model.S[j])).block(3, 0, 3, 1);
+
+                Eigen::AngleAxisd aa(1.0, point_rot * model.X_base[j].E.transpose() * model.S[j].block(0, 0, 3, 1));
+                Matrix3d mat = aa.toRotationMatrix();
+                Eigen::Quaterniond quat_from = Eigen::Quaterniond::Identity();
+                Eigen::Quaterniond quat_target(mat);
+                Matrix3d skew = Matrix3d::Zero();
+                skew(0, 1) = -quat_target.vec()[2];
+                skew(1, 0) = quat_target.vec()[2];
+                skew(0, 2) = quat_target.vec()[1];
+                skew(2, 0) = -quat_target.vec()[1];
+                skew(1, 2) = -quat_target.vec()[0];
+                skew(2, 1) = quat_target.vec()[0];
+                Vector3d ori_diff = quat_from.w() * quat_target.vec() - quat_target.w() * quat_from.vec() - skew * quat_from.vec();
+                G.block(0, q_index, 3, 1) = ori_diff;
+            }
+        }
+        else
+        {
+            if (model.mJoints[j].mDoFCount == 3) {
+                G.block(0, q_index, 6, 3).setZero();
+            } else {
+                G.block(0, q_index, 6, 1).setZero();
+            }
         }
 
         j = model.lambda[j];
