@@ -128,25 +128,20 @@ moveit_msgs::Constraints setRootJointConstraint(moveit_msgs::Constraints& c,
 
 int main(int argc, char **argv)
 {
-    std::vector<std::string> trajectory_file;
+    std::string benchmark_name = "";
     int motion = 0;
-    int agent = 0;
+    int num_agents = 0;
     if (argc >= 2)
     {
-        motion = atoi(argv[1]);
-        if(argc >=3)
+        benchmark_name = argv[1];
+        if (argc >= 3)
         {
-            agent = atoi(argv[2]);
+            motion = atoi(argv[2]);
+            if(argc >=4)
+            {
+                num_agents = atoi(argv[3]);
+            }
         }
-    }
-
-    for (int i = 0; i <= motion; ++i)
-    {
-        std::stringstream ss;
-        ss << "input/" << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent << "_" << std::setfill('0') << std::setw(4) << i << ".txt";
-        std::string file_name = ss.str();
-
-        trajectory_file.push_back(file_name);
     }
 
 	ros::init(argc, argv, "move_itomp");
@@ -178,64 +173,80 @@ int main(int argc, char **argv)
 	ros::WallDuration sleep_time(1.0);
 	sleep_time.sleep();
 
-    // load trajectory
-    moveit_msgs::DisplayTrajectory display_trajectory;
-
-    std::vector<robot_state::RobotState> robot_states;
-    for (int i = 0; i < trajectory_file.size(); ++i)
-        readTrajectory(display_trajectory, trajectory_file[i], planning_scene, robot_states);
-
-    displayInitialWaypoints(robot_states, node_handle, robot_model);
-
-    // set trajectory constraints
-    unsigned int last = robot_states.size() - 2;
-    for (unsigned int i = 0; i <= last; ++i)
+    for (int agent = 0; agent < num_agents; agent++)
     {
-        planning_interface::MotionPlanRequest req;
-        planning_interface::MotionPlanResponse res;
+        std::vector<std::string> trajectory_file;
 
-        for (unsigned int j = i; j <= i + 1; ++j)
+        for (int i = 0; i <= motion; ++i)
         {
-            moveit_msgs::Constraints constraint;
-            setRootJointConstraint(constraint, robot_states[j]);
-            req.trajectory_constraints.constraints.push_back(constraint);
+            std::stringstream ss;
+            ss << "input/" << benchmark_name << "/"
+               << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent << "_" << std::setfill('0') << std::setw(4) << i << ".txt";
+            std::string file_name = ss.str();
+
+            trajectory_file.push_back(file_name);
         }
 
-        // set the agent id and trajectory index
-        ros::NodeHandle node_handle("itomp_planner");
-        node_handle.setParam("agent_id", agent);
-        node_handle.setParam("agent_trajectory_index", (int)i);
+        // load trajectory
+        moveit_msgs::DisplayTrajectory display_trajectory;
 
-        displayStates(robot_states[i], robot_states[i + 1], node_handle, robot_model);
-        doPlan("whole_body", req, res, robot_states[i], robot_states[i + 1], planning_scene, planner_instance);
+        std::vector<robot_state::RobotState> robot_states;
+        for (int i = 0; i < trajectory_file.size(); ++i)
+            readTrajectory(display_trajectory, trajectory_file[i], planning_scene, robot_states);
 
-        // make the start pose of next interpolation the end pose of current result
-        robot_states[i + 1] = res.trajectory_->getLastWayPoint();
+        displayInitialWaypoints(robot_states, node_handle, robot_model);
 
-        /*
-        if (i == last)
+        // set trajectory constraints
+        unsigned int last = robot_states.size() - 2;
+        for (unsigned int i = 0; i <= last; ++i)
         {
-            for (int j = 0; j < 25; ++j)
-                res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
+            planning_interface::MotionPlanRequest req;
+            planning_interface::MotionPlanResponse res;
+
+            for (unsigned int j = i; j <= i + 1; ++j)
+            {
+                moveit_msgs::Constraints constraint;
+                setRootJointConstraint(constraint, robot_states[j]);
+                req.trajectory_constraints.constraints.push_back(constraint);
+            }
+
+            // set the agent id and trajectory index
+            ros::NodeHandle node_handle("itomp_planner");
+            node_handle.setParam("agent_id", agent);
+            node_handle.setParam("agent_trajectory_index", (int)i);
+            node_handle.setParam("benchmark_name", benchmark_name);
+
+            displayStates(robot_states[i], robot_states[i + 1], node_handle, robot_model);
+            doPlan("whole_body", req, res, robot_states[i], robot_states[i + 1], planning_scene, planner_instance);
+
+            // make the start pose of next interpolation the end pose of current result
+            robot_states[i + 1] = res.trajectory_->getLastWayPoint();
+
+            /*
+            if (i == last)
+            {
+                for (int j = 0; j < 25; ++j)
+                    res.trajectory_->addSuffixWayPoint(res.trajectory_->getLastWayPoint(), 5000);
+            }
+            */
+
+            moveit_msgs::MotionPlanResponse response;
+            res.getMessage(response);
+
+            if (i == 0)
+                display_trajectory.trajectory_start = response.trajectory_start;
+
+            display_trajectory.trajectory.push_back(response.trajectory);
         }
-        */
 
-        moveit_msgs::MotionPlanResponse response;
-        res.getMessage(response);
 
-        if (i == 0)
-            display_trajectory.trajectory_start = response.trajectory_start;
+        ROS_INFO("Visualizing the trajectory");
+        static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
 
-        display_trajectory.trajectory.push_back(response.trajectory);
+        display_publisher.publish(display_trajectory);
+        ros::WallDuration timer(1.0);
+        timer.sleep();
     }
-
-
-    ROS_INFO("Visualizing the trajectory");
-    static ros::Publisher display_publisher = node_handle.advertise<moveit_msgs::DisplayTrajectory>("/move_group/display_planned_path", 1, true);
-
-    display_publisher.publish(display_trajectory);
-    ros::WallDuration timer(1.0);
-    timer.sleep();
 
     ROS_INFO("Done");
 

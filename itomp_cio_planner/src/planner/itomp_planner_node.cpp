@@ -420,18 +420,21 @@ void ItompPlannerNode::writeTrajectory()
     trajectory_file.close();
     */
 
+    std::string benchmark_name;
     int agent_id = 0;
     int trajectory_index = 0;
 
     ros::NodeHandle node_handle("itomp_planner");
     node_handle.getParam("agent_id", agent_id);
     node_handle.getParam("agent_trajectory_index", trajectory_index);
+    node_handle.getParam("benchmark_name", benchmark_name);
 
     std::stringstream ss;
-    ss << "output/" << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
+    ss << "output/" << benchmark_name << "/"
+       << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
     std::ofstream trajectory_file;
     trajectory_file.open(ss.str().c_str());
-    itomp_trajectory_->printTrajectory(trajectory_file, 0, 40);
+    itomp_trajectory_->printTrajectory(trajectory_file, 0, itomp_trajectory_->getNumPoints() - 1);
     trajectory_file.close();
 }
 
