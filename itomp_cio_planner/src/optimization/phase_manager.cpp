@@ -31,8 +31,14 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
     case 0:
     {
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
+        {
+            if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE ||
+                index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+                return false;
+
             if (index.point == num_points_ -1)
-            return true;
+                return true;
+        }
 
         return false;
     }
@@ -53,9 +59,6 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         break;
     case 2:
     {
-        //return false;
-
-        //return false;
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
             if (index.point == 0 || index.point == num_points_ -1)
             return false;

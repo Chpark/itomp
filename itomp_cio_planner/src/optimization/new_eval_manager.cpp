@@ -753,16 +753,26 @@ void NewEvalManager::initializeContactVariables()
                 target_orientations.push_back(target_orientation);
             }
 
+            std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
+            // erase root, torso, ...
             /*
-            if (itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
-            {
-                updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
-                itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
-                                                   ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
-            }
-            else
-                ROS_INFO("IK failed");
+            for (int i=0; i<26; i++)
+                rbdl_to_group_joint.erase(i);
                 */
+
+            if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
+                ROS_INFO("IK failed");
+            updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
+            itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                               ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point) = q;
+
+        }
+
+        int num_fixed_contacts = 0;
+        for (int i = 0; i < num_contacts; ++i)
+        {
+            if (planning_group_->is_fixed_[i] == true)
+                ++num_fixed_contacts;
         }
 
 		for (int i = 0; i < num_contacts; ++i)
@@ -864,12 +874,8 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
                                                      itomp_trajectory_->getNumPoints() - 1, 1.0, 0.0, 0.0);
         double t = poly(point);
 
-        // IK toes
         for (int i = 0; i < num_contacts; ++i)
         {
-            if (i >= 2 && !getPlanningGroup()->is_fixed_[i])
-                continue;
-
             int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
             body_ids.push_back(rbdl_body_id);
 
@@ -883,24 +889,6 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
 
             target_positions.push_back(target_pos);
             target_orientations.push_back(target_orientation);
-        }
-
-        // IK hands
-        for (int i=0; i<2; i++)
-        {
-            const double h = (double)point / (itomp_trajectory_->getNumPoints() - 1);
-            const double h0 = (1-h)*(1-h)*(1-h), h1 = 3*(1-h)*(1-h)*h, h2 = 3*(1-h)*h*h, h3 = h*h*h;
-
-            const int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
-
-            const RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
-            const RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
-            const RigidBodyDynamics::Math::Vector3d dir(1.0, 0.0, 0.0);
-            const RigidBodyDynamics::Math::Vector3d start_vel = (goal_pos - start_pos).dot(dir) * dir;
-            const RigidBodyDynamics::Math::Vector3d goal_vel = (goal_pos - start_pos).dot(dir) * dir;
-            const RigidBodyDynamics::Math::Vector3d target_pos(h0 * start_pos + h1 * (start_pos + start_vel / 3) + h2 * (goal_pos - goal_vel / 3) + h3 * goal_pos);
-
-            target_positions[i] = target_pos;
         }
 
         Eigen::VectorXd q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
@@ -1038,7 +1026,8 @@ void NewEvalManager::computePassiveForces(int point,
         int q_index = rbdl_models_[point].mJoints[i].q_index;
 
         if ((q_index >= 3 && q_index <= 5) ||
-            (q_index >= 6 && q_index <= 11))
+            (q_index >= 46 && q_index <= 54) ||
+            (q_index >= 65 && q_index <= 70))
         {
             passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
         }

@@ -432,7 +432,7 @@ void NewVizManager::animateInternalForces(const ItompTrajectoryConstPtr& traject
     marker_CoMtoLink = marker_force;
     marker_CoMtoLink.color = colors_[RED];
 
-    for (int point = 0; point < 1/*trajectory->getNumPoints()*/; ++point)
+    for (int point = trajectory->getNumPoints() - 1; point < trajectory->getNumPoints(); ++point)
     {
         int marker_id = 0;
         marker_force.ns = "link_force_" + boost::lexical_cast<std::string>(point);
