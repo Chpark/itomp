@@ -116,6 +116,33 @@ bool ItompOptimizer::optimize()
             {
                 evaluation_manager_->correctContacts();
             }
+            if (iteration_ == 1)
+            {
+                // set contact forces to 0
+                const int num_contacts = evaluation_manager_->contact_variables_[0].size();
+
+                for (int contact_id = 0; contact_id < num_contacts; contact_id++)
+                {
+                    if (!evaluation_manager_->planning_group_->is_fixed_[contact_id])
+                    {
+                        for (int point = 5; point <= 15; point += 5)
+                        {
+                            for (int i=0; i<4; i++)
+                            {
+                                const Eigen::Vector3d zero(0.0, 0.0, 0.0);
+                                evaluation_manager_->contact_variables_[point][contact_id].setPointForce(i, zero);
+                            }
+
+                            evaluation_manager_->itomp_trajectory_->setContactVariables(point, evaluation_manager_->contact_variables_[point]);
+                        }
+                    }
+                }
+
+                evaluation_manager_->getTrajectoryNonConst()->interpolate( 0,  5, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+                evaluation_manager_->getTrajectoryNonConst()->interpolate( 5, 15, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+                evaluation_manager_->getTrajectoryNonConst()->interpolate(15, 20, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
+            }
+
             evaluation_manager_->render();
 		}
 	}

@@ -876,19 +876,22 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
 
         for (int i = 0; i < num_contacts; ++i)
         {
-            int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
-            body_ids.push_back(rbdl_body_id);
+            if (planning_group_->is_fixed_[i])
+            {
+                int rbdl_body_id = planning_group_->contact_points_[i].getRBDLBodyId();
+                body_ids.push_back(rbdl_body_id);
 
-            RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
-            RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
-            RigidBodyDynamics::Math::Vector3d target_pos(start_pos * (1.0 - t) + goal_pos * t);
+                RigidBodyDynamics::Math::Vector3d start_pos(rbdl_models_[0].X_base[rbdl_body_id].r);
+                RigidBodyDynamics::Math::Vector3d goal_pos(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].r);
+                RigidBodyDynamics::Math::Vector3d target_pos(start_pos * (1.0 - t) + goal_pos * t);
 
-            Quaterniond start_ori(rbdl_models_[0].X_base[rbdl_body_id].E);
-            Quaterniond end_ori(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E);
-            RigidBodyDynamics::Math::Matrix3d target_orientation(Eigen::Matrix3d(start_ori.slerp(t, end_ori)));
+                Quaterniond start_ori(rbdl_models_[0].X_base[rbdl_body_id].E);
+                Quaterniond end_ori(rbdl_models_[itomp_trajectory_->getNumPoints() - 1].X_base[rbdl_body_id].E);
+                RigidBodyDynamics::Math::Matrix3d target_orientation(Eigen::Matrix3d(start_ori.slerp(t, end_ori)));
 
-            target_positions.push_back(target_pos);
-            target_orientations.push_back(target_orientation);
+                target_positions.push_back(target_pos);
+                target_orientations.push_back(target_orientation);
+            }
         }
 
         Eigen::VectorXd q = itomp_trajectory_->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
