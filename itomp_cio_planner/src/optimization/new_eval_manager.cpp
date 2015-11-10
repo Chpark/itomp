@@ -703,6 +703,7 @@ void NewEvalManager::initializeContactVariables()
                 target_orientations.push_back(target_orientation);
             }
 
+            /*
             if (itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q))
             {
                 updateFullKinematicsAndDynamics(rbdl_models_[point], q, q_dot, q_ddot, tau, NULL, NULL);
@@ -711,6 +712,7 @@ void NewEvalManager::initializeContactVariables()
             }
             else
                 ROS_INFO("IK failed");
+                */
         }
 
 		for (int i = 0; i < num_contacts; ++i)
@@ -859,8 +861,7 @@ void NewEvalManager::computePassiveForces(int point,
         int q_index = rbdl_models_[point].mJoints[i].q_index;
 
         if ((q_index >= 3 && q_index <= 5) ||
-            (q_index >= 46 && q_index <= 54) ||
-            (q_index >= 65 && q_index <= 70))
+            (q_index >= 6 && q_index <= 11))
         {
             passive_forces[i] = -K_P * q(q_index) -K_D * q_dot(q_index);
         }

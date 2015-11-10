@@ -37,6 +37,9 @@ bool TrajectoryCostSmoothness::evaluate(
 	cost = 0;
 	double value;
 
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+        return true;
+
     for (int i = 0; i < mat_acc.cols(); ++i)
 	{
         value = mat_acc(i);
@@ -554,46 +557,61 @@ void TrajectoryCostROM::initialize(const NewEvalManager* evaluation_manager)
 }
 
 bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
-								 int point, double& cost) const
+                                 int point, double& cost) const
 {
-	bool is_feasible = true;
-	cost = 0;
+    bool is_feasible = true;
+    cost = 0;
 
-	TIME_PROFILER_START_TIMER(ROM);
+    if (PhaseManager::getInstance()->getPhase() > 3)
+        return is_feasible;
 
+    if (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+        return is_feasible;
+
+    TIME_PROFILER_START_TIMER(ROM);
+
+    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+    const RigidBodyDynamics::Math::SpatialTransform& head_transform = model.X_base[11];
+    const Eigen::Quaterniond right_hand_orientation(head_transform.E);
+    Eigen::Quaterniond orientation_y(Eigen::AngleAxisd(-0.5 * M_PI, Eigen::Vector3d::UnitY()));
+    double angle = right_hand_orientation.angularDistance(orientation_y);
+    cost = angle * angle;
+
+    /*
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
 
-	// joint angle vector q at waypoint 'point'
+    // joint angle vector q at waypoint 'point'
     const Eigen::VectorXd& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
                                                                 ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
 
-	// implement
-	// first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
-	double x, y, z;
+    // implement
+    // first right arm rom. Need to take the negative of the rom (if positive, inside rom, negative is outside)
+    double x, y, z;
     z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_z_joint"));
     y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_y_joint"));
     x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_arm_x_joint"));
 
-	cost += roms_[0].ResidualRadius(z, y, x);
+    cost += roms_[0].ResidualRadius(z, y, x);
 
     z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_z_joint"));
     y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_y_joint"));
     x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_right_leg_x_joint"));
-	cost += roms_[1].ResidualRadius(z, y, x);
+    cost += roms_[1].ResidualRadius(z, y, x);
 
     z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_z_joint"));
     y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_y_joint"));
     x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_arm_x_joint"));
-	cost += roms_[2].ResidualRadius(z, y, x);
+    cost += roms_[2].ResidualRadius(z, y, x);
 
     z = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_z_joint"));
     y = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_y_joint"));
     x = q(evaluation_manager->getItompRobotModel()->jointNameToRbdlNumber("upper_left_leg_x_joint"));
-	cost += roms_[3].ResidualRadius(z, y, x);
+    cost += roms_[3].ResidualRadius(z, y, x);
+    */
 
-	TIME_PROFILER_END_TIMER(ROM);
+    TIME_PROFILER_END_TIMER(ROM);
 
-	return is_feasible;
+    return is_feasible;
 }
 
 ITOMP_TRAJECTORY_COST_EMPTY_INIT_FUNC(CartesianTrajectory);

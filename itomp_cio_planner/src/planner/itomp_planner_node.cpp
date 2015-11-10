@@ -58,7 +58,7 @@ bool ItompPlannerNode::init()
                 PlanningParameters::getInstance()->getTrajectoryDiscretization(),
                 PlanningParameters::getInstance()->getPhaseDuration()));
 
-    deleteWaypointFiles();
+    //deleteWaypointFiles();
 
 	ROS_INFO("Initialized ITOMP planning service...");
 
