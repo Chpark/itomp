@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     for (int i = 0; i <= motion; ++i)
     {
         std::stringstream ss;
-        ss << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent << "_" << std::setfill('0') << std::setw(4) << i << ".txt";
+        ss << "input/" << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent << "_" << std::setfill('0') << std::setw(4) << i << ".txt";
         std::string file_name = ss.str();
 
         trajectory_file.push_back(file_name);
@@ -200,6 +200,11 @@ int main(int argc, char **argv)
             setRootJointConstraint(constraint, robot_states[j]);
             req.trajectory_constraints.constraints.push_back(constraint);
         }
+
+        // set the agent id and trajectory index
+        ros::NodeHandle node_handle("itomp_planner");
+        node_handle.setParam("agent_id", agent);
+        node_handle.setParam("agent_trajectory_index", (int)i);
 
         displayStates(robot_states[i], robot_states[i + 1], node_handle, robot_model);
         doPlan("whole_body", req, res, robot_states[i], robot_states[i + 1], planning_scene, planner_instance);

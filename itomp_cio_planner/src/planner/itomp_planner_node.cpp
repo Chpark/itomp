@@ -161,7 +161,7 @@ bool ItompPlannerNode::planTrajectory(const planning_scene::PlanningSceneConstPt
 
     // write goal state
     //writeWaypoint();
-    //writeTrajectory();
+    writeTrajectory();
 
 
 	// return trajectory
@@ -428,7 +428,7 @@ void ItompPlannerNode::writeTrajectory()
     node_handle.getParam("agent_trajectory_index", trajectory_index);
 
     std::stringstream ss;
-    ss << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
+    ss << "output/" << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
     std::ofstream trajectory_file;
     trajectory_file.open(ss.str().c_str());
     itomp_trajectory_->printTrajectory(trajectory_file, 0, 40);
