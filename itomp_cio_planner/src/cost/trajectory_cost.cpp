@@ -591,10 +591,12 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
     bool is_feasible = true;
     cost = 0;
 
+    /*
     if (PhaseManager::getInstance()->getPhase() > 3)
         return is_feasible;
+        */
 
-    if (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    if (PhaseManager::getInstance()->getPhase() == 0 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
     TIME_PROFILER_START_TIMER(ROM);

@@ -45,22 +45,21 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         break;
     case 1:
     {
-        return false;
-
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
-            return false;
+        {
+            if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
+                return false;
 
-        if (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)
-            return false;
+            if (index.point == num_points_ -1)
+                return true;
+        }
 
-        return true;
+        return false;
     }
         break;
     case 2:
     {
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
             return false;
 
         if (index.sub_component != ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)

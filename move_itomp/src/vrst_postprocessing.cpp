@@ -37,9 +37,7 @@ void readTrajectory(moveit_msgs::DisplayTrajectory& display_trajectory, const st
             for (int j = 0; j < num_joints; ++j)
             {
                 trajectory_file >> *(state.getVariablePositions() + j) ;
-                std::cout << *(state.getVariablePositions() + j) << " ";
             }
-            std::cout << std::endl;
 
             state.update(true);
             robot_input_states.push_back(state);
@@ -198,7 +196,7 @@ int main(int argc, char **argv)
 
         // set trajectory constraints
         unsigned int last = robot_states.size() - 2;
-        for (unsigned int i = 0; i <= last; ++i)
+        for (unsigned int i = 8; i <= last; ++i)
         {
             planning_interface::MotionPlanRequest req;
             planning_interface::MotionPlanResponse res;
