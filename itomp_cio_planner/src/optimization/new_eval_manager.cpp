@@ -732,7 +732,7 @@ void NewEvalManager::initializeContactVariables()
 
                         double dist = (proj_position - rbdl_models_[0].X_base[rbdl_body_id].r).norm();
                         cout << "[" << point << ":" << i << "] start-end dist : " << dist << " ori normal dot : " << dot_normal << endl;
-                        if ((dist < 0.15 && dot_normal > 0.8))
+                        if ((dist < 0.05 && dot_normal > 0.8))
                         {
                             proj_position = rbdl_models_[0].X_base[rbdl_body_id].r;
                             proj_orientation_mat = rbdl_models_[0].X_base[rbdl_body_id].E;
@@ -842,7 +842,7 @@ void NewEvalManager::initializeContactVariables()
 
         double pos_diff = (pos_start - pos_goal).squaredNorm();
 
-        if (planning_group_->is_fixed_[i] == true && pos_diff < 0.1 && dot_normal > 0.8)
+        if (planning_group_->is_fixed_[i] == true && pos_diff < 0.05 && dot_normal > 0.8)
         {
             cout << "Contact " << i << " fixed" << endl;
         }
