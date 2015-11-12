@@ -100,7 +100,7 @@ bool TrajectoryCostObstacle::evaluate(const NewEvalManager* evaluation_manager, 
 
 	bool is_feasible = true;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
         return is_feasible;
 
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
@@ -196,7 +196,7 @@ bool TrajectoryCostContactInvariant::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
         return is_feasible;
 
     const ItompPlanningGroupConstPtr& planning_group = evaluation_manager->getPlanningGroup();
@@ -287,7 +287,7 @@ bool TrajectoryCostPhysicsViolation::evaluate(
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
         return is_feasible;
 
 	TIME_PROFILER_START_TIMER(PhysicsViolation);
@@ -440,7 +440,7 @@ bool TrajectoryCostTorque::evaluate(const NewEvalManager* evaluation_manager, in
 	bool is_feasible = true;
 	cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
+    if (PhaseManager::getInstance()->getPhase() == 0 && (point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1))
         return is_feasible;
 
 	TIME_PROFILER_START_TIMER(Torque);
@@ -594,17 +594,19 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
     if (PhaseManager::getInstance()->getPhase() > 3)
         return is_feasible;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+    if (PhaseManager::getInstance()->getPhase() == 0 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
         return is_feasible;
 
     TIME_PROFILER_START_TIMER(ROM);
 
-    const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
-    const RigidBodyDynamics::Math::SpatialTransform& head_transform = model.X_base[12];
-    const Eigen::Vector3d head_orientation(head_transform.E.row(2));
-    const Eigen::Vector3d orientation_z(0.0, 0.0, 1.0);
-    double angle = std::acos( head_orientation.dot(orientation_z) );
-    cost = angle * angle;
+    {
+        const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
+        const RigidBodyDynamics::Math::SpatialTransform& head_transform = model.X_base[12];
+        const Eigen::Vector3d head_orientation(head_transform.E.row(2));
+        const Eigen::Vector3d orientation_z(0.0, 0.0, 1.0);
+        double angle = std::acos( head_orientation.dot(orientation_z) );
+        cost += angle * angle;
+    }
 
     /*
     const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();

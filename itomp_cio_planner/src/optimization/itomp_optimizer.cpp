@@ -79,6 +79,33 @@ bool ItompOptimizer::optimize()
 	{
 		while (iteration_ < num_max_iterations)
 		{
+            // initialize contact positions
+            if (iteration_ == 0)
+            {
+                const int num_contacts = evaluation_manager_->contact_variables_[0].size();
+
+                for (int contact_id = 0; contact_id < num_contacts; contact_id++)
+                {
+                    for (int i=0; i<4; i++)
+                    {
+                        evaluation_manager_->contact_variables_[ 5][contact_id].setPosition( evaluation_manager_->contact_variables_[ 0][contact_id].getPosition() );
+                        evaluation_manager_->contact_variables_[15][contact_id].setPosition( evaluation_manager_->contact_variables_[20][contact_id].getPosition() );
+                        evaluation_manager_->contact_variables_[25][contact_id].setPosition( evaluation_manager_->contact_variables_[20][contact_id].getPosition() );
+                        evaluation_manager_->contact_variables_[35][contact_id].setPosition( evaluation_manager_->contact_variables_[40][contact_id].getPosition() );
+                    }
+
+                    evaluation_manager_->itomp_trajectory_->setContactVariables( 5, evaluation_manager_->contact_variables_[ 5]);
+                    evaluation_manager_->itomp_trajectory_->setContactVariables(15, evaluation_manager_->contact_variables_[15]);
+                    evaluation_manager_->itomp_trajectory_->setContactVariables(25, evaluation_manager_->contact_variables_[25]);
+                    evaluation_manager_->itomp_trajectory_->setContactVariables(35, evaluation_manager_->contact_variables_[35]);
+                }
+
+                evaluation_manager_->getTrajectoryNonConst()->interpolate( 0,  5, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+                evaluation_manager_->getTrajectoryNonConst()->interpolate( 5, 15, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+                evaluation_manager_->getTrajectoryNonConst()->interpolate(15, 20, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION);
+            }
+
+
             ROS_INFO("Optimization phase %d started", iteration_);
 
 			if (is_best_parameter_feasible_)
@@ -110,7 +137,9 @@ bool ItompOptimizer::optimize()
 
             if (iteration_ == 1)
             {
-                evaluation_manager_->getTrajectoryNonConst()->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+                const int num_points = evaluation_manager_->getTrajectory()->getNumPoints();
+                evaluation_manager_->getTrajectoryNonConst()->interpolate(0, num_points / 2, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+                evaluation_manager_->getTrajectoryNonConst()->interpolate(num_points / 2, num_points - 1, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
             }
             //if (iteration_ == 1)
             {

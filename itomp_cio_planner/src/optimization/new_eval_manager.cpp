@@ -139,7 +139,7 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
 
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     //itomp_trajectory_->interpolateKeyframes(planning_group);
-    itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
+    //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_ALL);
     itomp_trajectory_->getElementTrajectory(0, 0)->printTrajectory(std::cout);
 
     const collision_detection::WorldPtr world(new collision_detection::World(*planning_scene_->getWorld()));

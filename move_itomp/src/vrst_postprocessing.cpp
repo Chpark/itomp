@@ -196,12 +196,12 @@ int main(int argc, char **argv)
 
         // set trajectory constraints
         unsigned int last = robot_states.size() - 2;
-        for (unsigned int i = 0; i <= last; ++i)
+        for (unsigned int i = 0; i <= last - 1; ++i)
         {
             planning_interface::MotionPlanRequest req;
             planning_interface::MotionPlanResponse res;
 
-            for (unsigned int j = i; j <= i + 1; j ++)
+            for (unsigned int j = i; j <= i + 2; j ++)
             {
                 moveit_msgs::Constraints constraint;
                 setRootJointConstraint(constraint, robot_states[j]);
@@ -214,11 +214,11 @@ int main(int argc, char **argv)
             node_handle.setParam("agent_trajectory_index", (int)i);
             node_handle.setParam("benchmark_name", benchmark_name);
 
-            displayStates(robot_states[i], robot_states[i + 1], node_handle, robot_model);
-            doPlan("whole_body", req, res, robot_states[i], robot_states[i + 1], planning_scene, planner_instance);
+            displayStates(robot_states[i], robot_states[i + 2], node_handle, robot_model);
+            doPlan("whole_body", req, res, robot_states[i], robot_states[i + 2], planning_scene, planner_instance);
 
             // make the start pose of next interpolation the end pose of current result
-            robot_states[i + 1] = res.trajectory_->getWayPoint( res.trajectory_->getWayPointCount() - 1 );
+            robot_states[i + 1] = res.trajectory_->getWayPoint( res.trajectory_->getWayPointCount() / 2 );
 
             /*
             if (i == last)
