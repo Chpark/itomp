@@ -80,7 +80,7 @@ bool ItompOptimizer::optimize()
 		while (iteration_ < num_max_iterations)
 		{
             // initialize contact positions
-            if (iteration_ == 0)
+            if (false)//iteration_ == 0)
             {
                 const int num_contacts = evaluation_manager_->contact_variables_[0].size();
 
@@ -135,12 +135,14 @@ bool ItompOptimizer::optimize()
             if (iteration_after_feasible_solution > PlanningParameters::getInstance()->getMaxIterationsAfterCollisionFree())
 				break;
 
+            /*
             if (iteration_ == 1)
             {
                 const int num_points = evaluation_manager_->getTrajectory()->getNumPoints();
                 evaluation_manager_->getTrajectoryNonConst()->interpolate(0, num_points / 2, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
                 evaluation_manager_->getTrajectoryNonConst()->interpolate(num_points / 2, num_points - 1, ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
             }
+            */
             //if (iteration_ == 1)
             {
                 //evaluation_manager_->correctContacts();

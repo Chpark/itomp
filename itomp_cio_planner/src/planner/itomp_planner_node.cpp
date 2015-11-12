@@ -434,7 +434,7 @@ void ItompPlannerNode::writeTrajectory()
        << "trajectory_out_" << std::setfill('0') << std::setw(4) << agent_id << "_" << std::setfill('0') << std::setw(4) << trajectory_index << ".txt";
     std::ofstream trajectory_file;
     trajectory_file.open(ss.str().c_str());
-    itomp_trajectory_->printTrajectory(trajectory_file, 0, itomp_trajectory_->getNumPoints() - 1);
+    itomp_trajectory_->printTrajectory(trajectory_file, 0, itomp_trajectory_->getNumPoints()/2);
     trajectory_file.close();
 }
 

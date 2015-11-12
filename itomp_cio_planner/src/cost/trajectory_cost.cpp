@@ -591,21 +591,34 @@ bool TrajectoryCostROM::evaluate(const NewEvalManager* evaluation_manager,
     bool is_feasible = true;
     cost = 0;
 
-    if (PhaseManager::getInstance()->getPhase() > 3)
+    if (PhaseManager::getInstance()->getPhase() <= 3)
         return is_feasible;
 
-    if (PhaseManager::getInstance()->getPhase() == 0 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
-        return is_feasible;
+    //if (PhaseManager::getInstance()->getPhase() == 0 && point != 0 && point != evaluation_manager->getTrajectory()->getNumPoints() / 2 && point != evaluation_manager->getTrajectory()->getNumPoints() - 1)
+//        return is_feasible;
 
     TIME_PROFILER_START_TIMER(ROM);
 
     {
         const RigidBodyDynamics::Model& model = evaluation_manager->getRBDLModel(point);
         const RigidBodyDynamics::Math::SpatialTransform& head_transform = model.X_base[12];
+
         const Eigen::Vector3d head_orientation(head_transform.E.row(2));
         const Eigen::Vector3d orientation_z(0.0, 0.0, 1.0);
-        double angle = std::acos( head_orientation.dot(orientation_z) );
+        double angle = std::acos( std::max(-1.0, std::min(1.0, head_orientation.dot(orientation_z))) );
         cost += angle * angle;
+    }
+
+
+    if (point >= 5 && point <= 15)
+    {
+        const ItompTrajectoryConstPtr trajectory = evaluation_manager->getTrajectory();
+        const Eigen::VectorXd& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                                    ItompTrajectory::SUB_COMPONENT_TYPE_JOINT)->getTrajectoryPoint(point);
+
+        int support_foot = PhaseManager::getInstance()->support_foot_;
+        double knee_joint_value = std::abs(support_foot == 1 ? q(41) : q(53));
+        cost += knee_joint_value * knee_joint_value;
     }
 
     /*

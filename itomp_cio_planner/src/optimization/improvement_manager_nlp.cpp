@@ -329,12 +329,14 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         if (std::abs(der(i)) > der_max[index.component][index.sub_component])
             der_max[index.component][index.sub_component] = std::abs(der(i)) ;
     }
+    /*
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 3; ++j)
         {
             std::cout << der_max[i][j] << " ";
         }
     std::cout << std::endl;
+    */
 
     return der;
 }
