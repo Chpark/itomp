@@ -697,21 +697,29 @@ void NewEvalManager::initializeContactVariables()
 
         if (point == itomp_trajectory_->getNumPoints() / 2)
         {
-            Eigen::Vector3d lfDiffFromStart = rbdl_models_[point].X_base[41].r - rbdl_models_[0].X_base[41].r;
-            Eigen::Vector3d rfDiffFromStart = rbdl_models_[point].X_base[53].r - rbdl_models_[0].X_base[53].r;
-            if (lfDiffFromStart.norm() < 0.15)
+            Eigen::Vector3d lfDiffFromStart = rbdl_models_[point].X_base[46].r - rbdl_models_[0].X_base[46].r;
+            Eigen::Vector3d rfDiffFromStart = rbdl_models_[point].X_base[58].r - rbdl_models_[0].X_base[58].r;
+            if (lfDiffFromStart.norm() < rfDiffFromStart.norm())
+                PhaseManager::getInstance()->support_foot_ = 1;
+            else
+                PhaseManager::getInstance()->support_foot_ = 2;
+            /*
+            if (lfDiffFromStart.norm() < 0.01)
             {
                 PhaseManager::getInstance()->support_foot_ = 1;
-                if (rfDiffFromStart.norm() < 0.15)
+                if (rfDiffFromStart.norm() < 0.01)
                     PhaseManager::getInstance()->support_foot_ = 3;
             }
             else
             {
-                if (rfDiffFromStart.norm() < 0.15)
+                if (rfDiffFromStart.norm() < 0.01)
                     PhaseManager::getInstance()->support_foot_ = 2;
                 else
                     PhaseManager::getInstance()->support_foot_ = 0;
             }
+            */
+            std::cout << "support foot : " << PhaseManager::getInstance()->support_foot_ << " (" <<
+                         lfDiffFromStart.norm() << " : " << rfDiffFromStart.norm() << ")" << std::endl;
         }
 
         if (point == 0 || point == itomp_trajectory_->getNumPoints() - 1)
