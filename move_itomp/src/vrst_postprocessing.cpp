@@ -218,6 +218,22 @@ int main(int argc, char **argv)
             {
                 moveit_msgs::Constraints constraint;
                 setRootJointConstraint(constraint, robot_states[j]);
+
+                if (j != i)
+                {
+                    const moveit_msgs::Constraints& prev_constraint = req.trajectory_constraints.constraints[req.trajectory_constraints.constraints.size() - 2];
+                    for (unsigned int k = 0; k < constraint.joint_constraints.size(); ++k)
+                    {
+                        double cur_pos = constraint.joint_constraints[k].position;
+                        double prev_pos = prev_constraint.joint_constraints[k].position;
+                        while (cur_pos -  prev_pos > M_PI + 0.001)
+                            cur_pos -= 2 * M_PI;
+                        while (cur_pos - prev_pos < -M_PI - 0.001)
+                            cur_pos += 2 * M_PI;
+                        constraint.joint_constraints[k].position = cur_pos;
+                    }
+                }
+
                 req.trajectory_constraints.constraints.push_back(constraint);
             }
 
