@@ -218,7 +218,7 @@ int main(int argc, char **argv)
             doPlan("whole_body", req, res, robot_states[i], robot_states[i + 1], planning_scene, planner_instance);
 
             // make the start pose of next interpolation the end pose of current result
-            robot_states[i + 1] = res.trajectory_->getWayPoint( res.trajectory_->getWayPointCount() / 2 );
+            robot_states[i + 1] = res.trajectory_->getWayPoint( res.trajectory_->getWayPointCount() - 1 );
 
             /*
             if (i == last)
