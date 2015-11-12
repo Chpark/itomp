@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
                 if (j != i)
                 {
-                    const moveit_msgs::Constraints& prev_constraint = req.trajectory_constraints.constraints[req.trajectory_constraints.constraints.size() - 2];
+                    const moveit_msgs::Constraints& prev_constraint = req.trajectory_constraints.constraints.back();
                     for (unsigned int k = 0; k < constraint.joint_constraints.size(); ++k)
                     {
                         double cur_pos = constraint.joint_constraints[k].position;
