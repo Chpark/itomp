@@ -453,7 +453,7 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
     evaluation_manager_->render();
 
     int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
-    if (PhaseManager::getInstance()->getPhase() > 2)
+    if (PhaseManager::getInstance()->getPhase() > 3)
         max_iterations *= 10;
     itomp_cio_planner::find_min_box_constrained(dlib::cg_search_strategy(),//itomp_cio_planner::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
