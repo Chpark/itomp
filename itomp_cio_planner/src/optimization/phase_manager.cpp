@@ -61,6 +61,8 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         break;
     case 2:
     {
+        return false;
+
         if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
             return false;
 
@@ -72,29 +74,42 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
         break;
     case 3:
     {
+        return false;
+
         if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
         {
+            return true;
+
+            /*
             if (index.point == 0 || index.point == num_points_ -1)
                 return true;
 
             int contact_id = index.element / 16;
             if (planning_group_->is_fixed_[contact_id])
                 return true;
+                */
         }
         return false;
     }
         break;
     case 4:
     {
-        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
-            if (index.point == 0 || index.point == num_points_ -1)
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
+            return true;
+        if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
             return false;
+        if (index.point == 0 || index.point == num_points_ -1)
+            return false;
+        return true;
 
         if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_POSITION)
             return false;
 
         if (index.sub_component == ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE)
         {
+            return true;
+
+            /*
             int contact_id = index.element / 16;
             if (planning_group_->is_fixed_[contact_id])
                 return true;
@@ -102,7 +117,12 @@ bool PhaseManager::updateParameter(const ItompTrajectoryIndex& index) const
             if (index.point == 0 || index.point == num_points_ -1)
                 return true;
             return false;
+            */
         }
+
+        if (index.component == ItompTrajectory::COMPONENT_TYPE_POSITION)
+            if (index.point == 0 || index.point == num_points_ -1)
+            return false;
 
         return true;
     }

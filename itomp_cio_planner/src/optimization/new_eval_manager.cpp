@@ -135,7 +135,7 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
     for (int i = 0; i < num_points; ++i)
         robot_state_[i].reset(new robot_state::RobotState(robot_model_->getMoveitRobotModel()));
 
-	initializeContactVariables();
+    initializeContactVariables();
 
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     //itomp_trajectory_->interpolateKeyframes(planning_group);
@@ -755,10 +755,8 @@ void NewEvalManager::initializeContactVariables()
 
             std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
             // erase root, torso, ...
-            /*
-            for (int i=0; i<26; i++)
+            for (int i=0; i<33; i++)
                 rbdl_to_group_joint.erase(i);
-                */
 
             if (!itomp_cio_planner::InverseKinematics6D(rbdl_models_[point], q, body_ids, target_positions, target_orientations, q, rbdl_to_group_joint))
                 ROS_INFO("IK failed");
@@ -900,7 +898,7 @@ void NewEvalManager::correctContacts(int point_begin, int point_end, bool update
 
         std::map<int, int> rbdl_to_group_joint = planning_group_->rbdl_to_group_joint_;
         // erase root, torso, ...
-        for (int i=0; i<46; i++)
+        for (int i=0; i<33; i++)
             rbdl_to_group_joint.erase(i);
 
 

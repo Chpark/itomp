@@ -290,7 +290,7 @@ private:
         T best_x = x;
         double best_f = f_value;
 
-        Jacobian::projectToNullSpace(x, g);
+        //Jacobian::projectToNullSpace(x, g);
 
         if (f_value == 0 || length(g) == 0)
             return f_value;
@@ -308,8 +308,8 @@ private:
         {
             s = search_strategy.get_next_direction(x, f_value, dlib::zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
             s = dlib::gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
-            Jacobian::scale(s);
-            Jacobian::projectToNullSpace(x, s);
+            //Jacobian::scale(s);
+            //Jacobian::projectToNullSpace(x, s);
 
             double alpha = backtracking_line_search(
                         make_line_search_function2(clamp_function2(f,x_lower,x_upper,x,s), x, s, f_value),
@@ -330,18 +330,18 @@ private:
 
             // Take the search step indicated by the above line search
             s *= alpha;
-            Jacobian::scale(s);
-            Jacobian::projectToNullSpace(x, s);
+            //Jacobian::scale(s);
+            //Jacobian::projectToNullSpace(x, s);
             x = clamp(x + s, x_lower, x_upper);
-            Jacobian::scale(s);
-            Jacobian::projectToNullSpace(x, s);
+            //Jacobian::scale(s);
+            //Jacobian::projectToNullSpace(x, s);
 
             //x = x + s;
             //x = clamp(x + alpha*s, x_lower, x_upper);
             f_value = f(x);
             g = der(x);
 
-            Jacobian::projectToNullSpace(x, g);
+            //Jacobian::projectToNullSpace(x, g);
 
             DLIB_ASSERT(dlib::is_finite(f_value), "The objective function generated non-finite outputs");
             DLIB_ASSERT(dlib::is_finite(g), "The objective function generated non-finite outputs");

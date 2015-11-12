@@ -114,8 +114,10 @@ bool ItompOptimizer::optimize()
             }
             //if (iteration_ == 1)
             {
-                evaluation_manager_->correctContacts();
+                //evaluation_manager_->correctContacts();
             }
+
+            /*
             if (iteration_ == 1)
             {
                 // set contact forces to 0
@@ -142,13 +144,14 @@ bool ItompOptimizer::optimize()
                 evaluation_manager_->getTrajectoryNonConst()->interpolate( 5, 15, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
                 evaluation_manager_->getTrajectoryNonConst()->interpolate(15, 20, ItompTrajectory::SUB_COMPONENT_TYPE_CONTACT_FORCE);
             }
+            */
 
             evaluation_manager_->render();
 		}
 	}
 
 	evaluation_manager_->setParameters(best_parameter_trajectory_);
-    evaluation_manager_->correctContacts();
+    //evaluation_manager_->correctContacts();
 	evaluation_manager_->evaluate();
 	evaluation_manager_->printTrajectoryCost(iteration_);
 
