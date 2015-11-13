@@ -130,7 +130,7 @@ void NewVizManager::animateEndeffectors(const ItompTrajectoryConstPtr& full_traj
 void NewVizManager::animatePath(const ItompTrajectoryConstPtr& trajectory,
 								const robot_state::RobotStatePtr& robot_state, bool is_best)
 {
-	if (!is_best)
+    if (!is_best)
         return;
 
     // marker array

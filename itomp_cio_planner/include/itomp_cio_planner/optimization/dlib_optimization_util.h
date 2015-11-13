@@ -308,7 +308,7 @@ private:
         {
             s = search_strategy.get_next_direction(x, f_value, dlib::zero_bounded_variables(gap_eps, g, x, g, x_lower, x_upper));
             s = dlib::gap_step_assign_bounded_variables(gap_eps, s, x, g, x_lower, x_upper);
-            //Jacobian::scale(s);
+            Jacobian::scale(s);
             //Jacobian::projectToNullSpace(x, s);
 
             double alpha = backtracking_line_search(
@@ -330,7 +330,7 @@ private:
 
             // Take the search step indicated by the above line search
             s *= alpha;
-            //Jacobian::scale(s);
+            Jacobian::scale(s);
             //Jacobian::projectToNullSpace(x, s);
             x = clamp(x + s, x_lower, x_upper);
             //Jacobian::scale(s);

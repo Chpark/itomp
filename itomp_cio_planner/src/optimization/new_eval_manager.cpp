@@ -137,6 +137,44 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
 
     initializeContactVariables();
 
+    // adjust knee
+    bool moving_upstair = false;
+    const int mid_point = num_points / 2;
+    const Eigen::Vector3d lfDiffFromStart = rbdl_models_[mid_point].X_base[46].r - rbdl_models_[0].X_base[46].r;
+    const Eigen::Vector3d rfDiffFromStart = rbdl_models_[mid_point].X_base[58].r - rbdl_models_[0].X_base[58].r;
+    if (lfDiffFromStart(2) > 0.1 || rfDiffFromStart(2) > 0.1)
+        moving_upstair = true;
+
+    if (moving_upstair)
+    {
+        const double knee_joint_delta[] =
+        {
+            0.0,
+            M_PI / 6.0,
+            M_PI / 3.0,
+            M_PI / 6.0,
+            0.0,
+        };
+        for (int point = 5; point <= 15; point += 5)
+        {
+            ItompTrajectoryPtr trajectory = getTrajectoryNonConst();
+            ElementTrajectoryPtr& q = trajectory->getElementTrajectory(ItompTrajectory::COMPONENT_TYPE_POSITION,
+                                                                       ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
+
+            int support_foot = PhaseManager::getInstance()->support_foot_;
+            if (support_foot == 2)
+            {
+                double& knee_joint_value = q->at(point, 41);
+                knee_joint_value -= knee_joint_delta[point / 5];
+            }
+            else
+            {
+                double& knee_joint_value = q->at(point, 53);
+                knee_joint_value -= knee_joint_delta[point / 5];
+            }
+        }
+    }
+
     itomp_trajectory_->computeParameterToTrajectoryIndexMap(robot_model, planning_group);
     //itomp_trajectory_->interpolateKeyframes(planning_group);
     //itomp_trajectory_->interpolateStartEnd(ItompTrajectory::SUB_COMPONENT_TYPE_JOINT);
@@ -595,15 +633,18 @@ void NewEvalManager::printTrajectoryCost(int iteration, bool details)
 	if (is_best)
 		best_cost_ = cost;
 
-    return;
+    //return;
 
     const std::vector<TrajectoryCostPtr>& cost_functions = TrajectoryCostManager::getInstance()->getCostFunctionVector();
 
+
+    /*
 	if (!details || !is_best)
 	{
 	}
 	else
-	{
+    */
+    {
         cout.precision(std::numeric_limits<double>::digits10);
         cout << "[" << iteration << "] Trajectory cost : " << fixed << old_best << " -> " << fixed << best_cost_ << std::endl;
 

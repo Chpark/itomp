@@ -329,14 +329,12 @@ column_vector ImprovementManagerNLP::derivative(const column_vector& variables)
         if (std::abs(der(i)) > der_max[index.component][index.sub_component])
             der_max[index.component][index.sub_component] = std::abs(der(i)) ;
     }
-    /*
     for (int i = 0; i < 2; ++i)
         for (int j = 0; j < 3; ++j)
         {
             std::cout << der_max[i][j] << " ";
         }
     std::cout << std::endl;
-    */
 
     return der;
 }
@@ -453,9 +451,9 @@ void ImprovementManagerNLP::optimize(int iteration, column_vector& variables)
     evaluation_manager_->render();
 
     int max_iterations = PlanningParameters::getInstance()->getMaxIterations();
-    if (PhaseManager::getInstance()->getPhase() > 3)
+    if (PhaseManager::getInstance()->getPhase() > 2)
         max_iterations *= 10;
-    itomp_cio_planner::find_min_box_constrained(dlib::cg_search_strategy(),//itomp_cio_planner::lbfgs_search_strategy(10),
+    itomp_cio_planner::find_min_box_constrained(itomp_cio_planner::lbfgs_search_strategy(10),
                                    dlib::objective_delta_stop_strategy(eps_, max_iterations).be_verbose(),
                                    boost::bind(&ImprovementManagerNLP::evaluate, this, _1),
                                    boost::bind(&ImprovementManagerNLP::derivative, this, _1),

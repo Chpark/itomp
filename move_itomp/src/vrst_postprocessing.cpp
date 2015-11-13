@@ -205,6 +205,10 @@ int main(int argc, char **argv)
         for (int i = 0; i < trajectory_file.size(); ++i)
             readTrajectory(display_trajectory_input, trajectory_file[i], planning_scene, robot_states);
 
+        /*
+        std::vector<robot_state::RobotState> display_robot_states(robot_states.begin() + 140, robot_states.begin() + 160 + 21);
+        displayInitialWaypoints(display_robot_states, node_handle, robot_model);
+        */
         displayInitialWaypoints(robot_states, node_handle, robot_model);
 
         // set trajectory constraints
