@@ -142,7 +142,12 @@ void NewEvalManager::initialize(const ItompTrajectoryPtr& itomp_trajectory,
     const int mid_point = num_points / 2;
     const Eigen::Vector3d lfDiffFromStart = rbdl_models_[mid_point].X_base[46].r - rbdl_models_[0].X_base[46].r;
     const Eigen::Vector3d rfDiffFromStart = rbdl_models_[mid_point].X_base[58].r - rbdl_models_[0].X_base[58].r;
-    if (lfDiffFromStart(2) > 0.1 || rfDiffFromStart(2) > 0.1)
+    const double lfNormalDiffStart = rbdl_models_[0].X_base[46].E.row(2).dot( Eigen::Vector3d(0.0, 0.0, 1.0) );
+    const double rfNormalDiffStart = rbdl_models_[0].X_base[58].E.row(2).dot( Eigen::Vector3d(0.0, 0.0, 1.0) );
+    const double lfNormalDiffEnd = rbdl_models_[mid_point].X_base[46].E.row(2).dot( Eigen::Vector3d(0.0, 0.0, 1.0) );
+    const double rfNormalDiffEnd = rbdl_models_[mid_point].X_base[58].E.row(2).dot( Eigen::Vector3d(0.0, 0.0, 1.0) );
+    if ((lfDiffFromStart(2) > 0.1 && lfNormalDiffStart > 0.99 && lfNormalDiffEnd > 0.99) ||
+        (rfDiffFromStart(2) > 0.1 && rfNormalDiffStart > 0.99 && rfNormalDiffEnd > 0.99))
         moving_upstair = true;
 
     if (moving_upstair)
